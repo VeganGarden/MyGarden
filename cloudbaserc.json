@@ -1,0 +1,27 @@
+{
+  "envId": "xiaoshidashi-4gng7p8p862e8878",
+  "region": "ap-shanghai",
+  "functions": [
+    {
+      "name": "ai-service",
+      "timeout": 5,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 128,
+      "handler": "index.main"
+    }
+  ],
+  "framework": {
+    "name": "mygarden-cloudbase",
+    "plugins": {
+      "server": {
+        "use": "@cloudbase/framework-plugin-node",
+        "inputs": {
+          "entry": "./functions",
+          "path": "/",
+          "name": "mygarden-ai-services"
+        }
+      }
+    }
+  }
+}

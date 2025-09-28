@@ -1,0 +1,20 @@
+{
+  "name": "mygarden-cloudbase",
+  "version": "1.0.0",
+  "description": "MyGarden腾讯云开发项目",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tcb functions:serve",
+    "deploy": "tcb framework deploy",
+    "login": "tcb login"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.8.0"
+  },
+  "devDependencies": {
+    "@cloudbase/cli": "^1.5.0"
+  },
+  "keywords": ["cloudbase", "tencent", "ai"],
+  "author": "",
+  "license": "MIT"
+}

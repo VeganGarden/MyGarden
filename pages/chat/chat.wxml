@@ -1,0 +1,41 @@
+<!--pages/chat/chat.wxml-->
+<view class="container">
+  <!-- 聊天头部 -->
+  <view class="chat-header">
+    <view class="back-btn" bindtap="goBack">
+      <text class="icon">←</text>
+    </view>
+    <text class="title">AI聊天助手</text>
+    <view class="status-dot {{status.online ? 'online' : 'offline'}}"></view>
+  </view>
+
+  <!-- 聊天消息区域 -->
+  <scroll-view class="chat-messages" scroll-y scroll-top="{{scrollTop}}" scroll-with-animation>
+    <view wx:for="{{messages}}" wx:key="id" class="message {{item.role}}">
+      <view class="avatar">
+        <text class="icon">{{item.role === 'user' ? '👤' : '🤖'}}</text>
+      </view>
+      <view class="content">
+        <text class="text">{{item.content}}</text>
+        <text class="time">{{item.time}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 输入区域 -->
+  <view class="input-area">
+    <view class="input-container">
+      <input 
+        class="message-input" 
+        placeholder="输入消息..." 
+        bindinput="onInput"
+        value="{{inputMessage}}"
+        bindconfirm="sendMessage"
+        focus="{{autoFocus}}"
+      />
+      <button class="send-btn" bindtap="sendMessage" disabled="{{!inputMessage.trim() || sending}}">
+        {{sending ? '发送中...' : '发送'}}
+      </button>
+    </view>
+  </view>
+</view>

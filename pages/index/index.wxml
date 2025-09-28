@@ -1,0 +1,64 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 头部区域 -->
+  <view class="header">
+    <image src="/images/logo.png" class="logo"></image>
+    <text class="title">MyGarden AI服务</text>
+    <text class="subtitle">智能对话与数据分析平台</text>
+  </view>
+
+  <!-- 功能卡片 -->
+  <view class="card">
+    <view class="card-title">
+      <text class="icon">🤖</text>
+      <text class="text">AI聊天服务</text>
+    </view>
+    <text class="card-desc">与智能AI助手进行对话交流，获取专业回答和建议</text>
+    <button class="btn-primary" bindtap="goToChat">开始聊天</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">
+      <text class="icon">📊</text>
+      <text class="text">数据分析服务</text>
+    </view>
+    <text class="card-desc">上传数据进行分析，获取深度洞察和趋势预测</text>
+    <button class="btn-primary" bindtap="goToAnalyze">数据分析</button>
+  </view>
+
+  <!-- 状态信息 -->
+  <view class="status-card">
+    <view class="status-item">
+      <text class="label">云函数状态</text>
+      <text class="value {{status.aiService ? 'online' : 'offline'}}">
+        {{status.aiService ? '在线' : '离线'}}
+      </text>
+    </view>
+    <view class="status-item">
+      <text class="label">环境状态</text>
+      <text class="value {{status.environment ? 'online' : 'offline'}}">
+        {{status.environment ? '正常' : '异常'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 快速测试 -->
+  <view class="card">
+    <view class="card-title">
+      <text class="icon">⚡</text>
+      <text class="text">快速测试</text>
+    </view>
+    <input 
+      class="input-field" 
+      placeholder="输入测试消息..." 
+      bindinput="onTestInput"
+      value="{{testMessage}}"
+    />
+    <button class="btn-primary" bindtap="quickTest" loading="{{testing}}">
+      {{testing ? '测试中...' : '快速测试'}}
+    </button>
+    <view wx:if="{{testResponse}}" class="response-box">
+      <text>AI响应: {{testResponse}}</text>
+    </view>
+  </view>
+</view>
