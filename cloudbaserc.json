@@ -1,27 +1,35 @@
 {
-  "envId": "xiaoshidashi-4gng7p8p862e8878",
+  "envId": "my-garden-app-env",
   "region": "ap-shanghai",
+  "functionRoot": "cloudfunctions",
   "functions": [
     {
-      "name": "ai-service",
+      "name": "login",
       "timeout": 5,
       "envVariables": {},
       "runtime": "Nodejs16.13",
-      "memorySize": 128,
-      "handler": "index.main"
+      "memorySize": 128
+    },
+    {
+      "name": "user",
+      "timeout": 5,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 128
+    },
+    {
+      "name": "garden",
+      "timeout": 5,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 128
+    },
+    {
+      "name": "carbon",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
-  ],
-  "framework": {
-    "name": "mygarden-cloudbase",
-    "plugins": {
-      "server": {
-        "use": "@cloudbase/framework-plugin-node",
-        "inputs": {
-          "entry": "./functions",
-          "path": "/",
-          "name": "mygarden-ai-services"
-        }
-      }
-    }
-  }
+  ]
 }
