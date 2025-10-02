@@ -1,0 +1,7 @@
+<svg width="81" height="81" viewBox="0 0 81 81" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 植物轮廓 - 未选中状态 -->
+  <path d="M40.5 15L30 30V50H25V60H55V50H50V30L40.5 15Z" stroke="#666666" stroke-width="3" fill="none"/>
+  <circle cx="40.5" cy="25" r="5" fill="#666666"/>
+  <circle cx="30" cy="40" r="4" fill="#666666"/>
+  <circle cx="50" cy="40" r="4" fill="#666666"/>
+</svg>

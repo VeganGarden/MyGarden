@@ -1,0 +1,5 @@
+<svg width="81" height="81" viewBox="0 0 81 81" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 房屋轮廓 - 未选中状态 -->
+  <path d="M40.5 15L15 35V66H25V45H55V66H65V35L40.5 15Z" stroke="#666666" stroke-width="3" fill="none"/>
+  <rect x="35" y="45" width="10" height="21" fill="#666666"/>
+</svg>

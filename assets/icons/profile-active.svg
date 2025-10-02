@@ -1,0 +1,5 @@
+<svg width="81" height="81" viewBox="0 0 81 81" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 人物填充 - 选中状态 -->
+  <circle cx="40.5" cy="25" r="10" fill="#4CAF50" stroke="#4CAF50" stroke-width="3"/>
+  <path d="M25 55C25 45, 35 45, 40.5 45C46 45, 56 45, 56 55V60H25V55Z" fill="#4CAF50" stroke="#4CAF50" stroke-width="3"/>
+</svg>

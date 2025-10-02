@@ -1,0 +1,115 @@
+.line-chart {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(34, 197, 94, 0.1);
+  
+  .chart-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #166534;
+    margin-bottom: 32rpx;
+    display: block;
+    text-align: center;
+  }
+  
+  .chart-container {
+    position: relative;
+    width: 100%;
+  }
+  
+  .chart-grid {
+    display: flex;
+    height: 100%;
+    position: relative;
+  }
+  
+  .y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 80rpx;
+    padding-right: 16rpx;
+    
+    .y-label {
+      font-size: 20rpx;
+      color: #6b7280;
+      text-align: right;
+    }
+  }
+  
+  .chart-content {
+    flex: 1;
+    position: relative;
+    height: 100%;
+  }
+  
+  .grid-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1rpx;
+    background: #e5e7eb;
+    
+    &:nth-child(1) {
+      background: #9ca3af;
+    }
+  }
+  
+  .line-path {
+    position: relative;
+    height: 100%;
+    width: 100%;
+  }
+  
+  .data-point {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    .point {
+      width: 16rpx;
+      height: 16rpx;
+      background: #22c55e;
+      border-radius: 50%;
+      border: 3rpx solid #ffffff;
+      box-shadow: 0 2rpx 8rpx rgba(34, 197, 94, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .point-value {
+      font-size: 20rpx;
+      color: #22c55e;
+      font-weight: 500;
+      margin-top: 8rpx;
+      white-space: nowrap;
+    }
+  }
+  
+  .x-axis {
+    position: absolute;
+    bottom: -40rpx;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    
+    .x-label {
+      font-size: 20rpx;
+      color: #6b7280;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+  }
+  
+  .no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #9ca3af;
+    font-size: 28rpx;
+  }
+}
