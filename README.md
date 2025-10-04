@@ -1,4 +1,8 @@
-# 我的花园 - 微信小程序
+# MyGarden
+素食花园
+>>>>>>> d00b45898b47bb323e5f12e369c0b8bd391ee5c1
+=======
+# MyGarden - 素食花园
 
 一个基于Taro + React + TypeScript开发的微信小程序，专注于花园管理和碳足迹追踪。
 
@@ -177,3 +181,7 @@ MIT License
 ## 联系方式
 
 如有问题请联系开发团队。
+=======
+# MyGarden
+素食花园
+>>>>>>> d00b45898b47bb323e5f12e369c0b8bd391ee5c1
