@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, Image, Button, Input } from '@tarojs/components'
 import './index.scss'
+import Taro from '@tarojs/taro'
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -18,14 +19,12 @@ const Login: React.FC = () => {
 
   const handleLogin = () => {
     if (!username.trim()) {
-      // 显示错误消息
-      console.log('请输入用户名');
+      Taro.showToast({ title: '请输入用户名', icon: 'none' });
       return;
     }
     
     if (!password.trim()) {
-      // 显示错误消息
-      console.log('请输入密码');
+      Taro.showToast({ title: '请输入密码', icon: 'none' });
       return;
     }
 
@@ -35,27 +34,44 @@ const Login: React.FC = () => {
     // 模拟登录逻辑
     setTimeout(() => {
       setLoading(false)
-      // 这里应该调用实际的登录API
-      console.log('登录请求:', {
-        username: username.trim(),
-        password: password.trim()
-      })
+      Taro.showToast({ title: '登录成功', icon: 'success' });
+      Taro.switchTab({ url: '/pages/index/index' });
     }, 1000)
   };
 
-  const handleWechatLogin = () => {
-    // 微信登录逻辑
-    console.log('微信登录');
+  const handleWechatLogin = async () => {
+    try {
+      const res = await Taro.login();
+      if (res.code) {
+        // 调用后端接口，使用 code 换取用户信息
+        Taro.showLoading({ title: '登录中...' });
+        const loginRes = await Taro.request({
+          url: 'https://your-backend-api.com/wechat-login',
+          method: 'POST',
+          data: { code: res.code },
+        });
+        Taro.hideLoading();
+        if (loginRes.data.success) {
+          Taro.showToast({ title: '微信登录成功', icon: 'success' });
+          Taro.switchTab({ url: '/pages/index/index' });
+        } else {
+          Taro.showToast({ title: '登录失败', icon: 'none' });
+        }
+      } else {
+        Taro.showToast({ title: '获取微信登录凭证失败', icon: 'none' });
+      }
+    } catch (err) {
+      Taro.showToast({ title: '微信登录异常', icon: 'none' });
+      console.error('微信登录异常:', err);
+    }
   };
 
   const handleRegister = () => {
-    // 跳转到注册页面
-    console.log('跳转到注册页面');
+    Taro.navigateTo({ url: '/pages/register/index' });
   };
 
   const handleForgotPassword = () => {
-    // 忘记密码逻辑
-    console.log('忘记密码');
+    Taro.navigateTo({ url: '/pages/forgot-password/index' });
   };
 
   return (
