@@ -1,0 +1,8 @@
+# 确保在最新的develop分支上
+git checkout develop
+git pull origin develop
+
+# 创建功能分支（使用有意义的命名）
+git checkout -b feature/user-login
+# 或者
+git checkout -b fix/payment-bug
