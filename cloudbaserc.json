@@ -1,5 +1,5 @@
 {
-  "envId": "my-garden-app-env",
+  "envId": "my-garden-app-env-4e0h762923be2f",
   "region": "ap-shanghai",
   "functionRoot": "cloudfunctions",
   "functions": [
@@ -27,6 +27,20 @@
     {
       "name": "carbon",
       "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "database",
+      "timeout": 60,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "data-import",
+      "timeout": 60,
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256

@@ -1,0 +1,14 @@
+{
+  "name": "database",
+  "version": "1.0.0",
+  "description": "数据库初始化和管理云函数",
+  "main": "index.js",
+  "scripts": {
+    "test": "node init-collections.js"
+  },
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+
+
