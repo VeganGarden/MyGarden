@@ -41,6 +41,7 @@
     "webpack": "^5.88.0"
   },
   "devDependencies": {
+    "@cloudbase/cli": "^2.9.8",
     "@tarojs/cli": "^3.6.38",
     "@tarojs/mini-runner": "^3.6.38",
     "@types/react": "^18.0.0",

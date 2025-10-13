@@ -19,7 +19,7 @@ async function deployCloudFunctions() {
     // 部署云函数
     console.log('📤 部署云函数到腾讯云开发环境...')
     
-    const functions = ['login', 'user', 'garden', 'carbon']
+    const functions = ['login', 'user', 'garden', 'carbon', 'database']
     
     for (const funcName of functions) {
       console.log(`🔧 部署云函数: ${funcName}`)

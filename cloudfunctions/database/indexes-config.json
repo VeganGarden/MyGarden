@@ -1,0 +1,340 @@
+{
+  "description": "数据库索引配置文件 - 用于在控制台手动创建索引时参考",
+  "totalIndexes": 28,
+  "collections": {
+    "users": {
+      "collectionName": "users",
+      "totalIndexes": 3,
+      "indexes": [
+        {
+          "name": "openId_unique",
+          "keys": [{ "field": "openId", "direction": 1 }],
+          "unique": true,
+          "priority": "最高",
+          "description": "用户登录查询"
+        },
+        {
+          "name": "level_points_ranking",
+          "keys": [
+            { "field": "level", "direction": -1 },
+            { "field": "points", "direction": -1 }
+          ],
+          "priority": "高",
+          "description": "排行榜查询"
+        },
+        {
+          "name": "lastLoginAt_index",
+          "keys": [{ "field": "lastLoginAt", "direction": -1 }],
+          "priority": "中",
+          "description": "活跃度统计"
+        }
+      ]
+    },
+    "user_sessions": {
+      "collectionName": "user_sessions",
+      "totalIndexes": 3,
+      "indexes": [
+        {
+          "name": "userId_expiresAt_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "expiresAt", "direction": 1 }
+          ],
+          "priority": "高",
+          "description": "会话管理"
+        },
+        {
+          "name": "accessToken_index",
+          "keys": [{ "field": "accessToken", "direction": 1 }],
+          "priority": "最高",
+          "description": "Token验证"
+        },
+        {
+          "name": "expiresAt_ttl",
+          "keys": [{ "field": "expiresAt", "direction": 1 }],
+          "expireAfterSeconds": 0,
+          "optional": true,
+          "priority": "中",
+          "description": "TTL自动清理（可能不支持）"
+        }
+      ]
+    },
+    "meals": {
+      "collectionName": "meals",
+      "totalIndexes": 4,
+      "indexes": [
+        {
+          "name": "userId_mealDate_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "mealDate", "direction": -1 }
+          ],
+          "priority": "最高",
+          "description": "个人餐食记录查询（最高频）",
+          "performanceTarget": "<50ms"
+        },
+        {
+          "name": "userId_createdAt_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "createdAt", "direction": -1 }
+          ],
+          "priority": "高",
+          "description": "最近记录查询"
+        },
+        {
+          "name": "userId_source_orderId_unique",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "source", "direction": 1 },
+            { "field": "sourceOrderId", "direction": 1 }
+          ],
+          "unique": true,
+          "sparse": true,
+          "priority": "最高",
+          "description": "防止第三方订单重复同步"
+        },
+        {
+          "name": "isPublic_createdAt_index",
+          "keys": [
+            { "field": "isPublic", "direction": 1 },
+            { "field": "createdAt", "direction": -1 }
+          ],
+          "priority": "中",
+          "description": "公开动态查询"
+        }
+      ]
+    },
+    "daily_stats": {
+      "collectionName": "daily_stats",
+      "totalIndexes": 3,
+      "indexes": [
+        {
+          "name": "userId_date_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "date", "direction": -1 }
+          ],
+          "priority": "最高",
+          "description": "个人统计查询"
+        },
+        {
+          "name": "date_carbonReduction_ranking",
+          "keys": [
+            { "field": "date", "direction": -1 },
+            { "field": "totalCarbonReduction", "direction": -1 }
+          ],
+          "priority": "高",
+          "description": "每日排行榜"
+        },
+        {
+          "name": "userId_date_unique",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "date", "direction": 1 }
+          ],
+          "unique": true,
+          "priority": "最高",
+          "description": "数据唯一性保证"
+        }
+      ]
+    },
+    "gardens": {
+      "collectionName": "gardens",
+      "totalIndexes": 1,
+      "indexes": [
+        {
+          "name": "userId_unique",
+          "keys": [{ "field": "userId", "direction": 1 }],
+          "unique": true,
+          "priority": "最高",
+          "description": "个人花园查询"
+        }
+      ]
+    },
+    "ingredients": {
+      "collectionName": "ingredients",
+      "totalIndexes": 3,
+      "indexes": [
+        {
+          "name": "name_index",
+          "keys": [{ "field": "name", "direction": 1 }],
+          "priority": "高",
+          "description": "食材名称查询"
+        },
+        {
+          "name": "category_index",
+          "keys": [{ "field": "category", "direction": 1 }],
+          "priority": "中",
+          "description": "分类查询"
+        },
+        {
+          "name": "name_fulltext",
+          "indexType": "text",
+          "keys": [
+            { "field": "name", "direction": "text", "weight": 10 },
+            { "field": "nameEn", "direction": "text", "weight": 5 }
+          ],
+          "optional": true,
+          "priority": "中",
+          "description": "全文搜索（可能不支持）"
+        }
+      ]
+    },
+    "recipes": {
+      "collectionName": "recipes",
+      "totalIndexes": 2,
+      "indexes": [
+        {
+          "name": "name_fulltext",
+          "indexType": "text",
+          "keys": [{ "field": "name", "direction": "text" }],
+          "optional": true,
+          "priority": "中",
+          "description": "食谱搜索（可能不支持，可用普通索引代替）"
+        },
+        {
+          "name": "usageCount_index",
+          "keys": [{ "field": "usageCount", "direction": -1 }],
+          "priority": "中",
+          "description": "热门食谱排序"
+        }
+      ]
+    },
+    "sync_tasks": {
+      "collectionName": "sync_tasks",
+      "totalIndexes": 4,
+      "indexes": [
+        {
+          "name": "userId_platform_status_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "platform", "direction": 1 },
+            { "field": "status", "direction": 1 }
+          ],
+          "priority": "高",
+          "description": "任务管理"
+        },
+        {
+          "name": "status_nextRetry_index",
+          "keys": [
+            { "field": "status", "direction": 1 },
+            { "field": "nextRetry", "direction": 1 }
+          ],
+          "priority": "高",
+          "description": "重试队列"
+        },
+        {
+          "name": "platform_orderId_unique",
+          "keys": [
+            { "field": "platform", "direction": 1 },
+            { "field": "orderId", "direction": 1 }
+          ],
+          "unique": true,
+          "sparse": true,
+          "priority": "最高",
+          "description": "任务唯一性"
+        },
+        {
+          "name": "createdAt_ttl",
+          "keys": [{ "field": "createdAt", "direction": 1 }],
+          "expireAfterSeconds": 2592000,
+          "optional": true,
+          "priority": "中",
+          "description": "30天自动删除（可能不支持）"
+        }
+      ]
+    },
+    "platform_configs": {
+      "collectionName": "platform_configs",
+      "totalIndexes": 1,
+      "indexes": [
+        {
+          "name": "platform_unique",
+          "keys": [{ "field": "platform", "direction": 1 }],
+          "unique": true,
+          "priority": "高",
+          "description": "平台配置唯一性"
+        }
+      ]
+    },
+    "friends": {
+      "collectionName": "friends",
+      "totalIndexes": 2,
+      "indexes": [
+        {
+          "name": "userId_friendId_unique",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "friendId", "direction": 1 }
+          ],
+          "unique": true,
+          "priority": "高",
+          "description": "好友关系唯一性"
+        },
+        {
+          "name": "userId_status_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "status", "direction": 1 }
+          ],
+          "priority": "高",
+          "description": "好友列表查询"
+        }
+      ]
+    },
+    "posts": {
+      "collectionName": "posts",
+      "totalIndexes": 2,
+      "indexes": [
+        {
+          "name": "userId_createdAt_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "createdAt", "direction": -1 }
+          ],
+          "priority": "中",
+          "description": "个人动态查询"
+        },
+        {
+          "name": "visibility_createdAt_index",
+          "keys": [
+            { "field": "visibility", "direction": 1 },
+            { "field": "createdAt", "direction": -1 }
+          ],
+          "priority": "中",
+          "description": "公开动态流"
+        }
+      ]
+    },
+    "orders": {
+      "collectionName": "orders",
+      "totalIndexes": 2,
+      "indexes": [
+        {
+          "name": "orderNo_unique",
+          "keys": [{ "field": "orderNo", "direction": 1 }],
+          "unique": true,
+          "priority": "最高",
+          "description": "订单号唯一性"
+        },
+        {
+          "name": "userId_createdAt_index",
+          "keys": [
+            { "field": "userId", "direction": 1 },
+            { "field": "createdAt", "direction": -1 }
+          ],
+          "priority": "高",
+          "description": "用户订单列表"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "totalMandatory": 24,
+    "totalOptional": 4,
+    "estimatedTime": "15-20分钟"
+  }
+}
+
+
