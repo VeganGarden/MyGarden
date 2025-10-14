@@ -3,6 +3,9 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
+// 引入高级碳计算器
+const CarbonCalculator = require('./carbon-calculator')
+
 // 碳足迹计算系数（kg CO2e/kg 食材）
 const CARBON_FACTORS = {
   // 蔬菜类
@@ -100,6 +103,14 @@ exports.main = async (event, context) => {
       case 'compareWithMeat':
         // 素食vs肉食对比计算
         return await compareWithMeat(event)
+
+      case 'calculateMealAdvanced':
+        // 高级多因子碳排放计算
+        return await calculateMealAdvanced(event)
+
+      case 'getDetailedReport':
+        // 获取详细分解报告
+        return await getDetailedReport(event)
 
       default:
         return {
@@ -289,4 +300,141 @@ function calculateEquivalents(carbonKg) {
     plastic: parseFloat((carbonKg / 6).toFixed(1)),  // 1kg塑料约6kg CO₂
     plasticDesc: `少用${(carbonKg / 6).toFixed(1)}kg塑料`
   };
+}
+
+/**
+ * 高级多因子碳排放计算
+ * @param {Object} event 餐食数据
+ */
+async function calculateMealAdvanced(event) {
+  const {
+    ingredients,
+    cookingMethod = '炒',
+    mealDate,
+    userLocation = 'domestic',
+    mealType = '素食简餐'
+  } = event;
+
+  if (!ingredients || ingredients.length === 0) {
+    return {
+      code: 400,
+      message: '请提供食材列表'
+    };
+  }
+
+  const db = cloud.database();
+  const calculator = new CarbonCalculator();
+
+  try {
+    // 查询食材详细信息
+    const enrichedIngredients = [];
+
+    for (const item of ingredients) {
+      const ingredientResult = await db.collection('ingredients')
+        .where({ name: item.name })
+        .limit(1)
+        .get();
+
+      if (ingredientResult.data.length > 0) {
+        const ingredientData = ingredientResult.data[0];
+        enrichedIngredients.push({
+          name: item.name,
+          amount: item.amount || 100,
+          carbonFootprint: ingredientData.carbonFootprint,
+          origin: item.origin || 'domestic',
+          preservation: item.preservation || 'fresh'
+        });
+      } else {
+        // 如果找不到食材，使用默认值
+        enrichedIngredients.push({
+          name: item.name,
+          amount: item.amount || 100,
+          carbonFootprint: 1.0,
+          origin: 'domestic',
+          preservation: 'fresh'
+        });
+      }
+    }
+
+    // 执行高级计算
+    const calculationResult = calculator.calculateAdvanced({
+      ingredients: enrichedIngredients,
+      cookingMethod,
+      mealDate: mealDate ? new Date(mealDate) : new Date(),
+      userLocation,
+      mealType
+    });
+
+    // 生成详细报告
+    const report = calculator.generateReport(calculationResult);
+
+    // 计算等效说明
+    const equivalents = calculator.calculateEquivalents(calculationResult.totalCarbon);
+
+    console.log('高级计算完成:');
+    console.log('总碳足迹:', calculationResult.totalCarbon, 'kg');
+    console.log('详细分解:', calculationResult.breakdown);
+
+    return {
+      code: 0,
+      data: {
+        totalCarbon: calculationResult.totalCarbon,
+        breakdown: calculationResult.breakdown,
+        ingredients: calculationResult.ingredients,
+        vsBaseline: calculationResult.vsBaseline,
+        tips: calculationResult.tips,
+        savingsPotential: report.savingsPotential,
+        equivalents,
+        cookingMethod: calculationResult.cookingMethod
+      }
+    };
+
+  } catch (error) {
+    console.error('高级计算失败:', error);
+    return {
+      code: 500,
+      message: '计算失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取详细分解报告
+ * @param {Object} event 包含计算结果的事件
+ */
+async function getDetailedReport(event) {
+  const { totalCarbon, breakdown, vsBaseline, tips, cookingMethod } = event;
+
+  if (!totalCarbon) {
+    return {
+      code: 400,
+      message: '请提供计算结果'
+    };
+  }
+
+  const calculator = new CarbonCalculator();
+
+  try {
+    const report = calculator.generateReport({
+      totalCarbon,
+      breakdown,
+      vsBaseline,
+      tips,
+      cookingMethod
+    });
+
+    return {
+      code: 0,
+      data: report
+    };
+
+  } catch (error) {
+    console.error('生成报告失败:', error);
+    return {
+      code: 500,
+      message: '生成报告失败',
+      error: error.message
+    };
+  }
 }
