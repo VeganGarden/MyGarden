@@ -1,0 +1,15 @@
+{
+  "name": "recipe-data-import",
+  "version": "1.0.0",
+  "description": "食谱数据导入与管理云函数",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "MyGarden Team",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+
