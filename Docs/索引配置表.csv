@@ -27,4 +27,8 @@
 26,orders,userId_createdAt_index,userId,1,createdAt,-1,,,否,高,45秒
 27,user_sessions,userId_index,userId,1,,,,,否,中,30秒
 28,meals,userId_index,userId,1,,,,,否,中,30秒
+29,meat_products,name_unique,name,1,,,,,是,最高,30秒
+30,meat_products,category_subcategory_index,category,1,subcategory,1,,,否,高,45秒
+31,meat_products,carbonFootprint_index,carbonFootprint,-1,,,,,否,中,30秒
+32,meat_products,status_index,status,1,,,,,否,中,30秒
 
