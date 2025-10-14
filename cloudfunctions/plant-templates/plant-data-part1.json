@@ -1,0 +1,36 @@
+[
+  {
+    "plantId": "cactus_001",
+    "name": "金琥仙人掌",
+    "nameEn": "Golden Barrel Cactus",
+    "category": "cactus",
+    "rarity": "common",
+    "unlockRequirements": {"totalPoints": 0, "totalCarbon": 0},
+    "growthStages": [
+      {"stage": 1, "name": "种子", "duration": 2, "requiredCarbon": 2},
+      {"stage": 2, "name": "发芽", "duration": 3, "requiredCarbon": 5},
+      {"stage": 3, "name": "成熟", "duration": 2, "requiredCarbon": 3}
+    ],
+    "symbolism": {"meaning": "坚持的力量", "story": "在沙漠中扎根"},
+    "carbonAbsorption": 0.01,
+    "pointsPerDay": 2,
+    "status": "active"
+  },
+  {
+    "plantId": "cactus_002",
+    "name": "玉翁仙人掌",
+    "nameEn": "Old Man Cactus",
+    "category": "cactus",
+    "rarity": "common",
+    "unlockRequirements": {"totalPoints": 50, "totalCarbon": 5},
+    "growthStages": [
+      {"stage": 1, "name": "种子", "duration": 2, "requiredCarbon": 2},
+      {"stage": 2, "name": "发芽", "duration": 3, "requiredCarbon": 5},
+      {"stage": 3, "name": "成熟", "duration": 3, "requiredCarbon": 5}
+    ],
+    "symbolism": {"meaning": "智慧与长寿", "story": "白发如雪的老者"},
+    "carbonAbsorption": 0.01,
+    "pointsPerDay": 2,
+    "status": "active"
+  }
+]
