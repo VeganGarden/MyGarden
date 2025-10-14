@@ -1,0 +1,1543 @@
+[
+  {
+    "name": "牛肉（牛腩）",
+    "nameEn": "Beef Brisket",
+    "category": "red_meat",
+    "subcategory": "beef",
+    "carbonFootprint": 60.5,
+    "nutrition": {
+      "calories": 250,
+      "protein": 19.2,
+      "carbs": 0.0,
+      "fat": 19.5
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data - Poore & Nemecek 2018"],
+    "comparisonGroup": "beef",
+    "veganAlternatives": ["素牛肉", "豆腐", "香菇"],
+    "status": "active"
+  },
+  {
+    "name": "牛肉（里脊）",
+    "nameEn": "Beef Tenderloin",
+    "category": "red_meat",
+    "subcategory": "beef",
+    "carbonFootprint": 59.8,
+    "nutrition": {
+      "calories": 158,
+      "protein": 20.2,
+      "carbs": 0.0,
+      "fat": 8.5
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "beef",
+    "veganAlternatives": ["素牛排", "豆腐干", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "牛肉（牛排）",
+    "nameEn": "Beef Steak",
+    "category": "red_meat",
+    "subcategory": "beef",
+    "carbonFootprint": 62.3,
+    "nutrition": {
+      "calories": 271,
+      "protein": 19.4,
+      "carbs": 0.0,
+      "fat": 21.2
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "beef",
+    "veganAlternatives": ["植物牛排", "大豆蛋白", "蘑菇排"],
+    "status": "active"
+  },
+  {
+    "name": "牛肉（肥牛）",
+    "nameEn": "Beef Ribeye",
+    "category": "red_meat",
+    "subcategory": "beef",
+    "carbonFootprint": 63.1,
+    "nutrition": {
+      "calories": 291,
+      "protein": 18.9,
+      "carbs": 0.0,
+      "fat": 23.7
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "beef",
+    "veganAlternatives": ["豆腐", "腐竹", "素肉"],
+    "status": "active"
+  },
+  {
+    "name": "牛肉（牛腱）",
+    "nameEn": "Beef Shank",
+    "category": "red_meat",
+    "subcategory": "beef",
+    "carbonFootprint": 58.9,
+    "nutrition": {
+      "calories": 106,
+      "protein": 21.1,
+      "carbs": 0.0,
+      "fat": 2.3
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "beef",
+    "veganAlternatives": ["豆干", "面筋", "素肉"],
+    "status": "active"
+  },
+  {
+    "name": "羊肉",
+    "nameEn": "Mutton",
+    "category": "red_meat",
+    "subcategory": "lamb",
+    "carbonFootprint": 24.5,
+    "nutrition": {
+      "calories": 203,
+      "protein": 19.0,
+      "carbs": 0.0,
+      "fat": 14.1
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "lamb",
+    "veganAlternatives": ["素羊肉", "香菇", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "羊肉（羊腿）",
+    "nameEn": "Lamb Leg",
+    "category": "red_meat",
+    "subcategory": "lamb",
+    "carbonFootprint": 23.8,
+    "nutrition": {
+      "calories": 180,
+      "protein": 20.5,
+      "carbs": 0.0,
+      "fat": 11.2
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "lamb",
+    "veganAlternatives": ["素羊排", "豆腐", "蘑菇"],
+    "status": "active"
+  },
+  {
+    "name": "羊肉（羊排）",
+    "nameEn": "Lamb Chops",
+    "category": "red_meat",
+    "subcategory": "lamb",
+    "carbonFootprint": 25.2,
+    "nutrition": {
+      "calories": 234,
+      "protein": 18.4,
+      "carbs": 0.0,
+      "fat": 17.8
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "lamb",
+    "veganAlternatives": ["素排骨", "豆制品", "面筋"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（五花肉）",
+    "nameEn": "Pork Belly",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.6,
+    "nutrition": {
+      "calories": 395,
+      "protein": 13.2,
+      "carbs": 0.0,
+      "fat": 37.0
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["素五花肉", "豆腐", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（瘦肉）",
+    "nameEn": "Lean Pork",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.2,
+    "nutrition": {
+      "calories": 143,
+      "protein": 20.3,
+      "carbs": 0.0,
+      "fat": 6.2
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["豆腐干", "素肉", "面筋"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（排骨）",
+    "nameEn": "Pork Ribs",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.8,
+    "nutrition": {
+      "calories": 264,
+      "protein": 17.4,
+      "carbs": 0.0,
+      "fat": 21.5
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["素排骨", "豆制品", "莲藕"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（猪蹄）",
+    "nameEn": "Pork Trotter",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.9,
+    "nutrition": {
+      "calories": 260,
+      "protein": 23.6,
+      "carbs": 0.0,
+      "fat": 18.8
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["素蹄筋", "魔芋", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（肉馅）",
+    "nameEn": "Ground Pork",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.3,
+    "nutrition": {
+      "calories": 280,
+      "protein": 16.7,
+      "carbs": 0.0,
+      "fat": 23.5
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["豆腐碎", "香菇碎", "素肉馅"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（梅花肉）",
+    "nameEn": "Pork Shoulder",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.4,
+    "nutrition": {
+      "calories": 210,
+      "protein": 18.5,
+      "carbs": 0.0,
+      "fat": 14.8
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["素肉", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "猪肉（前腿肉）",
+    "nameEn": "Pork Front Leg",
+    "category": "red_meat",
+    "subcategory": "pork",
+    "carbonFootprint": 7.1,
+    "nutrition": {
+      "calories": 195,
+      "protein": 19.7,
+      "carbs": 0.0,
+      "fat": 12.6
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "pork",
+    "veganAlternatives": ["豆干", "素肉"],
+    "status": "active"
+  },
+  {
+    "name": "羊肉（羊肉串）",
+    "nameEn": "Lamb Skewers",
+    "category": "red_meat",
+    "subcategory": "lamb",
+    "carbonFootprint": 24.8,
+    "nutrition": {
+      "calories": 215,
+      "protein": 19.3,
+      "carbs": 0.0,
+      "fat": 14.9
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "lamb",
+    "veganAlternatives": ["素羊肉串", "蘑菇串", "豆腐串"],
+    "status": "active"
+  },
+  {
+    "name": "羊肉（羊蝎子）",
+    "nameEn": "Lamb Spine",
+    "category": "red_meat",
+    "subcategory": "lamb",
+    "carbonFootprint": 25.5,
+    "nutrition": {
+      "calories": 250,
+      "protein": 18.2,
+      "carbs": 0.0,
+      "fat": 19.6
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "lamb",
+    "veganAlternatives": ["素骨", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "牛肉（牛肉丸）",
+    "nameEn": "Beef Balls",
+    "category": "red_meat",
+    "subcategory": "beef",
+    "carbonFootprint": 61.2,
+    "nutrition": {
+      "calories": 180,
+      "protein": 16.8,
+      "carbs": 8.5,
+      "fat": 9.2
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "beef",
+    "veganAlternatives": ["素肉丸", "豆腐丸", "蘑菇丸"],
+    "status": "active"
+  },
+  {
+    "name": "鸡肉（鸡胸肉）",
+    "nameEn": "Chicken Breast",
+    "category": "poultry",
+    "subcategory": "chicken",
+    "carbonFootprint": 6.1,
+    "nutrition": {
+      "calories": 133,
+      "protein": 19.4,
+      "carbs": 2.5,
+      "fat": 5.0
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素鸡胸", "豆腐", "大豆蛋白"],
+    "status": "active"
+  },
+  {
+    "name": "鸡肉（鸡腿）",
+    "nameEn": "Chicken Leg",
+    "category": "poultry",
+    "subcategory": "chicken",
+    "carbonFootprint": 6.3,
+    "nutrition": {
+      "calories": 181,
+      "protein": 18.4,
+      "carbs": 0.0,
+      "fat": 11.7
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素鸡腿", "豆腐", "蘑菇"],
+    "status": "active"
+  },
+  {
+    "name": "鸡肉（鸡翅）",
+    "nameEn": "Chicken Wings",
+    "category": "poultry",
+    "subcategory": "chicken",
+    "carbonFootprint": 6.4,
+    "nutrition": {
+      "calories": 203,
+      "protein": 17.5,
+      "carbs": 0.0,
+      "fat": 14.6
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素鸡翅", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "鸡肉（全鸡）",
+    "nameEn": "Whole Chicken",
+    "category": "poultry",
+    "subcategory": "chicken",
+    "carbonFootprint": 6.2,
+    "nutrition": {
+      "calories": 167,
+      "protein": 18.2,
+      "carbs": 0.0,
+      "fat": 10.2
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素整鸡", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "鸡肉（鸡肉丸）",
+    "nameEn": "Chicken Balls",
+    "category": "poultry",
+    "subcategory": "chicken",
+    "carbonFootprint": 6.5,
+    "nutrition": {
+      "calories": 150,
+      "protein": 15.8,
+      "carbs": 7.2,
+      "fat": 6.8
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素丸子", "豆腐丸"],
+    "status": "active"
+  },
+  {
+    "name": "鸭肉",
+    "nameEn": "Duck Meat",
+    "category": "poultry",
+    "subcategory": "duck",
+    "carbonFootprint": 5.5,
+    "nutrition": {
+      "calories": 240,
+      "protein": 15.5,
+      "carbs": 0.0,
+      "fat": 19.7
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "duck",
+    "veganAlternatives": ["素鸭", "豆制品", "面筋"],
+    "status": "active"
+  },
+  {
+    "name": "鸭肉（烤鸭）",
+    "nameEn": "Roast Duck",
+    "category": "poultry",
+    "subcategory": "duck",
+    "carbonFootprint": 6.8,
+    "nutrition": {
+      "calories": 336,
+      "protein": 18.3,
+      "carbs": 0.2,
+      "fat": 28.4
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "duck",
+    "veganAlternatives": ["素烤鸭", "豆皮卷"],
+    "status": "active"
+  },
+  {
+    "name": "鸭肉（鸭腿）",
+    "nameEn": "Duck Leg",
+    "category": "poultry",
+    "subcategory": "duck",
+    "carbonFootprint": 5.7,
+    "nutrition": {
+      "calories": 229,
+      "protein": 16.1,
+      "carbs": 0.0,
+      "fat": 18.0
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "duck",
+    "veganAlternatives": ["素鸭腿", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "鹅肉",
+    "nameEn": "Goose Meat",
+    "category": "poultry",
+    "subcategory": "goose",
+    "carbonFootprint": 7.1,
+    "nutrition": {
+      "calories": 251,
+      "protein": 17.9,
+      "carbs": 0.0,
+      "fat": 19.9
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "goose",
+    "veganAlternatives": ["素鹅", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "火鸡肉",
+    "nameEn": "Turkey",
+    "category": "poultry",
+    "subcategory": "turkey",
+    "carbonFootprint": 6.7,
+    "nutrition": {
+      "calories": 135,
+      "protein": 21.9,
+      "carbs": 0.0,
+      "fat": 4.9
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "turkey",
+    "veganAlternatives": ["大豆蛋白", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "鹌鹑肉",
+    "nameEn": "Quail Meat",
+    "category": "poultry",
+    "subcategory": "quail",
+    "carbonFootprint": 5.8,
+    "nutrition": {
+      "calories": 192,
+      "protein": 19.6,
+      "carbs": 0.0,
+      "fat": 12.3
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "quail",
+    "veganAlternatives": ["豆制品", "素肉"],
+    "status": "active"
+  },
+  {
+    "name": "鸡肉（鸡块）",
+    "nameEn": "Chicken Chunks",
+    "category": "poultry",
+    "subcategory": "chicken",
+    "carbonFootprint": 6.3,
+    "nutrition": {
+      "calories": 165,
+      "protein": 18.1,
+      "carbs": 5.2,
+      "fat": 8.3
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素鸡块", "豆腐块"],
+    "status": "active"
+  },
+  {
+    "name": "鸭血",
+    "nameEn": "Duck Blood",
+    "category": "poultry",
+    "subcategory": "duck_blood",
+    "carbonFootprint": 4.2,
+    "nutrition": {
+      "calories": 108,
+      "protein": 13.6,
+      "carbs": 8.7,
+      "fat": 1.4
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "blood_products",
+    "veganAlternatives": ["血豆腐", "红豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "鸡心",
+    "nameEn": "Chicken Heart",
+    "category": "poultry",
+    "subcategory": "organ",
+    "carbonFootprint": 5.9,
+    "nutrition": {
+      "calories": 185,
+      "protein": 16.2,
+      "carbs": 0.7,
+      "fat": 13.1
+    },
+    "productionMethod": "conventional",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "chicken",
+    "veganAlternatives": ["素内脏", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "三文鱼",
+    "nameEn": "Salmon",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 11.9,
+    "nutrition": {
+      "calories": 208,
+      "protein": 20.0,
+      "carbs": 0.0,
+      "fat": 13.4
+    },
+    "productionMethod": "farmed",
+    "region": "import",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素三文鱼", "胡萝卜三文鱼", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "鲈鱼",
+    "nameEn": "Sea Bass",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 5.4,
+    "nutrition": {
+      "calories": 105,
+      "protein": 18.6,
+      "carbs": 0.0,
+      "fat": 3.4
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "鲤鱼",
+    "nameEn": "Carp",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.9,
+    "nutrition": {
+      "calories": 109,
+      "protein": 17.6,
+      "carbs": 0.0,
+      "fat": 4.1
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "草鱼",
+    "nameEn": "Grass Carp",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.7,
+    "nutrition": {
+      "calories": 113,
+      "protein": 16.6,
+      "carbs": 0.0,
+      "fat": 5.2
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "黑鱼",
+    "nameEn": "Snakehead Fish",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 5.1,
+    "nutrition": {
+      "calories": 85,
+      "protein": 19.8,
+      "carbs": 0.0,
+      "fat": 1.0
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "带鱼",
+    "nameEn": "Hairtail",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 5.3,
+    "nutrition": {
+      "calories": 127,
+      "protein": 17.7,
+      "carbs": 0.0,
+      "fat": 5.6
+    },
+    "productionMethod": "wild_caught",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "鳕鱼",
+    "nameEn": "Cod",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 6.2,
+    "nutrition": {
+      "calories": 88,
+      "protein": 19.4,
+      "carbs": 0.0,
+      "fat": 0.7
+    },
+    "productionMethod": "wild_caught",
+    "region": "import",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "金枪鱼",
+    "nameEn": "Tuna",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 6.1,
+    "nutrition": {
+      "calories": 184,
+      "protein": 23.3,
+      "carbs": 0.0,
+      "fat": 9.9
+    },
+    "productionMethod": "wild_caught",
+    "region": "import",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素金枪鱼", "大豆蛋白"],
+    "status": "active"
+  },
+  {
+    "name": "黄花鱼",
+    "nameEn": "Yellow Croaker",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 5.0,
+    "nutrition": {
+      "calories": 99,
+      "protein": 17.9,
+      "carbs": 0.0,
+      "fat": 2.8
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "鲫鱼",
+    "nameEn": "Crucian Carp",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.6,
+    "nutrition": {
+      "calories": 108,
+      "protein": 17.1,
+      "carbs": 0.0,
+      "fat": 4.2
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼", "豆腐"],
+    "status": "active"
+  },
+  {
+    "name": "虾仁",
+    "nameEn": "Shrimp",
+    "category": "seafood",
+    "subcategory": "crustacean",
+    "carbonFootprint": 11.8,
+    "nutrition": {
+      "calories": 87,
+      "protein": 18.3,
+      "carbs": 0.8,
+      "fat": 1.0
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "shrimp",
+    "veganAlternatives": ["素虾仁", "魔芋虾", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "大虾",
+    "nameEn": "Prawns",
+    "category": "seafood",
+    "subcategory": "crustacean",
+    "carbonFootprint": 12.1,
+    "nutrition": {
+      "calories": 93,
+      "protein": 18.8,
+      "carbs": 1.2,
+      "fat": 1.2
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "shrimp",
+    "veganAlternatives": ["素虾", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "龙虾",
+    "nameEn": "Lobster",
+    "category": "seafood",
+    "subcategory": "crustacean",
+    "carbonFootprint": 14.5,
+    "nutrition": {
+      "calories": 97,
+      "protein": 19.5,
+      "carbs": 0.5,
+      "fat": 1.3
+    },
+    "productionMethod": "wild_caught",
+    "region": "import",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "lobster",
+    "veganAlternatives": ["素龙虾", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "螃蟹",
+    "nameEn": "Crab",
+    "category": "seafood",
+    "subcategory": "crustacean",
+    "carbonFootprint": 9.2,
+    "nutrition": {
+      "calories": 103,
+      "protein": 17.5,
+      "carbs": 0.0,
+      "fat": 2.6
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "crab",
+    "veganAlternatives": ["素蟹", "魔芋", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "扇贝",
+    "nameEn": "Scallop",
+    "category": "seafood",
+    "subcategory": "shellfish",
+    "carbonFootprint": 3.7,
+    "nutrition": {
+      "calories": 69,
+      "protein": 12.1,
+      "carbs": 3.2,
+      "fat": 0.8
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "shellfish",
+    "veganAlternatives": ["杏鲍菇", "蘑菇"],
+    "status": "active"
+  },
+  {
+    "name": "生蚝",
+    "nameEn": "Oyster",
+    "category": "seafood",
+    "subcategory": "shellfish",
+    "carbonFootprint": 3.2,
+    "nutrition": {
+      "calories": 61,
+      "protein": 9.5,
+      "carbs": 3.9,
+      "fat": 1.6
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "shellfish",
+    "veganAlternatives": ["蘑菇", "平菇"],
+    "status": "active"
+  },
+  {
+    "name": "蛤蜊",
+    "nameEn": "Clam",
+    "category": "seafood",
+    "subcategory": "shellfish",
+    "carbonFootprint": 2.9,
+    "nutrition": {
+      "calories": 62,
+      "protein": 10.9,
+      "carbs": 2.3,
+      "fat": 0.9
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "shellfish",
+    "veganAlternatives": ["蘑菇", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "鱿鱼",
+    "nameEn": "Squid",
+    "category": "seafood",
+    "subcategory": "cephalopod",
+    "carbonFootprint": 4.4,
+    "nutrition": {
+      "calories": 92,
+      "protein": 15.6,
+      "carbs": 3.1,
+      "fat": 1.4
+    },
+    "productionMethod": "wild_caught",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "squid",
+    "veganAlternatives": ["素鱿鱼", "魔芋", "海带"],
+    "status": "active"
+  },
+  {
+    "name": "章鱼",
+    "nameEn": "Octopus",
+    "category": "seafood",
+    "subcategory": "cephalopod",
+    "carbonFootprint": 4.6,
+    "nutrition": {
+      "calories": 82,
+      "protein": 14.9,
+      "carbs": 2.2,
+      "fat": 1.0
+    },
+    "productionMethod": "wild_caught",
+    "region": "import",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "octopus",
+    "veganAlternatives": ["素章鱼", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "墨鱼",
+    "nameEn": "Cuttlefish",
+    "category": "seafood",
+    "subcategory": "cephalopod",
+    "carbonFootprint": 4.5,
+    "nutrition": {
+      "calories": 83,
+      "protein": 15.2,
+      "carbs": 1.5,
+      "fat": 1.2
+    },
+    "productionMethod": "wild_caught",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "cuttlefish",
+    "veganAlternatives": ["素墨鱼", "魔芋", "海带"],
+    "status": "active"
+  },
+  {
+    "name": "鳗鱼",
+    "nameEn": "Eel",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 6.5,
+    "nutrition": {
+      "calories": 184,
+      "protein": 18.4,
+      "carbs": 0.0,
+      "fat": 11.7
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "eel",
+    "veganAlternatives": ["素鳗鱼", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "罗非鱼",
+    "nameEn": "Tilapia",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 3.8,
+    "nutrition": {
+      "calories": 96,
+      "protein": 20.1,
+      "carbs": 0.0,
+      "fat": 1.7
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["豆腐", "素鱼"],
+    "status": "active"
+  },
+  {
+    "name": "鲶鱼",
+    "nameEn": "Catfish",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.1,
+    "nutrition": {
+      "calories": 115,
+      "protein": 16.4,
+      "carbs": 0.0,
+      "fat": 5.3
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["豆腐", "素鱼"],
+    "status": "active"
+  },
+  {
+    "name": "鲳鱼",
+    "nameEn": "Pomfret",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 5.2,
+    "nutrition": {
+      "calories": 112,
+      "protein": 18.5,
+      "carbs": 0.0,
+      "fat": 3.9
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["豆腐", "素鱼"],
+    "status": "active"
+  },
+  {
+    "name": "秋刀鱼",
+    "nameEn": "Pacific Saury",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.8,
+    "nutrition": {
+      "calories": 310,
+      "protein": 18.1,
+      "carbs": 0.0,
+      "fat": 25.6
+    },
+    "productionMethod": "wild_caught",
+    "region": "import",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["豆腐", "素鱼"],
+    "status": "active"
+  },
+  {
+    "name": "香肠（猪肉）",
+    "nameEn": "Pork Sausage",
+    "category": "processed_meat",
+    "subcategory": "sausage",
+    "carbonFootprint": 8.9,
+    "nutrition": {
+      "calories": 325,
+      "protein": 13.8,
+      "carbs": 5.2,
+      "fat": 28.6
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "sausage",
+    "veganAlternatives": ["素香肠", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "腊肉",
+    "nameEn": "Cured Pork",
+    "category": "processed_meat",
+    "subcategory": "cured",
+    "carbonFootprint": 9.5,
+    "nutrition": {
+      "calories": 381,
+      "protein": 22.6,
+      "carbs": 0.0,
+      "fat": 31.6
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "cured_meat",
+    "veganAlternatives": ["素腊肉", "豆腐干"],
+    "status": "active"
+  },
+  {
+    "name": "火腿",
+    "nameEn": "Ham",
+    "category": "processed_meat",
+    "subcategory": "ham",
+    "carbonFootprint": 8.7,
+    "nutrition": {
+      "calories": 289,
+      "protein": 20.9,
+      "carbs": 3.1,
+      "fat": 21.6
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "ham",
+    "veganAlternatives": ["素火腿", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "培根",
+    "nameEn": "Bacon",
+    "category": "processed_meat",
+    "subcategory": "bacon",
+    "carbonFootprint": 10.2,
+    "nutrition": {
+      "calories": 541,
+      "protein": 13.7,
+      "carbs": 1.4,
+      "fat": 53.0
+    },
+    "productionMethod": "processed",
+    "region": "import",
+    "sources": ["FAO 2021", "Our World in Data"],
+    "comparisonGroup": "bacon",
+    "veganAlternatives": ["素培根", "豆腐干", "香菇"],
+    "status": "active"
+  },
+  {
+    "name": "肉松",
+    "nameEn": "Pork Floss",
+    "category": "processed_meat",
+    "subcategory": "dried",
+    "carbonFootprint": 11.3,
+    "nutrition": {
+      "calories": 373,
+      "protein": 41.8,
+      "carbs": 10.2,
+      "fat": 17.8
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "dried_meat",
+    "veganAlternatives": ["素肉松", "豆腐松"],
+    "status": "active"
+  },
+  {
+    "name": "午餐肉",
+    "nameEn": "Luncheon Meat",
+    "category": "processed_meat",
+    "subcategory": "canned",
+    "carbonFootprint": 9.8,
+    "nutrition": {
+      "calories": 310,
+      "protein": 13.5,
+      "carbs": 7.5,
+      "fat": 26.4
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "canned_meat",
+    "veganAlternatives": ["素午餐肉", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "热狗肠",
+    "nameEn": "Hot Dog",
+    "category": "processed_meat",
+    "subcategory": "sausage",
+    "carbonFootprint": 9.1,
+    "nutrition": {
+      "calories": 290,
+      "protein": 11.7,
+      "carbs": 8.9,
+      "fat": 24.5
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "sausage",
+    "veganAlternatives": ["素热狗", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "咸肉",
+    "nameEn": "Salted Pork",
+    "category": "processed_meat",
+    "subcategory": "cured",
+    "carbonFootprint": 9.3,
+    "nutrition": {
+      "calories": 395,
+      "protein": 18.2,
+      "carbs": 0.0,
+      "fat": 35.6
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "cured_meat",
+    "veganAlternatives": ["豆腐干", "素肉"],
+    "status": "active"
+  },
+  {
+    "name": "肉干（猪肉）",
+    "nameEn": "Pork Jerky",
+    "category": "processed_meat",
+    "subcategory": "dried",
+    "carbonFootprint": 12.1,
+    "nutrition": {
+      "calories": 352,
+      "protein": 45.2,
+      "carbs": 15.8,
+      "fat": 11.4
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "dried_meat",
+    "veganAlternatives": ["素肉干", "豆干"],
+    "status": "active"
+  },
+  {
+    "name": "肉干（牛肉）",
+    "nameEn": "Beef Jerky",
+    "category": "processed_meat",
+    "subcategory": "dried",
+    "carbonFootprint": 64.2,
+    "nutrition": {
+      "calories": 410,
+      "protein": 33.2,
+      "carbs": 11.0,
+      "fat": 25.6
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "dried_meat",
+    "veganAlternatives": ["素牛肉干", "豆干"],
+    "status": "active"
+  },
+  {
+    "name": "鱼丸",
+    "nameEn": "Fish Balls",
+    "category": "seafood",
+    "subcategory": "processed_fish",
+    "carbonFootprint": 5.6,
+    "nutrition": {
+      "calories": 107,
+      "protein": 11.5,
+      "carbs": 10.2,
+      "fat": 2.8
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish_balls",
+    "veganAlternatives": ["素鱼丸", "豆腐丸", "蘑菇丸"],
+    "status": "active"
+  },
+  {
+    "name": "鱼片（鱼柳）",
+    "nameEn": "Fish Fillet",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.8,
+    "nutrition": {
+      "calories": 95,
+      "protein": 18.2,
+      "carbs": 0.0,
+      "fat": 2.1
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["素鱼片", "豆腐", "魔芋"],
+    "status": "active"
+  },
+  {
+    "name": "鱼头（鱼头煲）",
+    "nameEn": "Fish Head",
+    "category": "seafood",
+    "subcategory": "fish",
+    "carbonFootprint": 4.5,
+    "nutrition": {
+      "calories": 98,
+      "protein": 15.8,
+      "carbs": 0.0,
+      "fat": 3.6
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "fish",
+    "veganAlternatives": ["豆腐", "蘑菇"],
+    "status": "active"
+  },
+  {
+    "name": "海参",
+    "nameEn": "Sea Cucumber",
+    "category": "seafood",
+    "subcategory": "echinoderm",
+    "carbonFootprint": 6.8,
+    "nutrition": {
+      "calories": 78,
+      "protein": 16.5,
+      "carbs": 2.5,
+      "fat": 0.2
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "sea_cucumber",
+    "veganAlternatives": ["素海参", "魔芋", "海带"],
+    "status": "active"
+  },
+  {
+    "name": "鲍鱼",
+    "nameEn": "Abalone",
+    "category": "seafood",
+    "subcategory": "shellfish",
+    "carbonFootprint": 7.2,
+    "nutrition": {
+      "calories": 84,
+      "protein": 12.6,
+      "carbs": 6.0,
+      "fat": 0.8
+    },
+    "productionMethod": "farmed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "abalone",
+    "veganAlternatives": ["杏鲍菇", "蘑菇"],
+    "status": "active"
+  },
+  {
+    "name": "干贝",
+    "nameEn": "Dried Scallop",
+    "category": "seafood",
+    "subcategory": "dried_seafood",
+    "carbonFootprint": 8.5,
+    "nutrition": {
+      "calories": 264,
+      "protein": 55.6,
+      "carbs": 11.3,
+      "fat": 1.2
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "dried_seafood",
+    "veganAlternatives": ["蘑菇干", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "香肠（牛肉）",
+    "nameEn": "Beef Sausage",
+    "category": "processed_meat",
+    "subcategory": "sausage",
+    "carbonFootprint": 62.5,
+    "nutrition": {
+      "calories": 300,
+      "protein": 14.5,
+      "carbs": 4.8,
+      "fat": 24.3
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "sausage",
+    "veganAlternatives": ["素香肠", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "烤肠",
+    "nameEn": "Grilled Sausage",
+    "category": "processed_meat",
+    "subcategory": "sausage",
+    "carbonFootprint": 9.2,
+    "nutrition": {
+      "calories": 307,
+      "protein": 12.9,
+      "carbs": 6.5,
+      "fat": 26.1
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "sausage",
+    "veganAlternatives": ["素烤肠", "豆制品"],
+    "status": "active"
+  },
+  {
+    "name": "腊肠",
+    "nameEn": "Chinese Sausage",
+    "category": "processed_meat",
+    "subcategory": "cured",
+    "carbonFootprint": 9.7,
+    "nutrition": {
+      "calories": 508,
+      "protein": 24.1,
+      "carbs": 14.2,
+      "fat": 40.7
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "cured_meat",
+    "veganAlternatives": ["素腊肠", "豆腐干"],
+    "status": "active"
+  },
+  {
+    "name": "肉饼（猪肉）",
+    "nameEn": "Pork Patty",
+    "category": "processed_meat",
+    "subcategory": "patty",
+    "carbonFootprint": 8.5,
+    "nutrition": {
+      "calories": 295,
+      "protein": 15.8,
+      "carbs": 8.3,
+      "fat": 22.4
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "patty",
+    "veganAlternatives": ["素肉饼", "豆腐饼"],
+    "status": "active"
+  },
+  {
+    "name": "肉饼（牛肉）",
+    "nameEn": "Beef Patty",
+    "category": "processed_meat",
+    "subcategory": "patty",
+    "carbonFootprint": 61.8,
+    "nutrition": {
+      "calories": 272,
+      "protein": 17.2,
+      "carbs": 6.5,
+      "fat": 19.8
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "patty",
+    "veganAlternatives": ["植物肉饼", "豆腐饼", "蘑菇饼"],
+    "status": "active"
+  },
+  {
+    "name": "狮子头（猪肉）",
+    "nameEn": "Lion's Head Meatball",
+    "category": "processed_meat",
+    "subcategory": "meatball",
+    "carbonFootprint": 8.3,
+    "nutrition": {
+      "calories": 238,
+      "protein": 14.9,
+      "carbs": 12.5,
+      "fat": 15.6
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "meatball",
+    "veganAlternatives": ["素狮子头", "豆腐丸", "香菇丸"],
+    "status": "active"
+  },
+  {
+    "name": "鱼干",
+    "nameEn": "Dried Fish",
+    "category": "seafood",
+    "subcategory": "dried_seafood",
+    "carbonFootprint": 7.5,
+    "nutrition": {
+      "calories": 303,
+      "protein": 62.8,
+      "carbs": 0.0,
+      "fat": 4.5
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "dried_seafood",
+    "veganAlternatives": ["豆腐干", "素鱼干"],
+    "status": "active"
+  },
+  {
+    "name": "虾干",
+    "nameEn": "Dried Shrimp",
+    "category": "seafood",
+    "subcategory": "dried_seafood",
+    "carbonFootprint": 13.2,
+    "nutrition": {
+      "calories": 295,
+      "protein": 63.7,
+      "carbs": 2.8,
+      "fat": 2.1
+    },
+    "productionMethod": "processed",
+    "region": "china_average",
+    "sources": ["FAO 2021"],
+    "comparisonGroup": "dried_seafood",
+    "veganAlternatives": ["豆制品", "蘑菇干"],
+    "status": "active"
+  }
+]
+
+

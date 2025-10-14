@@ -1,0 +1,726 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+生成60种植物模板数据
+"""
+
+import json
+import os
+
+# 定义60种植物数据
+plants = []
+
+# ============ 青铜级植物（15种）============
+
+# 仙人掌系列（5种）
+bronze_cactus = [
+    {
+        "plantId": "cactus_001", "name": "金琥仙人掌", "nameEn": "Golden Barrel Cactus",
+        "category": "cactus", "rarity": "common",
+        "unlockRequirements": {"userLevel": "bronze", "totalPoints": 0, "totalCarbon": 0},
+        "growthStages": [
+            {"stage": 1, "name": "种子", "duration": 2, "requiredWater": 2, "requiredCarbon": 2},
+            {"stage": 2, "name": "发芽", "duration": 3, "requiredWater": 3, "requiredCarbon": 5},
+            {"stage": 3, "name": "成熟", "duration": 2, "requiredWater": 2, "requiredCarbon": 3}
+        ],
+        "symbolism": {"meaning": "坚持的力量", "story": "在沙漠中扎根，象征微小但持续的坚持"},
+        "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"
+    },
+    {
+        "plantId": "cactus_002", "name": "玉翁仙人掌", "nameEn": "Old Man Cactus",
+        "category": "cactus", "rarity": "common",
+        "unlockRequirements": {"userLevel": "bronze", "totalPoints": 50, "totalCarbon": 5},
+        "growthStages": [
+            {"stage": 1, "name": "种子", "duration": 2, "requiredCarbon": 2},
+            {"stage": 2, "name": "发芽", "duration": 3, "requiredCarbon": 5},
+            {"stage": 3, "name": "成熟", "duration": 3, "requiredCarbon": 5}
+        ],
+        "symbolism": {"meaning": "智慧与长寿", "story": "白发如雪的智者"},
+        "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"
+    },
+    {
+        "plantId": "cactus_003", "name": "令箭荷花", "nameEn": "Orchid Cactus",
+        "category": "cactus", "rarity": "common",
+        "unlockRequirements": {"userLevel": "bronze", "totalPoints": 80, "totalCarbon": 8},
+        "growthStages": [
+            {"stage": 1, "name": "种子", "duration": 2, "requiredCarbon": 3},
+            {"stage": 2, "name": "发芽", "duration": 4, "requiredCarbon": 6},
+            {"stage": 3, "name": "开花", "duration": 3, "requiredCarbon": 6, "specialEffect": "pink_bloom"}
+        ],
+        "symbolism": {"meaning": "美丽绽放", "story": "沙漠中的粉红精灵"},
+        "carbonAbsorption": 0.01, "pointsPerDay": 3, "status": "active"
+    },
+    {
+        "plantId": "cactus_004", "name": "仙人球", "nameEn": "Ball Cactus",
+        "category": "cactus", "rarity": "common",
+        "unlockRequirements": {"userLevel": "bronze", "totalPoints": 60, "totalCarbon": 6},
+        "growthStages": [
+            {"stage": 1, "name": "种子", "duration": 1, "requiredCarbon": 2},
+            {"stage": 2, "name": "发芽", "duration": 2, "requiredCarbon": 4},
+            {"stage": 3, "name": "成熟", "duration": 2, "requiredCarbon": 4}
+        ],
+        "symbolism": {"meaning": "圆满完整", "story": "小巧可爱的圆球"},
+        "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"
+    },
+    {
+        "plantId": "cactus_005", "name": "仙人柱", "nameEn": "Column Cactus",
+        "category": "cactus", "rarity": "common",
+        "unlockRequirements": {"userLevel": "bronze", "totalPoints": 100, "totalCarbon": 10},
+        "growthStages": [
+            {"stage": 1, "name": "种子", "duration": 2, "requiredCarbon": 3},
+            {"stage": 2, "name": "发芽", "duration": 3, "requiredCarbon": 5},
+            {"stage": 3, "name": "成长", "duration": 3, "requiredCarbon": 7}
+        ],
+        "symbolism": {"meaning": "笔直向上", "story": "永不弯曲的脊梁"},
+        "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"
+    }
+]
+
+# 多肉植物（10种）
+bronze_succulent = [
+    {"plantId": "succulent_001", "name": "石莲花", "nameEn": "Echeveria", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 100, "totalCarbon": 10},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 3, "requiredCarbon": 5},
+         {"stage": 3, "duration": 2, "requiredCarbon": 4}
+     ],
+     "symbolism": {"meaning": "永恒之美", "story": "莲花般的多肉"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"},
+    
+    {"plantId": "succulent_002", "name": "生石花", "nameEn": "Living Stones", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 120, "totalCarbon": 12},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 4, "requiredCarbon": 6},
+         {"stage": 3, "duration": 3, "requiredCarbon": 5, "specialEffect": "stone_bloom"}
+     ],
+     "symbolism": {"meaning": "低调内敛", "story": "伪装成石头的生命"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"},
+    
+    {"plantId": "succulent_003", "name": "芦荟", "nameEn": "Aloe Vera", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 80, "totalCarbon": 8},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 2},
+         {"stage": 2, "duration": 3, "requiredCarbon": 5},
+         {"stage": 3, "duration": 2, "requiredCarbon": 3}
+     ],
+     "symbolism": {"meaning": "治愈之心", "story": "自然的疗愈师"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 3, "status": "active"},
+    
+    {"plantId": "succulent_004", "name": "玉露", "nameEn": "Haworthia", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 150, "totalCarbon": 15},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 4, "requiredCarbon": 7},
+         {"stage": 3, "duration": 3, "requiredCarbon": 5}
+     ],
+     "symbolism": {"meaning": "晶莹剔透", "story": "如翡翠般的小巧"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"},
+    
+    {"plantId": "succulent_005", "name": "黑法师", "nameEn": "Black Rose", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 180, "totalCarbon": 18},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 3, "requiredCarbon": 6},
+         {"stage": 3, "duration": 3, "requiredCarbon": 6}
+     ],
+     "symbolism": {"meaning": "神秘优雅", "story": "黑色玫瑰的魅力"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 3, "status": "active"},
+    
+    {"plantId": "succulent_006", "name": "熊童子", "nameEn": "Bear Paws", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 200, "totalCarbon": 20},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 3, "requiredCarbon": 5},
+         {"stage": 3, "duration": 3, "requiredCarbon": 5}
+     ],
+     "symbolism": {"meaning": "可爱治愈", "story": "像小熊掌的叶片"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"},
+    
+    {"plantId": "succulent_007", "name": "虹之玉", "nameEn": "Jelly Bean Plant", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 150, "totalCarbon": 15},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 2},
+         {"stage": 2, "duration": 3, "requiredCarbon": 5},
+         {"stage": 3, "duration": 2, "requiredCarbon": 4}
+     ],
+     "symbolism": {"meaning": "五彩斑斓", "story": "如彩虹般绚丽"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"},
+    
+    {"plantId": "succulent_008", "name": "姬胧月", "nameEn": "Blue Haze", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 120, "totalCarbon": 12},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 2},
+         {"stage": 2, "duration": 3, "requiredCarbon": 5},
+         {"stage": 3, "duration": 2, "requiredCarbon": 4}
+     ],
+     "symbolism": {"meaning": "朦胧之美", "story": "月光下的朦胧"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 2, "status": "active"},
+    
+    {"plantId": "succulent_009", "name": "白牡丹", "nameEn": "White Peony", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 200, "totalCarbon": 20},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 4, "requiredCarbon": 6},
+         {"stage": 3, "duration": 3, "requiredCarbon": 6}
+     ],
+     "symbolism": {"meaning": "纯洁优雅", "story": "白色牡丹的高贵"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 3, "status": "active"},
+    
+    {"plantId": "succulent_010", "name": "桃蛋", "nameEn": "Peach Egg", "category": "succulent", "rarity": "common",
+     "unlockRequirements": {"userLevel": "bronze", "totalPoints": 250, "totalCarbon": 25},
+     "growthStages": [
+         {"stage": 1, "duration": 2, "requiredCarbon": 3},
+         {"stage": 2, "duration": 3, "requiredCarbon": 6},
+         {"stage": 3, "duration": 3, "requiredCarbon": 7}
+     ],
+     "symbolism": {"meaning": "甜美可爱", "story": "粉嫩如桃的萌物"},
+     "carbonAbsorption": 0.01, "pointsPerDay": 3, "status": "active"}
+]
+
+# ============ 白银级植物（20种）============
+
+# 灌木花卉（10种）
+silver_shrubs = [
+    {"plantId": "shrub_001", "name": "薰衣草", "nameEn": "Lavender", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 500, "totalCarbon": 50},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 5},
+         {"stage": 2, "duration": 5, "requiredCarbon": 10},
+         {"stage": 3, "duration": 7, "requiredCarbon": 15},
+         {"stage": 4, "duration": 10, "requiredCarbon": 20, "specialEffect": "purple_fragrance"}
+     ],
+     "symbolism": {"meaning": "宁静芬芳", "story": "普罗旺斯的紫色浪漫"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_002", "name": "玫瑰", "nameEn": "Rose", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 600, "totalCarbon": 60},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 12},
+         {"stage": 3, "duration": 7, "requiredCarbon": 18},
+         {"stage": 4, "duration": 10, "requiredCarbon": 24, "specialEffect": "rose_bloom"}
+     ],
+     "symbolism": {"meaning": "爱与美", "story": "永恒的爱情象征"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_003", "name": "茉莉花", "nameEn": "Jasmine", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 550, "totalCarbon": 55},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 5},
+         {"stage": 2, "duration": 5, "requiredCarbon": 10},
+         {"stage": 3, "duration": 7, "requiredCarbon": 15},
+         {"stage": 4, "duration": 9, "requiredCarbon": 20, "specialEffect": "white_fragrance"}
+     ],
+     "symbolism": {"meaning": "清香纯洁", "story": "夜晚最香的花"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_004", "name": "栀子花", "nameEn": "Gardenia", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 650, "totalCarbon": 65},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 12},
+         {"stage": 3, "duration": 8, "requiredCarbon": 18},
+         {"stage": 4, "duration": 10, "requiredCarbon": 24, "specialEffect": "white_bloom"}
+     ],
+     "symbolism": {"meaning": "一生守候", "story": "等待爱情的芬芳"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_005", "name": "桂花", "nameEn": "Osmanthus", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 700, "totalCarbon": 70},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 7},
+         {"stage": 2, "duration": 6, "requiredCarbon": 14},
+         {"stage": 3, "duration": 8, "requiredCarbon": 21},
+         {"stage": 4, "duration": 12, "requiredCarbon": 28, "specialEffect": "golden_fragrance"}
+     ],
+     "symbolism": {"meaning": "收获喜悦", "story": "中秋时节的金桂飘香"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 6, "status": "active"},
+    
+    {"plantId": "shrub_006", "name": "月季", "nameEn": "Chinese Rose", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 580, "totalCarbon": 58},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 11},
+         {"stage": 3, "duration": 7, "requiredCarbon": 17},
+         {"stage": 4, "duration": 10, "requiredCarbon": 24, "specialEffect": "monthly_bloom"}
+     ],
+     "symbolism": {"meaning": "月月盛开", "story": "四季不败的花"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_007", "name": "杜鹃", "nameEn": "Azalea", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 620, "totalCarbon": 62},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 12},
+         {"stage": 3, "duration": 8, "requiredCarbon": 19},
+         {"stage": 4, "duration": 10, "requiredCarbon": 25, "specialEffect": "red_bloom"}
+     ],
+     "symbolism": {"meaning": "繁花似锦", "story": "映山红的热情"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_008", "name": "迎春花", "nameEn": "Winter Jasmine", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 500, "totalCarbon": 50},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 5},
+         {"stage": 2, "duration": 5, "requiredCarbon": 10},
+         {"stage": 3, "duration": 7, "requiredCarbon": 15},
+         {"stage": 4, "duration": 9, "requiredCarbon": 20, "specialEffect": "yellow_bloom"}
+     ],
+     "symbolism": {"meaning": "报春使者", "story": "最早盛开的春天"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "shrub_009", "name": "山茶花", "nameEn": "Camellia", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 680, "totalCarbon": 68},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 7},
+         {"stage": 2, "duration": 6, "requiredCarbon": 14},
+         {"stage": 3, "duration": 8, "requiredCarbon": 21},
+         {"stage": 4, "duration": 12, "requiredCarbon": 28, "specialEffect": "red_camellia"}
+     ],
+     "symbolism": {"meaning": "谦逊美德", "story": "冬日里的骄傲"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 6, "status": "active"},
+    
+    {"plantId": "shrub_010", "name": "紫薇", "nameEn": "Crape Myrtle", "category": "shrub", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 720, "totalCarbon": 72},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 7},
+         {"stage": 2, "duration": 6, "requiredCarbon": 14},
+         {"stage": 3, "duration": 9, "requiredCarbon": 22},
+         {"stage": 4, "duration": 12, "requiredCarbon": 29, "specialEffect": "purple_bloom"}
+     ],
+     "symbolism": {"meaning": "沉迷的爱", "story": "百日红的浪漫"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 6, "status": "active"}
+]
+
+# 常见绿植（10种）
+silver_greens = [
+    {"plantId": "green_001", "name": "发财树", "nameEn": "Money Tree", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 800, "totalCarbon": 80},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 8},
+         {"stage": 2, "duration": 7, "requiredCarbon": 16},
+         {"stage": 3, "duration": 10, "requiredCarbon": 24},
+         {"stage": 4, "duration": 14, "requiredCarbon": 32}
+     ],
+     "symbolism": {"meaning": "招财进宝", "story": "象征财富与好运"},
+     "carbonAbsorption": 0.03, "pointsPerDay": 6, "status": "active"},
+    
+    {"plantId": "green_002", "name": "绿萝", "nameEn": "Pothos", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 600, "totalCarbon": 60},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 12},
+         {"stage": 3, "duration": 7, "requiredCarbon": 18},
+         {"stage": 4, "duration": 10, "requiredCarbon": 24}
+     ],
+     "symbolism": {"meaning": "生命顽强", "story": "遇水即活的生命力"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "green_003", "name": "富贵竹", "nameEn": "Lucky Bamboo", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 650, "totalCarbon": 65},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 13},
+         {"stage": 3, "duration": 8, "requiredCarbon": 20},
+         {"stage": 4, "duration": 12, "requiredCarbon": 26}
+     ],
+     "symbolism": {"meaning": "节节高升", "story": "竹报平安的祝福"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "green_004", "name": "吊兰", "nameEn": "Spider Plant", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 550, "totalCarbon": 55},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 5},
+         {"stage": 2, "duration": 5, "requiredCarbon": 11},
+         {"stage": 3, "duration": 7, "requiredCarbon": 17},
+         {"stage": 4, "duration": 10, "requiredCarbon": 22}
+     ],
+     "symbolism": {"meaning": "净化空气", "story": "绿色的空气卫士"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "green_005", "name": "龟背竹", "nameEn": "Monstera", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 750, "totalCarbon": 75},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 8},
+         {"stage": 2, "duration": 7, "requiredCarbon": 15},
+         {"stage": 3, "duration": 10, "requiredCarbon": 23},
+         {"stage": 4, "duration": 14, "requiredCarbon": 29}
+     ],
+     "symbolism": {"meaning": "长寿安康", "story": "如龟甲的叶片"},
+     "carbonAbsorption": 0.03, "pointsPerDay": 6, "status": "active"},
+    
+    {"plantId": "green_006", "name": "虎皮兰", "nameEn": "Snake Plant", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 600, "totalCarbon": 60},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 6},
+         {"stage": 2, "duration": 5, "requiredCarbon": 12},
+         {"stage": 3, "duration": 8, "requiredCarbon": 18},
+         {"stage": 4, "duration": 11, "requiredCarbon": 24}
+     ],
+     "symbolism": {"meaning": "坚韧不拔", "story": "如虎纹般的力量"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 5, "status": "active"},
+    
+    {"plantId": "green_007", "name": "常春藤", "nameEn": "Ivy", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 700, "totalCarbon": 70},
+     "growthStages": [
+         {"stage": 1, "duration": 3, "requiredCarbon": 7},
+         {"stage": 2, "duration": 6, "requiredCarbon": 14},
+         {"stage": 3, "duration": 9, "requiredCarbon": 21},
+         {"stage": 4, "duration": 12, "requiredCarbon": 28}
+     ],
+     "symbolism": {"meaning": "永恒友谊", "story": "四季常青的陪伴"},
+     "carbonAbsorption": 0.02, "pointsPerDay": 6, "status": "active"},
+    
+    {"plantId": "green_008", "name": "橡皮树", "nameEn": "Rubber Plant", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 800, "totalCarbon": 80},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 8},
+         {"stage": 2, "duration": 7, "requiredCarbon": 16},
+         {"stage": 3, "duration": 10, "requiredCarbon": 24},
+         {"stage": 4, "duration": 14, "requiredCarbon": 32}
+     ],
+     "symbolism": {"meaning": "沉稳大气", "story": "厚实的叶片，稳重的性格"},
+     "carbonAbsorption": 0.03, "pointsPerDay": 7, "status": "active"},
+    
+    {"plantId": "green_009", "name": "琴叶榕", "nameEn": "Fiddle Leaf Fig", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 850, "totalCarbon": 85},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 9},
+         {"stage": 2, "duration": 7, "requiredCarbon": 17},
+         {"stage": 3, "duration": 11, "requiredCarbon": 26},
+         {"stage": 4, "duration": 15, "requiredCarbon": 33}
+     ],
+     "symbolism": {"meaning": "艺术气质", "story": "像小提琴的叶片"},
+     "carbonAbsorption": 0.03, "pointsPerDay": 7, "status": "active"},
+    
+    {"plantId": "green_010", "name": "散尾葵", "nameEn": "Areca Palm", "category": "green", "rarity": "rare",
+     "unlockRequirements": {"userLevel": "silver", "totalPoints": 780, "totalCarbon": 78},
+     "growthStages": [
+         {"stage": 1, "duration": 4, "requiredCarbon": 8},
+         {"stage": 2, "duration": 7, "requiredCarbon": 15},
+         {"stage": 3, "duration": 10, "requiredCarbon": 23},
+         {"stage": 4, "duration": 13, "requiredCarbon": 32}
+     ],
+     "symbolism": {"meaning": "热带风情", "story": "如扇子般的叶片"},
+     "carbonAbsorption": 0.03, "pointsPerDay": 6, "status": "active"}
+]
+
+# ============ 黄金级植物（15种）============
+
+# 乔木树木（10种）
+gold_trees = [
+    {"plantId": "tree_001", "name": "樱花树", "nameEn": "Cherry Blossom", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3000, "totalCarbon": 300, "prerequisitePlants": ["桃树"]},
+     "growthStages": [
+         {"stage": 1, "duration": 7, "requiredCarbon": 15},
+         {"stage": 2, "duration": 14, "requiredCarbon": 30},
+         {"stage": 3, "duration": 21, "requiredCarbon": 45},
+         {"stage": 4, "duration": 30, "requiredCarbon": 60, "specialEffect": "sakura_petals", "milestone": "樱花季成就"}
+     ],
+     "symbolism": {"meaning": "生命短暂而美好", "story": "樱花7日，提醒珍惜当下"},
+     "shareTemplate": "我的樱花树开花了！坚持素食{days}天，累计减排{carbon}kg！",
+     "carbonAbsorption": 0.05, "pointsPerDay": 10, "status": "active"},
+    
+    {"plantId": "tree_002", "name": "银杏树", "nameEn": "Ginkgo", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3200, "totalCarbon": 320},
+     "growthStages": [
+         {"stage": 1, "duration": 7, "requiredCarbon": 16},
+         {"stage": 2, "duration": 14, "requiredCarbon": 32},
+         {"stage": 3, "duration": 21, "requiredCarbon": 48},
+         {"stage": 4, "duration": 30, "requiredCarbon": 64, "specialEffect": "golden_leaves"}
+     ],
+     "symbolism": {"meaning": "活化石的见证", "story": "2亿年的生命传承"},
+     "carbonAbsorption": 0.05, "pointsPerDay": 10, "status": "active"},
+    
+    {"plantId": "tree_003", "name": "枫树", "nameEn": "Maple", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3500, "totalCarbon": 350},
+     "growthStages": [
+         {"stage": 1, "duration": 7, "requiredCarbon": 17},
+         {"stage": 2, "duration": 15, "requiredCarbon": 35},
+         {"stage": 3, "duration": 22, "requiredCarbon": 53},
+         {"stage": 4, "duration": 30, "requiredCarbon": 70, "specialEffect": "red_autumn"}
+     ],
+     "symbolism": {"meaning": "秋天的童话", "story": "红叶如火的浪漫"},
+     "carbonAbsorption": 0.05, "pointsPerDay": 11, "status": "active"},
+    
+    {"plantId": "tree_004", "name": "梧桐树", "nameEn": "Phoenix Tree", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3300, "totalCarbon": 330},
+     "growthStages": [
+         {"stage": 1, "duration": 7, "requiredCarbon": 16},
+         {"stage": 2, "duration": 14, "requiredCarbon": 33},
+         {"stage": 3, "duration": 21, "requiredCarbon": 50},
+         {"stage": 4, "duration": 30, "requiredCarbon": 66}
+         ],
+     "symbolism": {"meaning": "引凤来仪", "story": "栽下梧桐树，引得凤凰来"},
+     "carbonAbsorption": 0.05, "pointsPerDay": 10, "status": "active"},
+    
+    {"plantId": "tree_005", "name": "柳树", "nameEn": "Willow", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3100, "totalCarbon": 310},
+     "growthStages": [
+         {"stage": 1, "duration": 6, "requiredCarbon": 15},
+         {"stage": 2, "duration": 13, "requiredCarbon": 31},
+         {"stage": 3, "duration": 20, "requiredCarbon": 46},
+         {"stage": 4, "duration": 28, "requiredCarbon": 62, "specialEffect": "willow_sway"}
+     ],
+     "symbolism": {"meaning": "依依惜别", "story": "杨柳依依，送别情深"},
+     "carbonAbsorption": 0.04, "pointsPerDay": 10, "status": "active"},
+    
+    {"plantId": "tree_006", "name": "桃树", "nameEn": "Peach Tree", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 2800, "totalCarbon": 280},
+     "growthStages": [
+         {"stage": 1, "duration": 6, "requiredCarbon": 14},
+         {"stage": 2, "duration": 12, "requiredCarbon": 28},
+         {"stage": 3, "duration": 18, "requiredCarbon": 42},
+         {"stage": 4, "duration": 25, "requiredCarbon": 56, "specialEffect": "peach_bloom"}
+     ],
+     "symbolism": {"meaning": "桃李满天下", "story": "春天的粉色云朵"},
+     "carbonAbsorption": 0.04, "pointsPerDay": 9, "status": "active"},
+    
+    {"plantId": "tree_007", "name": "梅树", "nameEn": "Plum Blossom", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3400, "totalCarbon": 340},
+     "growthStages": [
+         {"stage": 1, "duration": 7, "requiredCarbon": 17},
+         {"stage": 2, "duration": 14, "requiredCarbon": 34},
+         {"stage": 3, "duration": 21, "requiredCarbon": 51},
+         {"stage": 4, "duration": 30, "requiredCarbon": 68, "specialEffect": "plum_bloom"}
+     ],
+     "symbolism": {"meaning": "傲雪凌霜", "story": "梅花香自苦寒来"},
+     "carbonAbsorption": 0.05, "pointsPerDay": 11, "status": "active"},
+    
+    {"plantId": "tree_008", "name": "松树", "nameEn": "Pine Tree", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3600, "totalCarbon": 360},
+     "growthStages": [
+         {"stage": 1, "duration": 8, "requiredCarbon": 18},
+         {"stage": 2, "duration": 15, "requiredCarbon": 36},
+         {"stage": 3, "duration": 23, "requiredCarbon": 54},
+         {"stage": 4, "duration": 32, "requiredCarbon": 72}
+     ],
+     "symbolism": {"meaning": "岁寒三友", "story": "松柏长青，坚贞不屈"},
+     "carbonAbsorption": 0.06, "pointsPerDay": 12, "status": "active"},
+    
+    {"plantId": "tree_009", "name": "竹子", "nameEn": "Bamboo", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3000, "totalCarbon": 300},
+     "growthStages": [
+         {"stage": 1, "duration": 5, "requiredCarbon": 12},
+         {"stage": 2, "duration": 10, "requiredCarbon": 25},
+         {"stage": 3, "duration": 15, "requiredCarbon": 38},
+         {"stage": 4, "duration": 20, "requiredCarbon": 50, "specialEffect": "bamboo_grove"}
+     ],
+     "symbolism": {"meaning": "虚心有节", "story": "宁折不弯的气节"},
+     "carbonAbsorption": 0.04, "pointsPerDay": 10, "status": "active"},
+    
+    {"plantId": "tree_010", "name": "桂树", "nameEn": "Osmanthus Tree", "category": "tree", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3250, "totalCarbon": 325},
+     "growthStages": [
+         {"stage": 1, "duration": 7, "requiredCarbon": 16},
+         {"stage": 2, "duration": 14, "requiredCarbon": 33},
+         {"stage": 3, "duration": 21, "requiredCarbon": 49},
+         {"stage": 4, "duration": 28, "requiredCarbon": 65, "specialEffect": "osmanthus_fragrance"}
+     ],
+     "symbolism": {"meaning": "蟾宫折桂", "story": "中秋月下的金桂"},
+     "carbonAbsorption": 0.05, "pointsPerDay": 10, "status": "active"}
+]
+
+# 名贵花卉（5种）
+gold_flowers = [
+    {"plantId": "flower_001", "name": "牡丹", "nameEn": "Peony", "category": "flower", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 4000, "totalCarbon": 400},
+     "growthStages": [
+         {"stage": 1, "duration": 10, "requiredCarbon": 20},
+         {"stage": 2, "duration": 20, "requiredCarbon": 40},
+         {"stage": 3, "duration": 30, "requiredCarbon": 60},
+         {"stage": 4, "duration": 40, "requiredCarbon": 80, "specialEffect": "peony_bloom", "milestone": "国色天香"}
+     ],
+     "symbolism": {"meaning": "花中之王", "story": "国色天香，富贵吉祥"},
+     "carbonAbsorption": 0.06, "pointsPerDay": 12, "status": "active"},
+    
+    {"plantId": "flower_002", "name": "兰花", "nameEn": "Orchid", "category": "flower", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 4200, "totalCarbon": 420},
+     "growthStages": [
+         {"stage": 1, "duration": 10, "requiredCarbon": 21},
+         {"stage": 2, "duration": 20, "requiredCarbon": 42},
+         {"stage": 3, "duration": 30, "requiredCarbon": 63},
+         {"stage": 4, "duration": 40, "requiredCarbon": 84, "specialEffect": "orchid_elegance"}
+     ],
+     "symbolism": {"meaning": "高洁典雅", "story": "君子如兰"},
+     "carbonAbsorption": 0.06, "pointsPerDay": 13, "status": "active"},
+    
+    {"plantId": "flower_003", "name": "荷花", "nameEn": "Lotus", "category": "flower", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 4500, "totalCarbon": 450},
+     "growthStages": [
+         {"stage": 1, "duration": 12, "requiredCarbon": 23},
+         {"stage": 2, "duration": 24, "requiredCarbon": 45},
+         {"stage": 3, "duration": 36, "requiredCarbon": 68},
+         {"stage": 4, "duration": 48, "requiredCarbon": 90, "specialEffect": "lotus_bloom"}
+     ],
+     "symbolism": {"meaning": "出淤泥而不染", "story": "清净高洁的象征"},
+     "carbonAbsorption": 0.07, "pointsPerDay": 14, "status": "active"},
+    
+    {"plantId": "flower_004", "name": "梅花", "nameEn": "Wintersweet", "category": "flower", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 4300, "totalCarbon": 430},
+     "growthStages": [
+         {"stage": 1, "duration": 10, "requiredCarbon": 22},
+         {"stage": 2, "duration": 20, "requiredCarbon": 43},
+         {"stage": 3, "duration": 30, "requiredCarbon": 65},
+         {"stage": 4, "duration": 40, "requiredCarbon": 86, "specialEffect": "plum_fragrance"}
+     ],
+     "symbolism": {"meaning": "傲雪迎春", "story": "梅须逊雪三分白，雪却输梅一段香"},
+     "carbonAbsorption": 0.06, "pointsPerDay": 13, "status": "active"},
+    
+    {"plantId": "flower_005", "name": "菊花", "nameEn": "Chrysanthemum", "category": "flower", "rarity": "epic",
+     "unlockRequirements": {"userLevel": "gold", "totalPoints": 3800, "totalCarbon": 380},
+     "growthStages": [
+         {"stage": 1, "duration": 9, "requiredCarbon": 19},
+         {"stage": 2, "duration": 18, "requiredCarbon": 38},
+         {"stage": 3, "duration": 27, "requiredCarbon": 57},
+         {"stage": 4, "duration": 36, "requiredCarbon": 76, "specialEffect": "chrysanthemum_bloom"}
+     ],
+     "symbolism": {"meaning": "隐逸高洁", "story": "采菊东篱下，悠然见南山"},
+     "carbonAbsorption": 0.05, "pointsPerDay": 12, "status": "active"}
+]
+
+# ============ 钻石级植物（10种）============
+
+# 珍稀物种（5种）
+diamond_rare = [
+    {"plantId": "rare_001", "name": "蝴蝶兰", "nameEn": "Phalaenopsis", "category": "rare", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 10000, "totalCarbon": 1000, "prerequisitePlants": ["兰花"]},
+     "growthStages": [
+         {"stage": 1, "duration": 15, "requiredCarbon": 30},
+         {"stage": 2, "duration": 30, "requiredCarbon": 60},
+         {"stage": 3, "duration": 45, "requiredCarbon": 90},
+         {"stage": 4, "duration": 60, "requiredCarbon": 120, "specialEffect": "butterfly_dance", "milestone": "蝴蝶仙子"}
+     ],
+     "symbolism": {"meaning": "幸福向你飞来", "story": "如蝴蝶般翩翩起舞的花朵"},
+     "interactions": {"clickEffect": "蝴蝶飞舞", "combos": [{"with": "兰花", "effect": "双兰齐放"}]},
+     "shareTemplate": "蝴蝶兰盛开了！累计减排{carbon}kg，影响{friends}位好友！",
+     "carbonAbsorption": 0.10, "pointsPerDay": 20, "status": "active"},
+    
+    {"plantId": "rare_002", "name": "铁树", "nameEn": "Cycad", "category": "rare", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 12000, "totalCarbon": 1200},
+     "growthStages": [
+         {"stage": 1, "duration": 20, "requiredCarbon": 40},
+         {"stage": 2, "duration": 40, "requiredCarbon": 80},
+         {"stage": 3, "duration": 60, "requiredCarbon": 120},
+         {"stage": 4, "duration": 80, "requiredCarbon": 160, "specialEffect": "iron_bloom"}
+     ],
+     "symbolism": {"meaning": "千年不倒", "story": "铁树开花，稀世罕见"},
+     "carbonAbsorption": 0.12, "pointsPerDay": 25, "status": "active"},
+    
+    {"plantId": "rare_003", "name": "千岁兰", "nameEn": "Welwitschia", "category": "rare", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 15000, "totalCarbon": 1500},
+     "growthStages": [
+         {"stage": 1, "duration": 25, "requiredCarbon": 50},
+         {"stage": 2, "duration": 50, "requiredCarbon": 100},
+         {"stage": 3, "duration": 75, "requiredCarbon": 150},
+         {"stage": 4, "duration": 100, "requiredCarbon": 200}
+     ],
+     "symbolism": {"meaning": "永恒生命", "story": "活2000年的奇迹"},
+     "carbonAbsorption": 0.15, "pointsPerDay": 30, "status": "active"},
+    
+    {"plantId": "rare_004", "name": "龙血树", "nameEn": "Dragon Tree", "category": "rare", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 11000, "totalCarbon": 1100},
+     "growthStages": [
+         {"stage": 1, "duration": 18, "requiredCarbon": 35},
+         {"stage": 2, "duration": 35, "requiredCarbon": 70},
+         {"stage": 3, "duration": 53, "requiredCarbon": 105},
+         {"stage": 4, "duration": 70, "requiredCarbon": 140, "specialEffect": "dragon_aura"}
+     ],
+     "symbolism": {"meaning": "神秘力量", "story": "流淌着红色汁液的神树"},
+     "carbonAbsorption": 0.11, "pointsPerDay": 22, "status": "active"},
+    
+    {"plantId": "rare_005", "name": "巨型向日葵", "nameEn": "Giant Sunflower", "category": "rare", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 9000, "totalCarbon": 900},
+     "growthStages": [
+         {"stage": 1, "duration": 12, "requiredCarbon": 25},
+         {"stage": 2, "duration": 24, "requiredCarbon": 50},
+         {"stage": 3, "duration": 36, "requiredCarbon": 75},
+         {"stage": 4, "duration": 48, "requiredCarbon": 100, "specialEffect": "sun_follow"}
+     ],
+     "symbolism": {"meaning": "向阳而生", "story": "永远追随太阳的信仰"},
+     "carbonAbsorption": 0.09, "pointsPerDay": 18, "status": "active"}
+]
+
+# 概念植物（5种）
+diamond_concept = [
+    {"plantId": "concept_001", "name": "发光树", "nameEn": "Glowing Tree", "category": "concept", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 20000, "totalCarbon": 2000},
+     "growthStages": [
+         {"stage": 1, "duration": 30, "requiredCarbon": 60},
+         {"stage": 2, "duration": 60, "requiredCarbon": 120},
+         {"stage": 3, "duration": 90, "requiredCarbon": 180},
+         {"stage": 4, "duration": 120, "requiredCarbon": 240, "specialEffect": "bio_luminescence"}
+     ],
+     "symbolism": {"meaning": "未来之光", "story": "科技与自然的完美融合"},
+     "carbonAbsorption": 0.20, "pointsPerDay": 50, "status": "active"},
+    
+    {"plantId": "concept_002", "name": "浮空花", "nameEn": "Floating Flower", "category": "concept", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 25000, "totalCarbon": 2500},
+     "growthStages": [
+         {"stage": 1, "duration": 35, "requiredCarbon": 70},
+         {"stage": 2, "duration": 70, "requiredCarbon": 140},
+         {"stage": 3, "duration": 105, "requiredCarbon": 210},
+         {"stage": 4, "duration": 140, "requiredCarbon": 280, "specialEffect": "anti_gravity"}
+     ],
+     "symbolism": {"meaning": "超越重力", "story": "打破常规的想象"},
+     "carbonAbsorption": 0.25, "pointsPerDay": 60, "status": "active"},
+    
+    {"plantId": "concept_003", "name": "时光藤", "nameEn": "Time Vine", "category": "concept", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 30000, "totalCarbon": 3000},
+     "growthStages": [
+         {"stage": 1, "duration": 40, "requiredCarbon": 80},
+         {"stage": 2, "duration": 80, "requiredCarbon": 160},
+         {"stage": 3, "duration": 120, "requiredCarbon": 240},
+         {"stage": 4, "duration": 160, "requiredCarbon": 320, "specialEffect": "time_warp"}
+     ],
+     "symbolism": {"meaning": "时光见证", "story": "记录每一次减排的时光"},
+     "carbonAbsorption": 0.30, "pointsPerDay": 70, "status": "active"},
+    
+    {"plantId": "concept_004", "name": "星辰草", "nameEn": "Starry Grass", "category": "concept", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 22000, "totalCarbon": 2200},
+     "growthStages": [
+         {"stage": 1, "duration": 32, "requiredCarbon": 65},
+         {"stage": 2, "duration": 64, "requiredCarbon": 130},
+         {"stage": 3, "duration": 96, "requiredCarbon": 195},
+         {"stage": 4, "duration": 128, "requiredCarbon": 260, "specialEffect": "starlight"}
+     ],
+     "symbolism": {"meaning": "繁星点点", "story": "如星空般璀璨"},
+     "carbonAbsorption": 0.22, "pointsPerDay": 55, "status": "active"},
+    
+    {"plantId": "concept_005", "name": "彩虹蘑菇", "nameEn": "Rainbow Mushroom", "category": "concept", "rarity": "legendary",
+     "unlockRequirements": {"userLevel": "diamond", "totalPoints": 18000, "totalCarbon": 1800},
+     "growthStages": [
+         {"stage": 1, "duration": 28, "requiredCarbon": 55},
+         {"stage": 2, "duration": 56, "requiredCarbon": 110},
+         {"stage": 3, "duration": 84, "requiredCarbon": 165},
+         {"stage": 4, "duration": 112, "requiredCarbon": 220, "specialEffect": "rainbow_spores"}
+     ],
+     "symbolism": {"meaning": "多彩生活", "story": "七色彩虹的梦幻"},
+     "carbonAbsorption": 0.18, "pointsPerDay": 45, "status": "active"}
+]
+
+# 合并所有植物
+plants.extend(bronze_cactus)
+plants.extend(bronze_succulent)
+plants.extend(silver_shrubs)
+plants.extend(silver_greens)
+plants.extend(gold_trees)
+plants.extend(gold_flowers)
+plants.extend(diamond_rare)
+plants.extend(diamond_concept)
+
+print(f"生成植物总数: {len(plants)}")
+print(f"  - 青铜级: {len(bronze_cactus) + len(bronze_succulent)}")
+print(f"  - 白银级: {len(silver_shrubs) + len(silver_greens)}")
+print(f"  - 黄金级: {len(gold_trees) + len(gold_flowers)}")
+print(f"  - 钻石级: {len(diamond_rare) + len(diamond_concept)}")
+
+# 保存JSON文件
+output_file = os.path.join(os.path.dirname(__file__), '../cloudfunctions/plant-templates/plant-data.json')
+with open(output_file, 'w', encoding='utf-8') as f:
+    json.dump(plants, f, ensure_ascii=False, indent=2)
+
+print(f"\n✅ 植物数据文件已生成: {output_file}")
+
