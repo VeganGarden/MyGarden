@@ -3,8 +3,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 /**
- * 数据库初始化脚本（修复版）
- * 只创建12个核心集合，索引需要在控制台手动创建
+ * 数据库初始化脚本（修复版 v1.1）
+ * 创建13个核心集合，索引需要在控制台手动创建
  * 
  * 注意：腾讯云开发的MongoDB不支持通过代码创建索引
  * 请在执行此脚本后，参考《数据库索引创建手册.md》在控制台手动创建索引
@@ -22,6 +22,7 @@ const db = cloud.database();
  * 10. friends - 好友关系表
  * 11. posts - 动态表
  * 12. orders - 订单表
+ * 13. meat_products - 肉类碳足迹数据（v1.1新增）
  */
 exports.main = async (event) => {
   const results = [];
@@ -32,71 +33,76 @@ exports.main = async (event) => {
 
   try {
     // 1. 创建users集合
-    console.log('[1/12] 创建users集合...');
+    console.log('[1/13] 创建users集合...');
     const result1 = await createCollection('users');
     results.push(result1);
 
     // 2. 创建user_sessions集合
-    console.log('[2/12] 创建user_sessions集合...');
+    console.log('[2/13] 创建user_sessions集合...');
     const result2 = await createCollection('user_sessions');
     results.push(result2);
 
     // 3. 创建meals集合
-    console.log('[3/12] 创建meals集合...');
+    console.log('[3/13] 创建meals集合...');
     const result3 = await createCollection('meals');
     results.push(result3);
 
     // 4. 创建daily_stats集合
-    console.log('[4/12] 创建daily_stats集合...');
+    console.log('[4/13] 创建daily_stats集合...');
     const result4 = await createCollection('daily_stats');
     results.push(result4);
 
     // 5. 创建gardens集合
-    console.log('[5/12] 创建gardens集合...');
+    console.log('[5/13] 创建gardens集合...');
     const result5 = await createCollection('gardens');
     results.push(result5);
 
     // 6. 创建ingredients集合
-    console.log('[6/12] 创建ingredients集合...');
+    console.log('[6/13] 创建ingredients集合...');
     const result6 = await createCollection('ingredients');
     results.push(result6);
 
     // 7. 创建recipes集合
-    console.log('[7/12] 创建recipes集合...');
+    console.log('[7/13] 创建recipes集合...');
     const result7 = await createCollection('recipes');
     results.push(result7);
 
     // 8. 创建sync_tasks集合
-    console.log('[8/12] 创建sync_tasks集合...');
+    console.log('[8/13] 创建sync_tasks集合...');
     const result8 = await createCollection('sync_tasks');
     results.push(result8);
 
     // 9. 创建platform_configs集合
-    console.log('[9/12] 创建platform_configs集合...');
+    console.log('[9/13] 创建platform_configs集合...');
     const result9 = await createCollection('platform_configs');
     results.push(result9);
 
     // 10. 创建friends集合
-    console.log('[10/12] 创建friends集合...');
+    console.log('[10/13] 创建friends集合...');
     const result10 = await createCollection('friends');
     results.push(result10);
 
     // 11. 创建posts集合
-    console.log('[11/12] 创建posts集合...');
+    console.log('[11/13] 创建posts集合...');
     const result11 = await createCollection('posts');
     results.push(result11);
 
     // 12. 创建orders集合
-    console.log('[12/12] 创建orders集合...');
+    console.log('[12/13] 创建orders集合...');
     const result12 = await createCollection('orders');
     results.push(result12);
+
+    // 13. 创建meat_products集合（肉类碳足迹数据）
+    console.log('[13/13] 创建meat_products集合...');
+    const result13 = await createCollection('meat_products');
+    results.push(result13);
 
     const successCount = results.filter(r => r.status === 'success').length;
 
     console.log('\n========================================');
     console.log('🎉 数据库集合创建完成！');
     console.log('========================================');
-    console.log(`成功创建: ${successCount}/12 个集合`);
+    console.log(`成功创建: ${successCount}/13 个集合`);
     console.log('========================================\n');
     console.log('⚠️  重要提示：');
     console.log('索引需要在云开发控制台手动创建');
@@ -108,15 +114,16 @@ exports.main = async (event) => {
       code: 0,
       message: '数据库集合创建成功',
       summary: {
-        totalCollections: 12,
+        totalCollections: 13,
         successfulCollections: successCount,
-        failedCollections: 12 - successCount,
+        failedCollections: 13 - successCount,
         collections: results
       },
       nextSteps: {
         action: '手动创建索引',
         guide: 'Docs/数据库索引创建手册.md',
-        totalIndexes: 28
+        totalIndexes: 28,
+        newCollections: ['meat_products - 肉类碳足迹数据']
       }
     };
 
