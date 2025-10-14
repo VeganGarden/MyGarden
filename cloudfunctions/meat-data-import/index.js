@@ -76,18 +76,35 @@ async function importMeatData() {
     
     try {
       // 检查是否已存在（根据名称）
-      const existing = await db.collection('meat_products')
-        .where({ name: meat.name })
-        .get();
+      // 如果集合不存在，会抛出错误，直接跳到插入逻辑
+      let shouldInsert = true;
+      
+      try {
+        const existing = await db.collection('meat_products')
+          .where({ name: meat.name })
+          .get();
 
-      if (existing.data.length > 0) {
-        console.log(`[${i + 1}/${meatData.length}] ⚠️  ${meat.name} 已存在，跳过`);
-        results.skipped++;
-        results.details.push({
-          name: meat.name,
-          status: 'skipped',
-          reason: '已存在'
-        });
+        if (existing.data.length > 0) {
+          console.log(`[${i + 1}/${meatData.length}] ⚠️  ${meat.name} 已存在，跳过`);
+          results.skipped++;
+          results.details.push({
+            name: meat.name,
+            status: 'skipped',
+            reason: '已存在'
+          });
+          shouldInsert = false;
+        }
+      } catch (checkError) {
+        // 集合不存在是正常情况（首次导入），继续插入
+        if (checkError.errCode === -502005 || checkError.message.includes('not exists')) {
+          console.log(`[${i + 1}/${meatData.length}] ℹ️  集合不存在，将创建并插入 ${meat.name}`);
+          shouldInsert = true;
+        } else {
+          throw checkError;  // 其他错误继续抛出
+        }
+      }
+
+      if (!shouldInsert) {
         continue;
       }
 
@@ -172,40 +189,69 @@ async function clearMeatData() {
  * 统计肉类数量
  */
 async function countMeatData() {
-  const total = await db.collection('meat_products').count();
-  
-  // 按分类统计
-  const byCategory = await db.collection('meat_products')
-    .aggregate()
-    .group({
-      _id: '$category',
-      count: $.sum(1),
-      avgCarbon: $.avg('$carbonFootprint')
-    })
-    .end();
-
-  // 按子分类统计
-  const bySubcategory = await db.collection('meat_products')
-    .aggregate()
-    .group({
-      _id: '$subcategory',
-      count: $.sum(1)
-    })
-    .end();
-
-  console.log('肉类库统计:');
-  console.log('总计:', total.total);
-  console.log('分类统计:', byCategory.list);
-  console.log('子分类统计:', bySubcategory.list);
-
-  return {
-    code: 0,
-    data: {
-      total: total.total,
-      byCategory: byCategory.list,
-      bySubcategory: bySubcategory.list
+  try {
+    const total = await db.collection('meat_products').count();
+    
+    // 如果集合为空
+    if (total.total === 0) {
+      return {
+        code: 0,
+        message: '肉类库为空，请先执行导入操作',
+        data: {
+          total: 0,
+          byCategory: [],
+          bySubcategory: []
+        }
+      };
     }
-  };
+    
+    // 按分类统计
+    const byCategory = await db.collection('meat_products')
+      .aggregate()
+      .group({
+        _id: '$category',
+        count: $.sum(1),
+        avgCarbon: $.avg('$carbonFootprint')
+      })
+      .end();
+
+    // 按子分类统计
+    const bySubcategory = await db.collection('meat_products')
+      .aggregate()
+      .group({
+        _id: '$subcategory',
+        count: $.sum(1)
+      })
+      .end();
+
+    console.log('肉类库统计:');
+    console.log('总计:', total.total);
+    console.log('分类统计:', byCategory.list);
+    console.log('子分类统计:', bySubcategory.list);
+
+    return {
+      code: 0,
+      data: {
+        total: total.total,
+        byCategory: byCategory.list,
+        bySubcategory: bySubcategory.list
+      }
+    };
+  } catch (error) {
+    // 集合不存在
+    if (error.errCode === -502005 || error.message.includes('not exists')) {
+      return {
+        code: 404,
+        message: 'meat_products 集合不存在，请先执行 importMeatData 操作创建集合并导入数据',
+        data: {
+          total: 0,
+          byCategory: [],
+          bySubcategory: []
+        }
+      };
+    }
+    throw error;  // 其他错误继续抛出
+  }
 }
 
 /**
