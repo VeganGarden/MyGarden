@@ -1,0 +1,191 @@
+{
+  "version": "1.0",
+  "description": "践行者档案数据模板",
+  "updateDate": "2025-10-14",
+  "practitioners": [
+    {
+      "practitionerId": "practitioner_001",
+      "profile": {
+        "realName": "李明",
+        "age": 35,
+        "gender": "male",
+        "occupation": "IT工程师",
+        "location": "北京",
+        "avatar": "",
+        "isPublic": true
+      },
+      "veganJourney": {
+        "startDate": "2015-02-01",
+        "veganYears": 10,
+        "veganType": "pure_vegan",
+        "story": {
+          "trigger": "2015年春节，看到屠宰场视频，当晚失眠，第二天开始吃素，至今10年从未动摇。",
+          "process": "前3个月最难，每天想吃肉，但想到那个眼神就忍住了。第4个月身体开始适应，第6个月家人也减少吃肉，现在全家都是弹性素食者。",
+          "challenges": [
+            "第3天特别想吃肉",
+            "家人担心营养不够",
+            "朋友聚会尴尬"
+          ],
+          "solutions": [
+            "去素食餐厅吃大餐",
+            "定期体检给家人看",
+            "提前和餐厅沟通预订素菜"
+          ],
+          "keyMoments": [
+            {
+              "day": 3,
+              "event": "最想放弃，去素食餐厅吃大餐",
+              "feeling": "发现素食也能很满足",
+              "impact": "信心大增，坚持下来了"
+            },
+            {
+              "day": 90,
+              "event": "体检血脂正常",
+              "feeling": "数据证明素食有效",
+              "impact": "家人开始支持"
+            },
+            {
+              "day": 180,
+              "event": "影响了3位同事开始素食",
+              "feeling": "原来我能影响别人",
+              "impact": "有了使命感"
+            },
+            {
+              "day": 365,
+              "event": "坚持一整年",
+              "feeling": "已经是生活方式了",
+              "impact": "不再挣扎"
+            }
+          ]
+        }
+      },
+      "practices": {
+        "dailyMeals": {
+          "breakfast": "豆浆（自己打）+ 全麦面包 + 时令水果",
+          "lunch": "公司食堂：2个素菜 + 糙米饭",
+          "dinner": "自己做，麻婆豆腐、番茄炒蛋、青菜豆腐汤是常做的",
+          "snacks": "坚果（核桃、杏仁）、水果"
+        },
+        "topIngredients": [
+          {
+            "name": "豆腐",
+            "frequency": "weekly_5",
+            "usage": "主要蛋白质来源",
+            "tips": "盐水泡10分钟去豆腥味，这是我做了200次麻婆豆腐总结的经验"
+          },
+          {
+            "name": "西蓝花",
+            "frequency": "weekly_3",
+            "usage": "维生素补充",
+            "tips": "水开后焯1分钟，保持脆嫩和营养"
+          },
+          {
+            "name": "糙米",
+            "frequency": "daily",
+            "usage": "主食",
+            "tips": "提前浸泡2小时，口感更好"
+          }
+        ],
+        "topRecipes": [
+          {
+            "name": "麻婆豆腐（素版）",
+            "timesCooked": 200,
+            "successRate": 95,
+            "uniqueTips": "豆腐要用盐水泡10分钟去豆腥味，很多人不知道这一步，做出来就差点味道。辣椒要先炒香才能提味。",
+            "videoUrl": ""
+          },
+          {
+            "name": "番茄炒蛋",
+            "timesCooked": 150,
+            "successRate": 98,
+            "uniqueTips": "先炒蛋，盛出来，再炒番茄，最后混合。很多人一起炒，蛋会老。",
+            "videoUrl": ""
+          }
+        ],
+        "seasonalAdjustments": {
+          "spring": "春笋、豆芽、韭菜为主，助阳气生发",
+          "summer": "清淡为主，凉拌菜、绿豆汤，清热解暑",
+          "autumn": "滋阴润燥，百合、银耳、梨，防秋燥",
+          "winter": "温补，核桃、板栗、红枣，补肾气"
+        }
+      },
+      "healthChanges": {
+        "medicalReports": [
+          {
+            "date": "2015-01-15",
+            "type": "before_vegan",
+            "data": {
+              "weight": 75,
+              "bloodPressure": "140/90",
+              "cholesterol": 6.5,
+              "bloodSugar": 5.8,
+              "hemoglobin": 145
+            }
+          },
+          {
+            "date": "2016-01-15",
+            "type": "after_1year",
+            "data": {
+              "weight": 68,
+              "bloodPressure": "120/80",
+              "cholesterol": 4.8,
+              "bloodSugar": 4.9,
+              "hemoglobin": 142
+            }
+          }
+        ],
+        "subjectiveChanges": {
+          "energy": { "before": 6, "after": 9 },
+          "sleep": { "before": "经常失眠", "after": "睡眠质量明显改善" },
+          "skin": { "before": "痘痘多", "after": "痘痘消失，皮肤光滑" },
+          "digestion": { "before": "一般", "after": "非常好" },
+          "mood": { "before": "易烦躁", "after": "平和许多" },
+          "sports": { "before": "不运动", "after": "每周跑步3次，去年跑了北马" }
+        },
+        "diseaseImprovements": []
+      },
+      "uniqueWisdom": {
+        "corePhilosophy": "素食不是限制，而是自由",
+        "goldenRules": [
+          "循序渐进，不要给自己压力",
+          "吃饱吃好，营养够才能坚持",
+          "定期体检，用数据说话"
+        ],
+        "uniqueSecrets": [
+          "盐水泡豆腐10分钟去豆腥味",
+          "节气饮食：立春吃韭菜，立秋吃百合"
+        ],
+        "adviceToNewcomers": "前3个月是适应期，身体会有各种反应，这很正常。坚持记录饮食，定期体检，用数据给自己信心。",
+        "deepThoughts": "素食让我理解了'天人合一'，人不是自然的主宰，而是一部分。顺应自然，才能健康长久。",
+        "futureVision": "希望通过我的经验，帮助更多人顺利转素。素食不只是个人选择，是对地球的贡献。"
+      },
+      "certification": {
+        "level": "diamond",
+        "certifiedAt": "2025-10-14",
+        "certifiedBy": "admin",
+        "canBeMentor": true,
+        "specialties": ["中餐", "营养搭配", "转素指导", "节气饮食"],
+        "mentoredCount": 0
+      },
+      "contributions": {
+        "recipesShared": 10,
+        "questionsAnswered": 50,
+        "articlesWritten": 5,
+        "videosRecorded": 3
+      },
+      "media": {
+        "profileVideo": "",
+        "cookingVideos": [],
+        "photos": [],
+        "voiceRecords": []
+      },
+      "status": "active"
+    }
+  ],
+  "notes": [
+    "这是示例数据，实际使用时请替换为真实践行者信息",
+    "每位践行者需要深度访谈1-2小时",
+    "建议先完成30人试点，再扩展到100人"
+  ]
+}
+

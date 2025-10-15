@@ -65,6 +65,27 @@
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256
+    },
+    {
+      "name": "practitioners",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "wisdom",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "practitioner-data-import",
+      "timeout": 60,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
   ]
 }
