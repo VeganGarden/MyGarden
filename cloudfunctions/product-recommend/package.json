@@ -1,0 +1,10 @@
+{
+  "name": "product-recommend",
+  "version": "1.0.0",
+  "description": "商品推荐云函数 - v3.0",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

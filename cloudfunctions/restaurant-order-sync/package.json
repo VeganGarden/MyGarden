@@ -1,0 +1,10 @@
+{
+  "name": "restaurant-order-sync",
+  "version": "1.0.0",
+  "description": "餐厅订单同步到花园云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

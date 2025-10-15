@@ -1,31 +1,74 @@
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 /**
- * 数据库初始化脚本（修复版 v1.2）
- * 创建14个核心集合，索引需要在控制台手动创建
+ * 数据库管理云函数 - 统一入口
  * 
- * 注意：腾讯云开发的MongoDB不支持通过代码创建索引
- * 请在执行此脚本后，参考《数据库索引创建手册.md》在控制台手动创建索引
- * 
- * 集合列表：
- * 1. users - 用户主表
- * 2. user_sessions - 会话表
- * 3. meals - 餐食记录表
- * 4. daily_stats - 每日统计表
- * 5. gardens - 花园表
- * 6. ingredients - 食材库
- * 7. recipes - 食谱库
- * 8. sync_tasks - 同步任务表
- * 9. platform_configs - 平台配置表
- * 10. friends - 好友关系表
- * 11. posts - 动态表
- * 12. orders - 订单表
- * 13. meat_products - 肉类碳足迹数据（v1.1新增）
- * 14. plant_templates - 植物模板数据（v1.2新增）
+ * 支持的 actions:
+ * - init-v1: 初始化 v1.0 数据库（14个核心集合）
+ * - init-v2: 创建 v2.0 新集合（7个集合）
+ * - migrate-v2: 迁移现有集合（添加新字段）
+ * - init-v3: 创建 v3.0 新集合（10个电商+运营域集合）
+ * - migrate-v3: 迁移现有集合为 v3.0（扩展6个集合）
+ * - seed-v3-data: 导入 v3.0 示例数据
+ * - init-v4: 创建 v4.0 新集合（15个餐厅+碳普惠+政府域集合）✨
+ * - migrate-v4: 迁移现有集合为 v4.0（扩展字段）✨
+ * - seed-v4-data: 导入 v4.0 示例数据 ✨
+ * - test-upgrade: 测试升级结果
+ * - get-status: 查看数据库状态
  */
 exports.main = async (event) => {
+  const { action = 'init-v1' } = event;
+  
+  console.log('========================================');
+  console.log(`数据库管理云函数 - Action: ${action}`);
+  console.log('========================================\n');
+
+  try {
+    switch (action) {
+      case 'init-v1':
+        return await initCollectionsV1(event);
+      case 'init-v2':
+        return await initCollectionsV2(event);
+      case 'migrate-v2':
+        return await migrateCollectionsV2(event);
+      case 'init-v3':
+        return await initCollectionsV3(event);
+      case 'migrate-v3':
+        return await migrateCollectionsV3(event);
+      case 'seed-v3-data':
+        return await seedV3Data(event);
+      case 'init-v4':
+        return await initCollectionsV4(event);
+      case 'migrate-v4':
+        return await migrateCollectionsV4(event);
+      case 'seed-v4-data':
+        return await seedV4Data(event);
+      case 'test-upgrade':
+        return await testUpgrade(event);
+      case 'get-status':
+        return await getDatabaseStatus(event);
+      case 'seed-sample-data':
+        return await seedSampleData(event);
+      default:
+        return await initCollectionsV1(event);
+    }
+  } catch (error) {
+    console.error('❌ 云函数执行失败:', error);
+    return {
+      code: 500,
+      message: '云函数执行失败',
+      error: error.message
+    };
+  }
+};
+
+/**
+ * 初始化 v1.0 数据库（原有逻辑）
+ */
+async function initCollectionsV1(event) {
   const results = [];
   
   console.log('========================================');
@@ -172,6 +215,186 @@ async function createCollection(collectionName) {
       collection: collectionName,
       status: 'failed',
       message: error.message
+    };
+  }
+}
+
+/**
+ * 初始化 v2.0 新集合
+ */
+async function initCollectionsV2(event) {
+  const initV2 = require('./init-collections-v2.js');
+  return await initV2.main(event);
+}
+
+/**
+ * 迁移现有集合
+ */
+async function migrateCollectionsV2(event) {
+  const migrate = require('./migrate-collections-v2.js');
+  // 正确传递参数
+  const { params = {} } = event;
+  return await migrate.main(params);
+}
+
+/**
+ * 测试升级结果
+ */
+async function testUpgrade(event) {
+  const test = require('./test-upgrade.js');
+  return await test.main(event);
+}
+
+/**
+ * 导入示例数据
+ */
+async function seedSampleData(event) {
+  const seed = require('./seed-sample-data.js');
+  return await seed.main(event);
+}
+
+/**
+ * 初始化 v3.0 新集合
+ */
+async function initCollectionsV3(event) {
+  const initV3 = require('./init-collections-v3.js');
+  return await initV3.initV3Collections();
+}
+
+/**
+ * 迁移现有集合为 v3.0
+ */
+async function migrateCollectionsV3(event) {
+  const migrate = require('./migrate-collections-v3.js');
+  const { params = {} } = event;
+  return await migrate.migrateV3Collections(params);
+}
+
+/**
+ * 导入 v3.0 示例数据
+ */
+async function seedV3Data(event) {
+  const seed = require('./seed-sample-data-v3.js');
+  return await seed.seedV3SampleData();
+}
+
+/**
+ * 初始化 v4.0 新集合
+ */
+async function initCollectionsV4(event) {
+  const initV4 = require('./init-collections-v4.js');
+  return await initV4.initV4Collections();
+}
+
+/**
+ * 迁移现有集合为 v4.0
+ */
+async function migrateCollectionsV4(event) {
+  const migrate = require('./migrate-collections-v4.js');
+  const { params = {} } = event;
+  return await migrate.migrateV4Collections(params);
+}
+
+/**
+ * 导入 v4.0 示例数据
+ */
+async function seedV4Data(event) {
+  const seed = require('./seed-sample-data-v4.js');
+  return await seed.seedV4SampleData();
+}
+
+/**
+ * 查看数据库状态
+ */
+async function getDatabaseStatus(event) {
+  try {
+    const v1Collections = [
+      'users', 'user_sessions', 'meals', 'daily_stats', 'gardens',
+      'ingredients', 'recipes', 'sync_tasks', 'platform_configs',
+      'friends', 'posts', 'orders', 'meat_products', 'plant_templates'
+    ];
+    
+    const v2Collections = [
+      'practitioners', 'practitioner_certifications', 'tcm_wisdom',
+      'wisdom_quotes', 'mentorship', 'user_profiles_extended', 'knowledge_graph'
+    ];
+    
+    const v3Collections = [
+      'products', 'shopping_cart', 'product_reviews', 'inventory',
+      'promotions', 'coupons', 'user_coupons', 
+      'data_dashboard', 'business_rules'
+    ];
+    
+    const v4Collections = [
+      'restaurants', 'restaurant_menus', 'restaurant_menu_items', 
+      'restaurant_orders', 'restaurant_reservations', 'restaurant_members',
+      'restaurant_campaigns', 'restaurant_reviews',
+      'carbon_credits', 'carbon_transactions', 'carbon_exchange_records', 'carbon_milestones',
+      'government_programs', 'public_participation', 'esg_reports'
+    ];
+    
+    const allCollections = [...v1Collections, ...v2Collections, ...v3Collections, ...v4Collections];
+    const status = {};
+    
+    for (const collectionName of allCollections) {
+      try {
+        const countResult = await db.collection(collectionName).count();
+        status[collectionName] = {
+          exists: true,
+          count: countResult.total
+        };
+      } catch (error) {
+        status[collectionName] = {
+          exists: false,
+          error: error.message
+        };
+      }
+    }
+    
+    // 判断版本
+    let version = 'v1.0';
+    const v1Complete = v1Collections.every(c => status[c]?.exists);
+    const v2Complete = v2Collections.every(c => status[c]?.exists);
+    const v3Complete = v3Collections.every(c => status[c]?.exists);
+    const v4Complete = v4Collections.every(c => status[c]?.exists);
+    
+    if (v1Complete && v2Complete && v3Complete && v4Complete) {
+      version = 'v4.0';
+    } else if (v1Complete && v2Complete && v3Complete) {
+      version = 'v3.0';
+    } else if (v1Complete && v2Complete) {
+      version = 'v2.0';
+    } else if (v1Complete) {
+      version = 'v1.2';
+    }
+    
+    console.log(`\n数据库状态： ${version}`);
+    console.log(`v1.0 集合： ${v1Complete ? '完整' : '不完整'}`);
+    console.log(`v2.0 集合： ${v2Complete ? '完整' : '不完整'}`);
+    console.log(`v3.0 集合： ${v3Complete ? '完整' : '不完整'}`);
+    console.log(`v4.0 集合： ${v4Complete ? '完整' : '不完整'}`);
+    
+    return {
+      code: 0,
+      message: '数据库状态查询成功',
+      data: {
+        timestamp: new Date(),
+        version,
+        collections: status,
+        summary: {
+          v1: { total: v1Collections.length, complete: v1Complete },
+          v2: { total: v2Collections.length, complete: v2Complete },
+          v3: { total: v3Collections.length, complete: v3Complete },
+          v4: { total: v4Collections.length, complete: v4Complete }
+        }
+      }
+    };
+  } catch (error) {
+    console.error('❌ 状态查询失败:', error);
+    return {
+      code: 500,
+      message: '状态查询失败',
+      error: error.message
     };
   }
 }

@@ -1,0 +1,327 @@
+[
+  {
+    "productId": "JY-001",
+    "name": "九悦有机豆腐",
+    "nameEn": "Organic Tofu",
+    "category": "生鲜",
+    "subcategory": "豆制品",
+    "brand": "九悦自营",
+    "description": "精选东北非转基因黄豆,传统工艺制作,口感细腻,豆香浓郁",
+    "highlights": ["有机认证", "非转基因", "当日新鲜"],
+    "certifications": ["有机认证", "非转基因"],
+    "specs": [
+      {
+        "specId": "spec-500g",
+        "name": "500g装",
+        "price": 12.8,
+        "marketPrice": 15.8,
+        "stock": 500,
+        "unit": "盒",
+        "barcode": "6901234567890"
+      }
+    ],
+    "linkedData": {
+      "ingredientId": null,
+      "usedInRecipes": [],
+      "carbonFootprint": 1.2,
+      "carbonCalculationMethod": "FAO标准",
+      "certifiedByPractitioners": [
+        {
+          "practitionerId": null,
+          "practitionerName": "李明",
+          "certificationLevel": "gold",
+          "testimonial": "豆腐是我10年素食的主要蛋白质来源,九悦的豆腐口感细腻,豆香味浓,非常推荐!",
+          "videoUrl": "",
+          "certifiedAt": "2025-10-01"
+        }
+      ],
+      "tcmProperties": {
+        "nature": "凉",
+        "suitableBodyTypes": ["阴虚", "燥热"],
+        "bestSeasons": ["夏", "秋"]
+      }
+    },
+    "recommendTags": {
+      "scenarios": ["快手早餐", "健身餐", "日常家常"],
+      "healthNeeds": ["高蛋白", "低脂"],
+      "dietTypes": ["pure_vegan", "lacto_ovo"],
+      "bodyTypes": ["阴虚", "燥热", "平和"],
+      "solarTerms": ["立秋", "白露", "寒露"]
+    },
+    "media": {
+      "mainImage": "https://example.com/tofu-main.jpg",
+      "detailImages": [],
+      "videos": [],
+      "practitionerCookingVideos": []
+    },
+    "salesData": {
+      "totalSales": 1250,
+      "monthSales": 180,
+      "rating": 4.8,
+      "reviewCount": 86,
+      "favorites": 230,
+      "viewCount": 3500
+    },
+    "shipping": {
+      "weight": 500,
+      "volume": { "length": 15, "width": 10, "height": 5 },
+      "freeShippingThreshold": 99,
+      "deliveryTime": "当日达"
+    },
+    "status": "on_sale",
+    "stockAlert": false
+  },
+  {
+    "productId": "JY-002",
+    "name": "九悦有机糙米",
+    "nameEn": "Organic Brown Rice",
+    "category": "干货",
+    "subcategory": "谷物",
+    "brand": "九悦自营",
+    "description": "东北五常有机糙米,富含膳食纤维,低GI值,适合控糖人群",
+    "highlights": ["有机认证", "低GI", "富含纤维"],
+    "certifications": ["有机认证"],
+    "specs": [
+      {
+        "specId": "spec-2kg",
+        "name": "2kg装",
+        "price": 38.8,
+        "marketPrice": 48.8,
+        "stock": 300,
+        "unit": "袋",
+        "barcode": "6901234567891"
+      }
+    ],
+    "linkedData": {
+      "ingredientId": null,
+      "usedInRecipes": [],
+      "carbonFootprint": 0.8,
+      "carbonCalculationMethod": "FAO标准",
+      "certifiedByPractitioners": [],
+      "tcmProperties": {
+        "nature": "平",
+        "suitableBodyTypes": ["平和", "气虚"],
+        "bestSeasons": ["春", "夏", "秋", "冬"]
+      }
+    },
+    "recommendTags": {
+      "scenarios": ["日常主食", "健身餐", "控糖饮食"],
+      "healthNeeds": ["控糖", "高纤维", "饱腹感"],
+      "dietTypes": ["pure_vegan", "lacto_ovo"],
+      "bodyTypes": ["平和", "气虚", "痰湿"],
+      "solarTerms": ["谷雨", "小满", "芒种"]
+    },
+    "media": {
+      "mainImage": "https://example.com/rice-main.jpg",
+      "detailImages": [],
+      "videos": [],
+      "practitionerCookingVideos": []
+    },
+    "salesData": {
+      "totalSales": 2150,
+      "monthSales": 320,
+      "rating": 4.9,
+      "reviewCount": 156,
+      "favorites": 480,
+      "viewCount": 6800
+    },
+    "shipping": {
+      "weight": 2000,
+      "volume": { "length": 30, "width": 20, "height": 8 },
+      "freeShippingThreshold": 99,
+      "deliveryTime": "次日达"
+    },
+    "status": "on_sale",
+    "stockAlert": false
+  },
+  {
+    "productId": "JY-003",
+    "name": "九悦西兰花",
+    "nameEn": "Broccoli",
+    "category": "生鲜",
+    "subcategory": "蔬菜",
+    "brand": "九悦自营",
+    "description": "新鲜西兰花,富含维生素C和蛋白质,营养价值极高",
+    "highlights": ["新鲜", "高蛋白", "富含维C"],
+    "certifications": [],
+    "specs": [
+      {
+        "specId": "spec-500g",
+        "name": "500g装",
+        "price": 9.9,
+        "marketPrice": 12.9,
+        "stock": 150,
+        "unit": "份",
+        "barcode": "6901234567892"
+      }
+    ],
+    "linkedData": {
+      "ingredientId": null,
+      "usedInRecipes": [],
+      "carbonFootprint": 0.4,
+      "carbonCalculationMethod": "FAO标准",
+      "certifiedByPractitioners": [],
+      "tcmProperties": {
+        "nature": "平",
+        "suitableBodyTypes": ["平和", "气虚", "阳虚"],
+        "bestSeasons": ["春", "秋"]
+      }
+    },
+    "recommendTags": {
+      "scenarios": ["健身餐", "减肥餐", "日常蔬菜"],
+      "healthNeeds": ["高蛋白", "维生素C", "抗氧化"],
+      "dietTypes": ["pure_vegan", "lacto_ovo"],
+      "bodyTypes": ["平和", "气虚", "阳虚"],
+      "solarTerms": ["立春", "清明", "立秋"]
+    },
+    "media": {
+      "mainImage": "https://example.com/broccoli-main.jpg",
+      "detailImages": [],
+      "videos": [],
+      "practitionerCookingVideos": []
+    },
+    "salesData": {
+      "totalSales": 890,
+      "monthSales": 120,
+      "rating": 4.7,
+      "reviewCount": 45,
+      "favorites": 180,
+      "viewCount": 1200
+    },
+    "shipping": {
+      "weight": 500,
+      "volume": { "length": 20, "width": 15, "height": 10 },
+      "freeShippingThreshold": 99,
+      "deliveryTime": "当日达"
+    },
+    "status": "on_sale",
+    "stockAlert": false
+  },
+  {
+    "productId": "JY-004",
+    "name": "九悦黑芝麻核桃粉",
+    "nameEn": "Black Sesame Walnut Powder",
+    "category": "即食",
+    "subcategory": "冲调品",
+    "brand": "九悦自营",
+    "description": "精选黑芝麻和核桃,低温烘焙研磨,保留营养,方便冲调",
+    "highlights": ["补肾养发", "健脑益智", "方便速食"],
+    "certifications": [],
+    "specs": [
+      {
+        "specId": "spec-500g",
+        "name": "500g罐装",
+        "price": 58.0,
+        "marketPrice": 78.0,
+        "stock": 200,
+        "unit": "罐",
+        "barcode": "6901234567893"
+      }
+    ],
+    "linkedData": {
+      "ingredientId": null,
+      "usedInRecipes": [],
+      "carbonFootprint": 0.6,
+      "carbonCalculationMethod": "估算",
+      "certifiedByPractitioners": [],
+      "tcmProperties": {
+        "nature": "温",
+        "suitableBodyTypes": ["阳虚", "气虚", "血虚"],
+        "bestSeasons": ["秋", "冬"]
+      }
+    },
+    "recommendTags": {
+      "scenarios": ["快手早餐", "加餐零食", "孕妇营养"],
+      "healthNeeds": ["补肾", "养发", "健脑"],
+      "dietTypes": ["pure_vegan"],
+      "bodyTypes": ["阳虚", "气虚", "血虚"],
+      "solarTerms": ["立秋", "寒露", "立冬", "大雪"]
+    },
+    "media": {
+      "mainImage": "https://example.com/sesame-powder-main.jpg",
+      "detailImages": [],
+      "videos": [],
+      "practitionerCookingVideos": []
+    },
+    "salesData": {
+      "totalSales": 650,
+      "monthSales": 95,
+      "rating": 4.9,
+      "reviewCount": 78,
+      "favorites": 320,
+      "viewCount": 2100
+    },
+    "shipping": {
+      "weight": 500,
+      "volume": { "length": 12, "width": 12, "height": 15 },
+      "freeShippingThreshold": 99,
+      "deliveryTime": "次日达"
+    },
+    "status": "on_sale",
+    "stockAlert": false
+  },
+  {
+    "productId": "JY-005",
+    "name": "九悦素食酱油",
+    "nameEn": "Vegetarian Soy Sauce",
+    "category": "调味料",
+    "subcategory": "酱油",
+    "brand": "九悦自营",
+    "description": "零添加酿造酱油,不含动物成分,适合严格素食者",
+    "highlights": ["零添加", "纯素认证", "古法酿造"],
+    "certifications": ["纯素认证"],
+    "specs": [
+      {
+        "specId": "spec-500ml",
+        "name": "500ml装",
+        "price": 18.8,
+        "marketPrice": 25.8,
+        "stock": 400,
+        "unit": "瓶",
+        "barcode": "6901234567894"
+      }
+    ],
+    "linkedData": {
+      "ingredientId": null,
+      "usedInRecipes": [],
+      "carbonFootprint": 0.3,
+      "carbonCalculationMethod": "估算",
+      "certifiedByPractitioners": [],
+      "tcmProperties": {
+        "nature": "平",
+        "suitableBodyTypes": ["平和"],
+        "bestSeasons": ["春", "夏", "秋", "冬"]
+      }
+    },
+    "recommendTags": {
+      "scenarios": ["日常烹饪", "凉拌菜", "炒菜"],
+      "healthNeeds": ["零添加", "纯素"],
+      "dietTypes": ["pure_vegan"],
+      "bodyTypes": ["平和", "气虚", "阴虚", "阳虚"],
+      "solarTerms": []
+    },
+    "media": {
+      "mainImage": "https://example.com/soy-sauce-main.jpg",
+      "detailImages": [],
+      "videos": [],
+      "practitionerCookingVideos": []
+    },
+    "salesData": {
+      "totalSales": 1580,
+      "monthSales": 215,
+      "rating": 4.8,
+      "reviewCount": 124,
+      "favorites": 410,
+      "viewCount": 4200
+    },
+    "shipping": {
+      "weight": 550,
+      "volume": { "length": 8, "width": 8, "height": 20 },
+      "freeShippingThreshold": 99,
+      "deliveryTime": "次日达"
+    },
+    "status": "on_sale",
+    "stockAlert": false
+  }
+]
+

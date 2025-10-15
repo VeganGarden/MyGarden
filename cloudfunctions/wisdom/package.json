@@ -1,0 +1,10 @@
+{
+  "name": "wisdom",
+  "version": "1.0.0",
+  "description": "智慧相关云函数（中医、节气、语录）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.1"
+  }
+}
+
