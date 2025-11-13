@@ -4,7 +4,9 @@ export default {
     'pages/garden/index',
     'pages/carbon/index',
     'pages/profile/index',
-    'pages/login/index'
+    'pages/login/index',
+    'pages/recipe-design/index',
+    'pages/recipe-design/create'
   ],
   window: {
     backgroundTextStyle: 'light',

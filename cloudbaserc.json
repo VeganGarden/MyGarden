@@ -86,6 +86,20 @@
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256
+    },
+    {
+      "name": "recipe",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "ingredient",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
   ]
 }
