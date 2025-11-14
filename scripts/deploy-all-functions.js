@@ -37,6 +37,7 @@ const FUNCTIONS = [
   'product-data-import',
   'carbon-baseline-query',
   'carbon-baseline-manage',
+  'carbon-baseline-init',
 ]
 
 // 检查命令是否存在

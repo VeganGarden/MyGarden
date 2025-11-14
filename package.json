@@ -4,9 +4,9 @@
   "description": "我的花园 - 微信小程序",
   "main": "index.js",
   "scripts": {
-    "baseline:init": "node scripts/init-carbon-baselines.js",
-    "baseline:import": "node scripts/import-baselines.js",
-    "baseline:test": "node scripts/test-baseline-query.js",
+    "baseline:init": "tcb fn invoke carbon-baseline-init --params '{\"action\":\"init\"}'",
+    "baseline:check": "tcb fn invoke carbon-baseline-init --params '{\"action\":\"check\"}'",
+    "baseline:test": "node scripts/test-baseline-cloud.js",
     "baseline:deploy": "./scripts/deploy-baseline-database.sh"
   },
   "keywords": [

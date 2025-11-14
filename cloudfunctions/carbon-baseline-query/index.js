@@ -103,17 +103,26 @@ async function querySingle(params) {
     query['category.restaurantType'] = restaurantType;
   }
   
-  // 日期范围查询
+  // 日期范围查询（可选，如果数据没有设置日期范围则跳过）
   const queryDate = date ? new Date(date) : new Date();
-  query.effectiveDate = db.command.lte(queryDate);
-  query.expiryDate = db.command.gte(queryDate);
-  
-  // 查询数据库
-  const result = await db.collection('carbon_baselines')
+  // 先尝试不包含日期范围的查询
+  let result = await db.collection('carbon_baselines')
     .where(query)
-    .orderBy('version', 'desc')
     .limit(1)
     .get();
+  
+  // 如果没找到，尝试包含日期范围的查询
+  if (result.data.length === 0) {
+    const dateQuery = {
+      ...query,
+      effectiveDate: db.command.lte(queryDate),
+      expiryDate: db.command.gte(queryDate)
+    };
+    result = await db.collection('carbon_baselines')
+      .where(dateQuery)
+      .limit(1)
+      .get();
+  }
   
   if (result.data.length === 0) {
     // 如果没有精确匹配，尝试使用默认值
