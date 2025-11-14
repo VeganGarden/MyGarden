@@ -9,6 +9,11 @@ echo "=========================================="
 echo "碳足迹基准值数据库部署"
 echo "=========================================="
 echo ""
+echo "ℹ️  说明："
+echo "   - 云函数部署不需要 SecretId/SecretKey（使用 tcb login）"
+echo "   - 数据库初始化需要 SecretId/SecretKey（本地脚本访问数据库）"
+echo "   详见：Docs/项目策划方案/碳足迹计算/为什么需要TCB_SECRET配置说明.md"
+echo ""
 
 # 加载 .env 文件（如果存在）
 if [ -f .env ]; then
