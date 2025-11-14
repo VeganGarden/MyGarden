@@ -142,6 +142,27 @@
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256
+    },
+    {
+      "name": "carbon-baseline-query",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "carbon-baseline-manage",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "carbon-baseline-init",
+      "timeout": 60,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
   ]
 }

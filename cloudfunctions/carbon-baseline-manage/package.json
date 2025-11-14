@@ -1,0 +1,10 @@
+{
+  "name": "carbon-baseline-manage",
+  "version": "1.0.0",
+  "description": "碳足迹基准值管理云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

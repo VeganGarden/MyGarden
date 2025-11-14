@@ -19,6 +19,11 @@ import CertificationStatus from './pages/certification/Status'
 import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
+import BaselineList from './pages/carbon/BaselineList'
+import BaselineDetail from './pages/carbon/BaselineDetail'
+import BaselineAdd from './pages/carbon/BaselineAdd'
+import BaselineEdit from './pages/carbon/BaselineEdit'
+import BaselineImport from './pages/carbon/BaselineImport'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
@@ -68,6 +73,11 @@ const App: React.FC = () => {
           <Route path="carbon/menu" element={<CarbonMenu />} />
           <Route path="carbon/order" element={<CarbonOrder />} />
           <Route path="carbon/report" element={<CarbonReport />} />
+          <Route path="carbon/baseline" element={<BaselineList />} />
+          <Route path="carbon/baseline/:baselineId" element={<BaselineDetail />} />
+          <Route path="carbon/baseline/:baselineId/edit" element={<BaselineEdit />} />
+          <Route path="carbon/baseline/add" element={<BaselineAdd />} />
+          <Route path="carbon/baseline/import" element={<BaselineImport />} />
           
           {/* 核心模块3: 供应链溯源 */}
           <Route path="traceability/supplier" element={<TraceabilitySupplier />} />

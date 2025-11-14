@@ -35,6 +35,9 @@ const FUNCTIONS = [
   'restaurant-recommend',
   'product-recommend',
   'product-data-import',
+  'carbon-baseline-query',
+  'carbon-baseline-manage',
+  'carbon-baseline-init',
 ]
 
 // 检查命令是否存在
