@@ -33,26 +33,14 @@ export const initCloudbase = async () => {
         const loginState = await authInstance.getLoginState()
         
         if (!loginState) {
-          console.log('开始匿名登录...')
           await authInstance.signInAnonymously()
-          console.log('云开发匿名登录成功')
-        } else {
-          console.log('用户已登录，用户ID:', loginState.user.uid)
         }
       } catch (authError: any) {
         // 如果已经登录，忽略错误
-        if (authError.code === 'ALREADY_SIGNED_IN') {
-          console.log('用户已登录')
-        } else {
-          console.warn('匿名登录失败:', authError.message || authError)
-          // 不抛出错误，允许继续执行
+        if (authError.code !== 'ALREADY_SIGNED_IN') {
+          // 静默处理登录错误，不阻止初始化
         }
       }
-      
-      console.log('云开发环境初始化成功', {
-        envId: CLOUDBASE_CONFIG.envId,
-        region: CLOUDBASE_CONFIG.region,
-      })
     } catch (error) {
       console.error('云开发环境初始化失败:', error)
       throw error

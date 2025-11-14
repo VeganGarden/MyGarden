@@ -19,35 +19,25 @@ export const callCloudFunction = async (
         const loginState = await auth.getLoginState()
         
         if (!loginState) {
-          console.warn('未登录状态，尝试匿名登录...')
           try {
             await auth.signInAnonymously()
-            console.log('匿名登录成功')
           } catch (signInError: any) {
-            if (signInError.code === 'ALREADY_SIGNED_IN') {
-              console.log('用户已登录（重复登录）')
-            } else {
-              console.error('匿名登录失败:', signInError.message || signInError)
+            // 忽略重复登录错误
+            if (signInError.code !== 'ALREADY_SIGNED_IN') {
+              // 静默处理登录错误，不阻止云函数调用
             }
           }
-        } else {
-          console.log('已登录，用户ID:', loginState.user.uid)
         }
       }
     } catch (authError: any) {
-      console.warn('登录检查失败，继续尝试调用云函数:', authError.message || authError)
-      // 不阻止云函数调用
+      // 静默处理认证错误，不阻止云函数调用
     }
-    
-    console.log(`调用云函数: ${functionName}`, data)
     
     // 使用云开发SDK调用云函数
     const result = await app.callFunction({
       name: functionName,
       data: data || {},
     })
-    
-    console.log(`云函数 ${functionName} 返回:`, result)
     
     // 检查返回结果
     // 云开发SDK返回格式: { result: {...}, requestId: '...' }
@@ -56,22 +46,11 @@ export const callCloudFunction = async (
       
       // 如果云函数返回的是 { code, message, data } 格式
       if (resultData.code !== undefined) {
-        console.log(`云函数返回格式: { code: ${resultData.code}, data: ... }`)
-        console.log(`返回数据详情:`, {
-          code: resultData.code,
-          message: resultData.message,
-          dataType: typeof resultData.data,
-          dataIsArray: Array.isArray(resultData.data),
-          dataKeys: resultData.data ? Object.keys(resultData.data) : null,
-          dataLength: Array.isArray(resultData.data) ? resultData.data.length : 
-                      (resultData.data?.data && Array.isArray(resultData.data.data)) ? resultData.data.data.length : null,
-        })
         return resultData
       }
       
       // 如果直接返回数据对象
       if (resultData.data !== undefined) {
-        console.log(`云函数返回格式: { data: {...} }`)
         return {
           code: 0,
           ...resultData,
@@ -79,7 +58,6 @@ export const callCloudFunction = async (
       }
       
       // 如果直接返回数据（数组或其他）
-      console.log(`云函数返回格式: 直接数据`)
       return {
         code: 0,
         data: resultData,
@@ -87,7 +65,6 @@ export const callCloudFunction = async (
     }
     
     // 如果没有 result 字段，返回原始结果
-    console.log(`云函数返回格式: 原始结果`)
     return {
       code: 0,
       data: result,
@@ -106,10 +83,9 @@ export const callCloudFunction = async (
           const auth = getAuthInstance()
           if (auth) {
             await auth.signInAnonymously()
-            console.log('重新登录成功，可以重试调用')
           }
         } catch (loginError) {
-          console.error('重新登录失败:', loginError)
+          // 静默处理登录错误
         }
       }
       

@@ -49,7 +49,13 @@ exports.main = async (event, context) => {
     switch (action) {
       case 'calculateMealCarbon':
         // 计算餐食碳足迹
-        const carbonResult = calculateCarbonFootprint(data.ingredients, data.cookingMethod)
+        const carbonResult = await calculateCarbonFootprint(
+          data.ingredients, 
+          data.cookingMethod,
+          data.mealType,      // 餐食类型（可选）
+          data.region,        // 地区（可选）
+          data.energyType     // 用能方式（可选）
+        )
         
         // 计算经验值（基于碳减排量）
         const experience = Math.floor(carbonResult.reduction * 10)
@@ -58,6 +64,7 @@ exports.main = async (event, context) => {
           code: 0,
           data: {
             carbonFootprint: carbonResult.footprint,
+            baselineCarbon: carbonResult.baseline,
             carbonReduction: carbonResult.reduction,
             experienceGained: experience,
             details: carbonResult.details
@@ -132,16 +139,48 @@ exports.main = async (event, context) => {
 }
 
 /**
+ * 查询基准值
+ * @param {string} mealType 餐食类型
+ * @param {string} region 地区
+ * @param {string} energyType 用能方式
+ * @returns {Promise<number>} 基准值（kg CO₂e），失败时返回默认值 2.5
+ */
+async function queryBaseline(mealType, region, energyType) {
+  try {
+    const baselineResult = await cloud.callFunction({
+      name: 'carbon-baseline-query',
+      data: {
+        mealType: mealType || 'meat_simple',
+        region: region || 'national_average',
+        energyType: energyType || 'electric'
+      }
+    })
+    
+    if (baselineResult.result && baselineResult.result.success) {
+      return baselineResult.result.data.carbonFootprint.value
+    }
+  } catch (error) {
+    console.error('基准值查询失败:', error.message)
+  }
+  
+  // 降级到默认值
+  return 2.5
+}
+
+/**
  * 计算餐食碳足迹
  * @param {Array} ingredients 食材列表
  * @param {string} cookingMethod 烹饪方式
+ * @param {string} mealType 餐食类型（可选）
+ * @param {string} region 地区（可选）
+ * @param {string} energyType 用能方式（可选）
  */
-function calculateCarbonFootprint(ingredients, cookingMethod) {
+async function calculateCarbonFootprint(ingredients, cookingMethod, mealType, region, energyType) {
   let totalFootprint = 0
   let details = []
   
-  // 计算基准碳足迹（假设非素食餐食的平均碳足迹）
-  const baselineCarbon = 2.5 // kg CO2e per meal
+  // 查询基准碳足迹
+  const baselineCarbon = await queryBaseline(mealType, region, energyType)
   
   ingredients.forEach(ingredient => {
     const { type, category, weight } = ingredient
@@ -167,6 +206,7 @@ function calculateCarbonFootprint(ingredients, cookingMethod) {
   
   return {
     footprint: totalFootprint,
+    baseline: baselineCarbon,
     reduction: Math.max(0, reduction), // 确保不为负数
     details: details
   }

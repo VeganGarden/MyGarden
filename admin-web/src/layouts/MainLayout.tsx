@@ -74,6 +74,10 @@ const MainLayout: React.FC = () => {
           key: '/carbon/report',
           label: '碳报告',
         },
+        {
+          key: '/carbon/baseline',
+          label: '基准值管理',
+        },
       ],
     },
     {
