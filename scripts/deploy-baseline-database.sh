@@ -10,23 +10,45 @@ echo "碳足迹基准值数据库部署"
 echo "=========================================="
 echo ""
 
+# 加载 .env 文件（如果存在）
+if [ -f .env ]; then
+    echo "📋 加载 .env 文件..."
+    export $(grep -v '^#' .env | xargs)
+    echo "✅ .env 文件加载完成"
+    echo ""
+fi
+
+# 如果 TCB_ENV 未设置，尝试使用 CLOUDBASE_ENVID
+if [ -z "$TCB_ENV" ] && [ -n "$CLOUDBASE_ENVID" ]; then
+    export TCB_ENV="$CLOUDBASE_ENVID"
+    echo "ℹ️  使用 CLOUDBASE_ENVID 作为 TCB_ENV: $TCB_ENV"
+    echo ""
+fi
+
 # 检查环境变量
 if [ -z "$TCB_ENV" ]; then
-    echo "❌ 错误: 未设置 TCB_ENV 环境变量"
+    echo "❌ 错误: 未设置 TCB_ENV 或 CLOUDBASE_ENVID 环境变量"
+    echo "   请在 .env 文件中设置 TCB_ENV 或 CLOUDBASE_ENVID"
     exit 1
 fi
 
-if [ -z "$TCB_SECRET_ID" ]; then
-    echo "❌ 错误: 未设置 TCB_SECRET_ID 环境变量"
+if [ -z "$TCB_SECRET_ID" ] || [ "$TCB_SECRET_ID" = "your-secret-id-here" ]; then
+    echo "❌ 错误: 未设置 TCB_SECRET_ID 环境变量或使用默认值"
+    echo "   请在 .env 文件中设置正确的 TCB_SECRET_ID"
+    echo "   获取方式: https://console.cloud.tencent.com/cam/capi"
     exit 1
 fi
 
-if [ -z "$TCB_SECRET_KEY" ]; then
-    echo "❌ 错误: 未设置 TCB_SECRET_KEY 环境变量"
+if [ -z "$TCB_SECRET_KEY" ] || [ "$TCB_SECRET_KEY" = "your-secret-key-here" ]; then
+    echo "❌ 错误: 未设置 TCB_SECRET_KEY 环境变量或使用默认值"
+    echo "   请在 .env 文件中设置正确的 TCB_SECRET_KEY"
+    echo "   获取方式: https://console.cloud.tencent.com/cam/capi"
     exit 1
 fi
 
 echo "✅ 环境变量检查通过"
+echo "   TCB_ENV: $TCB_ENV"
+echo "   TCB_SECRET_ID: ${TCB_SECRET_ID:0:10}..."
 echo ""
 
 # 1. 安装依赖
