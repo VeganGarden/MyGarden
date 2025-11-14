@@ -83,9 +83,12 @@ function generateBaselineId(category) {
 async function importInitialData() {
   console.log('开始导入初始基准值数据...');
   
-  // 示例基准值数据
-  // 实际使用时，应从数据源获取真实数据
-  const initialBaselines = [
+  // 生成完整的24条基准值数据
+  const { generateAllBaselines } = require('./generate-baselines-data');
+  const initialBaselines = generateAllBaselines();
+  
+  // 旧的手动定义数据（已废弃，保留作为参考）
+  const oldBaselines = [
     // 华东区域 - 肉食简餐 - 全电厨房
     {
       category: {
@@ -230,10 +233,10 @@ async function importInitialData() {
       notes: '示例数据，需替换为真实数据',
       usageCount: 0
     }
-    // 注意：这里只提供了华东区域的示例数据
-    // 实际使用时，需要为所有6个区域、2种餐食类型、2种用能方式
-    // 共24条基准值数据
   ];
+  
+  // 使用生成的完整数据
+  // initialBaselines 已通过 generateAllBaselines() 生成
   
   try {
     // 为每条数据生成 baselineId 和添加时间戳

@@ -154,7 +154,18 @@ exports.main = async (event, context) => {
   const { action, ...params } = event;
   
   try {
-    switch (action) {
+    // 如果没有指定action，但有queries参数，则使用batch
+    // 否则使用单条查询
+    let actualAction = action;
+    if (!actualAction) {
+      if (params.queries && Array.isArray(params.queries)) {
+        actualAction = 'batch';
+      } else {
+        actualAction = 'query';
+      }
+    }
+    
+    switch (actualAction) {
       case 'query':
         // 单条查询
         return await querySingle(params);
