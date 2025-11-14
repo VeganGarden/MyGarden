@@ -116,12 +116,14 @@ async function listIngredients(ingredientCollection, keyword, category, page, pa
 
     return {
       code: 0,
-      data: result.data,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize)
+      data: {
+        data: result.data || [],
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize)
+        }
       }
     }
   } catch (error) {
@@ -177,12 +179,14 @@ async function searchIngredients(ingredientCollection, keyword, page, pageSize) 
 
     return {
       code: 0,
-      data: result.data,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize)
+      data: {
+        data: result.data || [],
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize)
+        }
       }
     }
   } catch (error) {

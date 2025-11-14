@@ -11,9 +11,19 @@ interface AuthState {
   token: string | null
 }
 
+// 从localStorage恢复用户信息
+const getStoredUser = () => {
+  try {
+    const storedUser = localStorage.getItem('admin_user')
+    return storedUser ? JSON.parse(storedUser) : null
+  } catch {
+    return null
+  }
+}
+
 const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
+  isAuthenticated: !!localStorage.getItem('admin_token'),
+  user: getStoredUser(),
   token: localStorage.getItem('admin_token'),
 }
 
@@ -29,12 +39,14 @@ const authSlice = createSlice({
       state.user = action.payload.user
       state.token = action.payload.token
       localStorage.setItem('admin_token', action.payload.token)
+      localStorage.setItem('admin_user', JSON.stringify(action.payload.user))
     },
     logout: (state) => {
       state.isAuthenticated = false
       state.user = null
       state.token = null
       localStorage.removeItem('admin_token')
+      localStorage.removeItem('admin_user')
     },
   },
 })

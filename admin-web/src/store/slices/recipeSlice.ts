@@ -31,12 +31,88 @@ const initialState: RecipeState = {
 // 异步actions
 export const fetchRecipes = createAsyncThunk(
   'recipe/fetchRecipes',
-  async (params: { keyword?: string; page?: number; pageSize?: number }) => {
-    const response = await recipeAPI.list(params)
-    return response as ApiResponse<{
-      data: Recipe[]
-      pagination: any
-    }>
+  async (params: { 
+    keyword?: string
+    restaurantId?: string
+    status?: string
+    category?: string
+    carbonLabel?: string
+    page?: number
+    pageSize?: number
+  }) => {
+    try {
+      const response = await recipeAPI.list(params)
+      
+      console.log('fetchRecipes 收到响应:', response)
+      console.log('响应数据结构:', {
+        code: response.code,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        dataIsArray: Array.isArray(response.data),
+        dataKeys: response.data ? Object.keys(response.data) : null,
+      })
+      
+      // 处理不同的响应格式
+      if (response.code === 0) {
+        // 如果返回格式是 { code: 0, data: {...} }
+        if (response.data) {
+          // 如果 data 是对象，包含 data 和 pagination
+          if (response.data.data !== undefined) {
+            // 格式: { code: 0, data: { data: [...], pagination: {...} } }
+            return response as ApiResponse<{
+              data: Recipe[]
+              pagination: any
+            }>
+          }
+          
+          // 如果 data 直接是数组
+          if (Array.isArray(response.data)) {
+            return {
+              code: 0,
+              data: {
+                data: response.data,
+                pagination: response.pagination || {
+                  page: params.page || 1,
+                  pageSize: params.pageSize || 20,
+                  total: response.data.length,
+                  totalPages: Math.ceil((response.data.length || 0) / (params.pageSize || 20)),
+                },
+              },
+            } as ApiResponse<{
+              data: Recipe[]
+              pagination: any
+            }>
+          }
+        }
+        
+        // 如果 data 是对象，包含 data 和 pagination
+        return response as ApiResponse<{
+          data: Recipe[]
+          pagination: any
+        }>
+      }
+      
+      // 如果返回格式不符合预期，返回空数据
+      return {
+        code: response.code || 500,
+        message: response.message || '获取菜谱列表失败',
+        data: {
+          data: [],
+          pagination: {
+            page: params.page || 1,
+            pageSize: params.pageSize || 20,
+            total: 0,
+            totalPages: 0,
+          },
+        },
+      } as ApiResponse<{
+        data: Recipe[]
+        pagination: any
+      }>
+    } catch (error: any) {
+      console.error('fetchRecipes error:', error)
+      throw error
+    }
   }
 )
 
@@ -96,12 +172,33 @@ const recipeSlice = createSlice({
       })
       .addCase(fetchRecipes.fulfilled, (state, action) => {
         state.loading = false
+        console.log('fetchRecipes fulfilled, payload:', action.payload)
+        
         if (action.payload.code === 0 && action.payload.data) {
-          state.recipes = action.payload.data.data || []
-          state.pagination = {
-            ...state.pagination,
-            ...action.payload.data.pagination,
+          // 处理数据格式：可能是 { data: [...], pagination: {...} } 或直接是数组
+          if (action.payload.data.data !== undefined) {
+            // 格式: { code: 0, data: { data: [...], pagination: {...} } }
+            state.recipes = action.payload.data.data || []
+            if (action.payload.data.pagination) {
+              state.pagination = {
+                ...state.pagination,
+                ...action.payload.data.pagination,
+              }
+            }
+          } else if (Array.isArray(action.payload.data)) {
+            // 格式: { code: 0, data: [...] }
+            state.recipes = action.payload.data
+          } else {
+            // 其他格式，尝试直接使用
+            state.recipes = []
+            console.warn('未知的数据格式:', action.payload.data)
           }
+          
+          console.log('设置 recipes 数量:', state.recipes.length)
+        } else {
+          // 如果请求失败，保持当前状态
+          state.error = action.payload.message || '获取菜谱列表失败'
+          console.warn('获取菜谱列表失败:', action.payload)
         }
       })
       .addCase(fetchRecipes.rejected, (state, action) => {

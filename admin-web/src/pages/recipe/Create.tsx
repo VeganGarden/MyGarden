@@ -12,12 +12,13 @@ import {
   Checkbox,
 } from 'antd'
 import { SaveOutlined, SendOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { createRecipe, updateRecipe } from '@/store/slices/recipeSlice'
 import { fetchIngredients } from '@/store/slices/ingredientSlice'
 import { carbonAPI } from '@/services/cloudbase'
 import { Recipe, RecipeIngredient, RecipeStatus, ChannelType } from '@/types'
+import IngredientSelector from '@/components/IngredientSelector'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -49,9 +50,11 @@ interface RecipeCreateProps {
 
 const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialData }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useAppDispatch()
   const [form] = Form.useForm()
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>(initialData?.ingredients || [])
+  const [ingredientSelectorVisible, setIngredientSelectorVisible] = useState(false)
   const [carbonResult, setCarbonResult] = useState<{
     carbonFootprint?: number
     carbonLabel?: string
@@ -80,21 +83,39 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
         channels: initialData.channels,
       })
     }
-  }, [dispatch, editMode, initialData, form])
+    
+    // 如果是复制模式，填充表单数据
+    if (location.state?.copyFrom) {
+      const copyFrom = location.state.copyFrom as Recipe
+      form.setFieldsValue({
+        name: `${copyFrom.name} (副本)`,
+        description: copyFrom.description,
+        category: copyFrom.category,
+        cookingMethod: copyFrom.cookingMethod,
+        channels: copyFrom.channels,
+      })
+      setIngredients(copyFrom.ingredients || [])
+      if (copyFrom.carbonFootprint !== undefined) {
+        setCarbonResult({
+          carbonFootprint: copyFrom.carbonFootprint,
+          carbonLabel: copyFrom.carbonLabel,
+          carbonScore: copyFrom.carbonScore,
+        })
+      }
+    }
+  }, [dispatch, editMode, initialData, form, location.state])
 
   const handleAddIngredient = () => {
-    if (availableIngredients.length === 0) {
-      message.warning('请先加载食材列表')
-      return
-    }
-    // 打开食材选择弹窗（简化版：直接添加第一个）
-    const firstIngredient = availableIngredients[0]
+    setIngredientSelectorVisible(true)
+  }
+
+  const handleSelectIngredient = (ingredient: any) => {
     const newIngredient: RecipeIngredient = {
-      ingredientId: firstIngredient._id,
-      name: firstIngredient.name,
+      ingredientId: ingredient._id,
+      name: ingredient.name,
       quantity: 0,
-      unit: firstIngredient.unit || 'g',
-      carbonCoefficient: firstIngredient.carbonCoefficient,
+      unit: ingredient.unit || 'g',
+      carbonCoefficient: ingredient.carbonCoefficient,
     }
     setIngredients([...ingredients, newIngredient])
   }
@@ -389,6 +410,13 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
           </Form.Item>
         </Form>
       </Card>
+      
+      <IngredientSelector
+        visible={ingredientSelectorVisible}
+        onCancel={() => setIngredientSelectorVisible(false)}
+        onSelect={handleSelectIngredient}
+        excludeIds={ingredients.map(ing => ing.ingredientId)}
+      />
     </div>
   )
 }

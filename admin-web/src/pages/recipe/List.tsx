@@ -8,8 +8,11 @@ import {
   message,
   Popconfirm,
   Card,
+  Select,
+  Row,
+  Col,
 } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CopyOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchRecipes, deleteRecipe } from '@/store/slices/recipeSlice'
@@ -19,17 +22,25 @@ const RecipeList: React.FC = () => {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { recipes, loading, pagination } = useAppSelector((state) => state.recipe)
+  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState<RecipeStatus | 'all'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [carbonLabelFilter, setCarbonLabelFilter] = useState<string>('all')
 
   useEffect(() => {
     loadRecipes()
-  }, [])
+  }, [currentRestaurantId])
 
   const loadRecipes = async () => {
     try {
       await dispatch(
         fetchRecipes({
           keyword: searchKeyword || undefined,
+          restaurantId: currentRestaurantId || undefined,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          category: categoryFilter !== 'all' ? categoryFilter : undefined,
+          carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
           page: pagination.page,
           pageSize: pagination.pageSize,
         })
@@ -40,7 +51,21 @@ const RecipeList: React.FC = () => {
   }
 
   const handleSearch = () => {
-    dispatch(fetchRecipes({ keyword: searchKeyword || undefined, page: 1, pageSize: 20 }))
+    dispatch(
+      fetchRecipes({
+        keyword: searchKeyword || undefined,
+        restaurantId: currentRestaurantId || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
+        page: 1,
+        pageSize: pagination.pageSize,
+      })
+    )
+  }
+
+  const handleFilterChange = () => {
+    loadRecipes()
   }
 
   const handleDelete = async (recipeId: string) => {
@@ -153,10 +178,24 @@ const RecipeList: React.FC = () => {
         <Space size="small">
           <Button
             type="link"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/recipe/detail/${record._id}`)}
+          >
+            查看
+          </Button>
+          <Button
+            type="link"
             icon={<EditOutlined />}
             onClick={() => navigate(`/recipe/edit/${record._id}`)}
           >
             编辑
+          </Button>
+          <Button
+            type="link"
+            icon={<CopyOutlined />}
+            onClick={() => navigate('/recipe/create', { state: { copyFrom: record } })}
+          >
+            复制
           </Button>
           <Popconfirm
             title="确定要删除这个菜谱吗？"
@@ -176,27 +215,86 @@ const RecipeList: React.FC = () => {
   return (
     <div>
       <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Space>
-            <Input
-              placeholder="搜索菜谱名称..."
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              onPressEnter={handleSearch}
-              style={{ width: 300 }}
-              prefix={<SearchOutlined />}
-            />
-            <Button type="primary" onClick={handleSearch}>
-              搜索
-            </Button>
-          </Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/recipe/create')}
-          >
-            创建新菜谱
-          </Button>
+        {!currentRestaurantId && restaurants.length > 1 && (
+          <div style={{ marginBottom: 16, padding: 12, background: '#f0f0f0', borderRadius: 4 }}>
+            <span style={{ color: '#666' }}>提示：当前查看所有餐厅的菜谱，可在右上角切换查看具体餐厅的菜谱</span>
+          </div>
+        )}
+        <div style={{ marginBottom: 16 }}>
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col span={6}>
+              <Input
+                placeholder="搜索菜谱名称..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                onPressEnter={handleSearch}
+                prefix={<SearchOutlined />}
+              />
+            </Col>
+            <Col span={4}>
+              <Select
+                value={statusFilter}
+                onChange={(value) => {
+                  setStatusFilter(value)
+                  setTimeout(handleFilterChange, 0)
+                }}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="all">全部状态</Select.Option>
+                <Select.Option value={RecipeStatus.DRAFT}>草稿</Select.Option>
+                <Select.Option value={RecipeStatus.PUBLISHED}>已发布</Select.Option>
+                <Select.Option value={RecipeStatus.ARCHIVED}>已归档</Select.Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Select
+                value={categoryFilter}
+                onChange={(value) => {
+                  setCategoryFilter(value)
+                  setTimeout(handleFilterChange, 0)
+                }}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="all">全部分类</Select.Option>
+                <Select.Option value="hot">热菜</Select.Option>
+                <Select.Option value="cold">凉菜</Select.Option>
+                <Select.Option value="soup">汤品</Select.Option>
+                <Select.Option value="staple">主食</Select.Option>
+                <Select.Option value="dessert">甜品</Select.Option>
+                <Select.Option value="drink">饮品</Select.Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Select
+                value={carbonLabelFilter}
+                onChange={(value) => {
+                  setCarbonLabelFilter(value)
+                  setTimeout(handleFilterChange, 0)
+                }}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="all">全部碳标签</Select.Option>
+                <Select.Option value="ultra_low">超低碳</Select.Option>
+                <Select.Option value="low">低碳</Select.Option>
+                <Select.Option value="medium">中碳</Select.Option>
+                <Select.Option value="high">高碳</Select.Option>
+              </Select>
+            </Col>
+            <Col span={6}>
+              <Space>
+                <Button type="primary" onClick={handleSearch}>
+                  搜索
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => navigate('/recipe/create')}
+                >
+                  创建新菜谱
+                </Button>
+              </Space>
+            </Col>
+          </Row>
         </div>
 
         <Table

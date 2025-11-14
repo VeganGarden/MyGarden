@@ -16,7 +16,9 @@
     "dev:tt": "taro build --type tt --watch",
     "dev:h5": "taro build --type h5 --watch",
     "dev:rn": "taro build --type rn --watch",
-    "devtools": "taro-devtools"
+    "devtools": "taro-devtools",
+    "deploy:functions": "node scripts/deploy-all-functions.js",
+    "deploy:function": "tcb fn deploy"
   },
   "keywords": [
     "微信小程序",

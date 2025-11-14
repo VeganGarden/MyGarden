@@ -70,12 +70,31 @@ const ingredientSlice = createSlice({
       })
       .addCase(fetchIngredients.fulfilled, (state, action) => {
         state.loading = false
+        console.log('fetchIngredients fulfilled, payload:', action.payload)
+        
         if (action.payload.code === 0 && action.payload.data) {
-          state.ingredients = action.payload.data.data || []
-          state.pagination = {
-            ...state.pagination,
-            ...action.payload.data.pagination,
+          // 处理不同的数据格式
+          if (action.payload.data.data !== undefined) {
+            // 格式: { code: 0, data: { data: [...], pagination: {...} } }
+            state.ingredients = action.payload.data.data || []
+            if (action.payload.data.pagination) {
+              state.pagination = {
+                ...state.pagination,
+                ...action.payload.data.pagination,
+              }
+            }
+          } else if (Array.isArray(action.payload.data)) {
+            // 格式: { code: 0, data: [...] }
+            state.ingredients = action.payload.data
+          } else {
+            state.ingredients = []
+            console.warn('未知的数据格式:', action.payload.data)
           }
+          
+          console.log('设置 ingredients 数量:', state.ingredients.length)
+        } else {
+          state.error = action.payload.message || '获取食材列表失败'
+          console.warn('获取食材列表失败:', action.payload)
         }
       })
       .addCase(fetchIngredients.rejected, (state, action) => {
@@ -85,10 +104,21 @@ const ingredientSlice = createSlice({
       .addCase(searchIngredients.fulfilled, (state, action) => {
         state.loading = false
         if (action.payload.code === 0 && action.payload.data) {
-          state.ingredients = action.payload.data.data || []
-          state.pagination = {
-            ...state.pagination,
-            ...action.payload.data.pagination,
+          // 处理不同的数据格式
+          if (action.payload.data.data !== undefined) {
+            // 格式: { code: 0, data: { data: [...], pagination: {...} } }
+            state.ingredients = action.payload.data.data || []
+            if (action.payload.data.pagination) {
+              state.pagination = {
+                ...state.pagination,
+                ...action.payload.data.pagination,
+              }
+            }
+          } else if (Array.isArray(action.payload.data)) {
+            // 格式: { code: 0, data: [...] }
+            state.ingredients = action.payload.data
+          } else {
+            state.ingredients = []
           }
         }
       })

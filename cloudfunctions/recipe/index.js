@@ -17,8 +17,31 @@ exports.main = async (event, context) => {
 
   try {
     // 获取用户openid（用于权限控制）
-    const wxContext = cloud.getWXContext()
-    const openid = wxContext.OPENID
+    // 注意：Web端调用时可能没有openid，需要处理这种情况
+    let openid = null
+    try {
+      const wxContext = cloud.getWXContext()
+      openid = wxContext.OPENID
+    } catch (error) {
+      console.warn('无法获取openid（可能是Web端调用）:', error)
+      // Web端调用时，openid可能为空，使用默认值
+      openid = event.openid || 'web_user'
+    }
+
+    // 特殊 action 不需要租户ID，直接处理
+    if (action === 'checkRecipes' || action === 'importSukuaixinRecipes') {
+      switch (action) {
+        case 'checkRecipes':
+          // 检查 recipes 集合的数据结构和内容
+          const checkScript = require('./check-recipes')
+          return await checkScript.main(event, context)
+
+        case 'importSukuaixinRecipes':
+          // 导入"素开心"餐厅的菜谱数据
+          const importScript = require('./import-sukuaixin-recipes')
+          return await importScript.main(event, context)
+      }
+    }
 
     // 获取餐厅ID（租户ID）
     // 优先使用请求参数中的restaurantId，否则从用户信息中获取
@@ -43,7 +66,13 @@ exports.main = async (event, context) => {
 
       case 'list':
         // 获取菜谱列表
-        return await listRecipes(recipeCollection, keyword, page, pageSize, tenantId)
+        // 支持更多筛选参数
+        const { status, category, carbonLabel } = event
+        return await listRecipes(recipeCollection, keyword, page, pageSize, tenantId, {
+          status,
+          category,
+          carbonLabel,
+        })
 
       case 'batchImport':
         // 批量导入菜谱
@@ -97,8 +126,9 @@ async function getRestaurantId(restaurantId, openid) {
     console.error('获取用户餐厅ID失败:', error)
   }
 
-  // 如果无法获取餐厅ID，抛出错误
-  throw new Error('缺少餐厅ID（restaurantId）参数，无法确定租户')
+  // 如果无法获取餐厅ID，返回null（允许查询所有餐厅的数据，由业务逻辑决定）
+  // 注意：在生产环境中，可能需要更严格的权限控制
+  return null
 }
 
 /**
@@ -386,20 +416,47 @@ async function getRecipe(recipeCollection, recipeId, tenantId) {
  * @param {number} page - 页码
  * @param {number} pageSize - 每页数量
  * @param {string} tenantId - 租户ID（餐厅ID），用于多租户数据隔离
+ * @param {Object} filters - 筛选条件 { status, category, carbonLabel }
  */
-async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId) {
+async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, filters = {}) {
   try {
-    // 构建查询条件
-    let queryConditions = {
+    console.log('查询菜谱列表，参数:', { keyword, page, pageSize, tenantId, filters })
+    
+    // 构建基础查询条件
+    let query = recipeCollection.where({
       status: _.neq('archived') // 排除已归档的菜谱
-    }
+    })
 
     // 多租户隔离：只查询当前餐厅的菜谱
+    // 支持通过 tenantId 或 restaurantId 查询
     if (tenantId) {
-      queryConditions.tenantId = tenantId
+      // 先尝试使用 tenantId 查询
+      query = query.where({
+        tenantId: tenantId
+      })
+    }
+    // 如果没有提供tenantId，查询所有餐厅的菜谱（不添加餐厅过滤）
+
+    // 添加状态筛选
+    if (filters.status && filters.status !== 'all') {
+      query = query.where({
+        status: filters.status
+      })
     }
 
-    let query = recipeCollection.where(queryConditions)
+    // 添加分类筛选
+    if (filters.category && filters.category !== 'all') {
+      query = query.where({
+        category: filters.category
+      })
+    }
+
+    // 添加碳标签筛选
+    if (filters.carbonLabel && filters.carbonLabel !== 'all') {
+      query = query.where({
+        carbonLabel: filters.carbonLabel
+      })
+    }
 
     // 如果有关键词，添加搜索条件
     if (keyword && keyword.trim()) {
@@ -414,6 +471,65 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId) 
     // 获取总数
     const countResult = await query.count()
     const total = countResult.total
+    console.log('使用 tenantId 查询结果总数:', total)
+
+    // 如果使用 tenantId 查询不到数据，且提供了 tenantId，尝试使用 restaurantId 查询
+    if (total === 0 && tenantId) {
+      console.log('使用 tenantId 查询不到数据，尝试使用 restaurantId 查询...')
+      
+      // 重新构建查询，使用 restaurantId
+      let queryByRestaurantId = recipeCollection.where({
+        status: _.neq('archived'),
+        restaurantId: tenantId
+      })
+      
+      // 应用筛选条件
+      if (filters.status && filters.status !== 'all') {
+        queryByRestaurantId = queryByRestaurantId.where({ status: filters.status })
+      }
+      if (filters.category && filters.category !== 'all') {
+        queryByRestaurantId = queryByRestaurantId.where({ category: filters.category })
+      }
+      if (filters.carbonLabel && filters.carbonLabel !== 'all') {
+        queryByRestaurantId = queryByRestaurantId.where({ carbonLabel: filters.carbonLabel })
+      }
+      
+      // 如果有关键词，添加搜索条件
+      if (keyword && keyword.trim()) {
+        queryByRestaurantId = queryByRestaurantId.where({
+          name: db.RegExp({
+            regexp: keyword.trim(),
+            options: 'i'
+          })
+        })
+      }
+      
+      const countByRestaurantId = await queryByRestaurantId.count()
+      console.log('使用 restaurantId 查询结果总数:', countByRestaurantId.total)
+      
+      if (countByRestaurantId.total > 0) {
+        const resultByRestaurantId = await queryByRestaurantId
+          .orderBy('createdAt', 'desc')
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .get()
+        
+        console.log('使用 restaurantId 查询到数据:', resultByRestaurantId.data.length, '条')
+        
+        return {
+          code: 0,
+          data: {
+            data: resultByRestaurantId.data || [],
+            pagination: {
+              page,
+              pageSize,
+              total: countByRestaurantId.total,
+              totalPages: Math.ceil(countByRestaurantId.total / pageSize)
+            }
+          }
+        }
+      }
+    }
 
     // 分页查询
     const result = await query
@@ -422,14 +538,18 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId) 
       .limit(pageSize)
       .get()
 
+    console.log('查询到的菜谱数量:', result.data ? result.data.length : 0)
+
     return {
       code: 0,
-      data: result.data,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize)
+      data: {
+        data: result.data || [],
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize)
+        }
       }
     }
   } catch (error) {
