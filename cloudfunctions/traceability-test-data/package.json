@@ -1,0 +1,10 @@
+{
+  "name": "traceability-test-data",
+  "version": "1.0.0",
+  "description": "供应链溯源测试数据生成云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

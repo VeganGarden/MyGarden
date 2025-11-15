@@ -49,7 +49,13 @@ exports.main = async (event, context) => {
     switch (action) {
       case 'calculateMealCarbon':
         // 计算餐食碳足迹
-        const carbonResult = calculateCarbonFootprint(data.ingredients, data.cookingMethod)
+        const carbonResult = await calculateCarbonFootprint(
+          data.ingredients, 
+          data.cookingMethod,
+          data.mealType,      // 餐食类型（可选）
+          data.region,        // 地区（可选）
+          data.energyType     // 用能方式（可选）
+        )
         
         // 计算经验值（基于碳减排量）
         const experience = Math.floor(carbonResult.reduction * 10)
@@ -58,6 +64,7 @@ exports.main = async (event, context) => {
           code: 0,
           data: {
             carbonFootprint: carbonResult.footprint,
+            baselineCarbon: carbonResult.baseline,
             carbonReduction: carbonResult.reduction,
             experienceGained: experience,
             details: carbonResult.details
@@ -112,6 +119,10 @@ exports.main = async (event, context) => {
         // 获取详细分解报告
         return await getDetailedReport(event)
 
+      case 'calculateRecipe':
+        // 计算菜谱碳足迹
+        return await calculateRecipeCarbon(event)
+
       default:
         return {
           code: 400,
@@ -128,16 +139,48 @@ exports.main = async (event, context) => {
 }
 
 /**
+ * 查询基准值
+ * @param {string} mealType 餐食类型
+ * @param {string} region 地区
+ * @param {string} energyType 用能方式
+ * @returns {Promise<number>} 基准值（kg CO₂e），失败时返回默认值 2.5
+ */
+async function queryBaseline(mealType, region, energyType) {
+  try {
+    const baselineResult = await cloud.callFunction({
+      name: 'carbon-baseline-query',
+      data: {
+        mealType: mealType || 'meat_simple',
+        region: region || 'national_average',
+        energyType: energyType || 'electric'
+      }
+    })
+    
+    if (baselineResult.result && baselineResult.result.success) {
+      return baselineResult.result.data.carbonFootprint.value
+    }
+  } catch (error) {
+    console.error('基准值查询失败:', error.message)
+  }
+  
+  // 降级到默认值
+  return 2.5
+}
+
+/**
  * 计算餐食碳足迹
  * @param {Array} ingredients 食材列表
  * @param {string} cookingMethod 烹饪方式
+ * @param {string} mealType 餐食类型（可选）
+ * @param {string} region 地区（可选）
+ * @param {string} energyType 用能方式（可选）
  */
-function calculateCarbonFootprint(ingredients, cookingMethod) {
+async function calculateCarbonFootprint(ingredients, cookingMethod, mealType, region, energyType) {
   let totalFootprint = 0
   let details = []
   
-  // 计算基准碳足迹（假设非素食餐食的平均碳足迹）
-  const baselineCarbon = 2.5 // kg CO2e per meal
+  // 查询基准碳足迹
+  const baselineCarbon = await queryBaseline(mealType, region, energyType)
   
   ingredients.forEach(ingredient => {
     const { type, category, weight } = ingredient
@@ -163,6 +206,7 @@ function calculateCarbonFootprint(ingredients, cookingMethod) {
   
   return {
     footprint: totalFootprint,
+    baseline: baselineCarbon,
     reduction: Math.max(0, reduction), // 确保不为负数
     details: details
   }
@@ -434,6 +478,144 @@ async function getDetailedReport(event) {
     return {
       code: 500,
       message: '生成报告失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 计算菜谱碳足迹
+ * @param {Object} event 包含食材列表的事件
+ */
+async function calculateRecipeCarbon(event) {
+  const { ingredients, cookingMethod } = event.data || event;
+  
+  if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+    return {
+      code: 400,
+      message: '请提供食材列表'
+    };
+  }
+
+  const db = cloud.database();
+  
+  try {
+    let totalCarbon = 0;
+    const ingredientDetails = [];
+
+    // 遍历食材列表，查询每个食材的碳系数
+    for (const ingredient of ingredients) {
+      const { ingredientId, quantity, unit } = ingredient;
+      
+      // 查询食材信息
+      const ingredientResult = await db.collection('ingredients')
+        .doc(ingredientId)
+        .get();
+
+      if (ingredientResult.data) {
+        const ingredientData = ingredientResult.data;
+        // 获取碳系数（kg CO₂e/kg）
+        const carbonCoefficient = ingredientData.carbonCoefficient || 
+                                   ingredientData.carbonFootprint || 
+                                   1.0; // 默认值
+        
+        // 转换单位：将数量转换为千克
+        let quantityInKg = quantity;
+        if (unit === 'g' || unit === '克') {
+          quantityInKg = quantity / 1000;
+        } else if (unit === 'kg' || unit === '千克') {
+          quantityInKg = quantity;
+        } else if (unit === 'ml' || unit === '毫升') {
+          // 液体类食材，假设密度为1（即1ml = 1g）
+          quantityInKg = quantity / 1000;
+        } else if (unit === 'l' || unit === '升') {
+          quantityInKg = quantity;
+        }
+
+        // 计算该食材的碳足迹
+        const carbonFootprint = carbonCoefficient * quantityInKg;
+        totalCarbon += carbonFootprint;
+
+        ingredientDetails.push({
+          ingredientId,
+          name: ingredientData.name || '未知食材',
+          quantity,
+          unit,
+          carbonCoefficient,
+          carbonFootprint: parseFloat(carbonFootprint.toFixed(4))
+        });
+      } else {
+        // 如果找不到食材，使用默认值
+        const defaultCarbonCoefficient = 1.0;
+        let quantityInKg = quantity;
+        if (unit === 'g' || unit === '克') {
+          quantityInKg = quantity / 1000;
+        }
+        const carbonFootprint = defaultCarbonCoefficient * quantityInKg;
+        totalCarbon += carbonFootprint;
+
+        ingredientDetails.push({
+          ingredientId,
+          name: '未知食材',
+          quantity,
+          unit,
+          carbonCoefficient: defaultCarbonCoefficient,
+          carbonFootprint: parseFloat(carbonFootprint.toFixed(4))
+        });
+      }
+    }
+
+    // 应用烹饪方式调整系数
+    const cookingFactor = COOKING_FACTORS[cookingMethod] || 1.0;
+    totalCarbon *= cookingFactor;
+
+    // 计算碳标签（超低碳/低碳/中碳/高碳）
+    // 超低碳：< 0.5 kg CO₂e (🟢 绿色，90-100分)
+    // 低碳：0.5 - 1.0 kg CO₂e (🟡 黄色，70-89分)
+    // 中碳：1.0 - 2.0 kg CO₂e (🟠 橙色，50-69分)
+    // 高碳：> 2.0 kg CO₂e (🔴 红色，0-49分)
+    let carbonLabel = 'medium';
+    let carbonScore = 0;
+    
+    if (totalCarbon < 0.5) {
+      carbonLabel = 'ultraLow';
+      // 超低碳：90-100分，线性映射 0-0.5 kg → 100-90分
+      carbonScore = Math.max(90, Math.min(100, Math.round(100 - (totalCarbon / 0.5) * 10)));
+    } else if (totalCarbon < 1.0) {
+      carbonLabel = 'low';
+      // 低碳：70-89分，线性映射 0.5-1.0 kg → 89-70分
+      carbonScore = Math.max(70, Math.min(89, Math.round(89 - ((totalCarbon - 0.5) / 0.5) * 19)));
+    } else if (totalCarbon <= 2.0) {
+      carbonLabel = 'medium';
+      // 中碳：50-69分，线性映射 1.0-2.0 kg → 69-50分
+      carbonScore = Math.max(50, Math.min(69, Math.round(69 - ((totalCarbon - 1.0) / 1.0) * 19)));
+    } else {
+      carbonLabel = 'high';
+      // 高碳：0-49分，线性映射 2.0+ kg → 49-0分（2.0-4.0 kg范围）
+      const excessCarbon = Math.min(totalCarbon - 2.0, 2.0); // 限制在2.0-4.0 kg范围内
+      carbonScore = Math.max(0, Math.min(49, Math.round(49 - (excessCarbon / 2.0) * 49)));
+    }
+
+    console.log('菜谱碳足迹计算结果:');
+    console.log('总碳足迹:', totalCarbon.toFixed(2), 'kg CO₂e');
+    console.log('碳标签:', carbonLabel);
+    console.log('碳评分:', carbonScore);
+
+    return {
+      code: 0,
+      data: {
+        carbonFootprint: parseFloat(totalCarbon.toFixed(2)),
+        carbonLabel: carbonLabel,
+        carbonScore: carbonScore,
+        cookingFactor: cookingFactor,
+        ingredientDetails: ingredientDetails
+      }
+    };
+  } catch (error) {
+    console.error('计算菜谱碳足迹失败:', error);
+    return {
+      code: 500,
+      message: '计算菜谱碳足迹失败',
       error: error.message
     };
   }

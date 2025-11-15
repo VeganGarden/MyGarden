@@ -65,6 +65,64 @@ exports.main = async (event, context) => {
       };
     }
     
+    // 1.5. 查询基准值（如果订单中没有或需要重新计算）
+    let baselineCarbon = null;
+    let baselineId = null;
+    let carbonReduction = order.carbonImpact?.carbonSavingsVsMeat || 0;
+    
+    try {
+      // 获取餐厅信息（地区、用能方式）
+      let restaurant = null;
+      if (order.restaurantId) {
+        const restaurantRes = await db.collection('restaurants')
+          .doc(order.restaurantId)
+          .get();
+        if (restaurantRes.data) {
+          restaurant = restaurantRes.data;
+        }
+      }
+      
+      // 确定查询参数
+      const mealType = order.mealType || (order.items && order.items.length <= 2 ? 'meat_simple' : 'meat_full');
+      const region = restaurant?.region || order.restaurant?.region || order.region || 'national_average';
+      const energyType = restaurant?.energyType || order.restaurant?.energyType || order.energyType || 'electric';
+      
+      // 调用基准值查询云函数
+      const baselineResult = await cloud.callFunction({
+        name: 'carbon-baseline-query',
+        data: {
+          mealType: mealType,
+          region: region,
+          energyType: energyType,
+          date: order.createdAt ? new Date(order.createdAt).toISOString() : undefined
+        }
+      });
+      
+      if (baselineResult.result && baselineResult.result.success) {
+        baselineCarbon = baselineResult.result.data.carbonFootprint.value;
+        baselineId = baselineResult.result.data.baselineId;
+        
+        // 重新计算碳减排量
+        const actualCarbon = order.carbonImpact?.totalCarbonFootprint || 0;
+        carbonReduction = Math.max(0, baselineCarbon - actualCarbon);
+        
+        console.log(`✓ 查询到基准值: ${baselineCarbon} kg CO₂e (${baselineId})`);
+        console.log(`✓ 重新计算碳减排量: ${carbonReduction} kg CO₂e`);
+      } else {
+        console.log(`⚠️ 基准值查询失败，使用订单原有数据: ${baselineResult.result?.error || '未知错误'}`);
+        // 如果查询失败，使用订单中已有的数据
+        if (order.carbonImpact?.baselineCarbon) {
+          baselineCarbon = order.carbonImpact.baselineCarbon;
+        }
+      }
+    } catch (baselineError) {
+      console.error('⚠️ 基准值查询异常，使用订单原有数据:', baselineError.message);
+      // 查询失败时，使用订单中已有的数据
+      if (order.carbonImpact?.baselineCarbon) {
+        baselineCarbon = order.carbonImpact.baselineCarbon;
+      }
+    }
+    
     // 2. 创建 meals 记录
     const mealData = {
       userId: userId,
@@ -88,11 +146,13 @@ exports.main = async (event, context) => {
       })),
       
       // 碳足迹
-      totalCarbonFootprint: order.carbonImpact.totalCarbonFootprint,
+      totalCarbonFootprint: order.carbonImpact?.totalCarbonFootprint || 0,
       comparedToMeat: {
-        meatCarbonFootprint: order.carbonImpact.totalCarbonFootprint + order.carbonImpact.carbonSavingsVsMeat,
-        reduction: order.carbonImpact.carbonSavingsVsMeat,
-        reductionPercent: (order.carbonImpact.carbonSavingsVsMeat / (order.carbonImpact.totalCarbonFootprint + order.carbonImpact.carbonSavingsVsMeat) * 100).toFixed(1)
+        meatCarbonFootprint: baselineCarbon || (order.carbonImpact?.totalCarbonFootprint || 0) + (order.carbonImpact?.carbonSavingsVsMeat || 0),
+        baselineCarbon: baselineCarbon,
+        baselineId: baselineId,
+        reduction: carbonReduction,
+        reductionPercent: baselineCarbon ? ((carbonReduction / baselineCarbon) * 100).toFixed(1) : '0.0'
       },
       
       createdAt: new Date(),
@@ -105,7 +165,6 @@ exports.main = async (event, context) => {
     console.log(`✓ 创建 meals 记录: ${mealId}`);
     
     // 3. 更新碳积分账户
-    const carbonReduction = order.carbonImpact.carbonSavingsVsMeat;
     const carbonCreditsEarned = Math.floor(carbonReduction * 10); // 1kg = 10积分
     
     // 获取或创建碳积分账户

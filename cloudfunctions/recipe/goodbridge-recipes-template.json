@@ -1,0 +1,750 @@
+{
+  "recipes": [
+    {
+      "name": "蒸饺",
+      "description": "传统蒸制饺子，皮薄馅大，口感鲜美",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "香菇",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "小笼包",
+      "description": "上海传统小笼包，汤汁丰富",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆腐",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "锅贴",
+      "description": "待研发菜品",
+      "category": "staple",
+      "cookingMethod": "fried",
+      "status": "draft",
+      "channels": ["dine_in"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 150,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "叉烧包",
+      "description": "传统广式点心",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆沙",
+          "quantity": 80,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "水晶饺",
+      "description": "待研发菜品",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "draft",
+      "channels": ["dine_in"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "奶黄包",
+      "description": "甜味包子",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆沙",
+          "quantity": 80,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "烧麦",
+      "description": "待研发菜品",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "draft",
+      "channels": ["dine_in"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "糯米",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "松茸汤包",
+      "description": "高级菌菇汤包",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "松茸",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "干挑馄饨",
+      "description": "干拌馄饨",
+      "category": "staple",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "生煎包",
+      "description": "上海特色生煎包",
+      "category": "staple",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "春卷",
+      "description": "传统春卷",
+      "category": "staple",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 150,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "象形核桃包",
+      "description": "甜味核桃形状包子",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆沙",
+          "quantity": 80,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "豆沙包",
+      "description": "甜味豆沙包，成品",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆沙",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "香芋卷",
+      "description": "成品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "芋头",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "面粉",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "萝卜糕",
+      "description": "成品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "萝卜",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "米粉",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "黄金薯球",
+      "description": "成品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "土豆",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "面粉",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "芋头糕",
+      "description": "成品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "芋头",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "米粉",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "香酥芋泥卷",
+      "description": "成品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "芋头",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "面粉",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "马蹄糕",
+      "description": "传统小食",
+      "category": "snack",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "马蹄",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "米粉",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "椰香糯米滋",
+      "description": "椰香糯米点心",
+      "category": "snack",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "糯米",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "椰浆",
+          "quantity": 50,
+          "unit": "ml"
+        }
+      ]
+    },
+    {
+      "name": "木薯糕",
+      "description": "传统小食",
+      "category": "snack",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "木薯",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "米粉",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "麻球",
+      "description": "成品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "糯米",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆沙",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "煎年糕",
+      "description": "传统年糕",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "年糕",
+          "quantity": 200,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "菠萝包",
+      "description": "烘焙成品",
+      "category": "snack",
+      "cookingMethod": "baked",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "糖",
+          "quantity": 30,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "腐皮卷",
+      "description": "豆制品小食",
+      "category": "snack",
+      "cookingMethod": "fried",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "豆腐皮",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "榴莲酥",
+      "description": "烘焙成品",
+      "category": "snack",
+      "cookingMethod": "baked",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "榴莲",
+          "quantity": 80,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "素塔",
+      "description": "烘焙成品",
+      "category": "snack",
+      "cookingMethod": "baked",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "小汤圆",
+      "description": "传统汤圆",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "糯米",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "豆沙",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "肠粉",
+      "description": "广式肠粉",
+      "category": "staple",
+      "cookingMethod": "steamed",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "米粉",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "陈皮红豆沙",
+      "description": "传统甜品",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "红豆",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "陈皮",
+          "quantity": 5,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "汤馄饨",
+      "description": "传统汤馄饨",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "烧仙草",
+      "description": "传统甜品",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "仙草",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "糖",
+          "quantity": 20,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "麻油姜汤面",
+      "description": "成品主食",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面条",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "生姜",
+          "quantity": 10,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "珍菌养生粥",
+      "description": "咸味养生粥",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "大米",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "香菇",
+          "quantity": 50,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "粉汤饺",
+      "description": "汤饺类主食",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "published",
+      "channels": ["dine_in", "take_out"],
+      "ingredients": [
+        {
+          "name": "面粉",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "米粉",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "name": "过桥米线",
+      "description": "待研发菜品",
+      "category": "soup",
+      "cookingMethod": "boiled",
+      "status": "draft",
+      "channels": ["dine_in"],
+      "ingredients": [
+        {
+          "name": "米线",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "青菜",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "菌菇",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    }
+  ]
+}
+

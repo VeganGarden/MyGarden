@@ -1,0 +1,327 @@
+.recipe-create-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+
+  .form-container {
+    flex: 1;
+    padding: 20px;
+  }
+
+  .form-section {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .form-item {
+      margin-bottom: 20px;
+
+      .label {
+        display: block;
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 8px;
+
+        &.required::before {
+          content: '*';
+          color: #F44336;
+          margin-right: 4px;
+        }
+      }
+
+      .input {
+        width: 100%;
+        height: 44px;
+        padding: 0 15px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .picker {
+        height: 44px;
+        padding: 0 15px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #333;
+      }
+    }
+
+    .add-btn {
+      height: 32px;
+      padding: 0 15px;
+      background-color: #4CAF50;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 32px;
+    }
+
+    .empty-ingredients {
+      padding: 40px 0;
+      text-align: center;
+
+      .empty-text {
+        font-size: 14px;
+        color: #999;
+      }
+    }
+
+    .ingredients-list {
+      margin-bottom: 15px;
+
+      .ingredient-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 10px;
+
+        .ingredient-info {
+          flex: 1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          .ingredient-name {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+          }
+
+          .ingredient-quantity {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .quantity-input {
+              width: 80px;
+              height: 32px;
+              padding: 0 10px;
+              background-color: #fff;
+              border-radius: 4px;
+              font-size: 14px;
+              text-align: center;
+            }
+
+            .unit {
+              font-size: 14px;
+              color: #666;
+            }
+          }
+        }
+
+        .remove-btn {
+          height: 28px;
+          padding: 0 12px;
+          background-color: #F44336;
+          color: #fff;
+          border-radius: 4px;
+          font-size: 12px;
+          line-height: 28px;
+          margin-left: 10px;
+        }
+      }
+    }
+
+    .calculate-btn {
+      width: 100%;
+      height: 40px;
+      background-color: #2196F3;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .carbon-result {
+      padding: 15px;
+      background-color: #f0f7ff;
+      border-radius: 8px;
+
+      .carbon-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .carbon-label {
+          font-size: 14px;
+          color: #666;
+          margin-right: 10px;
+        }
+
+        .carbon-value {
+          font-size: 16px;
+          color: #2196F3;
+          font-weight: 600;
+        }
+
+        .carbon-tag {
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          color: #fff;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .channels-list {
+      .channel-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+
+        &.active {
+          background-color: #e8f5e9;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        text {
+          margin-left: 10px;
+          font-size: 14px;
+          color: #333;
+        }
+      }
+    }
+  }
+
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    background-color: #fff;
+    border-top: 1px solid #e0e0e0;
+
+    .save-btn,
+    .publish-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 44px;
+    }
+
+    .save-btn {
+      background-color: #9E9E9E;
+      color: #fff;
+    }
+
+    .publish-btn {
+      background-color: #4CAF50;
+      color: #fff;
+    }
+  }
+
+  .ingredient-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .modal-content {
+      width: 90%;
+      max-width: 500px;
+      max-height: 70vh;
+      background-color: #fff;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #e0e0e0;
+
+        .modal-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .close-btn {
+          height: 32px;
+          padding: 0 15px;
+          background-color: #f5f5f5;
+          color: #666;
+          border-radius: 6px;
+          font-size: 14px;
+          line-height: 32px;
+        }
+      }
+
+      .ingredient-list {
+        flex: 1;
+        padding: 15px;
+
+        .ingredient-option {
+          padding: 12px;
+          background-color: #f9f9f9;
+          border-radius: 8px;
+          margin-bottom: 10px;
+          cursor: pointer;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .ingredient-option-name {
+            display: block;
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 4px;
+          }
+
+          .ingredient-option-carbon {
+            display: block;
+            font-size: 12px;
+            color: #999;
+          }
+        }
+      }
+    }
+  }
+}
+
