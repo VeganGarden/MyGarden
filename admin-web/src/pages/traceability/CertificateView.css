@@ -1,0 +1,25 @@
+/* PDF页面容器样式 */
+.pdf-pages-container {
+  position: relative;
+  width: 100%;
+}
+
+/* 确保react-pdf的Page组件正确显示 */
+.pdf-pages-container > div {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* 确保canvas没有额外的边框或间距 */
+.pdf-pages-container canvas {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}

@@ -29,6 +29,18 @@ import BaselineImport from './pages/carbon/BaselineImport'
 import TraceabilityBatch from './pages/traceability/Batch'
 import TraceabilityChain from './pages/traceability/Chain'
 import TraceabilitySupplier from './pages/traceability/Supplier'
+import SupplierDetail from './pages/traceability/SupplierDetail'
+import SupplierAdd from './pages/traceability/SupplierAdd'
+import SupplierEdit from './pages/traceability/SupplierEdit'
+import IngredientLotList from './pages/traceability/IngredientLotList'
+import IngredientLotDetail from './pages/traceability/IngredientLotDetail'
+import IngredientLotAdd from './pages/traceability/IngredientLotAdd'
+import IngredientLotEdit from './pages/traceability/IngredientLotEdit'
+import TraceChainList from './pages/traceability/TraceChainList'
+import TraceChainBuild from './pages/traceability/TraceChainBuild'
+import TraceChainView from './pages/traceability/TraceChainView'
+import CertificateList from './pages/traceability/CertificateList'
+import CertificateView from './pages/traceability/CertificateView'
 
 // 核心模块4: 餐厅运营
 import OperationBehavior from './pages/operation/Behavior'
@@ -80,7 +92,20 @@ const App: React.FC = () => {
           <Route path="carbon/baseline/import" element={<BaselineImport />} />
           
           {/* 核心模块3: 供应链溯源 */}
-          <Route path="traceability/supplier" element={<TraceabilitySupplier />} />
+          <Route path="traceability/suppliers" element={<TraceabilitySupplier />} />
+          <Route path="traceability/suppliers/:id" element={<SupplierDetail />} />
+          <Route path="traceability/suppliers/:id/edit" element={<SupplierEdit />} />
+          <Route path="traceability/suppliers/add" element={<SupplierAdd />} />
+          <Route path="traceability/lots" element={<IngredientLotList />} />
+          <Route path="traceability/lots/:id" element={<IngredientLotDetail />} />
+          <Route path="traceability/lots/:id/edit" element={<IngredientLotEdit />} />
+          <Route path="traceability/lots/add" element={<IngredientLotAdd />} />
+          <Route path="traceability/chains" element={<TraceChainList />} />
+          <Route path="traceability/chains/build" element={<TraceChainBuild />} />
+          <Route path="traceability/chains/:id" element={<TraceChainView />} />
+          <Route path="traceability/certificates" element={<CertificateList />} />
+          <Route path="traceability/certificates/:id" element={<CertificateView />} />
+          {/* 兼容旧路由 */}
           <Route path="traceability/batch" element={<TraceabilityBatch />} />
           <Route path="traceability/chain" element={<TraceabilityChain />} />
           

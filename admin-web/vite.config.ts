@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
@@ -20,5 +20,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // 确保worker文件被正确打包
+        manualChunks: undefined,
+      },
+    },
+  },
+  // 确保public目录中的文件被正确复制
+  publicDir: 'public',
 })
 

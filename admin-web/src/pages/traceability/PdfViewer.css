@@ -1,0 +1,121 @@
+/* PDF 自适应样式 */
+.pdf-page {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* 确保PDF页面在容器中居中显示 */
+.react-pdf__Page {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  height: auto !important;
+  position: relative !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* PDF页面画布自适应 - 关键修复 */
+.react-pdf__Page__canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  width: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  position: relative !important;
+  z-index: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Safari 特殊处理 */
+@supports (-webkit-appearance: none) {
+  .react-pdf__Page__canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
+}
+
+/* PDF文本层自适应 */
+.react-pdf__Page__textContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+/* PDF注释层自适应 */
+.react-pdf__Page__annotations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+/* PDF容器样式 */
+.pdf-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  position: relative;
+  padding: clamp(16px, 3vh, 32px);
+  box-sizing: border-box;
+}
+
+/* PDF文档容器 */
+.pdf-document-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 页面切换加载遮罩 */
+.page-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.7);
+  z-index: 100;
+  border-radius: 4px;
+}
+
+/* 页面切换动画 */
+.page-transition {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.page-transition.fade-in {
+  opacity: 1;
+}
+
+.page-transition.fade-out {
+  opacity: 0;
+}

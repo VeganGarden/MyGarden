@@ -86,16 +86,20 @@ const MainLayout: React.FC = () => {
       label: '供应链溯源',
       children: [
         {
-          key: '/traceability/supplier',
+          key: '/traceability/suppliers',
           label: '供应商管理',
         },
         {
-          key: '/traceability/batch',
+          key: '/traceability/lots',
           label: '食材批次',
         },
         {
-          key: '/traceability/chain',
+          key: '/traceability/chains',
           label: '溯源链',
+        },
+        {
+          key: '/traceability/certificates',
+          label: '溯源证书',
         },
       ],
     },
@@ -155,7 +159,7 @@ const MainLayout: React.FC = () => {
       label: '菜谱管理',
       children: [
         {
-          key: '/recipe',
+          key: '/recipe/list',
           label: '菜谱列表',
         },
         {
