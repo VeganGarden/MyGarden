@@ -163,6 +163,13 @@
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256
+    },
+    {
+      "name": "admin-auth",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
   ]
 }

@@ -18,6 +18,8 @@ const _ = db.command;
  * - seed-v4-data: 导入 v4.0 示例数据 ✨
  * - test-upgrade: 测试升级结果
  * - get-status: 查看数据库状态
+ * - initAdminCollections: 初始化管理后台集合（admin_users, role_configs, permissions, audit_logs）
+ * - initAdminData: 初始化管理后台数据（角色和权限配置）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -52,6 +54,10 @@ exports.main = async (event) => {
         return await getDatabaseStatus(event);
       case 'seed-sample-data':
         return await seedSampleData(event);
+      case 'initAdminCollections':
+        return await initAdminCollections(event);
+      case 'initAdminData':
+        return await initAdminData(event);
       default:
         return await initCollectionsV1(event);
     }
@@ -301,6 +307,22 @@ async function migrateCollectionsV4(event) {
 async function seedV4Data(event) {
   const seed = require('./seed-sample-data-v4.js');
   return await seed.seedV4SampleData();
+}
+
+/**
+ * 初始化管理后台集合
+ */
+async function initAdminCollections(event) {
+  const initAdmin = require('./init-admin-collections.js');
+  return await initAdmin.main(event);
+}
+
+/**
+ * 初始化管理后台数据
+ */
+async function initAdminData(event) {
+  const initAdminData = require('./init-admin-data.js');
+  return await initAdminData.main(event);
 }
 
 /**

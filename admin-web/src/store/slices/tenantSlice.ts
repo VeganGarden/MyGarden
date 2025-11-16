@@ -81,6 +81,13 @@ const tenantSlice = createSlice({
       state.restaurants = action.payload.restaurants
       localStorage.setItem('tenant_data', JSON.stringify(action.payload))
     },
+    clearTenant: (state) => {
+      state.currentTenant = null
+      state.restaurants = []
+      state.currentRestaurantId = null
+      localStorage.removeItem('tenant_data')
+      localStorage.removeItem('current_restaurant_id')
+    },
     setCurrentRestaurant: (state, action: PayloadAction<string | null>) => {
       state.currentRestaurantId = action.payload
       if (action.payload) {
@@ -114,7 +121,7 @@ const tenantSlice = createSlice({
   },
 })
 
-export const { setTenant, setCurrentRestaurant, updateRestaurant, addRestaurant } =
+export const { setTenant, clearTenant, setCurrentRestaurant, updateRestaurant, addRestaurant } =
   tenantSlice.actions
 export default tenantSlice.reducer
 

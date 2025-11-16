@@ -6,12 +6,11 @@ import React from 'react'
 
 const RestaurantSwitcher: React.FC = () => {
   const dispatch = useAppDispatch()
-  const { currentTenant, currentRestaurantId, restaurants } = useAppSelector(
-    (state: any) => state.tenant
-  )
+  const { currentTenant, currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  const { user } = useAppSelector((state: any) => state.auth)
 
-  // 如果不是租户，不显示切换器
-  if (!currentTenant || restaurants.length === 0) {
+  // 仅餐厅管理员显示；其余角色隐藏
+  if (user?.role !== 'restaurant_admin' || !currentTenant || restaurants.length === 0) {
     return null
   }
 

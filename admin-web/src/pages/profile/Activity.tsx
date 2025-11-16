@@ -1,6 +1,7 @@
 import { useAppSelector } from '@/store/hooks'
+import { systemAPI } from '@/services/cloudbase'
 import { CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons'
-import { Card, Empty, Tag, Timeline } from 'antd'
+import { Button, Card, Empty, Select, Space, Tag, Timeline } from 'antd'
 import React, { useEffect, useState } from 'react'
 
 interface ActivityLog {
@@ -16,60 +17,84 @@ const Activity: React.FC = () => {
   const { user } = useAppSelector((state: any) => state.auth)
   const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
   const [activities, setActivities] = useState<ActivityLog[]>([])
+  const [loading, setLoading] = useState(false)
+  const [moduleFilter, setModuleFilter] = useState<string | undefined>(undefined)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [total, setTotal] = useState(0)
+
+  const fetchLogs = async (reset = false) => {
+    if (!user?.username) {
+      setActivities([])
+      setTotal(0)
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await systemAPI.getAuditLogs({
+        username: user.username,
+        module: moduleFilter,
+        page,
+        pageSize,
+      })
+      if (res.code === 0) {
+        const list = (res.data?.list || []).map((x: any) => ({
+          id: x._id,
+          type: (x.module || 'operation') as ActivityLog['type'],
+          action: x.action || '',
+          description: x.description || '',
+          timestamp: x.createdAt ? new Date(x.createdAt).toLocaleString() : '',
+          status: x.status as ActivityLog['status'],
+        }))
+        setTotal(res.data?.total || list.length)
+        setActivities((prev) => (reset ? list : [...prev, ...list]))
+      } else {
+        if (reset) setActivities([])
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    // TODO: 从API获取活动日志
-    // const result = await userAPI.getActivityLogs({
-    //   userId: user?.id,
-    //   restaurantId: currentRestaurantId,
-    // })
-    // setActivities(result)
-    
-    // 模拟数据
-    const mockActivities: ActivityLog[] = [
-      {
-        id: '1',
-        type: 'login',
-        action: '登录系统',
-        description: '成功登录系统',
-        timestamp: '2025-01-20 09:30:00',
-        status: 'success',
-      },
-      {
-        id: '2',
-        type: 'certification',
-        action: '提交认证申请',
-        description: '为素开心餐厅提交了气候餐厅认证申请',
-        timestamp: '2025-01-19 14:20:00',
-        status: 'pending',
-      },
-      {
-        id: '3',
-        type: 'menu',
-        action: '添加菜单',
-        description: '在素开心餐厅添加了5道新菜品',
-        timestamp: '2025-01-18 16:45:00',
-        status: 'success',
-      },
-      {
-        id: '4',
-        type: 'order',
-        action: '处理订单',
-        description: '处理了10笔订单',
-        timestamp: '2025-01-17 11:20:00',
-        status: 'success',
-      },
-      {
-        id: '5',
-        type: 'operation',
-        action: '修改个人信息',
-        description: '更新了个人邮箱和手机号',
-        timestamp: '2025-01-16 10:15:00',
-        status: 'success',
-      },
-    ]
-    setActivities(mockActivities)
-  }, [user, currentRestaurantId])
+    setPage(1)
+    fetchLogs(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentRestaurantId, moduleFilter])
+
+  const onQuery = () => {
+    setPage(1)
+    fetchLogs(true)
+  }
+
+  const loadMore = async () => {
+    const next = page + 1
+    setPage(next)
+    // 使用 next 页加载更多
+    setLoading(true)
+    try {
+      const res = await systemAPI.getAuditLogs({
+        username: user?.username,
+        module: moduleFilter,
+        page: next,
+        pageSize,
+      })
+      if (res.code === 0) {
+        const list = (res.data?.list || []).map((x: any) => ({
+          id: x._id,
+          type: (x.module || 'operation') as ActivityLog['type'],
+          action: x.action || '',
+          description: x.description || '',
+          timestamp: x.createdAt ? new Date(x.createdAt).toLocaleString() : '',
+          status: x.status as ActivityLog['status'],
+        }))
+        setTotal(res.data?.total || total)
+        setActivities((prev) => [...prev, ...list])
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -116,7 +141,28 @@ const Activity: React.FC = () => {
 
   return (
     <div>
-      <Card title="活动日志">
+      <Card
+        title="活动日志"
+        extra={
+          <Space>
+            <Select
+              allowClear
+              placeholder="按模块筛选"
+              style={{ width: 180 }}
+              options={[
+                { label: 'system', value: 'system' },
+                { label: 'platform', value: 'platform' },
+                { label: 'tenant', value: 'tenant' },
+                { label: 'carbon', value: 'carbon' },
+                { label: 'recipe', value: 'recipe' },
+              ]}
+              value={moduleFilter}
+              onChange={(v) => setModuleFilter(v)}
+            />
+            <Button onClick={onQuery} loading={loading}>查询</Button>
+          </Space>
+        }
+      >
         {activities.length === 0 ? (
           <Empty description="暂无活动记录" />
         ) : (
@@ -140,6 +186,13 @@ const Activity: React.FC = () => {
               </Timeline.Item>
             ))}
           </Timeline>
+        )}
+        {activities.length < total && (
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <Button onClick={loadMore} loading={loading}>
+              加载更多（已加载 {activities.length} / 共 {total}）
+            </Button>
+          </div>
         )}
       </Card>
     </div>

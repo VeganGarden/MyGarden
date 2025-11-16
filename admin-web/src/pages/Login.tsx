@@ -1,6 +1,7 @@
+import { authAPI } from '@/services/cloudbase'
 import { useAppDispatch } from '@/store/hooks'
 import { setCredentials } from '@/store/slices/authSlice'
-import { setTenant } from '@/store/slices/tenantSlice'
+import { clearTenant, setTenant } from '@/store/slices/tenantSlice'
 import { validateUserStorage } from '@/utils/storage'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Button, Card, Form, Input, message } from 'antd'
@@ -15,86 +16,77 @@ const Login: React.FC = () => {
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true)
     try {
-      // TODO: 实现真实的登录逻辑
-      // 这里先模拟登录成功
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // 调用认证云函数
+      const result = await authAPI.login(values.username, values.password)
 
-      // 模拟用户信息 - 根据用户名判断角色
-      let mockUser: any
-      if (values.username === 'platform' || values.username === 'platform_admin') {
-        // 平台管理员账号
-        mockUser = {
-          id: 'platform_admin_001',
-          name: '平台管理员',
-          role: 'platform_admin',
-          tenantId: null, // 平台管理员没有租户ID
-        }
-      } else if (
-        values.username === '小苹果' ||
-        values.username === 'xiaopingguo' ||
-        values.username === '' ||
-        !values.username.trim()
-      ) {
-        // 小苹果租户账号（默认账号，空用户名也默认登录为小苹果）
-        mockUser = {
-          id: 'tenant_xiaopingguo',
-          name: '小苹果',
-          role: 'tenant',
-          tenantId: 'tenant_xiaopingguo',
-        }
-      } else {
-        // 普通管理员账号
-        mockUser = {
-          id: 'admin_001',
-          name: '管理员',
-          role: 'admin',
-          tenantId: 'restaurant_001',
-        }
+      if (result.code !== 0) {
+        message.error(result.message || '登录失败，请检查用户名和密码')
+        return
       }
 
-      const mockToken = 'mock_token_' + Date.now()
+      const { token, user, expiresIn } = result.data
+
+      // 禁用账号拦截
+      if (user?.status && user.status !== 'active') {
+        message.error('该账号已被禁用，请联系系统管理员')
+        return
+      }
 
       // 验证并清除旧的用户信息（如果存在且不匹配）
-      validateUserStorage(mockUser.id, mockUser.role)
-      
-      // 设置新的用户信息
-      dispatch(setCredentials({ user: mockUser, token: mockToken }))
-      
-      // 如果是小苹果租户，初始化租户数据
-      if (mockUser.tenantId === 'tenant_xiaopingguo') {
-        const tenantData = {
-          id: 'tenant_xiaopingguo',
-          name: '小苹果',
-          restaurants: [
-            {
-              id: 'restaurant_sukuaixin',
-              name: '素开心',
-              address: '上海市虹桥区XX路123号',
-              phone: '021-12345678',
-              status: 'active' as const,
-              certificationLevel: 'gold' as const,
-              certificationStatus: 'certified' as const,
-              createdAt: '2024-01-15',
-            },
-            {
-              id: 'restaurant_suhuanle',
-              name: '素欢乐',
-              address: '上海市浦东新区XX街456号',
-              phone: '021-87654321',
-              status: 'active' as const,
-              certificationLevel: 'silver' as const,
-              certificationStatus: 'certified' as const,
-              createdAt: '2024-02-20',
-            },
-          ],
+      validateUserStorage(user.id, user.role)
+
+      // 设置新的用户信息和权限
+      dispatch(
+        setCredentials({
+          user,
+          token,
+          permissions: user.permissions || [],
+        })
+      )
+
+      // 如果是餐厅管理员且有租户ID，尝试加载租户数据
+      if (user.tenantId && user.role === 'restaurant_admin') {
+        // TODO: 从云函数加载租户数据
+        // 暂时使用本地模拟数据（如果用户名包含"小苹果"）
+        if (values.username.includes('小苹果') || values.username.includes('xiaopingguo')) {
+          const tenantData = {
+            id: 'tenant_xiaopingguo',
+            name: '小苹果',
+            restaurants: [
+              {
+                id: 'restaurant_sukuaixin',
+                name: '素开心',
+                address: '上海市虹桥区XX路123号',
+                phone: '021-12345678',
+                status: 'active' as const,
+                certificationLevel: 'gold' as const,
+                certificationStatus: 'certified' as const,
+                createdAt: '2024-01-15',
+              },
+              {
+                id: 'restaurant_suhuanle',
+                name: '素欢乐',
+                address: '上海市浦东新区XX街456号',
+                phone: '021-87654321',
+                status: 'active' as const,
+                certificationLevel: 'silver' as const,
+                certificationStatus: 'certified' as const,
+                createdAt: '2024-02-20',
+              },
+            ],
+          }
+          dispatch(setTenant(tenantData))
         }
-        dispatch(setTenant(tenantData))
+      } else {
+        // 非餐厅管理员：清空本地租户态，避免顶栏显示租户切换器
+        dispatch(clearTenant())
       }
-      
+
       message.success('登录成功')
       navigate('/dashboard')
-    } catch (error) {
-      message.error('登录失败，请检查用户名和密码')
+    } catch (error: any) {
+      console.error('登录失败:', error)
+      message.error(error.message || '登录失败，请检查网络连接')
     } finally {
       setLoading(false)
     }
@@ -156,12 +148,13 @@ const Login: React.FC = () => {
           </Form.Item>
         </Form>
 
-        <div style={{ textAlign: 'center', color: '#999', fontSize: 12 }}>
-          <p>测试账号：</p>
-          <p><strong>默认租户：小苹果（直接登录或输入"小苹果"）</strong></p>
-          <p>普通管理员：admin / admin123</p>
-          <p>平台管理员：platform / admin123</p>
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          还没有账号？<a onClick={() => navigate('/apply')}>申请开通 / 入驻</a>
+          <span style={{ margin: '0 8px', color: '#ddd' }}>|</span>
+          <a>忘记密码</a>
         </div>
+
+        {/* 底部提示移除测试账号信息 */}
       </Card>
     </div>
   )
