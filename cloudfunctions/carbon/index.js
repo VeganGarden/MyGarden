@@ -46,6 +46,8 @@ exports.main = async (event, context) => {
   const { action, data } = event
 
   try {
+    const db = cloud.database()
+    const { addAudit } = require('./audit')
     switch (action) {
       case 'calculateMealCarbon':
         // 计算餐食碳足迹
@@ -59,7 +61,16 @@ exports.main = async (event, context) => {
         
         // 计算经验值（基于碳减排量）
         const experience = Math.floor(carbonResult.reduction * 10)
-        
+        // 审计
+        await addAudit(db, {
+          module: 'carbon',
+          action: 'calculateMealCarbon',
+          resource: 'meal',
+          description: '计算餐食碳足迹',
+          status: 'success',
+          ip: context.requestIp || '',
+          userAgent: context.userAgent || '',
+        })
         return {
           code: 0,
           data: {
@@ -73,7 +84,6 @@ exports.main = async (event, context) => {
 
       case 'getUserStats':
         // 获取用户碳足迹统计
-        const db = cloud.database()
         const userCollection = db.collection('users')
         const mealCollection = db.collection('meals')
         
@@ -102,6 +112,15 @@ exports.main = async (event, context) => {
           monthlyReduction: mealsResult.data.reduce((sum, meal) => sum + meal.carbonReduction, 0)
         }
         
+        await addAudit(db, {
+          module: 'carbon',
+          action: 'getUserStats',
+          resource: 'user',
+          description: '获取用户碳足迹统计',
+          status: 'success',
+          ip: context.requestIp || '',
+          userAgent: context.userAgent || '',
+        })
         return {
           code: 0,
           data: stats
@@ -109,19 +128,59 @@ exports.main = async (event, context) => {
 
       case 'compareWithMeat':
         // 素食vs肉食对比计算
-        return await compareWithMeat(event)
+        {
+          const res = await compareWithMeat(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'compareWithMeat',
+            resource: 'meal',
+            description: '素食与肉食对比计算',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       case 'calculateMealAdvanced':
         // 高级多因子碳排放计算
-        return await calculateMealAdvanced(event)
+        {
+          const res = await calculateMealAdvanced(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'calculateMealAdvanced',
+            resource: 'meal',
+            description: '高级多因子碳排放计算',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       case 'getDetailedReport':
         // 获取详细分解报告
-        return await getDetailedReport(event)
+        {
+          const res = await getDetailedReport(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'getDetailedReport',
+            resource: 'report',
+            description: '获取碳排放详细报告',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       case 'calculateRecipe':
         // 计算菜谱碳足迹
-        return await calculateRecipeCarbon(event)
+        {
+          const res = await calculateRecipeCarbon(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'calculateRecipe',
+            resource: 'recipe',
+            description: '计算菜谱碳足迹',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       default:
         return {

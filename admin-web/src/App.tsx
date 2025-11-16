@@ -1,14 +1,14 @@
 import React from 'react'
-import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import AuthGuard from './components/AuthGuard'
 import MainLayout from './layouts/MainLayout'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
-import AuthGuard from './components/AuthGuard'
+import RecipeCategories from './pages/recipe/Categories'
 import RecipeCreate from './pages/recipe/Create'
+import RecipeDetail from './pages/recipe/Detail'
 import RecipeEdit from './pages/recipe/Edit'
 import RecipeList from './pages/recipe/List'
-import RecipeDetail from './pages/recipe/Detail'
-import RecipeCategories from './pages/recipe/Categories'
 
 // 核心模块1: 气候餐厅认证
 import CertificationApply from './pages/certification/Apply'
@@ -16,14 +16,14 @@ import CertificationCertificate from './pages/certification/Certificate'
 import CertificationStatus from './pages/certification/Status'
 
 // 核心模块2: 碳足迹核算
+import BaselineAdd from './pages/carbon/BaselineAdd'
+import BaselineDetail from './pages/carbon/BaselineDetail'
+import BaselineEdit from './pages/carbon/BaselineEdit'
+import BaselineImport from './pages/carbon/BaselineImport'
+import BaselineList from './pages/carbon/BaselineList'
 import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
-import BaselineList from './pages/carbon/BaselineList'
-import BaselineDetail from './pages/carbon/BaselineDetail'
-import BaselineAdd from './pages/carbon/BaselineAdd'
-import BaselineEdit from './pages/carbon/BaselineEdit'
-import BaselineImport from './pages/carbon/BaselineImport'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
@@ -56,24 +56,41 @@ import ReportDashboard from './pages/report/Dashboard'
 import ReportESG from './pages/report/ESG'
 
 // 平台管理模块（仅平台管理员可见）
-import PlatformRestaurantList from './pages/platform/RestaurantList'
+import AccountApprovals from './pages/platform/AccountApprovals'
+import AdminUsers from './pages/platform/AdminUsers'
 import PlatformCrossTenant from './pages/platform/CrossTenant'
+import PlatformRestaurantList from './pages/platform/RestaurantList'
 import PlatformStatistics from './pages/platform/Statistics'
 
 // 个人中心
+import OnboardingApply from './pages/onboarding/Apply'
 import ProfilePage from './pages/profile'
+import SystemAudit from './pages/system/Audit'
+import SystemBackup from './pages/system/Backup'
+import SystemMonitor from './pages/system/Monitor'
+import SystemRoles from './pages/system/Roles'
+import SystemUsers from './pages/system/Users'
 
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AuthGuard>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <Routes>
+        {/* 公共路由：登录与入驻申请 */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/apply" element={<OnboardingApply />} />
+        {/* 受保护路由 */}
+        <Route
+          path="/"
+          element={
+            <AuthGuard>
+              <MainLayout />
+            </AuthGuard>
+          }
+        >
           <Route
-            path="/"
-            element={<MainLayout />}
-          >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+            index
+            element={<Navigate to="/dashboard" replace />}
+          />
           <Route path="dashboard" element={<Dashboard />} />
           
           {/* 核心模块1: 气候餐厅认证 */}
@@ -133,12 +150,20 @@ const App: React.FC = () => {
           <Route path="platform/restaurants" element={<PlatformRestaurantList />} />
           <Route path="platform/cross-tenant" element={<PlatformCrossTenant />} />
           <Route path="platform/statistics" element={<PlatformStatistics />} />
+          <Route path="platform/account-approvals" element={<AccountApprovals />} />
+          <Route path="platform/admin-users" element={<AdminUsers />} />
+          
+          {/* 系统管理（仅系统管理员可见 - 由菜单与守卫共同控制） */}
+          <Route path="system/users" element={<SystemUsers />} />
+          <Route path="system/roles" element={<SystemRoles />} />
+          <Route path="system/audit" element={<SystemAudit />} />
+          <Route path="system/monitor" element={<SystemMonitor />} />
+          <Route path="system/backup" element={<SystemBackup />} />
           
           {/* 个人中心 */}
           <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Routes>
-      </AuthGuard>
     </BrowserRouter>
   )
 }

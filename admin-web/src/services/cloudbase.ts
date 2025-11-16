@@ -1,4 +1,4 @@
-import { getCloudbaseApp, getAuthInstance } from '@/utils/cloudbase-init'
+import { getAuthInstance, getCloudbaseApp } from '@/utils/cloudbase-init'
 
 /**
  * 调用云函数（使用腾讯云开发Web SDK）
@@ -34,9 +34,15 @@ export const callCloudFunction = async (
     }
     
     // 使用云开发SDK调用云函数
+    // 透传后端鉴权所需的 token（用于函数内权限校验）
+    const token = (typeof window !== 'undefined' && localStorage.getItem('admin_token')) || ''
+    const payload = { ...(data || {}) }
+    if (token && !payload.token) {
+      payload.token = token
+    }
     const result = await app.callFunction({
       name: functionName,
-      data: data || {},
+      data: payload,
     })
     
     // 检查返回结果
@@ -46,6 +52,16 @@ export const callCloudFunction = async (
       
       // 如果云函数返回的是 { code, message, data } 格式
       if (resultData.code !== undefined) {
+        if (resultData.code === 401) {
+          try {
+            localStorage.removeItem('admin_token')
+            localStorage.removeItem('admin_user')
+            localStorage.removeItem('admin_permissions')
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login'
+            }
+          } catch {}
+        }
         return resultData
       }
       
@@ -509,6 +525,25 @@ export const tenantAPI = {
 }
 
 /**
+ * 管理后台认证API
+ */
+export const authAPI = {
+  // 登录
+  login: (username: string, password: string) =>
+    callCloudFunction('admin-auth', {
+      action: 'login',
+      data: { username, password },
+    }),
+
+  // 验证Token
+  verifyToken: (token: string) =>
+    callCloudFunction('admin-auth', {
+      action: 'verifyToken',
+      data: { token },
+    }),
+}
+
+/**
  * 用户管理API
  */
 export const userAPI = {
@@ -677,8 +712,174 @@ export const platformAPI = {
   },
 }
 
+/**
+ * 入驻申请与账号审批 API
+ */
+export const onboardingAPI = {
+  // 提交入驻申请（餐厅管理员/租户自助）
+  apply: (data: {
+    organizationName: string
+    contactName: string
+    contactPhone: string
+    contactEmail?: string
+    restaurantCount?: number
+    city?: string
+    note?: string
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'applyForOnboarding',
+      data,
+    }),
+
+  // 平台侧：获取入驻申请列表
+  listApplications: (params?: {
+    status?: 'pending' | 'approved' | 'rejected'
+    keyword?: string
+    page?: number
+    pageSize?: number
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'listOnboardingApplications',
+      data: params || {},
+    }),
+
+  // 平台侧：审批通过（可选择自动创建账号与租户）
+  approve: (applicationId: string, options?: { createAccount?: boolean }) =>
+    callCloudFunction('tenant', {
+      action: 'approveOnboardingApplication',
+      data: { applicationId, ...(options || {}) },
+    }),
+
+  // 平台侧：驳回
+  reject: (applicationId: string, reason?: string) =>
+    callCloudFunction('tenant', {
+      action: 'rejectOnboardingApplication',
+      data: { applicationId, reason },
+    }),
+}
+
+/**
+ * 管理员账号（仅后台邀请/创建）
+ */
+export const adminUsersAPI = {
+  // 创建管理员账号（受控角色）
+  create: (data: {
+    username: string
+    password: string
+    name?: string
+    email?: string
+    phone?: string
+    role: 'system_admin' | 'platform_operator' | 'carbon_specialist'
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'createAdminUser',
+      data,
+    }),
+
+  // 列表
+  list: (params?: {
+    status?: 'active' | 'disabled'
+    role?: string
+    keyword?: string
+    page?: number
+    pageSize?: number
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'listAdminUsers',
+      data: params || {},
+    }),
+
+  // 更新状态
+  updateStatus: (userId: string, status: 'active' | 'disabled') =>
+    callCloudFunction('tenant', {
+      action: 'updateAdminUserStatus',
+      data: { userId, status },
+    }),
+
+  // 重置密码
+  resetPassword: (userId: string) =>
+    callCloudFunction('tenant', {
+      action: 'resetAdminUserPassword',
+      data: { userId },
+    }),
+
+  // 软删除
+  softDelete: (userId: string) =>
+    callCloudFunction('tenant', {
+      action: 'softDeleteAdminUser',
+      data: { userId },
+    }),
+}
+
+/**
+ * 系统域 API（仅系统管理员）
+ */
+export const systemAPI = {
+  // 角色配置
+  listRoleConfigs: (params?: { status?: 'active' | 'inactive'; page?: number; pageSize?: number }) =>
+    callCloudFunction('tenant', {
+      action: 'listRoleConfigs',
+      data: params || {},
+    }),
+  listPermissions: () =>
+    callCloudFunction('tenant', {
+      action: 'listPermissions',
+    }),
+  createRoleConfig: (data: { roleCode: string; roleName: string; description?: string; permissions?: string[]; status?: 'active' | 'inactive' }) =>
+    callCloudFunction('tenant', {
+      action: 'createRoleConfig',
+      data,
+    }),
+  updateRolePermissions: (roleCode: string, permissions: string[], moduleAccess?: any) =>
+    callCloudFunction('tenant', {
+      action: 'updateRolePermissions',
+      data: { roleCode, permissions, moduleAccess },
+    }),
+  updateRoleStatus: (roleCode: string, status: 'active' | 'inactive') =>
+    callCloudFunction('tenant', {
+      action: 'updateRoleStatus',
+      data: { roleCode, status },
+    }),
+
+  // 审计日志
+  getAuditLogs: (params?: { username?: string; action?: string; status?: string; page?: number; pageSize?: number }) =>
+    callCloudFunction('tenant', {
+      action: 'getAuditLogs',
+      data: params || {},
+    }),
+
+  // 系统监控
+  getSystemMetrics: () =>
+    callCloudFunction('tenant', {
+      action: 'getSystemMetrics',
+    }),
+
+  // 备份导出（占位）
+  runBackupExport: () =>
+    callCloudFunction('tenant', {
+      action: 'runBackupExport',
+    }),
+  // 个人资料
+  uploadAvatar: (data: { base64: string; ext?: string }) =>
+    callCloudFunction('tenant', {
+      action: 'uploadAvatar',
+      data,
+    }),
+  updateProfile: (data: { name?: string; email?: string; phone?: string; avatarUrl?: string }) =>
+    callCloudFunction('tenant', {
+      action: 'updateProfile',
+      data,
+    }),
+  updatePassword: (data: { oldPassword: string; newPassword: string }) =>
+    callCloudFunction('tenant', {
+      action: 'updatePassword',
+      data,
+    }),
+}
+
 export default {
   callCloudFunction,
+  authAPI,
   recipeAPI,
   ingredientAPI,
   carbonAPI,
@@ -690,5 +891,8 @@ export default {
   platformAPI,
   userAPI,
   tenantAPI,
+  adminUsersAPI,
+  onboardingAPI,
+  systemAPI,
 }
 

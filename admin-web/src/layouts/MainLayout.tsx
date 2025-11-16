@@ -1,6 +1,6 @@
 import RestaurantSwitcher from '@/components/RestaurantSwitcher'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { logout, setCredentials } from '@/store/slices/authSlice'
+import { logout } from '@/store/slices/authSlice'
 import {
   ApartmentOutlined,
   BarChartOutlined,
@@ -26,13 +26,32 @@ const MainLayout: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useAppDispatch()
-  const { user, token } = useAppSelector((state: any) => state.auth)
+  const { user } = useAppSelector((state: any) => state.auth)
 
-  // 检查是否是平台管理员
-  const isPlatformAdmin = user?.role === 'platform_admin'
+  // 角色判断
+  const isPlatformAdmin = user?.role === 'platform_operator'
+  const isSystemAdmin = user?.role === 'system_admin'
 
   // 使用useMemo确保菜单项能够响应user状态变化
-  const menuItems = useMemo(() => [
+  const menuItems = useMemo(() => {
+    if (isSystemAdmin) {
+      // 系统管理员仅系统域菜单
+      return [
+        {
+          key: '/system',
+          icon: <SettingOutlined />,
+          label: '系统管理',
+          children: [
+            { key: '/system/users', label: '用户管理' },
+            { key: '/system/roles', label: '角色权限配置' },
+            { key: '/system/audit', label: '审计日志' },
+            { key: '/system/monitor', label: '系统监控' },
+            { key: '/system/backup', label: '数据备份' },
+          ],
+        },
+      ]
+    }
+    return [
     {
       key: '/dashboard',
       icon: <DashboardOutlined />,
@@ -172,7 +191,7 @@ const MainLayout: React.FC = () => {
         },
       ],
     },
-    // 平台管理模块（仅平台管理员可见）
+    // 平台管理模块（仅平台运营可见）
     ...(isPlatformAdmin
       ? [
           {
@@ -192,33 +211,27 @@ const MainLayout: React.FC = () => {
                 key: '/platform/statistics',
                 label: '平台级统计报表',
               },
+              {
+                key: '/platform/account-approvals',
+                label: '入驻申请审批',
+              },
+              {
+                // 平台级账户管理改由系统管理员在“系统管理 → 用户管理”中处理
+                // 此入口对平台运营隐藏
+                key: '/platform/admin-users__hidden',
+                label: '',
+                style: { display: 'none' } as any,
+              },
             ],
           },
         ]
       : []),
-  ], [isPlatformAdmin])
+  ]}, [isPlatformAdmin, isSystemAdmin])
 
   const handleLogout = () => {
     dispatch(logout())
     message.success('已退出登录')
     navigate('/login')
-  }
-
-  // 开发环境下快速切换角色（仅用于测试）
-  const handleSwitchRole = () => {
-    if (user && token) {
-      const newRole = user.role === 'platform_admin' ? 'admin' : 'platform_admin'
-      const updatedUser = {
-        ...user,
-        role: newRole,
-        tenantId: newRole === 'platform_admin' ? null : 'restaurant_001',
-      }
-      dispatch(setCredentials({ user: updatedUser, token }))
-      message.success(`已切换为${newRole === 'platform_admin' ? '平台管理员' : '普通管理员'}`)
-      // 不需要刷新页面，菜单项会自动更新（因为使用了useMemo依赖isPlatformAdmin）
-    } else {
-      message.error('无法切换角色：用户信息或token缺失')
-    }
   }
 
   const userMenuItems = [
@@ -230,19 +243,6 @@ const MainLayout: React.FC = () => {
         navigate('/profile')
       },
     },
-    ...(import.meta.env.DEV
-      ? [
-          {
-            type: 'divider' as const,
-          },
-          {
-            key: 'switchRole',
-            icon: <UserOutlined />,
-            label: `切换为${user?.role === 'platform_admin' ? '普通管理员' : '平台管理员'}`,
-            onClick: handleSwitchRole,
-          },
-        ]
-      : []),
     {
       type: 'divider' as const,
     },
