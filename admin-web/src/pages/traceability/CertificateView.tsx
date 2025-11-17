@@ -14,12 +14,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import './CertificateView.css'
 import './PdfViewer.css'
 
-// 配置 PDF.js worker
-if (import.meta.env.PROD) {
-  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
-} else {
-  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
-}
+// 配置 PDF.js worker - 使用 CDN（最可靠的方式）
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
 const CertificateViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
