@@ -20,6 +20,7 @@ const _ = db.command;
  * - get-status: 查看数据库状态
  * - initAdminCollections: 初始化管理后台集合（admin_users, role_configs, permissions, audit_logs）
  * - initAdminData: 初始化管理后台数据（角色和权限配置）
+ * - initMessageCollections: 初始化消息管理集合（messages, user_messages, message_event_rules）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -58,6 +59,10 @@ exports.main = async (event) => {
         return await initAdminCollections(event);
       case 'initAdminData':
         return await initAdminData(event);
+      case 'initMessageCollections':
+        return await initMessageCollections(event);
+      case 'initMessageEventRules':
+        return await initMessageEventRules(event);
       default:
         return await initCollectionsV1(event);
     }
@@ -323,6 +328,16 @@ async function initAdminCollections(event) {
 async function initAdminData(event) {
   const initAdminData = require('./init-admin-data.js');
   return await initAdminData.main(event);
+}
+
+async function initMessageCollections(event) {
+  const initMessageCollections = require('./init-message-collections.js');
+  return await initMessageCollections.main(event);
+}
+
+async function initMessageEventRules(event) {
+  const initMessageEventRules = require('./init-message-event-rules.js');
+  return await initMessageEventRules.main(event);
 }
 
 /**

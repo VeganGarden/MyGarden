@@ -1,83 +1,223 @@
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import {
-  clearAll,
-  markAllAsRead,
-  markAsRead,
-  removeNotification,
-} from '@/store/slices/notificationSlice'
+import { messageAPI } from '@/services/cloudbase'
+import { useAppSelector } from '@/store/hooks'
 import {
   BellOutlined,
   CheckOutlined,
   ClearOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons'
-import { Badge, Button, Dropdown, Empty, List, Tag } from 'antd'
-import React, { useMemo } from 'react'
+import { Badge, Button, Dropdown, Empty, List, Tag, message as antdMessage } from 'antd'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import styles from './NotificationCenter.module.css'
+import dayjs from 'dayjs'
+
+type UserMessage = {
+  _id: string
+  messageId: string
+  userId: string
+  status: 'sent' | 'read'
+  readAt?: Date
+  createdAt: Date
+  message?: {
+    _id: string
+    title: string
+    content: string
+    type: 'business' | 'system'
+    priority: 'urgent' | 'important' | 'normal'
+    link?: string
+    createdAt: Date
+  }
+}
 
 /**
  * 通知中心组件
+ * 集成真实的消息API，支持轮询更新
  */
 const NotificationCenter: React.FC = () => {
-  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { notifications, unreadCount } = useAppSelector(
-    (state: any) => state.notification
-  )
+  const { user } = useAppSelector((state: any) => state.auth)
+  const [notifications, setNotifications] = useState<UserMessage[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // 加载消息列表（最近10条）
+  const loadMessages = async () => {
+    if (!user?.id) return
+
+    try {
+      const result = await messageAPI.getUserMessages({
+        userId: user.id,
+        page: 1,
+        pageSize: 10,
+      })
+
+      if (result.code === 0) {
+        setNotifications(result.data?.messages || [])
+      }
+    } catch (error) {
+      // 静默处理错误，不显示提示
+    }
+  }
+
+  // 初始加载
+  useEffect(() => {
+    loadMessages()
+  }, [user?.id])
+
+  // 轮询更新（每30秒），仅在页面可见时轮询
+  useEffect(() => {
+    // 检查页面可见性 API 支持
+    if (typeof document === 'undefined' || !document.visibilityState) {
+      // 不支持可见性 API，使用普通轮询
+      const interval = setInterval(() => {
+        loadMessages()
+      }, 30000) // 30秒
+      return () => clearInterval(interval)
+    }
+
+    let interval: NodeJS.Timeout | null = null
+
+    const startPolling = () => {
+      if (interval) return // 已启动
+      interval = setInterval(() => {
+        loadMessages()
+      }, 30000) // 30秒
+    }
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval)
+        interval = null
+      }
+    }
+
+    // 初始加载
+    if (!document.hidden) {
+      startPolling()
+    }
+
+    // 监听页面可见性变化
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling()
+      } else {
+        startPolling()
+        // 页面变为可见时立即加载一次
+        loadMessages()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      stopPolling()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [user?.id])
+
+  // 未读消息数量
+  const unreadCount = useMemo(() => {
+    return notifications.filter((n) => n.status === 'sent').length
+  }, [notifications])
 
   // 按时间排序，未读的在前
   const sortedNotifications = useMemo(() => {
     return [...notifications].sort((a, b) => {
-      if (a.read !== b.read) {
-        return a.read ? 1 : -1
+      if (a.status !== b.status) {
+        return a.status === 'sent' ? -1 : 1
       }
-      return b.timestamp - a.timestamp
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
   }, [notifications])
 
   // 处理通知点击
-  const handleNotificationClick = (notification: any) => {
-    if (!notification.read) {
-      dispatch(markAsRead(notification.id))
+  const handleNotificationClick = async (userMessage: UserMessage) => {
+    // 标记为已读
+    if (userMessage.status === 'sent') {
+      try {
+        await messageAPI.markAsRead({
+          userMessageId: userMessage._id,
+          messageId: userMessage.messageId,
+        })
+        // 更新本地状态
+        setNotifications((prev) =>
+          prev.map((msg) =>
+            msg._id === userMessage._id
+              ? { ...msg, status: 'read' as const, readAt: new Date() }
+              : msg
+          )
+        )
+      } catch (error) {
+        // 静默处理
+      }
     }
-    if (notification.link) {
-      navigate(notification.link)
+
+    // 跳转
+    if (userMessage.message?.link) {
+      navigate(userMessage.message.link)
+    } else {
+      navigate(`/messages/${userMessage.messageId}`)
     }
   }
 
-  // 处理删除通知
-  const handleRemove = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    dispatch(removeNotification(id))
+  // 处理全部标记为已读
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0) return
+
+    setLoading(true)
+    try {
+      const unreadMessages = notifications.filter((n) => n.status === 'sent')
+      const promises = unreadMessages.map((msg) =>
+        messageAPI.markAsRead({
+          userMessageId: msg._id,
+          messageId: msg.messageId,
+        })
+      )
+      await Promise.all(promises)
+
+      // 更新本地状态
+      setNotifications((prev) =>
+        prev.map((msg) =>
+          msg.status === 'sent'
+            ? { ...msg, status: 'read' as const, readAt: new Date() }
+            : msg
+        )
+      )
+      antdMessage.success(t('notification.markAllReadSuccess'))
+    } catch (error) {
+      antdMessage.error(t('common.updateFailed'))
+    } finally {
+      setLoading(false)
+    }
   }
 
   // 获取通知类型图标和颜色
-  const getNotificationType = (type: string) => {
-    const types: Record<string, { color: string; icon: React.ReactNode }> = {
-      info: { color: '#1890ff', icon: <InfoCircleOutlined /> },
-      success: { color: '#52c41a', icon: <InfoCircleOutlined /> },
-      warning: { color: '#faad14', icon: <InfoCircleOutlined /> },
-      error: { color: '#f5222d', icon: <InfoCircleOutlined /> },
+  const getNotificationType = (msg: UserMessage['message']) => {
+    if (!msg) return { color: '#1890ff', icon: <InfoCircleOutlined /> }
+
+    const priority = msg.priority
+    if (priority === 'urgent') {
+      return { color: '#ff4d4f', icon: <InfoCircleOutlined /> }
     }
-    return types[type] || types.info
+    if (priority === 'important') {
+      return { color: '#faad14', icon: <InfoCircleOutlined /> }
+    }
+    return { color: '#1890ff', icon: <InfoCircleOutlined /> }
   }
 
   // 格式化时间
-  const formatTime = (timestamp: number) => {
-    const now = Date.now()
-    const diff = now - timestamp
-    const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days = Math.floor(diff / 86400000)
+  const formatTime = (timestamp: Date | string | number) => {
+    const date = dayjs(timestamp)
+    const now = dayjs()
+    const diff = now.diff(date, 'minute')
 
-    if (minutes < 1) return '刚刚'
-    if (minutes < 60) return `${minutes}分钟前`
-    if (hours < 24) return `${hours}小时前`
-    if (days < 7) return `${days}天前`
-    return new Date(timestamp).toLocaleDateString()
+    if (diff < 1) return t('messages.justNow')
+    if (diff < 60) return t('messages.minutesAgo', { count: diff })
+    if (diff < 1440) return t('messages.hoursAgo', { count: Math.floor(diff / 60) })
+    if (diff < 10080) return t('messages.daysAgo', { count: Math.floor(diff / 1440) })
+    return date.format('YYYY-MM-DD HH:mm')
   }
 
   // 下拉菜单内容
@@ -91,19 +231,10 @@ const NotificationCenter: React.FC = () => {
               type="text"
               size="small"
               icon={<CheckOutlined />}
-              onClick={() => dispatch(markAllAsRead())}
+              onClick={handleMarkAllAsRead}
+              loading={loading}
             >
               {t('notification.markAllRead')}
-            </Button>
-          )}
-          {notifications.length > 0 && (
-            <Button
-              type="text"
-              size="small"
-              icon={<ClearOutlined />}
-              onClick={() => dispatch(clearAll())}
-            >
-              {t('notification.clearAll')}
             </Button>
           )}
         </div>
@@ -118,12 +249,14 @@ const NotificationCenter: React.FC = () => {
         ) : (
           <List
             dataSource={sortedNotifications}
+            loading={loading}
             renderItem={(item) => {
-              const typeInfo = getNotificationType(item.type)
+              if (!item.message) return null
+              const typeInfo = getNotificationType(item.message)
               return (
                 <List.Item
                   className={`${styles.notificationItem} ${
-                    !item.read ? styles.unread : ''
+                    item.status === 'sent' ? styles.unread : ''
                   }`}
                   onClick={() => handleNotificationClick(item)}
                 >
@@ -141,28 +274,21 @@ const NotificationCenter: React.FC = () => {
                     <div className={styles.notificationBody}>
                       <div className={styles.notificationTitleRow}>
                         <span className={styles.notificationTitleText}>
-                          {item.title}
+                          {item.message.title}
                         </span>
-                        {!item.read && (
-                          <Tag color="blue" size="small">
+                        {item.status === 'sent' && (
+                          <Tag color="blue">
                             {t('notification.unread')}
                           </Tag>
                         )}
                       </div>
                       <div className={styles.notificationMessage}>
-                        {item.message}
+                        {item.message.content}
                       </div>
                       <div className={styles.notificationTime}>
-                        {formatTime(item.timestamp)}
+                        {formatTime(item.createdAt)}
                       </div>
                     </div>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<ClearOutlined />}
-                      className={styles.removeButton}
-                      onClick={(e) => handleRemove(e, item.id)}
-                    />
                   </div>
                 </List.Item>
               )
@@ -176,11 +302,10 @@ const NotificationCenter: React.FC = () => {
             type="link"
             block
             onClick={() => {
-              // 可以跳转到通知列表页面
-              navigate('/notifications')
+              navigate('/messages')
             }}
           >
-            查看全部通知
+            {t('messages.viewAll')}
           </Button>
         </div>
       )}

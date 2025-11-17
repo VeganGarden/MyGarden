@@ -215,6 +215,25 @@ async function applyForOnboarding(data) {
     updatedAt: db.serverDate(),
   }
   const res = await db.collection('tenant_applications').add({ data: appData })
+  
+  // 触发租户认证申请消息通知
+  try {
+    await cloud.callFunction({
+      name: 'message-event',
+      data: {
+        action: 'handleTenantCertApply',
+        data: {
+          tenantId: res._id, // 使用申请ID作为tenantId
+          tenantName: data.organizationName,
+          applyTime: new Date(),
+        },
+      },
+    })
+  } catch (error) {
+    // 消息通知失败不影响申请提交，仅记录日志
+    console.error('触发租户认证申请消息失败:', error)
+  }
+  
   return { code: 0, message: '申请已提交', data: { _id: res._id } }
 }
 
@@ -1133,6 +1152,10 @@ async function createRestaurant(data) {
  * 更新餐厅信息
  */
 async function updateRestaurant(restaurantId, data) {
+  // 获取更新前的餐厅信息，用于判断认证状态变化
+  const oldRestaurant = await db.collection('restaurants').doc(restaurantId).get()
+  const oldCertificationStatus = oldRestaurant.data?.certificationStatus || 'none'
+  
   const updateData = {
     ...data,
     updatedAt: db.serverDate(),
@@ -1144,6 +1167,30 @@ async function updateRestaurant(restaurantId, data) {
   })
 
   const result = await db.collection('restaurants').doc(restaurantId).get()
+  const newRestaurant = result.data
+  
+  // 如果认证状态从非pending变为pending，触发餐厅认证申请消息
+  const newCertificationStatus = newRestaurant?.certificationStatus || 'none'
+  if (oldCertificationStatus !== 'pending' && newCertificationStatus === 'pending') {
+    try {
+      await cloud.callFunction({
+        name: 'message-event',
+        data: {
+          action: 'handleRestaurantCertApply',
+          data: {
+            restaurantId: restaurantId,
+            restaurantName: newRestaurant?.name || '',
+            tenantId: newRestaurant?.tenantId || '',
+            applyTime: new Date(),
+          },
+        },
+      })
+    } catch (error) {
+      // 消息通知失败不影响餐厅信息更新，仅记录日志
+      console.error('触发餐厅认证申请消息失败:', error)
+    }
+  }
+  
   return {
     success: true,
     data: result.data,

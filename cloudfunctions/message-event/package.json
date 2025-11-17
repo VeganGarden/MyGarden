@@ -1,0 +1,10 @@
+{
+  "name": "message-event",
+  "version": "1.0.0",
+  "description": "消息事件处理云函数 - 业务事件监听和处理",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

@@ -193,8 +193,47 @@
     "title": "通知中心",
     "empty": "暂无通知",
     "markAllRead": "全部标记为已读",
+    "markAllReadSuccess": "已全部标记为已读",
     "clearAll": "清空全部",
     "unread": "未读"
+  },
+  "messages": {
+    "title": "消息中心",
+    "detail": "消息详情",
+    "empty": "暂无消息",
+    "notFound": "消息不存在",
+    "viewAll": "查看全部消息",
+    "markAsRead": "标记为已读",
+    "markAsReadSuccess": "已标记为已读",
+    "goToRelated": "前往相关页面",
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}}分钟前",
+    "hoursAgo": "{{count}}小时前",
+    "daysAgo": "{{count}}天前",
+    "filters": {
+      "all": "全部",
+      "unread": "未读",
+      "read": "已读"
+    },
+    "types": {
+      "business": "业务通知",
+      "system": "系统通知"
+    },
+    "priority": {
+      "urgent": "紧急",
+      "important": "重要",
+      "normal": "普通"
+    },
+    "status": {
+      "sent": "已发送",
+      "draft": "草稿"
+    },
+    "detail": {
+      "status": "状态",
+      "createdAt": "创建时间",
+      "sentAt": "发送时间",
+      "relatedEntity": "关联实体"
+    }
   },
   "help": {
     "title": "帮助中心",
