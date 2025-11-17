@@ -812,6 +812,62 @@ export const adminUsersAPI = {
 }
 
 /**
+ * 消息管理 API
+ */
+export const messageAPI = {
+  // 获取用户消息列表
+  getUserMessages: (params?: {
+    userId?: string
+    status?: 'sent' | 'read'
+    page?: number
+    pageSize?: number
+  }) =>
+    callCloudFunction('message-manage', {
+      action: 'getUserMessages',
+      data: params || {},
+    }),
+
+  // 标记消息为已读
+  markAsRead: (data: { userMessageId?: string; messageId?: string; userId?: string }) =>
+    callCloudFunction('message-manage', {
+      action: 'markAsRead',
+      data,
+    }),
+
+  // 获取消息详情
+  getMessage: (messageId: string) =>
+    callCloudFunction('message-manage', {
+      action: 'getMessage',
+      data: { messageId },
+    }),
+
+  // 创建消息（管理员）
+  createMessage: (data: {
+    title: string
+    content: string
+    type?: 'business' | 'system'
+    priority?: 'urgent' | 'important' | 'normal'
+    sendType?: 'immediate' | 'scheduled'
+    scheduledTime?: Date
+    targetType?: 'all' | 'specific' | 'role'
+    targetUsers?: string[]
+    targetRoles?: string[]
+    link?: string
+  }) =>
+    callCloudFunction('message-manage', {
+      action: 'createMessage',
+      data,
+    }),
+
+  // 发送消息
+  sendMessage: (messageId: string) =>
+    callCloudFunction('message-manage', {
+      action: 'sendMessage',
+      data: { messageId },
+    }),
+}
+
+/**
  * 系统域 API（仅系统管理员）
  */
 export const systemAPI = {
@@ -894,5 +950,6 @@ export default {
   adminUsersAPI,
   onboardingAPI,
   systemAPI,
+  messageAPI,
 }
 

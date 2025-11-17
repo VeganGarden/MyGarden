@@ -71,6 +71,10 @@ import SystemMonitor from './pages/system/Monitor'
 import SystemRoles from './pages/system/Roles'
 import SystemUsers from './pages/system/Users'
 
+// 消息管理
+import MessageList from './pages/messages/List'
+import MessageDetail from './pages/messages/Detail'
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -162,6 +166,10 @@ const App: React.FC = () => {
           
           {/* 个人中心 */}
           <Route path="profile" element={<ProfilePage />} />
+          
+          {/* 消息管理 */}
+          <Route path="messages" element={<MessageList />} />
+          <Route path="messages/:messageId" element={<MessageDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,0 +1,10 @@
+{
+  "name": "message-manage",
+  "version": "1.0.0",
+  "description": "消息管理云函数 - 消息的CRUD操作",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

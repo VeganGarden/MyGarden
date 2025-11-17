@@ -1,32 +1,31 @@
+import { systemAPI } from '@/services/cloudbase'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setCredentials } from '@/store/slices/authSlice'
+import { getCloudbaseApp } from '@/utils/cloudbase-init'
 import {
-    EditOutlined,
-    MailOutlined,
-    PhoneOutlined,
-    SaveOutlined,
-    ShopOutlined,
-    UserOutlined
+  EditOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  SaveOutlined,
+  ShopOutlined,
+  UserOutlined
 } from '@ant-design/icons'
 import {
-    Avatar,
-    Button,
-    Card,
-    Col,
-    Descriptions,
-    Divider,
-    Form,
-    Input,
-    Row,
-    Space,
-    Tag,
-    message,
+  Avatar,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Divider,
+  Form,
+  Input,
+  Row,
+  Space,
+  Tag,
+  Upload,
+  message,
 } from 'antd'
 import React, { useEffect, useState } from 'react'
-import { systemAPI } from '@/services/cloudbase'
-import { getCloudbaseApp } from '@/utils/cloudbase-init'
-import { Upload } from 'antd'
-import type { UploadProps } from 'antd'
 import { useTranslation } from 'react-i18next'
 
 const Profile: React.FC = () => {
@@ -194,7 +193,6 @@ const Profile: React.FC = () => {
                         setAvatarFileId(fileID)
                         setAvatarUrl(url)
                         // 保存 fileID（入库），并获取临时可访问链接用于预览
-                        setAvatarFileId(res.fileID)
                         onSuccess && onSuccess({}, new XMLHttpRequest())
                         message.success(t('pages.profile.upload.uploadSuccess'))
                       } catch (e: any) {
