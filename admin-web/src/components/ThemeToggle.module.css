@@ -1,0 +1,26 @@
+.themeButton {
+  color: var(--text-primary);
+  border: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  height: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.themeButton:hover {
+  color: var(--brand-primary);
+  background: var(--bg-hover);
+}
+
+.themeButton:focus {
+  color: var(--brand-primary);
+}
+
+.checkmark {
+  color: var(--brand-primary);
+  font-weight: var(--font-weight-bold);
+  margin-left: var(--spacing-xs);
+}
+

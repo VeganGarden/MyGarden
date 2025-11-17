@@ -1,30 +1,32 @@
-import React, { useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { deleteRecipe, fetchRecipe } from '@/store/slices/recipeSlice'
+import { ChannelType, RecipeStatus } from '@/types'
 import {
-  Card,
-  Descriptions,
-  Tag,
-  Button,
-  Space,
-  Table,
-  message,
-  Divider,
-  Statistic,
-  Row,
-  Col,
-} from 'antd'
-import {
-  EditOutlined,
+  ArrowLeftOutlined,
   CopyOutlined,
   DeleteOutlined,
-  ArrowLeftOutlined,
+  EditOutlined,
 } from '@ant-design/icons'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { fetchRecipe, deleteRecipe } from '@/store/slices/recipeSlice'
-import { Recipe, RecipeStatus, ChannelType } from '@/types'
-import { Popconfirm } from 'antd'
+import {
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Divider,
+  Popconfirm,
+  Row,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  message,
+} from 'antd'
+import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const RecipeDetail: React.FC = () => {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -40,7 +42,7 @@ const RecipeDetail: React.FC = () => {
     try {
       await dispatch(fetchRecipe(id!)).unwrap()
     } catch (error: any) {
-      message.error(error.message || '加载菜谱失败')
+      message.error(error.message || t('pages.recipe.detail.messages.loadFailed'))
       navigate('/recipe')
     }
   }
@@ -48,10 +50,10 @@ const RecipeDetail: React.FC = () => {
   const handleDelete = async () => {
     try {
       await dispatch(deleteRecipe(id!)).unwrap()
-      message.success('删除成功')
+      message.success(t('pages.recipe.detail.messages.deleteSuccess'))
       navigate('/recipe')
     } catch (error: any) {
-      message.error(error.message || '删除失败')
+      message.error(error.message || t('pages.recipe.detail.messages.deleteFailed'))
     }
   }
 
@@ -82,81 +84,81 @@ const RecipeDetail: React.FC = () => {
   const getCarbonLabelText = (label?: string) => {
     switch (label) {
       case 'ultra_low':
-        return '超低碳'
+        return t('pages.recipe.list.filters.carbonLabel.ultraLow')
       case 'low':
-        return '低碳'
+        return t('pages.recipe.list.filters.carbonLabel.low')
       case 'medium':
-        return '中碳'
+        return t('pages.recipe.list.filters.carbonLabel.medium')
       case 'high':
-        return '高碳'
+        return t('pages.recipe.list.filters.carbonLabel.high')
       default:
-        return '未计算'
+        return t('pages.recipe.list.filters.carbonLabel.notCalculated')
     }
   }
 
   const getStatusTag = (status: RecipeStatus) => {
     const statusMap = {
-      [RecipeStatus.DRAFT]: { color: 'default', text: '草稿' },
-      [RecipeStatus.PUBLISHED]: { color: 'success', text: '已发布' },
-      [RecipeStatus.ARCHIVED]: { color: 'default', text: '已归档' },
+      [RecipeStatus.DRAFT]: { color: 'default', text: t('pages.recipe.list.status.draft') },
+      [RecipeStatus.PUBLISHED]: { color: 'success', text: t('pages.recipe.list.status.published') },
+      [RecipeStatus.ARCHIVED]: { color: 'default', text: t('pages.recipe.list.status.archived') },
     }
-    const statusInfo = statusMap[status] || { color: 'default', text: '未知' }
+    const statusInfo = statusMap[status] || { color: 'default', text: t('pages.recipe.list.status.unknown') }
     return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
   }
 
   const getChannelText = (channel: ChannelType) => {
     const channelMap = {
-      [ChannelType.DINE_IN]: '堂食',
-      [ChannelType.TAKE_OUT]: '外卖',
-      [ChannelType.PROMOTION]: '宣传物料',
+      [ChannelType.DINE_IN]: t('pages.recipe.create.channels.dineIn'),
+      [ChannelType.TAKE_OUT]: t('pages.recipe.create.channels.takeOut'),
+      [ChannelType.PROMOTION]: t('pages.recipe.create.channels.promotion'),
     }
     return channelMap[channel] || channel
   }
 
   const getCategoryText = (category: string) => {
     const categoryMap: Record<string, string> = {
-      hot: '热菜',
-      cold: '凉菜',
-      soup: '汤品',
-      staple: '主食',
-      dessert: '甜品',
-      drink: '饮品',
+      hot: t('pages.recipe.list.filters.category.hot'),
+      cold: t('pages.recipe.list.filters.category.cold'),
+      soup: t('pages.recipe.list.filters.category.soup'),
+      staple: t('pages.recipe.list.filters.category.staple'),
+      dessert: t('pages.recipe.list.filters.category.dessert'),
+      drink: t('pages.recipe.list.filters.category.drink'),
     }
     return categoryMap[category] || category
   }
 
   const getCookingMethodText = (method: string) => {
     const methodMap: Record<string, string> = {
-      steamed: '蒸',
-      boiled: '煮',
-      stir_fried: '炒',
-      fried: '炸',
-      baked: '烤',
-      stewed: '炖',
-      cold_dish: '凉拌',
-      raw: '生食',
+      steamed: t('pages.carbon.menu.modal.cookingMethods.steam'),
+      boiled: t('pages.carbon.menu.modal.cookingMethods.boil'),
+      stir_fried: t('pages.carbon.menu.modal.cookingMethods.fry'),
+      fried: t('pages.carbon.menu.modal.cookingMethods.deepFry'),
+      baked: t('pages.carbon.menu.modal.cookingMethods.bake'),
+      stewed: t('pages.carbon.menu.modal.cookingMethods.boil'),
+      cold_dish: t('pages.carbon.menu.modal.cookingMethods.raw'),
+      raw: t('pages.carbon.menu.modal.cookingMethods.raw'),
     }
     return methodMap[method] || method
   }
 
   if (loading || !currentRecipe) {
-    return <div>加载中...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   const ingredientColumns = [
     {
-      title: '食材名称',
+      title: t('pages.recipe.detail.ingredientsTable.columns.name'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: '数量',
+      title: t('pages.recipe.detail.ingredientsTable.columns.quantity'),
       dataIndex: 'quantity',
       key: 'quantity',
       render: (quantity: number, record: any) => `${quantity} ${record.unit || 'g'}`,
     },
     {
-      title: '碳系数',
+      title: t('pages.recipe.detail.ingredientsTable.columns.carbonCoefficient'),
       dataIndex: 'carbonCoefficient',
       key: 'carbonCoefficient',
       render: (coeff: number) =>
@@ -174,7 +176,7 @@ const RecipeDetail: React.FC = () => {
               onClick={() => navigate('/recipe')}
               type="text"
             >
-              返回
+              {t('pages.recipe.detail.buttons.back')}
             </Button>
             <span>{currentRecipe.name}</span>
           </Space>
@@ -185,35 +187,35 @@ const RecipeDetail: React.FC = () => {
               icon={<EditOutlined />}
               onClick={() => navigate(`/recipe/edit/${id}`)}
             >
-              编辑
+              {t('pages.recipe.detail.buttons.edit')}
             </Button>
             <Button icon={<CopyOutlined />} onClick={handleCopy}>
-              复制
+              {t('pages.recipe.detail.buttons.copy')}
             </Button>
             <Popconfirm
-              title="确定要删除这个菜谱吗？"
+              title={t('pages.recipe.detail.messages.confirmDelete')}
               onConfirm={handleDelete}
-              okText="确定"
-              cancelText="取消"
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
             >
               <Button danger icon={<DeleteOutlined />}>
-                删除
+                {t('pages.recipe.detail.buttons.delete')}
               </Button>
             </Popconfirm>
           </Space>
         }
       >
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="菜谱名称">{currentRecipe.name}</Descriptions.Item>
-          <Descriptions.Item label="状态">{getStatusTag(currentRecipe.status)}</Descriptions.Item>
-          <Descriptions.Item label="分类">
+          <Descriptions.Item label={t('pages.recipe.detail.fields.name')}>{currentRecipe.name}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.recipe.detail.fields.status')}>{getStatusTag(currentRecipe.status)}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.recipe.detail.fields.category')}>
             {getCategoryText(currentRecipe.category)}
           </Descriptions.Item>
-          <Descriptions.Item label="烹饪方式">
+          <Descriptions.Item label={t('pages.recipe.detail.fields.cookingMethod')}>
             {getCookingMethodText(currentRecipe.cookingMethod)}
           </Descriptions.Item>
-          <Descriptions.Item label="版本">v{currentRecipe.version}</Descriptions.Item>
-          <Descriptions.Item label="渠道">
+          <Descriptions.Item label={t('pages.recipe.detail.fields.version')}>v{currentRecipe.version}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.recipe.detail.fields.channels')}>
             {currentRecipe.channels.length > 0 ? (
               <Space>
                 {currentRecipe.channels.map((ch) => (
@@ -225,17 +227,17 @@ const RecipeDetail: React.FC = () => {
             )}
           </Descriptions.Item>
           {currentRecipe.description && (
-            <Descriptions.Item label="描述" span={2}>
+            <Descriptions.Item label={t('pages.recipe.detail.fields.description')} span={2}>
               {currentRecipe.description}
             </Descriptions.Item>
           )}
         </Descriptions>
 
-        <Divider orientation="left">碳足迹信息</Divider>
+        <Divider orientation="left">{t('pages.recipe.detail.sections.carbon')}</Divider>
         <Row gutter={16}>
           <Col span={8}>
             <Statistic
-              title="碳足迹"
+              title={t('pages.recipe.detail.fields.carbonFootprint')}
               value={currentRecipe.carbonFootprint || 0}
               precision={2}
               suffix="kg CO₂e"
@@ -243,8 +245,8 @@ const RecipeDetail: React.FC = () => {
           </Col>
           <Col span={8}>
             <Statistic
-              title="碳标签"
-              value={currentRecipe.carbonLabel ? getCarbonLabelText(currentRecipe.carbonLabel) : '未计算'}
+              title={t('pages.recipe.detail.fields.carbonLabel')}
+              value={currentRecipe.carbonLabel ? getCarbonLabelText(currentRecipe.carbonLabel) : t('pages.recipe.list.filters.carbonLabel.notCalculated')}
               valueRender={(value) => currentRecipe.carbonLabel ? (
                 <Tag color={getCarbonLabelColor(currentRecipe.carbonLabel)}>
                   {value}
@@ -254,12 +256,12 @@ const RecipeDetail: React.FC = () => {
           </Col>
           {currentRecipe.carbonScore !== undefined && (
             <Col span={8}>
-              <Statistic title="碳评分" value={currentRecipe.carbonScore} suffix="分" />
+              <Statistic title={t('pages.recipe.detail.fields.carbonScore')} value={currentRecipe.carbonScore} suffix={t('common.minute') === '分钟' ? '分' : 'pts'} />
             </Col>
           )}
         </Row>
 
-        <Divider orientation="left">食材清单</Divider>
+        <Divider orientation="left">{t('pages.recipe.detail.sections.ingredients')}</Divider>
         <Table
           columns={ingredientColumns}
           dataSource={currentRecipe.ingredients}

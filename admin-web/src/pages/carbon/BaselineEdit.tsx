@@ -1,16 +1,18 @@
 /**
  * 编辑基准值页
  */
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Button, Form, message, Space, Modal, Radio } from 'antd'
-import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
 import { baselineManageAPI } from '@/services/baseline'
-import BaselineForm from './components/BaselineForm'
 import type { BaselineFormData } from '@/types/baseline'
+import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
+import { Button, Card, Form, Modal, Radio, Space, message } from 'antd'
 import dayjs from 'dayjs'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate, useParams } from 'react-router-dom'
+import BaselineForm from './components/BaselineForm'
 
 const BaselineEdit: React.FC = () => {
+  const { t } = useTranslation()
   const { baselineId } = useParams<{ baselineId: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
@@ -50,11 +52,11 @@ const BaselineEdit: React.FC = () => {
           notes: data.notes,
         })
       } else {
-        message.error(result.error || '获取详情失败')
+        message.error(result.error || t('pages.carbon.baselineEdit.messages.getDetailFailed'))
         navigate('/carbon/baseline')
       }
     } catch (error: any) {
-      message.error(error.message || '获取详情失败')
+      message.error(error.message || t('pages.carbon.baselineEdit.messages.getDetailFailed'))
       navigate('/carbon/baseline')
     }
   }
@@ -67,7 +69,10 @@ const BaselineEdit: React.FC = () => {
       const { breakdown, carbonFootprint } = values
       const total = breakdown.ingredients + breakdown.cookingEnergy + breakdown.packaging + breakdown.other
       if (Math.abs(total - carbonFootprint.value) > 0.1) {
-        message.error(`分解数据总和(${total.toFixed(2)})应与基准值(${carbonFootprint.value.toFixed(2)})一致`)
+        message.error(t('pages.carbon.baselineEdit.messages.breakdownMismatch', {
+          total: total.toFixed(2),
+          value: carbonFootprint.value.toFixed(2)
+        }))
         return
       }
 
@@ -83,7 +88,7 @@ const BaselineEdit: React.FC = () => {
         const firstError = error.errorFields[0]
         message.error(`${firstError.name.join('.')}: ${firstError.errors[0]}`)
       } else {
-        message.error(error.message || '更新失败')
+        message.error(error.message || t('pages.carbon.baselineEdit.messages.updateFailed'))
       }
     }
   }
@@ -115,13 +120,13 @@ const BaselineEdit: React.FC = () => {
       const result = await baselineManageAPI.update(baselineId, formData, createNewVersion)
       
       if (result.success) {
-        message.success('更新成功')
+        message.success(t('pages.carbon.baselineEdit.messages.updateSuccess'))
         navigate(`/carbon/baseline/${baselineId}`)
       } else {
-        message.error(result.error || '更新失败')
+        message.error(result.error || t('pages.carbon.baselineEdit.messages.updateFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '更新失败')
+      message.error(error.message || t('pages.carbon.baselineEdit.messages.updateFailed'))
     } finally {
       setLoading(false)
       setVersionModalVisible(false)
@@ -144,9 +149,9 @@ const BaselineEdit: React.FC = () => {
               icon={<ArrowLeftOutlined />}
               onClick={() => navigate(`/carbon/baseline/${baselineId}`)}
             >
-              返回详情
+              {t('pages.carbon.baselineEdit.buttons.back')}
             </Button>
-            <span>编辑基准值</span>
+            <span>{t('pages.carbon.baselineEdit.title')}</span>
           </Space>
         }
       >
@@ -159,15 +164,15 @@ const BaselineEdit: React.FC = () => {
                 value={createNewVersion}
                 onChange={(e) => setCreateNewVersion(e.target.value)}
               >
-                <Radio value={false}>更新当前版本</Radio>
-                <Radio value={true}>创建新版本</Radio>
+                <Radio value={false}>{t('pages.carbon.baselineEdit.version.updateCurrent')}</Radio>
+                <Radio value={true}>{t('pages.carbon.baselineEdit.version.createNew')}</Radio>
               </Radio.Group>
             </div>
 
             <div style={{ marginTop: 24, textAlign: 'right' }}>
               <Space>
                 <Button onClick={() => navigate(`/carbon/baseline/${baselineId}`)}>
-                  取消
+                  {t('pages.carbon.baselineEdit.buttons.cancel')}
                 </Button>
                 <Button
                   type="primary"
@@ -175,7 +180,7 @@ const BaselineEdit: React.FC = () => {
                   loading={loading}
                   onClick={handleSubmit}
                 >
-                  保存
+                  {t('pages.carbon.baselineEdit.buttons.save')}
                 </Button>
               </Space>
             </div>
@@ -184,12 +189,12 @@ const BaselineEdit: React.FC = () => {
       </Card>
 
       <Modal
-        title="确认创建新版本"
+        title={t('pages.carbon.baselineEdit.version.confirmTitle')}
         open={versionModalVisible}
         onOk={handleVersionConfirm}
         onCancel={() => setVersionModalVisible(false)}
       >
-        <p>确定要创建新版本吗？当前版本将被保留，新版本将使用新的版本号。</p>
+        <p>{t('pages.carbon.baselineEdit.version.confirmMessage')}</p>
       </Modal>
     </div>
   )

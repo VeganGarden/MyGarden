@@ -1,19 +1,21 @@
 import { useAppSelector } from '@/store/hooks'
 import { BellOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons'
 import {
-    Alert,
-    Button,
-    Card,
-    Divider,
-    Form,
-    Input,
-    Space,
-    Switch,
-    message,
+  Alert,
+  Button,
+  Card,
+  Divider,
+  Form,
+  Input,
+  Space,
+  Switch,
+  message,
 } from 'antd'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const Settings: React.FC = () => {
+  const { t } = useTranslation()
   const { user } = useAppSelector((state: any) => state.auth)
   const [passwordForm] = Form.useForm()
   const [notificationSettings, setNotificationSettings] = useState({
@@ -27,7 +29,7 @@ const Settings: React.FC = () => {
     try {
       const values = await passwordForm.validateFields()
       if (values.newPassword !== values.confirmPassword) {
-        message.error('两次输入的密码不一致')
+        message.error(t('pages.profile.settings.password.messages.passwordMismatch'))
         return
       }
       // TODO: 调用API修改密码
@@ -35,7 +37,7 @@ const Settings: React.FC = () => {
       //   oldPassword: values.oldPassword,
       //   newPassword: values.newPassword,
       // })
-      message.success('密码修改成功')
+      message.success(t('pages.profile.settings.password.messages.changeSuccess'))
       passwordForm.resetFields()
     } catch (error) {
       console.error('修改密码失败:', error)
@@ -51,11 +53,11 @@ const Settings: React.FC = () => {
     try {
       // TODO: 调用API保存通知设置
       // await userAPI.updateNotificationSettings(newSettings)
-      message.success('通知设置已更新')
+      message.success(t('pages.profile.settings.notification.messages.updateSuccess'))
     } catch (error) {
       // 如果保存失败，回滚设置
       setNotificationSettings(notificationSettings)
-      message.error('通知设置更新失败')
+      message.error(t('pages.profile.settings.notification.messages.updateFailed'))
     }
   }
 
@@ -65,13 +67,13 @@ const Settings: React.FC = () => {
         title={
           <Space>
             <LockOutlined />
-            <span>修改密码</span>
+            <span>{t('pages.profile.settings.password.title')}</span>
           </Space>
         }
       >
         <Alert
-          message="密码安全提示"
-          description="请使用至少8位字符的强密码，包含字母、数字和特殊字符。"
+          message={t('pages.profile.settings.password.alert.title')}
+          description={t('pages.profile.settings.password.alert.description')}
           type="info"
           showIcon
           style={{ marginBottom: 24 }}
@@ -79,46 +81,46 @@ const Settings: React.FC = () => {
         <Form form={passwordForm} layout="vertical" style={{ maxWidth: 500 }}>
           <Form.Item
             name="oldPassword"
-            label="当前密码"
-            rules={[{ required: true, message: '请输入当前密码' }]}
+            label={t('pages.profile.settings.password.form.fields.oldPassword')}
+            rules={[{ required: true, message: t('pages.profile.settings.password.form.messages.oldPasswordRequired') }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="请输入当前密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('pages.profile.settings.password.form.placeholders.oldPassword')} />
           </Form.Item>
           <Form.Item
             name="newPassword"
-            label="新密码"
+            label={t('pages.profile.settings.password.form.fields.newPassword')}
             rules={[
-              { required: true, message: '请输入新密码' },
-              { min: 8, message: '密码长度至少8位' },
+              { required: true, message: t('pages.profile.settings.password.form.messages.newPasswordRequired') },
+              { min: 8, message: t('pages.profile.settings.password.form.messages.passwordMin') },
               {
                 pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-                message: '密码必须包含大小写字母、数字和特殊字符',
+                message: t('pages.profile.settings.password.form.messages.passwordPattern'),
               },
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="请输入新密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('pages.profile.settings.password.form.placeholders.newPassword')} />
           </Form.Item>
           <Form.Item
             name="confirmPassword"
-            label="确认新密码"
+            label={t('pages.profile.settings.password.form.fields.confirmPassword')}
             dependencies={['newPassword']}
             rules={[
-              { required: true, message: '请确认新密码' },
+              { required: true, message: t('pages.profile.settings.password.form.messages.confirmPasswordRequired') },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('newPassword') === value) {
                     return Promise.resolve()
                   }
-                  return Promise.reject(new Error('两次输入的密码不一致'))
+                  return Promise.reject(new Error(t('pages.profile.settings.password.form.messages.passwordMismatch')))
                 },
               }),
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="请再次输入新密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('pages.profile.settings.password.form.placeholders.confirmPassword')} />
           </Form.Item>
           <Form.Item>
             <Button type="primary" onClick={handlePasswordChange}>
-              修改密码
+              {t('pages.profile.settings.password.buttons.change')}
             </Button>
           </Form.Item>
         </Form>
@@ -128,7 +130,7 @@ const Settings: React.FC = () => {
         title={
           <Space>
             <BellOutlined />
-            <span>通知设置</span>
+            <span>{t('pages.profile.settings.notification.title')}</span>
           </Space>
         }
         style={{ marginTop: 16 }}
@@ -136,8 +138,8 @@ const Settings: React.FC = () => {
         <Space direction="vertical" style={{ width: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>邮件通知</div>
-              <div style={{ color: '#666', fontSize: 12 }}>接收系统重要通知邮件</div>
+              <div style={{ fontWeight: 'bold' }}>{t('pages.profile.settings.notification.items.email.title')}</div>
+              <div style={{ color: '#666', fontSize: 12 }}>{t('pages.profile.settings.notification.items.email.description')}</div>
             </div>
             <Switch
               checked={notificationSettings.emailNotification}
@@ -147,8 +149,8 @@ const Settings: React.FC = () => {
           <Divider style={{ margin: '12px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>短信通知</div>
-              <div style={{ color: '#666', fontSize: 12 }}>接收重要操作的短信提醒</div>
+              <div style={{ fontWeight: 'bold' }}>{t('pages.profile.settings.notification.items.sms.title')}</div>
+              <div style={{ color: '#666', fontSize: 12 }}>{t('pages.profile.settings.notification.items.sms.description')}</div>
             </div>
             <Switch
               checked={notificationSettings.smsNotification}
@@ -158,8 +160,8 @@ const Settings: React.FC = () => {
           <Divider style={{ margin: '12px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>订单通知</div>
-              <div style={{ color: '#666', fontSize: 12 }}>接收新订单和订单状态变更通知</div>
+              <div style={{ fontWeight: 'bold' }}>{t('pages.profile.settings.notification.items.order.title')}</div>
+              <div style={{ color: '#666', fontSize: 12 }}>{t('pages.profile.settings.notification.items.order.description')}</div>
             </div>
             <Switch
               checked={notificationSettings.orderNotification}
@@ -169,8 +171,8 @@ const Settings: React.FC = () => {
           <Divider style={{ margin: '12px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>认证通知</div>
-              <div style={{ color: '#666', fontSize: 12 }}>接收认证申请进度和结果通知</div>
+              <div style={{ fontWeight: 'bold' }}>{t('pages.profile.settings.notification.items.certification.title')}</div>
+              <div style={{ color: '#666', fontSize: 12 }}>{t('pages.profile.settings.notification.items.certification.description')}</div>
             </div>
             <Switch
               checked={notificationSettings.certificationNotification}
@@ -184,7 +186,7 @@ const Settings: React.FC = () => {
         title={
           <Space>
             <SafetyOutlined />
-            <span>安全设置</span>
+            <span>{t('pages.profile.settings.security.title')}</span>
           </Space>
         }
         style={{ marginTop: 16 }}
@@ -192,16 +194,16 @@ const Settings: React.FC = () => {
         <Space direction="vertical" style={{ width: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>登录保护</div>
-              <div style={{ color: '#666', fontSize: 12 }}>启用后，登录时需要验证码</div>
+              <div style={{ fontWeight: 'bold' }}>{t('pages.profile.settings.security.items.loginProtection.title')}</div>
+              <div style={{ color: '#666', fontSize: 12 }}>{t('pages.profile.settings.security.items.loginProtection.description')}</div>
             </div>
             <Switch defaultChecked />
           </div>
           <Divider style={{ margin: '12px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>操作日志</div>
-              <div style={{ color: '#666', fontSize: 12 }}>记录所有重要操作，便于审计</div>
+              <div style={{ fontWeight: 'bold' }}>{t('pages.profile.settings.security.items.operationLog.title')}</div>
+              <div style={{ color: '#666', fontSize: 12 }}>{t('pages.profile.settings.security.items.operationLog.description')}</div>
             </div>
             <Switch defaultChecked />
           </div>

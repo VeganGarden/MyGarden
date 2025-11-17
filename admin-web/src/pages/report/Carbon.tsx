@@ -3,10 +3,12 @@ import { DownloadOutlined } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Row, Space, Statistic } from 'antd'
 import dayjs from 'dayjs'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
 const ReportCarbon: React.FC = () => {
+  const { t } = useTranslation()
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   const reductionData = [
@@ -27,11 +29,11 @@ const ReportCarbon: React.FC = () => {
 
   return (
     <div>
-      <Card title="碳减排数据概览" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.report.carbon.overview.title')} style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="累计碳减排"
+              title={t('pages.report.carbon.overview.totalCarbonReduction')}
               value={3650}
               suffix="kg CO₂e"
               valueStyle={{ color: '#3f8600' }}
@@ -39,7 +41,7 @@ const ReportCarbon: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="月度碳减排"
+              title={t('pages.report.carbon.overview.monthlyCarbonReduction')}
               value={1100}
               suffix="kg CO₂e"
               valueStyle={{ color: '#1890ff' }}
@@ -47,7 +49,7 @@ const ReportCarbon: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="目标完成率"
+              title={t('pages.report.carbon.overview.targetCompletionRate')}
               value={100}
               suffix="%"
               valueStyle={{ color: '#cf1322' }}
@@ -55,7 +57,7 @@ const ReportCarbon: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="年度目标"
+              title={t('pages.report.carbon.overview.annualTarget')}
               value={12000}
               suffix="kg CO₂e"
               valueStyle={{ color: '#722ed1' }}
@@ -65,7 +67,7 @@ const ReportCarbon: React.FC = () => {
       </Card>
 
       <Card
-        title="碳减排趋势"
+        title={t('pages.report.carbon.trend.title')}
         extra={
           <Space>
             <RangePicker
@@ -73,7 +75,7 @@ const ReportCarbon: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
             />
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出数据
+              {t('pages.report.carbon.buttons.export')}
             </Button>
           </Space>
         }
@@ -91,7 +93,7 @@ const ReportCarbon: React.FC = () => {
         />
       </Card>
 
-      <Card title="目标完成情况" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.report.carbon.targetCompletion.title')} style={{ marginBottom: 16 }}>
         <Column
           data={targetData}
           xField="month"
@@ -102,26 +104,26 @@ const ReportCarbon: React.FC = () => {
         />
       </Card>
 
-      <Card title="多维度分析">
+      <Card title={t('pages.report.carbon.analysis.title')}>
         <Row gutter={16}>
           <Col span={8}>
-            <Card size="small" title="按菜品">
-              <p>低碳菜品贡献: 65%</p>
-              <p>中碳菜品贡献: 25%</p>
-              <p>高碳菜品贡献: 10%</p>
+            <Card size="small" title={t('pages.report.carbon.analysis.byDish.title')}>
+              <p>{t('pages.report.carbon.analysis.byDish.lowCarbon')}: 65%</p>
+              <p>{t('pages.report.carbon.analysis.byDish.mediumCarbon')}: 25%</p>
+              <p>{t('pages.report.carbon.analysis.byDish.highCarbon')}: 10%</p>
             </Card>
           </Col>
           <Col span={8}>
-            <Card size="small" title="按时段">
-              <p>早餐时段: 20%</p>
-              <p>午餐时段: 45%</p>
-              <p>晚餐时段: 35%</p>
+            <Card size="small" title={t('pages.report.carbon.analysis.byTime.title')}>
+              <p>{t('pages.report.carbon.analysis.byTime.breakfast')}: 20%</p>
+              <p>{t('pages.report.carbon.analysis.byTime.lunch')}: 45%</p>
+              <p>{t('pages.report.carbon.analysis.byTime.dinner')}: 35%</p>
             </Card>
           </Col>
           <Col span={8}>
-            <Card size="small" title="按用户">
-              <p>新用户: 30%</p>
-              <p>老用户: 70%</p>
+            <Card size="small" title={t('pages.report.carbon.analysis.byUser.title')}>
+              <p>{t('pages.report.carbon.analysis.byUser.newUser')}: 30%</p>
+              <p>{t('pages.report.carbon.analysis.byUser.oldUser')}: 70%</p>
             </Card>
           </Col>
         </Row>

@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
 import ingredientReducer from './slices/ingredientSlice'
+import notificationReducer from './slices/notificationSlice'
 import recipeReducer from './slices/recipeSlice'
 import tenantReducer from './slices/tenantSlice'
 
@@ -10,6 +11,7 @@ export const store = configureStore({
     ingredient: ingredientReducer,
     auth: authReducer,
     tenant: tenantReducer,
+    notification: notificationReducer,
   },
 })
 

@@ -1,0 +1,65 @@
+.pageLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  width: 100%;
+  animation: fadeIn var(--transition-base) var(--ease-out);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.brandSpin {
+  color: var(--brand-primary);
+}
+
+.brandSpin :global(.ant-spin-dot-item) {
+  background-color: var(--brand-primary);
+}
+
+.brandSpin :global(.ant-spin-text) {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-md);
+}
+
+.spinnerWrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 品牌化加载动画 */
+.brandSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bg-hover);
+  border-top-color: var(--brand-primary);
+  border-radius: var(--radius-round);
+  animation: brandSpin 1s linear infinite;
+}
+
+@keyframes brandSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

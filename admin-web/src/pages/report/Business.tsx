@@ -3,10 +3,12 @@ import { DownloadOutlined } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Row, Space, Statistic } from 'antd'
 import dayjs from 'dayjs'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
 const ReportBusiness: React.FC = () => {
+  const { t } = useTranslation()
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   const revenueData = [
@@ -27,11 +29,11 @@ const ReportBusiness: React.FC = () => {
 
   return (
     <div>
-      <Card title="经营数据概览" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.report.business.overview.title')} style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="总收入"
+              title={t('pages.report.business.overview.totalRevenue')}
               value={153000}
               prefix="¥"
               valueStyle={{ color: '#3f8600' }}
@@ -39,15 +41,15 @@ const ReportBusiness: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="订单总数"
+              title={t('pages.report.business.overview.totalOrders')}
               value={3650}
-              suffix="单"
+              suffix={t('pages.operation.order.statistics.unit')}
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="平均客单价"
+              title={t('pages.report.business.overview.avgOrderValue')}
               value={41.92}
               prefix="¥"
               valueStyle={{ color: '#cf1322' }}
@@ -55,7 +57,7 @@ const ReportBusiness: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="复购率"
+              title={t('pages.report.business.overview.repurchaseRate')}
               value={68.5}
               suffix="%"
               valueStyle={{ color: '#722ed1' }}
@@ -65,7 +67,7 @@ const ReportBusiness: React.FC = () => {
       </Card>
 
       <Card
-        title="收入趋势"
+        title={t('pages.report.business.revenueTrend.title')}
         extra={
           <Space>
             <RangePicker
@@ -73,7 +75,7 @@ const ReportBusiness: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
             />
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出数据
+              {t('pages.report.business.buttons.export')}
             </Button>
           </Space>
         }
@@ -91,7 +93,7 @@ const ReportBusiness: React.FC = () => {
         />
       </Card>
 
-      <Card title="订单量统计" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.report.business.orderStatistics.title')} style={{ marginBottom: 16 }}>
         <Column
           data={orderData}
           xField="month"
@@ -103,16 +105,16 @@ const ReportBusiness: React.FC = () => {
         />
       </Card>
 
-      <Card title="成本分析">
+      <Card title={t('pages.report.business.costAnalysis.title')}>
         <Row gutter={16}>
           <Col span={8}>
-            <Statistic title="食材成本" value={61200} prefix="¥" />
+            <Statistic title={t('pages.report.business.costAnalysis.ingredientCost')} value={61200} prefix="¥" />
           </Col>
           <Col span={8}>
-            <Statistic title="运营成本" value={30600} prefix="¥" />
+            <Statistic title={t('pages.report.business.costAnalysis.operationCost')} value={30600} prefix="¥" />
           </Col>
           <Col span={8}>
-            <Statistic title="利润率" value={40} suffix="%" valueStyle={{ color: '#3f8600' }} />
+            <Statistic title={t('pages.report.business.costAnalysis.profitMargin')} value={40} suffix="%" valueStyle={{ color: '#3f8600' }} />
           </Col>
         </Row>
       </Card>

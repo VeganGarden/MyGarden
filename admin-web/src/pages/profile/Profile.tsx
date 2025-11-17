@@ -27,8 +27,10 @@ import { systemAPI } from '@/services/cloudbase'
 import { getCloudbaseApp } from '@/utils/cloudbase-init'
 import { Upload } from 'antd'
 import type { UploadProps } from 'antd'
+import { useTranslation } from 'react-i18next'
 
 const Profile: React.FC = () => {
+  const { t } = useTranslation()
   const { user } = useAppSelector((state: any) => state.auth)
   const { currentTenant, restaurants } = useAppSelector((state: any) => state.tenant)
   const dispatch = useAppDispatch()
@@ -36,6 +38,21 @@ const Profile: React.FC = () => {
   const [form] = Form.useForm()
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined) // 用于预览（临时链接）
   const [avatarFileId, setAvatarFileId] = useState<string | undefined>(undefined) // 存库用（fileID）
+
+  const roleMap: Record<string, string> = {
+    system_admin: t('pages.profile.roles.systemAdmin'),
+    platform_operator: t('pages.profile.roles.platformOperator'),
+    carbon_specialist: t('pages.profile.roles.carbonSpecialist'),
+    government_partner: t('pages.profile.roles.governmentPartner'),
+    restaurant_admin: t('pages.profile.roles.restaurantAdmin'),
+  }
+
+  const certificationLevelMap: Record<string, string> = {
+    gold: t('pages.profile.certificationLevels.gold'),
+    silver: t('pages.profile.certificationLevels.silver'),
+    platinum: t('pages.profile.certificationLevels.platinum'),
+    bronze: t('pages.profile.certificationLevels.bronze'),
+  }
 
   useEffect(() => {
     if (user) {
@@ -71,7 +88,7 @@ const Profile: React.FC = () => {
       const values = await form.validateFields()
       const res = await systemAPI.updateProfile({ ...values, avatarUrl: avatarFileId })
       if (res.code !== 0) {
-        message.error(res.message || '更新失败')
+        message.error(res.message || t('common.updateFailed'))
         return
       }
       
@@ -82,7 +99,7 @@ const Profile: React.FC = () => {
         avatarUrl,
       }
       dispatch(setCredentials({ user: updatedUser, token: user.token || '' }))
-      message.success('个人信息更新成功')
+      message.success(t('pages.profile.messages.updateSuccess'))
       setIsEditing(false)
     } catch (error) {
       console.error('更新失败:', error)
@@ -121,7 +138,7 @@ const Profile: React.FC = () => {
                         let targetExt = 'jpg'
                         // 支持 HEIC/HEIF 自动转 JPG
                         if (f.type === 'image/heic' || f.type === 'image/heif' || /\.heic$/i.test(f.name) || /\.heif$/i.test(f.name)) {
-                          message.loading({ content: '正在转换 HEIC 图片为 JPG...', key: 'heic' })
+                          message.loading({ content: t('pages.profile.upload.convertingHeic'), key: 'heic' })
                           // 动态加载 heic2any（通过 CDN），避免安装依赖
                           const ensureHeic2Any = () =>
                             new Promise<any>((resolve, reject) => {
@@ -142,16 +159,16 @@ const Profile: React.FC = () => {
                           const jpgBlob: Blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 })
                           uploadFileObj = new File([jpgBlob], (f.name.replace(/\.(heic|heif)$/i, '') || 'avatar') + '.jpg', { type: 'image/jpeg' })
                           targetExt = 'jpg'
-                          message.success({ content: '已转换为 JPG', key: 'heic', duration: 1.2 })
+                          message.success({ content: t('pages.profile.upload.convertedToJpg'), key: 'heic', duration: 1.2 })
                         }
                         // 非 HEIC 情况：只允许 JPG/PNG
                         if (!['image/png', 'image/jpeg'].includes(uploadFileObj.type)) {
-                          message.error('仅支持 JPG/PNG/HEIC（自动转JPG）格式')
+                          message.error(t('pages.profile.upload.unsupportedFormat'))
                           onError && onError(new Error('Unsupported type'))
                           return
                         }
                         if (uploadFileObj.size > 2 * 1024 * 1024) {
-                          message.error('图片大小请小于 2MB')
+                          message.error(t('pages.profile.upload.fileTooLarge'))
                           onError && onError(new Error('Too large'))
                           return
                         }
@@ -179,17 +196,17 @@ const Profile: React.FC = () => {
                         // 保存 fileID（入库），并获取临时可访问链接用于预览
                         setAvatarFileId(res.fileID)
                         onSuccess && onSuccess({}, new XMLHttpRequest())
-                        message.success('头像已上传')
+                        message.success(t('pages.profile.upload.uploadSuccess'))
                       } catch (e: any) {
                         // eslint-disable-next-line no-console
                         console.error('[avatar-upload] failed', e)
                         onError && onError(e as any)
-                        const msg = e?.message || e?.msg || '上传失败'
+                        const msg = e?.message || e?.msg || t('pages.profile.upload.uploadFailed')
                         message.error(msg)
                       }
                     }}
                   >
-                    <Button size="small">上传头像</Button>
+                    <Button size="small">{t('pages.profile.upload.uploadAvatar')}</Button>
                   </Upload>
                 </div>
               )}
@@ -203,26 +220,22 @@ const Profile: React.FC = () => {
                 user?.role === 'government_partner' ? 'cyan' :
                 user?.role === 'restaurant_admin' ? 'green' : 'default'
               }>
-                {user?.role === 'system_admin' ? '系统管理员' :
-                 user?.role === 'platform_operator' ? '平台运营' :
-                 user?.role === 'carbon_specialist' ? '碳核算专员' :
-                 user?.role === 'government_partner' ? '政府/外部合作方' :
-                 user?.role === 'restaurant_admin' ? '餐厅管理员' : (user?.role || '管理员')}
+                {roleMap[user?.role || ''] || user?.role || t('pages.profile.roles.admin')}
               </Tag>
             </div>
           </Col>
           <Col span={18}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ margin: 0 }}>个人信息</h2>
+              <h2 style={{ margin: 0 }}>{t('pages.profile.title')}</h2>
               {!isEditing ? (
                 <Button type="primary" icon={<EditOutlined />} onClick={() => setIsEditing(true)}>
-                  编辑
+                  {t('common.edit')}
                 </Button>
               ) : (
                 <Space>
-                  <Button onClick={handleCancel}>取消</Button>
+                  <Button onClick={handleCancel}>{t('common.cancel')}</Button>
                   <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
-                    保存
+                    {t('common.save')}
                   </Button>
                 </Space>
               )}
@@ -232,41 +245,41 @@ const Profile: React.FC = () => {
               <Form form={form} layout="vertical">
                 <Form.Item
                   name="name"
-                  label="姓名"
-                  rules={[{ required: true, message: '请输入姓名' }]}
+                  label={t('pages.profile.form.fields.name')}
+                  rules={[{ required: true, message: t('pages.profile.form.messages.nameRequired') }]}
                 >
-                  <Input prefix={<UserOutlined />} placeholder="请输入姓名" />
+                  <Input prefix={<UserOutlined />} placeholder={t('pages.profile.form.placeholders.name')} />
                 </Form.Item>
                 <Form.Item
                   name="email"
-                  label="邮箱"
+                  label={t('pages.profile.form.fields.email')}
                   rules={[
-                    { type: 'email', message: '请输入有效的邮箱地址' },
+                    { type: 'email', message: t('pages.profile.form.messages.emailInvalid') },
                   ]}
                 >
-                  <Input prefix={<MailOutlined />} placeholder="请输入邮箱" />
+                  <Input prefix={<MailOutlined />} placeholder={t('pages.profile.form.placeholders.email')} />
                 </Form.Item>
                 <Form.Item
                   name="phone"
-                  label="手机号"
+                  label={t('pages.profile.form.fields.phone')}
                   rules={[
-                    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' },
+                    { pattern: /^1[3-9]\d{9}$/, message: t('pages.profile.form.messages.phoneInvalid') },
                   ]}
                 >
-                  <Input prefix={<PhoneOutlined />} placeholder="请输入手机号" />
+                  <Input prefix={<PhoneOutlined />} placeholder={t('pages.profile.form.placeholders.phone')} />
                 </Form.Item>
               </Form>
             ) : (
               <Descriptions column={1} bordered>
-                <Descriptions.Item label="用户ID">{user?.id}</Descriptions.Item>
-                <Descriptions.Item label="姓名">{user?.name || '-'}</Descriptions.Item>
-                <Descriptions.Item label="邮箱">
-                  {user?.email || <span style={{ color: '#999' }}>未设置</span>}
+                <Descriptions.Item label={t('pages.profile.detail.fields.userId')}>{user?.id}</Descriptions.Item>
+                <Descriptions.Item label={t('pages.profile.detail.fields.name')}>{user?.name || '-'}</Descriptions.Item>
+                <Descriptions.Item label={t('pages.profile.detail.fields.email')}>
+                  {user?.email || <span style={{ color: '#999' }}>{t('pages.profile.detail.notSet')}</span>}
                 </Descriptions.Item>
-                <Descriptions.Item label="手机号">
-                  {user?.phone || <span style={{ color: '#999' }}>未设置</span>}
+                <Descriptions.Item label={t('pages.profile.detail.fields.phone')}>
+                  {user?.phone || <span style={{ color: '#999' }}>{t('pages.profile.detail.notSet')}</span>}
                 </Descriptions.Item>
-                <Descriptions.Item label="角色">
+                <Descriptions.Item label={t('pages.profile.detail.fields.role')}>
                   <Tag color={
                     user?.role === 'system_admin' ? 'red' :
                     user?.role === 'platform_operator' ? 'purple' :
@@ -274,15 +287,11 @@ const Profile: React.FC = () => {
                     user?.role === 'government_partner' ? 'cyan' :
                     user?.role === 'restaurant_admin' ? 'green' : 'default'
                   }>
-                    {user?.role === 'system_admin' ? '系统管理员' :
-                     user?.role === 'platform_operator' ? '平台运营' :
-                     user?.role === 'carbon_specialist' ? '碳核算专员' :
-                     user?.role === 'government_partner' ? '政府/外部合作方' :
-                     user?.role === 'restaurant_admin' ? '餐厅管理员' : (user?.role || '管理员')}
+                    {roleMap[user?.role || ''] || user?.role || t('pages.profile.roles.admin')}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="租户ID">
-                  {user?.tenantId || <span style={{ color: '#999' }}>无</span>}
+                <Descriptions.Item label={t('pages.profile.detail.fields.tenantId')}>
+                  {user?.tenantId || <span style={{ color: '#999' }}>{t('pages.profile.detail.none')}</span>}
                 </Descriptions.Item>
               </Descriptions>
             )}
@@ -296,20 +305,20 @@ const Profile: React.FC = () => {
           title={
             <Space>
               <ShopOutlined />
-              <span>租户信息</span>
+              <span>{t('pages.profile.tenant.title')}</span>
             </Space>
           }
           style={{ marginTop: 16 }}
         >
           <Descriptions column={2} bordered>
-            <Descriptions.Item label="租户名称">{currentTenant.name}</Descriptions.Item>
-            <Descriptions.Item label="租户ID">{currentTenant.id}</Descriptions.Item>
-            <Descriptions.Item label="餐厅数量" span={2}>
-              {restaurants.length} 家
+            <Descriptions.Item label={t('pages.profile.tenant.fields.name')}>{currentTenant.name}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.profile.tenant.fields.id')}>{currentTenant.id}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.profile.tenant.fields.restaurantCount')} span={2}>
+              {t('pages.profile.tenant.restaurantCount', { count: restaurants.length })}
             </Descriptions.Item>
           </Descriptions>
 
-          <Divider orientation="left">我的餐厅</Divider>
+          <Divider orientation="left">{t('pages.profile.tenant.myRestaurants')}</Divider>
           <Row gutter={16}>
             {restaurants.map((restaurant: any) => (
               <Col span={12} key={restaurant.id} style={{ marginBottom: 16 }}>
@@ -332,17 +341,11 @@ const Profile: React.FC = () => {
                               : 'default'
                           }
                         >
-                          {restaurant.certificationLevel === 'gold'
-                            ? '金牌'
-                            : restaurant.certificationLevel === 'silver'
-                            ? '银牌'
-                            : restaurant.certificationLevel === 'platinum'
-                            ? '白金'
-                            : '铜牌'}
+                          {certificationLevelMap[restaurant.certificationLevel] || certificationLevelMap.bronze}
                         </Tag>
                       )}
                       <Tag color={restaurant.status === 'active' ? 'success' : 'default'}>
-                        {restaurant.status === 'active' ? '正常' : '未激活'}
+                        {restaurant.status === 'active' ? t('pages.profile.restaurant.status.active') : t('pages.profile.restaurant.status.inactive')}
                       </Tag>
                     </div>
                   </div>

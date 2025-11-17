@@ -1,8 +1,10 @@
 import { systemAPI } from '@/services/cloudbase'
 import { Card, Descriptions, Progress, Select, Table, message } from 'antd'
 import React, { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const Monitor: React.FC = () => {
+  const { t } = useTranslation()
   const [metrics, setMetrics] = useState<any>({})
   const [domainFilter, setDomainFilter] = useState<string | undefined>(undefined)
 
@@ -12,10 +14,10 @@ const Monitor: React.FC = () => {
       if (res.code === 0) {
         setMetrics(res.data || {})
       } else {
-        message.error(res.message || '加载失败')
+        message.error(res.message || t('common.loadFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '加载失败')
+      message.error(e.message || t('common.loadFailed'))
     }
   }
 
@@ -36,11 +38,11 @@ const Monitor: React.FC = () => {
   }, [metrics, domainFilter])
 
   return (
-    <Card title="系统监控" bordered={false}>
+    <Card title={t('pages.system.monitor.title')} bordered={false}>
       <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
         <Select
           allowClear
-          placeholder="按域筛选"
+          placeholder={t('pages.system.monitor.filters.domain')}
           style={{ width: 220 }}
           options={domains.map((d) => ({ label: d, value: d }))}
           value={domainFilter}
@@ -54,16 +56,16 @@ const Monitor: React.FC = () => {
           rowKey="collection"
           dataSource={tableData}
           columns={[
-            { title: '集合', dataIndex: 'collection', width: 320 },
-            { title: '域', dataIndex: 'domain', width: 140 },
-            { title: '说明', dataIndex: 'description' },
-            { title: '文档数', dataIndex: 'count', width: 120 },
+            { title: t('pages.system.monitor.table.columns.collection'), dataIndex: 'collection', width: 320 },
+            { title: t('pages.system.monitor.table.columns.domain'), dataIndex: 'domain', width: 140 },
+            { title: t('pages.system.monitor.table.columns.description'), dataIndex: 'description' },
+            { title: t('pages.system.monitor.table.columns.count'), dataIndex: 'count', width: 120 },
           ]}
           scroll={{ y: 360 }}
         />
       </div>
       <Descriptions bordered column={1}>
-        <Descriptions.Item label="存储空间使用（模拟）">
+        <Descriptions.Item label={t('pages.system.monitor.storage.label')}>
           <Progress percent={32} />
         </Descriptions.Item>
       </Descriptions>

@@ -3,6 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button, Card, Input, Select, Table, Space, Tag, message } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +12,7 @@ import type { TraceChain, TraceChainQueryParams } from '@/types/traceability'
 import { TraceChainStatus, VerificationStatus } from '@/types/traceability'
 
 const TraceChainListPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [chains, setChains] = useState<TraceChain[]>([])
@@ -39,7 +41,7 @@ const TraceChainListPage: React.FC = () => {
           totalPages: 0
         })
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.traceability.traceChainList.messages.loadFailed'))
         setChains([])
         setPagination({
           page: 1,
@@ -50,7 +52,7 @@ const TraceChainListPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('加载溯源链数据失败:', error)
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
       setChains([])
       setPagination({
         page: 1,
@@ -68,45 +70,45 @@ const TraceChainListPage: React.FC = () => {
   }, [queryParams])
 
   const statusMap: Record<TraceChainStatus, { text: string; color: string }> = {
-    [TraceChainStatus.DRAFT]: { text: '草稿', color: 'default' },
-    [TraceChainStatus.ACTIVE]: { text: '活跃', color: 'green' },
-    [TraceChainStatus.ARCHIVED]: { text: '已归档', color: 'gray' },
-    [TraceChainStatus.EXPIRED]: { text: '已过期', color: 'red' }
+    [TraceChainStatus.DRAFT]: { text: t('pages.traceability.traceChainList.status.draft'), color: 'default' },
+    [TraceChainStatus.ACTIVE]: { text: t('pages.traceability.traceChainList.status.active'), color: 'green' },
+    [TraceChainStatus.ARCHIVED]: { text: t('pages.traceability.traceChainList.status.archived'), color: 'gray' },
+    [TraceChainStatus.EXPIRED]: { text: t('pages.traceability.traceChainList.status.expired'), color: 'red' }
   }
 
   const verificationStatusMap: Record<VerificationStatus, { text: string; color: string }> = {
-    [VerificationStatus.PENDING]: { text: '待验证', color: 'orange' },
-    [VerificationStatus.VERIFIED]: { text: '已验证', color: 'green' },
-    [VerificationStatus.REJECTED]: { text: '已拒绝', color: 'red' }
+    [VerificationStatus.PENDING]: { text: t('pages.traceability.traceChainList.verificationStatus.pending'), color: 'orange' },
+    [VerificationStatus.VERIFIED]: { text: t('pages.traceability.traceChainList.verificationStatus.verified'), color: 'green' },
+    [VerificationStatus.REJECTED]: { text: t('pages.traceability.traceChainList.verificationStatus.rejected'), color: 'red' }
   }
 
   const columns = [
     {
-      title: '溯源链ID',
+      title: t('pages.traceability.traceChainList.table.columns.traceId'),
       dataIndex: 'traceId',
       key: 'traceId'
     },
     {
-      title: '菜品名称',
+      title: t('pages.traceability.traceChainList.table.columns.menuItemName'),
       dataIndex: 'menuItemName',
       key: 'menuItemName'
     },
     {
-      title: '节点数量',
+      title: t('pages.traceability.traceChainList.table.columns.nodeCount'),
       dataIndex: 'nodeCount',
       key: 'nodeCount'
     },
     {
-      title: '信任度评分',
+      title: t('pages.traceability.traceChainList.table.columns.trustScore'),
       dataIndex: 'trustScore',
       key: 'trustScore',
       render: (score: number) => {
         const color = score >= 80 ? 'green' : score >= 60 ? 'orange' : 'red'
-        return <Tag color={color}>{score}分</Tag>
+        return <Tag color={color}>{score}{t('pages.traceability.traceChainList.table.columns.scoreUnit')}</Tag>
       }
     },
     {
-      title: '状态',
+      title: t('pages.traceability.traceChainList.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: TraceChainStatus) => {
@@ -115,7 +117,7 @@ const TraceChainListPage: React.FC = () => {
       }
     },
     {
-      title: '验证状态',
+      title: t('pages.traceability.traceChainList.table.columns.verificationStatus'),
       dataIndex: 'verificationStatus',
       key: 'verificationStatus',
       render: (status: VerificationStatus) => {
@@ -124,7 +126,7 @@ const TraceChainListPage: React.FC = () => {
       }
     },
     {
-      title: '操作',
+      title: t('pages.traceability.traceChainList.table.columns.actions'),
       key: 'action',
       width: 150,
       render: (_: any, record: TraceChain) => (
@@ -133,26 +135,26 @@ const TraceChainListPage: React.FC = () => {
           size="small"
           onClick={() => navigate(`/traceability/chains/${record.traceId}`)}
         >
-          查看
+          {t('pages.traceability.traceChainList.buttons.view')}
         </Button>
       )
     }
   ]
 
   return (
-    <Card title="溯源链管理" extra={
+    <Card title={t('pages.traceability.traceChainList.title')} extra={
       <Button
         type="primary"
         icon={<PlusOutlined />}
         onClick={() => navigate('/traceability/chains/build')}
       >
-        构建溯源链
+        {t('pages.traceability.traceChainList.buttons.build')}
       </Button>
     }>
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <Space>
           <Input
-            placeholder="搜索菜品名称或溯源链ID"
+            placeholder={t('pages.traceability.traceChainList.filters.search')}
             style={{ width: 250 }}
             allowClear
             onChange={(e) => {
@@ -161,29 +163,29 @@ const TraceChainListPage: React.FC = () => {
             onPressEnter={() => loadData()}
           />
           <Select
-            placeholder="状态"
+            placeholder={t('pages.traceability.traceChainList.filters.status')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
               setQueryParams({ ...queryParams, status: value, page: 1 })
             }}
           >
-            <Select.Option value={TraceChainStatus.DRAFT}>草稿</Select.Option>
-            <Select.Option value={TraceChainStatus.ACTIVE}>活跃</Select.Option>
-            <Select.Option value={TraceChainStatus.ARCHIVED}>已归档</Select.Option>
-            <Select.Option value={TraceChainStatus.EXPIRED}>已过期</Select.Option>
+            <Select.Option value={TraceChainStatus.DRAFT}>{t('pages.traceability.traceChainList.status.draft')}</Select.Option>
+            <Select.Option value={TraceChainStatus.ACTIVE}>{t('pages.traceability.traceChainList.status.active')}</Select.Option>
+            <Select.Option value={TraceChainStatus.ARCHIVED}>{t('pages.traceability.traceChainList.status.archived')}</Select.Option>
+            <Select.Option value={TraceChainStatus.EXPIRED}>{t('pages.traceability.traceChainList.status.expired')}</Select.Option>
           </Select>
           <Select
-            placeholder="验证状态"
+            placeholder={t('pages.traceability.traceChainList.filters.verificationStatus')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
               setQueryParams({ ...queryParams, verificationStatus: value, page: 1 })
             }}
           >
-            <Select.Option value={VerificationStatus.PENDING}>待验证</Select.Option>
-            <Select.Option value={VerificationStatus.VERIFIED}>已验证</Select.Option>
-            <Select.Option value={VerificationStatus.REJECTED}>已拒绝</Select.Option>
+            <Select.Option value={VerificationStatus.PENDING}>{t('pages.traceability.traceChainList.verificationStatus.pending')}</Select.Option>
+            <Select.Option value={VerificationStatus.VERIFIED}>{t('pages.traceability.traceChainList.verificationStatus.verified')}</Select.Option>
+            <Select.Option value={VerificationStatus.REJECTED}>{t('pages.traceability.traceChainList.verificationStatus.rejected')}</Select.Option>
           </Select>
         </Space>
 
@@ -196,7 +198,7 @@ const TraceChainListPage: React.FC = () => {
             current: pagination.page,
             pageSize: pagination.pageSize,
             total: pagination.total,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             onChange: (page, pageSize) => {
               setQueryParams({ ...queryParams, page, pageSize })
             }

@@ -3,6 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button, Card, Input, Select, Table, Space, Tag, message, DatePicker } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
@@ -14,6 +15,7 @@ import dayjs from 'dayjs'
 const { RangePicker } = DatePicker
 
 const IngredientLotListPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [lots, setLots] = useState<IngredientLot[]>([])
@@ -45,7 +47,7 @@ const IngredientLotListPage: React.FC = () => {
         // 只有在真正失败时才显示错误（排除空数据的情况）
         const isEmpty = result.data && result.data.length === 0 && (!result.pagination || result.pagination.total === 0)
         if (!isEmpty && result.error) {
-          message.error(result.error || '加载失败')
+          message.error(result.error || t('pages.traceability.ingredientLotList.messages.loadFailed'))
         }
         setLots([])
         setPagination({
@@ -56,7 +58,7 @@ const IngredientLotListPage: React.FC = () => {
         })
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
@@ -68,45 +70,45 @@ const IngredientLotListPage: React.FC = () => {
 
   const handleDelete = (lot: IngredientLot) => {
     // 删除确认逻辑
-    message.info('删除功能待实现')
+    message.info(t('pages.traceability.ingredientLotList.messages.deleteNotImplemented'))
   }
 
   const statusMap: Record<InventoryStatus, { text: string; color: string }> = {
-    [InventoryStatus.IN_STOCK]: { text: '有库存', color: 'green' },
-    [InventoryStatus.LOW_STOCK]: { text: '库存不足', color: 'orange' },
-    [InventoryStatus.OUT_OF_STOCK]: { text: '缺货', color: 'red' },
-    [InventoryStatus.EXPIRED]: { text: '已过期', color: 'red' }
+    [InventoryStatus.IN_STOCK]: { text: t('pages.traceability.ingredientLotList.status.inStock'), color: 'green' },
+    [InventoryStatus.LOW_STOCK]: { text: t('pages.traceability.ingredientLotList.status.lowStock'), color: 'orange' },
+    [InventoryStatus.OUT_OF_STOCK]: { text: t('pages.traceability.ingredientLotList.status.outOfStock'), color: 'red' },
+    [InventoryStatus.EXPIRED]: { text: t('pages.traceability.ingredientLotList.status.expired'), color: 'red' }
   }
 
   const columns = [
     {
-      title: '批次号',
+      title: t('pages.traceability.ingredientLotList.table.columns.batchNumber'),
       dataIndex: 'batchNumber',
       key: 'batchNumber'
     },
     {
-      title: '食材名称',
+      title: t('pages.traceability.ingredientLotList.table.columns.ingredientName'),
       dataIndex: 'ingredientName',
       key: 'ingredientName'
     },
     {
-      title: '供应商',
+      title: t('pages.traceability.ingredientLotList.table.columns.supplierName'),
       dataIndex: 'supplierName',
       key: 'supplierName'
     },
     {
-      title: '采收日期',
+      title: t('pages.traceability.ingredientLotList.table.columns.harvestDate'),
       dataIndex: 'harvestDate',
       key: 'harvestDate',
       render: (date: string | Date) => date ? dayjs(date).format('YYYY-MM-DD') : '-'
     },
     {
-      title: '数量',
+      title: t('pages.traceability.ingredientLotList.table.columns.quantity'),
       key: 'quantity',
       render: (_: any, record: IngredientLot) => `${record.quantity} ${record.unit}`
     },
     {
-      title: '库存',
+      title: t('pages.traceability.ingredientLotList.table.columns.inventory'),
       key: 'inventory',
       render: (_: any, record: IngredientLot) => {
         const inventory = record.inventory as any
@@ -119,7 +121,7 @@ const IngredientLotListPage: React.FC = () => {
       }
     },
     {
-      title: '状态',
+      title: t('pages.traceability.ingredientLotList.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: InventoryStatus) => {
@@ -129,7 +131,7 @@ const IngredientLotListPage: React.FC = () => {
       }
     },
     {
-      title: '操作',
+      title: t('pages.traceability.ingredientLotList.table.columns.actions'),
       key: 'action',
       width: 200,
       render: (_: any, record: IngredientLot) => (
@@ -139,7 +141,7 @@ const IngredientLotListPage: React.FC = () => {
             size="small"
             onClick={() => navigate(`/traceability/lots/${record.lotId}`)}
           >
-            查看
+            {t('pages.traceability.ingredientLotList.buttons.view')}
           </Button>
           <Button
             type="link"
@@ -147,7 +149,7 @@ const IngredientLotListPage: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`/traceability/lots/${record.lotId}/edit`)}
           >
-            编辑
+            {t('pages.traceability.ingredientLotList.buttons.edit')}
           </Button>
         </Space>
       )
@@ -155,26 +157,26 @@ const IngredientLotListPage: React.FC = () => {
   ]
 
   return (
-    <Card title="食材批次管理" extra={
+    <Card title={t('pages.traceability.ingredientLotList.title')} extra={
       <Button
         type="primary"
         icon={<PlusOutlined />}
         onClick={() => navigate('/traceability/lots/add')}
       >
-        添加批次
+        {t('pages.traceability.ingredientLotList.buttons.add')}
       </Button>
     }>
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <Space>
           <Input
-            placeholder="搜索食材名称"
+            placeholder={t('pages.traceability.ingredientLotList.filters.search')}
             style={{ width: 200 }}
             onChange={(e) => {
               // 搜索功能待实现
             }}
           />
           <Select
-            placeholder="供应商"
+            placeholder={t('pages.traceability.ingredientLotList.filters.supplier')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
@@ -184,20 +186,20 @@ const IngredientLotListPage: React.FC = () => {
             {/* 供应商选项待实现 */}
           </Select>
           <Select
-            placeholder="库存状态"
+            placeholder={t('pages.traceability.ingredientLotList.filters.status')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
               setQueryParams({ ...queryParams, status: value, page: 1 })
             }}
           >
-            <Select.Option value={InventoryStatus.IN_STOCK}>有库存</Select.Option>
-            <Select.Option value={InventoryStatus.LOW_STOCK}>库存不足</Select.Option>
-            <Select.Option value={InventoryStatus.OUT_OF_STOCK}>缺货</Select.Option>
-            <Select.Option value={InventoryStatus.EXPIRED}>已过期</Select.Option>
+            <Select.Option value={InventoryStatus.IN_STOCK}>{t('pages.traceability.ingredientLotList.status.inStock')}</Select.Option>
+            <Select.Option value={InventoryStatus.LOW_STOCK}>{t('pages.traceability.ingredientLotList.status.lowStock')}</Select.Option>
+            <Select.Option value={InventoryStatus.OUT_OF_STOCK}>{t('pages.traceability.ingredientLotList.status.outOfStock')}</Select.Option>
+            <Select.Option value={InventoryStatus.EXPIRED}>{t('pages.traceability.ingredientLotList.status.expired')}</Select.Option>
           </Select>
           <RangePicker
-            placeholder={['采收日期开始', '采收日期结束']}
+            placeholder={[t('pages.traceability.ingredientLotList.filters.harvestDateStart'), t('pages.traceability.ingredientLotList.filters.harvestDateEnd')]}
             onChange={(dates) => {
               if (dates) {
                 setQueryParams({
@@ -227,7 +229,7 @@ const IngredientLotListPage: React.FC = () => {
             current: pagination.page,
             pageSize: pagination.pageSize,
             total: pagination.total,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             onChange: (page, pageSize) => {
               setQueryParams({ ...queryParams, page, pageSize })
             }

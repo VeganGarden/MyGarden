@@ -1,6 +1,7 @@
 import { adminUsersAPI } from '@/services/cloudbase'
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 type AdminUser = {
   _id: string
@@ -13,16 +14,17 @@ type AdminUser = {
   createdAt?: string
 }
 
-const roles = [
-  { label: '系统管理员', value: 'system_admin' },
-  { label: '平台运营', value: 'platform_operator' },
-  { label: '碳核算专员', value: 'carbon_specialist' },
-]
-
 const AdminUsers: React.FC = () => {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<AdminUser[]>([])
   const [createOpen, setCreateOpen] = useState(false)
+
+  const roles = [
+    { label: t('pages.platform.adminUsers.roles.systemAdmin'), value: 'system_admin' },
+    { label: t('pages.platform.adminUsers.roles.platformOperator'), value: 'platform_operator' },
+    { label: t('pages.platform.adminUsers.roles.carbonSpecialist'), value: 'carbon_specialist' },
+  ]
 
   const load = async () => {
     setLoading(true)
@@ -31,10 +33,10 @@ const AdminUsers: React.FC = () => {
       if (res.code === 0) {
         setData(res.data?.list || res.data || [])
       } else {
-        message.error(res.message || '加载失败')
+        message.error(res.message || t('common.loadFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '加载失败')
+      message.error(e.message || t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -49,14 +51,14 @@ const AdminUsers: React.FC = () => {
     try {
       const res = await adminUsersAPI.create(values)
       if (res.code === 0) {
-        message.success('创建成功')
+        message.success(t('common.createSuccess'))
         setCreateOpen(false)
         load()
       } else {
-        message.error(res.message || '创建失败')
+        message.error(res.message || t('common.createFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '创建失败')
+      message.error(e.message || t('common.createFailed'))
     } finally {
       setLoading(false)
     }
@@ -68,13 +70,13 @@ const AdminUsers: React.FC = () => {
     try {
       const res = await adminUsersAPI.updateStatus(record._id, next)
       if (res.code === 0) {
-        message.success('已更新状态')
+        message.success(t('pages.platform.adminUsers.messages.statusUpdated'))
         load()
       } else {
-        message.error(res.message || '更新失败')
+        message.error(res.message || t('common.updateFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '更新失败')
+      message.error(e.message || t('common.updateFailed'))
     } finally {
       setLoading(false)
     }
@@ -86,26 +88,32 @@ const AdminUsers: React.FC = () => {
       const res = await adminUsersAPI.resetPassword(record._id)
       if (res.code === 0) {
         Modal.info({
-          title: '密码已重置',
-          content: `新密码：${res.data?.password || ''}（请尽快通知用户并要求修改密码）`,
+          title: t('pages.platform.adminUsers.modal.passwordReset.title'),
+          content: t('pages.platform.adminUsers.modal.passwordReset.content', { password: res.data?.password || '' }),
         })
       } else {
-        message.error(res.message || '重置失败')
+        message.error(res.message || t('pages.platform.adminUsers.messages.resetFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '重置失败')
+      message.error(e.message || t('pages.platform.adminUsers.messages.resetFailed'))
     } finally {
       setLoading(false)
     }
+  }
+
+  const roleMap: Record<string, string> = {
+    system_admin: t('pages.platform.adminUsers.roles.systemAdmin'),
+    platform_operator: t('pages.platform.adminUsers.roles.platformOperator'),
+    carbon_specialist: t('pages.platform.adminUsers.roles.carbonSpecialist'),
   }
 
   return (
     <Card
       title={
         <Space>
-          <span>管理员账号管理（仅邀请/创建，不对外注册）</span>
+          <span>{t('pages.platform.adminUsers.title')}</span>
           <Button type="primary" onClick={() => setCreateOpen(true)}>
-            邀请/创建管理员
+            {t('pages.platform.adminUsers.buttons.create')}
           </Button>
         </Space>
       }
@@ -116,73 +124,69 @@ const AdminUsers: React.FC = () => {
         dataSource={data}
         pagination={{ pageSize: 10 }}
         columns={[
-          { title: '用户名', dataIndex: 'username' },
-          { title: '姓名', dataIndex: 'name' },
-          { title: '邮箱', dataIndex: 'email' },
-          { title: '电话', dataIndex: 'phone' },
+          { title: t('pages.platform.adminUsers.table.columns.username'), dataIndex: 'username' },
+          { title: t('pages.platform.adminUsers.table.columns.name'), dataIndex: 'name' },
+          { title: t('pages.platform.adminUsers.table.columns.email'), dataIndex: 'email' },
+          { title: t('pages.platform.adminUsers.table.columns.phone'), dataIndex: 'phone' },
           {
-            title: '角色',
+            title: t('pages.platform.adminUsers.table.columns.role'),
             dataIndex: 'role',
-            render: (v) => {
-              const map: any = {
-                system_admin: '系统管理员',
-                platform_operator: '平台运营',
-                carbon_specialist: '碳核算专员',
-              }
-              return map[v] || v
-            },
+            render: (v) => roleMap[v] || v,
           },
           {
-            title: '状态',
+            title: t('pages.platform.adminUsers.table.columns.status'),
             dataIndex: 'status',
-            render: (v) => <Tag color={v === 'active' ? 'green' : 'red'}>{v === 'active' ? '启用' : '停用'}</Tag>,
+            render: (v) => <Tag color={v === 'active' ? 'green' : 'red'}>{v === 'active' ? t('pages.platform.adminUsers.status.active') : t('pages.platform.adminUsers.status.disabled')}</Tag>,
           },
           {
-            title: '操作',
+            title: t('pages.platform.adminUsers.table.columns.actions'),
             render: (_, record) => (
               <Space>
-                <Button onClick={() => toggleStatus(record)}>{record.status === 'active' ? '停用' : '启用'}</Button>
-                <Button onClick={() => resetPassword(record)}>重置密码</Button>
+                <Button onClick={() => toggleStatus(record)}>{record.status === 'active' ? t('pages.platform.adminUsers.buttons.disable') : t('pages.platform.adminUsers.buttons.enable')}</Button>
+                <Button onClick={() => resetPassword(record)}>{t('pages.platform.adminUsers.buttons.resetPassword')}</Button>
               </Space>
             ),
           },
         ]}
       />
 
-      <Modal title="邀请/创建管理员" open={createOpen} onCancel={() => setCreateOpen(false)} footer={null}>
+      <Modal title={t('pages.platform.adminUsers.modal.title')} open={createOpen} onCancel={() => setCreateOpen(false)} footer={null}>
         <Form layout="vertical" onFinish={handleCreate}>
-          <Form.Item label="用户名" name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+          <Form.Item label={t('pages.platform.adminUsers.form.fields.username')} name="username" rules={[{ required: true, message: t('pages.platform.adminUsers.form.messages.usernameRequired') }]}>
             <Input />
           </Form.Item>
           <Form.Item
-            label="初始密码"
+            label={t('pages.platform.adminUsers.form.fields.password')}
             name="password"
-            rules={[{ required: true, message: '请输入初始密码' }, { min: 6, message: '至少6位' }]}
+            rules={[
+              { required: true, message: t('pages.platform.adminUsers.form.messages.passwordRequired') },
+              { min: 6, message: t('pages.platform.adminUsers.form.messages.passwordMin') }
+            ]}
           >
             <Input.Password />
           </Form.Item>
-          <Form.Item label="姓名" name="name">
+          <Form.Item label={t('pages.platform.adminUsers.form.fields.name')} name="name">
             <Input />
           </Form.Item>
-          <Form.Item label="邮箱" name="email" rules={[{ type: 'email', message: '邮箱格式不正确' }]}>
+          <Form.Item label={t('pages.platform.adminUsers.form.fields.email')} name="email" rules={[{ type: 'email', message: t('pages.platform.adminUsers.form.messages.emailInvalid') }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="电话" name="phone">
+          <Form.Item label={t('pages.platform.adminUsers.form.fields.phone')} name="phone">
             <Input />
           </Form.Item>
           <Form.Item
-            label="角色"
+            label={t('pages.platform.adminUsers.form.fields.role')}
             name="role"
-            rules={[{ required: true, message: '请选择角色' }]}
+            rules={[{ required: true, message: t('pages.platform.adminUsers.form.messages.roleRequired') }]}
             initialValue="platform_operator"
           >
             <Select options={roles} />
           </Form.Item>
           <Form.Item>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => setCreateOpen(false)}>取消</Button>
+              <Button onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
               <Button type="primary" htmlType="submit" loading={loading}>
-                创建
+                {t('common.create')}
               </Button>
             </Space>
           </Form.Item>

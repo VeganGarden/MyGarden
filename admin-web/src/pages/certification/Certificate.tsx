@@ -1,8 +1,10 @@
 import { DownloadOutlined, EyeOutlined, ShareAltOutlined } from '@ant-design/icons'
 import { Button, Card, Descriptions, QRCode, Space, Tag, message } from 'antd'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const CertificationCertificate: React.FC = () => {
+  const { t } = useTranslation()
   const [certificateData] = useState({
     certificateNo: 'CR-2025-001',
     restaurantName: '示例餐厅',
@@ -13,57 +15,57 @@ const CertificationCertificate: React.FC = () => {
   })
 
   const handleDownload = () => {
-    message.success('证书下载功能开发中')
+    message.success(t('pages.certification.certificate.messages.downloadInProgress'))
     // TODO: 实现PDF证书下载
   }
 
   const handleShare = () => {
-    message.success('证书分享功能开发中')
+    message.success(t('pages.certification.certificate.messages.shareInProgress'))
     // TODO: 生成分享链接或二维码
   }
 
   const handleView = () => {
-    message.info('证书预览功能开发中')
+    message.info(t('pages.certification.certificate.messages.previewInProgress'))
     // TODO: 打开证书预览弹窗
   }
 
   return (
     <div>
       <Card
-        title="认证证书"
+        title={t('pages.certification.certificate.title')}
         extra={
           <Space>
             <Button icon={<EyeOutlined />} onClick={handleView}>
-              预览
+              {t('pages.certification.certificate.buttons.preview')}
             </Button>
             <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-              下载PDF
+              {t('pages.certification.certificate.buttons.downloadPdf')}
             </Button>
             <Button icon={<ShareAltOutlined />} onClick={handleShare}>
-              分享
+              {t('pages.certification.certificate.buttons.share')}
             </Button>
           </Space>
         }
       >
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="证书编号">
+          <Descriptions.Item label={t('pages.certification.certificate.fields.certificateNo')}>
             {certificateData.certificateNo}
           </Descriptions.Item>
-          <Descriptions.Item label="餐厅名称">
+          <Descriptions.Item label={t('pages.certification.certificate.fields.restaurantName')}>
             {certificateData.restaurantName}
           </Descriptions.Item>
-          <Descriptions.Item label="认证等级">
+          <Descriptions.Item label={t('pages.certification.certificate.fields.certificationLevel')}>
             <Tag color="green">{certificateData.level}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="证书状态">
+          <Descriptions.Item label={t('pages.certification.certificate.fields.status')}>
             <Tag color={certificateData.status === 'valid' ? 'success' : 'error'}>
-              {certificateData.status === 'valid' ? '有效' : '已过期'}
+              {certificateData.status === 'valid' ? t('pages.certification.certificate.status.valid') : t('pages.certification.certificate.status.expired')}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="颁发日期">
+          <Descriptions.Item label={t('pages.certification.certificate.fields.issueDate')}>
             {certificateData.issueDate}
           </Descriptions.Item>
-          <Descriptions.Item label="有效期至">
+          <Descriptions.Item label={t('pages.certification.certificate.fields.expiryDate')}>
             {certificateData.expiryDate}
           </Descriptions.Item>
         </Descriptions>
@@ -80,10 +82,10 @@ const CertificationCertificate: React.FC = () => {
             <h2 style={{ marginBottom: 16 }}>Climate Restaurant Certified</h2>
             <h3 style={{ marginBottom: 24 }}>{certificateData.restaurantName}</h3>
             <p style={{ color: '#666', marginBottom: 16 }}>
-              证书编号: {certificateData.certificateNo}
+              {t('pages.certification.certificate.certificateDisplay.certificateNo')}: {certificateData.certificateNo}
             </p>
             <p style={{ color: '#666' }}>
-              有效期: {certificateData.issueDate} 至 {certificateData.expiryDate}
+              {t('pages.certification.certificate.certificateDisplay.validity')}: {certificateData.issueDate} {t('common.to')} {certificateData.expiryDate}
             </p>
             <div style={{ marginTop: 24 }}>
               <QRCode value={`https://example.com/certificate/${certificateData.certificateNo}`} />
@@ -91,14 +93,14 @@ const CertificationCertificate: React.FC = () => {
           </Card>
         </div>
 
-        <Card title="续费提醒" style={{ marginTop: 24 }}>
-          <p>您的证书将于 {certificateData.expiryDate} 到期，请提前30天办理续费手续。</p>
-          <Button type="primary">申请续费</Button>
+        <Card title={t('pages.certification.certificate.renewal.title')} style={{ marginTop: 24 }}>
+          <p>{t('pages.certification.certificate.renewal.message', { date: certificateData.expiryDate })}</p>
+          <Button type="primary">{t('pages.certification.certificate.renewal.buttons.apply')}</Button>
         </Card>
 
-        <Card title="证书升级" style={{ marginTop: 16 }}>
-          <p>完成成长激励任务可解锁勋章、曝光位等权益。</p>
-          <Button>查看成长任务</Button>
+        <Card title={t('pages.certification.certificate.upgrade.title')} style={{ marginTop: 16 }}>
+          <p>{t('pages.certification.certificate.upgrade.message')}</p>
+          <Button>{t('pages.certification.certificate.upgrade.buttons.viewTasks')}</Button>
         </Card>
       </Card>
     </div>

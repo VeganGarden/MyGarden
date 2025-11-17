@@ -1,0 +1,90 @@
+.dataCard {
+  background: var(--bg-container);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base) var(--ease-out);
+  border: 1px solid var(--border-color-split);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dataCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dataCard.clickable {
+  cursor: pointer;
+}
+
+.dataCard.clickable:active {
+  transform: translateY(0);
+}
+
+.dataCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.dataCardTitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.dataCardIcon {
+  color: var(--brand-primary);
+  font-size: var(--font-size-xl);
+  opacity: 0.8;
+}
+
+.dataCardValue {
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1.2;
+  font-family: var(--font-family-number);
+  margin-bottom: var(--spacing-sm);
+  flex: 1;
+}
+
+/* 移动端数据卡片值优化 */
+@media (max-width: 767px) {
+  .dataCardValue {
+    font-size: var(--font-size-xl);
+  }
+}
+
+.dataCardSuffix {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-secondary);
+  margin-left: var(--spacing-xs);
+}
+
+.dataCardTrend {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  margin-top: auto;
+}
+
+.dataCardTrendUp {
+  color: var(--brand-primary);
+}
+
+.dataCardTrendDown {
+  color: var(--error-color);
+}
+
+.dataCardTrendLabel {
+  color: var(--text-tertiary);
+  margin-left: var(--spacing-xs);
+}
+

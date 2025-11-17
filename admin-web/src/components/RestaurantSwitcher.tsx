@@ -1,8 +1,9 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setCurrentRestaurant } from '@/store/slices/tenantSlice'
 import { ShopOutlined } from '@ant-design/icons'
-import { Select, Space, Tag } from 'antd'
+import { Select, Tag } from 'antd'
 import React from 'react'
+import styles from './RestaurantSwitcher.module.css'
 
 const RestaurantSwitcher: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -23,24 +24,35 @@ const RestaurantSwitcher: React.FC = () => {
     : null
 
   return (
-    <Space>
-      <ShopOutlined style={{ color: '#1890ff' }} />
-      <span style={{ color: '#666', fontSize: 14 }}>当前租户：{currentTenant.name}</span>
+    <div className={styles.restaurantSwitcher}>
+      <ShopOutlined style={{ color: 'var(--brand-primary)', fontSize: 18 }} />
+      <span className={styles.tenantInfo}>当前租户：{currentTenant.name}</span>
       <Select
         value={currentRestaurantId || 'all'}
         onChange={handleChange}
-        style={{ width: 200 }}
-        size="small"
+        className={styles.selectWrapper}
+        style={{ minWidth: 200, height: 32 }}
       >
         <Select.Option value="all">
           <span>查看所有餐厅</span>
         </Select.Option>
         {restaurants.map((restaurant: any) => (
           <Select.Option key={restaurant.id} value={restaurant.id}>
-            <Space>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span>{restaurant.name}</span>
               {restaurant.certificationLevel && (
-                <Tag color="gold">
+                <Tag
+                  color={
+                    restaurant.certificationLevel === 'gold'
+                      ? 'gold'
+                      : restaurant.certificationLevel === 'silver'
+                      ? 'default'
+                      : restaurant.certificationLevel === 'bronze'
+                      ? 'orange'
+                      : 'cyan'
+                  }
+                  style={{ margin: 0, lineHeight: '1.2', padding: '2px 6px', fontSize: '11px' }}
+                >
                   {restaurant.certificationLevel === 'gold'
                     ? '金牌'
                     : restaurant.certificationLevel === 'silver'
@@ -50,16 +62,16 @@ const RestaurantSwitcher: React.FC = () => {
                     : '白金'}
                 </Tag>
               )}
-            </Space>
+            </div>
           </Select.Option>
         ))}
       </Select>
       {currentRestaurant && (
-        <Tag color="blue" style={{ marginLeft: 8 }}>
+        <Tag className={styles.currentTag}>
           当前：{currentRestaurant.name}
         </Tag>
       )}
-    </Space>
+    </div>
   )
 }
 

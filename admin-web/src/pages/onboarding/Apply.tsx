@@ -2,8 +2,10 @@ import { onboardingAPI } from '@/services/cloudbase'
 import { Button, Card, Form, Input, InputNumber, message } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const OnboardingApply: React.FC = () => {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -12,13 +14,13 @@ const OnboardingApply: React.FC = () => {
     try {
       const res = await onboardingAPI.apply(values)
       if (res.code === 0) {
-        message.success('申请已提交，平台审核通过后会联系您')
+        message.success(t('pages.onboarding.apply.messages.submitSuccess'))
         navigate('/login')
       } else {
-        message.error(res.message || '提交失败，请稍后重试')
+        message.error(res.message || t('pages.onboarding.apply.messages.submitFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '提交失败，请检查网络')
+      message.error(e.message || t('pages.onboarding.apply.messages.networkError'))
     } finally {
       setLoading(false)
     }
@@ -35,63 +37,63 @@ const OnboardingApply: React.FC = () => {
         padding: 24,
       }}
     >
-      <Card title="气候餐厅平台 - 入驻申请" style={{ width: 560 }}>
+      <Card title={t('pages.onboarding.apply.title')} style={{ width: 560 }}>
         <Form layout="vertical" onFinish={onFinish} size="large">
           <Form.Item
-            label="期望账户名（用于后台登录）"
+            label={t('pages.onboarding.apply.form.fields.desiredUsername')}
             name="desiredUsername"
             rules={[
-              { required: true, message: '请输入期望账户名' },
-              { pattern: /^[a-zA-Z][a-zA-Z0-9_\-]{3,20}$/, message: '以字母开头，4-21位，仅字母数字下划线和中划线' },
+              { required: true, message: t('pages.onboarding.apply.form.messages.desiredUsernameRequired') },
+              { pattern: /^[a-zA-Z][a-zA-Z0-9_\-]{3,20}$/, message: t('pages.onboarding.apply.form.messages.desiredUsernamePattern') },
             ]}
-            tooltip="以字母开头，4-21位；如已被占用，平台会帮您调整或通知确认"
+            tooltip={t('pages.onboarding.apply.form.tooltips.desiredUsername')}
           >
-            <Input placeholder="例如：green_vegan_admin" />
+            <Input placeholder={t('pages.onboarding.apply.form.placeholders.desiredUsername')} />
           </Form.Item>
           <Form.Item
-            label="机构/餐厅名称"
+            label={t('pages.onboarding.apply.form.fields.organizationName')}
             name="organizationName"
-            rules={[{ required: true, message: '请输入机构/餐厅名称' }]}
+            rules={[{ required: true, message: t('pages.onboarding.apply.form.messages.organizationNameRequired') }]}
           >
-            <Input placeholder="例如：素开心餐饮管理有限公司 / 素开心（虹桥店）" />
+            <Input placeholder={t('pages.onboarding.apply.form.placeholders.organizationName')} />
           </Form.Item>
           <Form.Item
-            label="联系人姓名"
+            label={t('pages.onboarding.apply.form.fields.contactName')}
             name="contactName"
-            rules={[{ required: true, message: '请输入联系人姓名' }]}
+            rules={[{ required: true, message: t('pages.onboarding.apply.form.messages.contactNameRequired') }]}
           >
-            <Input />
+            <Input placeholder={t('pages.onboarding.apply.form.placeholders.contactName')} />
           </Form.Item>
           <Form.Item
-            label="联系电话"
+            label={t('pages.onboarding.apply.form.fields.contactPhone')}
             name="contactPhone"
             rules={[
-              { required: true, message: '请输入联系电话' },
-              { pattern: /^[0-9+\-()\s]{6,20}$/, message: '请输入有效的电话' },
+              { required: true, message: t('pages.onboarding.apply.form.messages.contactPhoneRequired') },
+              { pattern: /^[0-9+\-()\s]{6,20}$/, message: t('pages.onboarding.apply.form.messages.contactPhoneInvalid') },
             ]}
           >
-            <Input />
+            <Input placeholder={t('pages.onboarding.apply.form.placeholders.contactPhone')} />
           </Form.Item>
-          <Form.Item label="联系邮箱" name="contactEmail" rules={[{ type: 'email', message: '邮箱格式不正确' }]}>
-            <Input placeholder="可选" />
+          <Form.Item label={t('pages.onboarding.apply.form.fields.contactEmail')} name="contactEmail" rules={[{ type: 'email', message: t('pages.onboarding.apply.form.messages.contactEmailInvalid') }]}>
+            <Input placeholder={t('common.optional')} />
           </Form.Item>
-          <Form.Item label="门店数量" name="restaurantCount">
-            <InputNumber min={1} style={{ width: '100%' }} placeholder="可选，例如 1" />
+          <Form.Item label={t('pages.onboarding.apply.form.fields.restaurantCount')} name="restaurantCount">
+            <InputNumber min={1} style={{ width: '100%' }} placeholder={t('pages.onboarding.apply.form.placeholders.restaurantCount')} />
           </Form.Item>
-          <Form.Item label="所在城市" name="city">
-            <Input placeholder="可选，例如 上海" />
+          <Form.Item label={t('pages.onboarding.apply.form.fields.city')} name="city">
+            <Input placeholder={t('pages.onboarding.apply.form.placeholders.city')} />
           </Form.Item>
-          <Form.Item label="备注" name="note">
-            <Input.TextArea rows={4} placeholder="可选，补充说明需求与背景" />
+          <Form.Item label={t('pages.onboarding.apply.form.fields.note')} name="note">
+            <Input.TextArea rows={4} placeholder={t('pages.onboarding.apply.form.placeholders.note')} />
           </Form.Item>
 
           <Form.Item>
             <Button type="primary" htmlType="submit" block loading={loading}>
-              提交申请
+              {t('pages.onboarding.apply.buttons.submit')}
             </Button>
           </Form.Item>
           <div style={{ textAlign: 'center' }}>
-            已有账号？<a href="/login">返回登录</a>
+            {t('pages.onboarding.apply.footer.hasAccount')} <a href="/login">{t('pages.onboarding.apply.footer.backToLogin')}</a>
           </div>
         </Form>
       </Card>

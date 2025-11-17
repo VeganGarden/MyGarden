@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card, Form, Input, Select, Button, Space, message, Row, Col } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { supplierAPI } from '@/services/traceability'
@@ -11,6 +12,7 @@ import type { Supplier, SupplierFormData } from '@/types/traceability'
 import { SupplierType, RiskLevel } from '@/types/traceability'
 
 const SupplierEditPage: React.FC = () => {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
@@ -47,11 +49,11 @@ const SupplierEditPage: React.FC = () => {
           mainProducts: result.data.businessInfo?.mainProducts?.join(', ')
         })
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.traceability.supplierEdit.messages.loadFailed'))
         navigate('/traceability/suppliers')
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
@@ -86,20 +88,20 @@ const SupplierEditPage: React.FC = () => {
 
       const result = await supplierAPI.update(id, supplier.tenantId, formData)
       if (result.success) {
-        message.success('更新成功')
+        message.success(t('pages.traceability.supplierEdit.messages.updateSuccess'))
         navigate(`/traceability/suppliers/${id}`)
       } else {
-        message.error(result.error || '更新失败')
+        message.error(result.error || t('pages.traceability.supplierEdit.messages.updateFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
   }
 
   if (!supplier) {
-    return <div>加载中...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   return (
@@ -107,9 +109,9 @@ const SupplierEditPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/traceability/suppliers/${id}`)}>
-            返回
+            {t('common.back')}
           </Button>
-          <span>编辑供应商</span>
+          <span>{t('pages.traceability.supplierEdit.title')}</span>
         </Space>
       }
       loading={loading}
@@ -123,23 +125,23 @@ const SupplierEditPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="name"
-              label="供应商名称"
-              rules={[{ required: true, message: '请输入供应商名称' }]}
+              label={t('pages.traceability.supplierAdd.fields.name')}
+              rules={[{ required: true, message: t('pages.traceability.supplierAdd.messages.nameRequired') }]}
             >
-              <Input placeholder="请输入供应商名称" />
+              <Input placeholder={t('pages.traceability.supplierAdd.placeholders.name')} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="type"
-              label="供应商类型"
-              rules={[{ required: true, message: '请选择供应商类型' }]}
+              label={t('pages.traceability.supplierAdd.fields.type')}
+              rules={[{ required: true, message: t('pages.traceability.supplierAdd.messages.typeRequired') }]}
             >
-              <Select placeholder="请选择供应商类型">
-                <Select.Option value={SupplierType.FARM}>农场</Select.Option>
-                <Select.Option value={SupplierType.PROCESSOR}>加工商</Select.Option>
-                <Select.Option value={SupplierType.DISTRIBUTOR}>分销商</Select.Option>
-                <Select.Option value={SupplierType.OTHER}>其他</Select.Option>
+              <Select placeholder={t('pages.traceability.supplierAdd.placeholders.type')}>
+                <Select.Option value={SupplierType.FARM}>{t('pages.traceability.supplier.types.farm')}</Select.Option>
+                <Select.Option value={SupplierType.PROCESSOR}>{t('pages.traceability.supplier.types.processor')}</Select.Option>
+                <Select.Option value={SupplierType.DISTRIBUTOR}>{t('pages.traceability.supplier.types.distributor')}</Select.Option>
+                <Select.Option value={SupplierType.OTHER}>{t('pages.traceability.supplier.types.other')}</Select.Option>
               </Select>
             </Form.Item>
           </Col>
@@ -147,82 +149,82 @@ const SupplierEditPage: React.FC = () => {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="legalName" label="法人名称">
-              <Input placeholder="请输入法人名称" />
+            <Form.Item name="legalName" label={t('pages.traceability.supplierAdd.fields.legalName')}>
+              <Input placeholder={t('pages.traceability.supplierAdd.placeholders.legalName')} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="registrationNumber" label="注册号/统一社会信用代码">
-              <Input placeholder="请输入注册号" />
+            <Form.Item name="registrationNumber" label={t('pages.traceability.supplierAdd.fields.registrationNumber')}>
+              <Input placeholder={t('pages.traceability.supplierAdd.placeholders.registrationNumber')} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item name="riskLevel" label="风险等级">
+        <Form.Item name="riskLevel" label={t('pages.traceability.supplierAdd.fields.riskLevel')}>
           <Select>
-            <Select.Option value={RiskLevel.LOW}>低风险</Select.Option>
-            <Select.Option value={RiskLevel.MEDIUM}>中风险</Select.Option>
-            <Select.Option value={RiskLevel.HIGH}>高风险</Select.Option>
+            <Select.Option value={RiskLevel.LOW}>{t('pages.traceability.supplier.riskLevels.low')}</Select.Option>
+            <Select.Option value={RiskLevel.MEDIUM}>{t('pages.traceability.supplier.riskLevels.medium')}</Select.Option>
+            <Select.Option value={RiskLevel.HIGH}>{t('pages.traceability.supplier.riskLevels.high')}</Select.Option>
           </Select>
         </Form.Item>
 
-        <Form.Item label="联系信息">
+        <Form.Item label={t('pages.traceability.supplierAdd.sections.contact')}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="phone" label="联系电话">
-                <Input placeholder="请输入联系电话" />
+              <Form.Item name="phone" label={t('pages.traceability.supplierAdd.fields.phone')}>
+                <Input placeholder={t('pages.traceability.supplierAdd.placeholders.phone')} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="email" label="邮箱">
-                <Input placeholder="请输入邮箱" />
+              <Form.Item name="email" label={t('pages.traceability.supplierAdd.fields.email')}>
+                <Input placeholder={t('pages.traceability.supplierAdd.placeholders.email')} />
               </Form.Item>
             </Col>
           </Row>
         </Form.Item>
 
-        <Form.Item label="地址信息">
+        <Form.Item label={t('pages.traceability.supplierAdd.sections.address')}>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item name="province" label="省份">
-                <Input placeholder="请输入省份" />
+              <Form.Item name="province" label={t('pages.traceability.supplierAdd.fields.province')}>
+                <Input placeholder={t('pages.traceability.supplierAdd.placeholders.province')} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="city" label="城市">
-                <Input placeholder="请输入城市" />
+              <Form.Item name="city" label={t('pages.traceability.supplierAdd.fields.city')}>
+                <Input placeholder={t('pages.traceability.supplierAdd.placeholders.city')} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="district" label="区县">
-                <Input placeholder="请输入区县" />
+              <Form.Item name="district" label={t('pages.traceability.supplierAdd.fields.district')}>
+                <Input placeholder={t('pages.traceability.supplierAdd.placeholders.district')} />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="detail" label="详细地址">
-            <Input placeholder="请输入详细地址" />
+          <Form.Item name="detail" label={t('pages.traceability.supplierAdd.fields.detail')}>
+            <Input placeholder={t('pages.traceability.supplierAdd.placeholders.detail')} />
           </Form.Item>
         </Form.Item>
 
-        <Form.Item name="businessScope" label="经营范围">
-          <Input.TextArea rows={3} placeholder="请输入经营范围" />
+        <Form.Item name="businessScope" label={t('pages.traceability.supplierAdd.fields.businessScope')}>
+          <Input.TextArea rows={3} placeholder={t('pages.traceability.supplierAdd.placeholders.businessScope')} />
         </Form.Item>
 
-        <Form.Item name="annualCapacity" label="年产能（吨）">
-          <Input type="number" placeholder="请输入年产能" />
+        <Form.Item name="annualCapacity" label={t('pages.traceability.supplierAdd.fields.annualCapacity')}>
+          <Input type="number" placeholder={t('pages.traceability.supplierAdd.placeholders.annualCapacity')} />
         </Form.Item>
 
-        <Form.Item name="mainProducts" label="主要产品（用逗号分隔）">
-          <Input placeholder="例如：大米,小麦,玉米" />
+        <Form.Item name="mainProducts" label={t('pages.traceability.supplierAdd.fields.mainProducts')}>
+          <Input placeholder={t('pages.traceability.supplierAdd.placeholders.mainProducts')} />
         </Form.Item>
 
         <Form.Item>
           <Space>
             <Button type="primary" htmlType="submit" loading={loading}>
-              保存
+              {t('common.save')}
             </Button>
             <Button onClick={() => navigate(`/traceability/suppliers/${id}`)}>
-              取消
+              {t('common.cancel')}
             </Button>
           </Space>
         </Form.Item>

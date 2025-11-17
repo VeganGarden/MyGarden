@@ -1,18 +1,20 @@
 /**
  * 添加基准值页
  */
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Card, Button, Form, Steps, message, Space } from 'antd'
-import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
 import { baselineManageAPI } from '@/services/baseline'
-import BaselineForm from './components/BaselineForm'
 import type { BaselineFormData } from '@/types/baseline'
+import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
+import { Button, Card, Form, Space, Steps, message } from 'antd'
 import dayjs from 'dayjs'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import BaselineForm from './components/BaselineForm'
 
 const { Step } = Steps
 
 const BaselineAdd: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [currentStep, setCurrentStep] = useState(0)
@@ -59,7 +61,10 @@ const BaselineAdd: React.FC = () => {
       const { breakdown, carbonFootprint } = values
       const total = breakdown.ingredients + breakdown.cookingEnergy + breakdown.packaging + breakdown.other
       if (Math.abs(total - carbonFootprint.value) > 0.1) {
-        message.error(`分解数据总和(${total.toFixed(2)})应与基准值(${carbonFootprint.value.toFixed(2)})一致`)
+        message.error(t('pages.carbon.baselineAdd.messages.breakdownMismatch', {
+          total: total.toFixed(2),
+          value: carbonFootprint.value.toFixed(2)
+        }))
         return
       }
 
@@ -89,10 +94,10 @@ const BaselineAdd: React.FC = () => {
       const result = await baselineManageAPI.create(formData)
       
       if (result.success) {
-        message.success('创建成功')
+        message.success(t('pages.carbon.baselineAdd.messages.createSuccess'))
         navigate(`/carbon/baseline/${baselineId}`)
       } else {
-        message.error(result.error || '创建失败')
+        message.error(result.error || t('pages.carbon.baselineAdd.messages.createFailed'))
       }
     } catch (error: any) {
       if (error.errorFields) {
@@ -100,7 +105,7 @@ const BaselineAdd: React.FC = () => {
         const firstError = error.errorFields[0]
         message.error(`${firstError.name.join('.')}: ${firstError.errors[0]}`)
       } else {
-        message.error(error.message || '创建失败')
+        message.error(error.message || t('pages.carbon.baselineAdd.messages.createFailed'))
       }
     } finally {
       setLoading(false)
@@ -109,15 +114,15 @@ const BaselineAdd: React.FC = () => {
 
   const steps = [
     {
-      title: '基本信息',
+      title: t('pages.carbon.baselineAdd.steps.basicInfo'),
       content: 'category',
     },
     {
-      title: '基准值数据',
+      title: t('pages.carbon.baselineAdd.steps.baselineData'),
       content: 'carbonFootprint',
     },
     {
-      title: '数据来源与版本',
+      title: t('pages.carbon.baselineAdd.steps.sourceVersion'),
       content: 'source',
     },
   ]
@@ -179,9 +184,9 @@ const BaselineAdd: React.FC = () => {
               icon={<ArrowLeftOutlined />}
               onClick={() => navigate('/carbon/baseline')}
             >
-              返回列表
+              {t('pages.carbon.baselineAdd.buttons.back')}
             </Button>
-            <span>添加基准值</span>
+            <span>{t('pages.carbon.baselineAdd.title')}</span>
           </Space>
         }
       >
@@ -196,11 +201,11 @@ const BaselineAdd: React.FC = () => {
         <div style={{ marginTop: 24, textAlign: 'right' }}>
           <Space>
             {currentStep > 0 && (
-              <Button onClick={prev}>上一步</Button>
+              <Button onClick={prev}>{t('pages.carbon.baselineAdd.buttons.prev')}</Button>
             )}
             {currentStep < steps.length - 1 ? (
               <Button type="primary" onClick={next}>
-                下一步
+                {t('pages.carbon.baselineAdd.buttons.next')}
               </Button>
             ) : (
               <Button
@@ -209,7 +214,7 @@ const BaselineAdd: React.FC = () => {
                 loading={loading}
                 onClick={handleSubmit}
               >
-                提交
+                {t('pages.carbon.baselineAdd.buttons.submit')}
               </Button>
             )}
           </Space>

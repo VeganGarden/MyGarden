@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card, Form, Input, Select, Button, Space, message, Row, Col, DatePicker } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { ingredientLotAPI } from '@/services/traceability'
@@ -11,6 +12,7 @@ import type { IngredientLotFormData } from '@/types/traceability'
 import dayjs from 'dayjs'
 
 const IngredientLotAddPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -42,13 +44,13 @@ const IngredientLotAddPage: React.FC = () => {
 
       const result = await ingredientLotAPI.create(formData)
       if (result.success) {
-        message.success('创建成功')
+        message.success(t('pages.traceability.ingredientLotAdd.messages.createSuccess'))
         navigate(`/traceability/lots/${result.data?.lotId}`)
       } else {
-        message.error(result.error || '创建失败')
+        message.error(result.error || t('pages.traceability.ingredientLotAdd.messages.createFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
@@ -59,9 +61,9 @@ const IngredientLotAddPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/traceability/lots')}>
-            返回
+            {t('common.back')}
           </Button>
-          <span>添加食材批次</span>
+          <span>{t('pages.traceability.ingredientLotAdd.title')}</span>
         </Space>
       }
     >
@@ -77,19 +79,19 @@ const IngredientLotAddPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="ingredientId"
-              label="食材ID"
-              rules={[{ required: true, message: '请输入食材ID' }]}
+              label={t('pages.traceability.ingredientLotAdd.fields.ingredientId')}
+              rules={[{ required: true, message: t('pages.traceability.ingredientLotAdd.messages.ingredientIdRequired') }]}
             >
-              <Input placeholder="请输入食材ID" />
+              <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.ingredientId')} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="supplierId"
-              label="供应商ID"
-              rules={[{ required: true, message: '请输入供应商ID' }]}
+              label={t('pages.traceability.ingredientLotAdd.fields.supplierId')}
+              rules={[{ required: true, message: t('pages.traceability.ingredientLotAdd.messages.supplierIdRequired') }]}
             >
-              <Input placeholder="请输入供应商ID" />
+              <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.supplierId')} />
             </Form.Item>
           </Col>
         </Row>
@@ -98,17 +100,17 @@ const IngredientLotAddPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="batchNumber"
-              label="批次号"
-              rules={[{ required: true, message: '请输入批次号' }]}
+              label={t('pages.traceability.ingredientLotAdd.fields.batchNumber')}
+              rules={[{ required: true, message: t('pages.traceability.ingredientLotAdd.messages.batchNumberRequired') }]}
             >
-              <Input placeholder="请输入批次号" />
+              <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.batchNumber')} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="harvestDate"
-              label="采收日期"
-              rules={[{ required: true, message: '请选择采收日期' }]}
+              label={t('pages.traceability.ingredientLotAdd.fields.harvestDate')}
+              rules={[{ required: true, message: t('pages.traceability.ingredientLotAdd.messages.harvestDateRequired') }]}
             >
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>
@@ -117,12 +119,12 @@ const IngredientLotAddPage: React.FC = () => {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="productionDate" label="生产日期">
+            <Form.Item name="productionDate" label={t('pages.traceability.ingredientLotAdd.fields.productionDate')}>
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="expiryDate" label="保质期至">
+            <Form.Item name="expiryDate" label={t('pages.traceability.ingredientLotAdd.fields.expiryDate')}>
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>
           </Col>
@@ -132,61 +134,61 @@ const IngredientLotAddPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="quantity"
-              label="数量"
-              rules={[{ required: true, message: '请输入数量' }]}
+              label={t('pages.traceability.ingredientLotAdd.fields.quantity')}
+              rules={[{ required: true, message: t('pages.traceability.ingredientLotAdd.messages.quantityRequired') }]}
             >
-              <Input type="number" placeholder="请输入数量" />
+              <Input type="number" placeholder={t('pages.traceability.ingredientLotAdd.placeholders.quantity')} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="unit"
-              label="单位"
-              rules={[{ required: true, message: '请选择单位' }]}
+              label={t('pages.traceability.ingredientLotAdd.fields.unit')}
+              rules={[{ required: true, message: t('pages.traceability.ingredientLotAdd.messages.unitRequired') }]}
             >
               <Select>
                 <Select.Option value="kg">kg</Select.Option>
-                <Select.Option value="t">吨</Select.Option>
-                <Select.Option value="件">件</Select.Option>
+                <Select.Option value="t">{t('pages.traceability.ingredientLotAdd.units.ton')}</Select.Option>
+                <Select.Option value="件">{t('pages.traceability.ingredientLotAdd.units.piece')}</Select.Option>
               </Select>
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item label="产地信息">
+        <Form.Item label={t('pages.traceability.ingredientLotAdd.sections.origin')}>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item name="province" label="省份">
-                <Input placeholder="请输入省份" />
+              <Form.Item name="province" label={t('pages.traceability.ingredientLotAdd.fields.province')}>
+                <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.province')} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="city" label="城市">
-                <Input placeholder="请输入城市" />
+              <Form.Item name="city" label={t('pages.traceability.ingredientLotAdd.fields.city')}>
+                <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.city')} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="district" label="区县">
-                <Input placeholder="请输入区县" />
+              <Form.Item name="district" label={t('pages.traceability.ingredientLotAdd.fields.district')}>
+                <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.district')} />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="farmName" label="农场名称">
-            <Input placeholder="请输入农场名称" />
+          <Form.Item name="farmName" label={t('pages.traceability.ingredientLotAdd.fields.farmName')}>
+            <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.farmName')} />
           </Form.Item>
         </Form.Item>
 
-        <Form.Item name="restaurantId" label="餐厅ID">
-          <Input placeholder="请输入餐厅ID（可选）" />
+        <Form.Item name="restaurantId" label={t('pages.traceability.ingredientLotAdd.fields.restaurantId')}>
+          <Input placeholder={t('pages.traceability.ingredientLotAdd.placeholders.restaurantId')} />
         </Form.Item>
 
         <Form.Item>
           <Space>
             <Button type="primary" htmlType="submit" loading={loading}>
-              提交
+              {t('common.submit')}
             </Button>
             <Button onClick={() => navigate('/traceability/lots')}>
-              取消
+              {t('common.cancel')}
             </Button>
           </Space>
         </Form.Item>

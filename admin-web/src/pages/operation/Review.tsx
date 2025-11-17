@@ -2,6 +2,7 @@ import { EyeOutlined, MessageOutlined } from '@ant-design/icons'
 import { Input as AntInput, Button, Card, Form, Input, Modal, Rate, Space, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { TextArea } = AntInput
 
@@ -18,6 +19,7 @@ interface Review {
 }
 
 const OperationReview: React.FC = () => {
+  const { t } = useTranslation()
   const [dataSource] = useState<Review[]>([])
   const [isReplyModalVisible, setIsReplyModalVisible] = useState(false)
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
@@ -25,29 +27,29 @@ const OperationReview: React.FC = () => {
 
   const columns: ColumnsType<Review> = [
     {
-      title: '订单号',
+      title: t('pages.operation.review.table.columns.orderNo'),
       dataIndex: 'orderNo',
       key: 'orderNo',
     },
     {
-      title: '客户名称',
+      title: t('pages.operation.review.table.columns.customerName'),
       dataIndex: 'customerName',
       key: 'customerName',
     },
     {
-      title: '评分',
+      title: t('pages.operation.review.table.columns.rating'),
       dataIndex: 'rating',
       key: 'rating',
       render: (rating: number) => <Rate disabled defaultValue={rating} />,
     },
     {
-      title: '评价内容',
+      title: t('pages.operation.review.table.columns.content'),
       dataIndex: 'content',
       key: 'content',
       ellipsis: true,
     },
     {
-      title: '碳减排满意度',
+      title: t('pages.operation.review.table.columns.carbonSatisfaction'),
       dataIndex: 'carbonSatisfaction',
       key: 'carbonSatisfaction',
       render: (satisfaction: number) => (
@@ -57,26 +59,26 @@ const OperationReview: React.FC = () => {
       ),
     },
     {
-      title: '评价日期',
+      title: t('pages.operation.review.table.columns.reviewDate'),
       dataIndex: 'reviewDate',
       key: 'reviewDate',
     },
     {
-      title: '状态',
+      title: t('pages.operation.review.table.columns.status'),
       key: 'status',
       render: (_, record: Review) => (
         <Tag color={record.reply ? 'success' : 'processing'}>
-          {record.reply ? '已回复' : '待回复'}
+          {record.reply ? t('pages.operation.review.status.replied') : t('pages.operation.review.status.pending')}
         </Tag>
       ),
     },
     {
-      title: '操作',
+      title: t('pages.operation.review.table.columns.actions'),
       key: 'action',
       render: (_, record) => (
         <Space>
           <Button type="link" icon={<EyeOutlined />} size="small">
-            查看详情
+            {t('pages.operation.review.buttons.viewDetail')}
           </Button>
           {!record.reply && (
             <Button
@@ -85,7 +87,7 @@ const OperationReview: React.FC = () => {
               size="small"
               onClick={() => handleReply(record)}
             >
-              回复
+              {t('pages.operation.review.buttons.reply')}
             </Button>
           )}
         </Space>
@@ -110,10 +112,10 @@ const OperationReview: React.FC = () => {
   return (
     <div>
       <Card
-        title="用户评价管理"
+        title={t('pages.operation.review.title')}
         extra={
           <Space>
-            <Input.Search placeholder="搜索订单号或客户名称" style={{ width: 300 }} />
+            <Input.Search placeholder={t('pages.operation.review.filters.search')} style={{ width: 300 }} />
           </Space>
         }
       >
@@ -124,13 +126,13 @@ const OperationReview: React.FC = () => {
           pagination={{
             total: dataSource.length,
             pageSize: 10,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
           }}
         />
       </Card>
 
       <Modal
-        title="回复评价"
+        title={t('pages.operation.review.modal.title')}
         open={isReplyModalVisible}
         onOk={handleSubmitReply}
         onCancel={() => setIsReplyModalVisible(false)}
@@ -139,20 +141,20 @@ const OperationReview: React.FC = () => {
         {selectedReview && (
           <div style={{ marginBottom: 16 }}>
             <p>
-              <strong>客户评价:</strong> {selectedReview.content}
+              <strong>{t('pages.operation.review.modal.customerReview')}:</strong> {selectedReview.content}
             </p>
             <p>
-              <strong>评分:</strong> <Rate disabled defaultValue={selectedReview.rating} />
+              <strong>{t('pages.operation.review.modal.rating')}:</strong> <Rate disabled defaultValue={selectedReview.rating} />
             </p>
           </div>
         )}
         <Form form={form} layout="vertical">
           <Form.Item
             name="reply"
-            label="回复内容"
-            rules={[{ required: true, message: '请输入回复内容' }]}
+            label={t('pages.operation.review.modal.fields.reply')}
+            rules={[{ required: true, message: t('pages.operation.review.modal.messages.replyRequired') }]}
           >
-            <TextArea rows={4} placeholder="请输入回复内容" />
+            <TextArea rows={4} placeholder={t('pages.operation.review.modal.placeholders.reply')} />
           </Form.Item>
         </Form>
       </Modal>

@@ -1,0 +1,28 @@
+.helpButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast) var(--ease-out);
+  color: var(--text-primary);
+}
+
+.helpButton:hover {
+  background: var(--bg-hover);
+  color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.helpButton:active {
+  transform: scale(0.95);
+}
+
+.helpButton:focus {
+  background: var(--bg-hover);
+  outline: none;
+}
+

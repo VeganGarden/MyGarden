@@ -1,0 +1,54 @@
+.pageSkeleton {
+  padding: var(--spacing-lg);
+  animation: fadeIn var(--transition-base) var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.skeletonTitle {
+  margin-bottom: var(--spacing-lg);
+}
+
+.skeletonAvatar {
+  margin-bottom: var(--spacing-lg);
+}
+
+.skeletonButtons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+/* 优化骨架屏样式 - 使用品牌色 */
+.pageSkeleton :global(.ant-skeleton-title),
+.pageSkeleton :global(.ant-skeleton-paragraph > li),
+.pageSkeleton :global(.ant-skeleton-avatar),
+.pageSkeleton :global(.ant-skeleton-button) {
+  background: linear-gradient(
+    90deg,
+    var(--bg-hover) 25%,
+    var(--bg-active) 50%,
+    var(--bg-hover) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonLoading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+

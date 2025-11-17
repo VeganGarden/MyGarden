@@ -1,36 +1,38 @@
 /**
  * 基准值列表页
  */
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import i18n from '@/i18n'
+import { baselineManageAPI } from '@/services/baseline'
+import type { BaselineQueryParams, CarbonBaseline } from '@/types/baseline'
+import { BaselineStatus, EnergyType, MealType, Region } from '@/types/baseline'
+import {
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  UploadOutlined
+} from '@ant-design/icons'
 import {
   Button,
   Card,
   Input,
+  Popconfirm,
   Select,
   Space,
   Table,
   Tag,
   message,
-  Popconfirm,
 } from 'antd'
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  UploadOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import { baselineManageAPI } from '@/services/baseline'
-import type { CarbonBaseline, BaselineQueryParams } from '@/types/baseline'
-import { MealType, Region, EnergyType, BaselineStatus } from '@/types/baseline'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 const { Search } = Input
 const { Option } = Select
 
 const BaselineList: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [dataSource, setDataSource] = useState<CarbonBaseline[]>([])
@@ -61,11 +63,11 @@ const BaselineList: React.FC = () => {
           total: result.pagination?.total || 0,
         })
       } else {
-        message.error(result.error || '获取列表失败')
+        message.error(result.error || t('pages.carbon.baselineList.messages.loadFailed'))
         setDataSource([])
       }
     } catch (error: any) {
-      message.error(error.message || '获取列表失败')
+      message.error(error.message || t('pages.carbon.baselineList.messages.loadFailed'))
       setDataSource([])
     } finally {
       setLoading(false)
@@ -99,13 +101,13 @@ const BaselineList: React.FC = () => {
     try {
       const result = await baselineManageAPI.archive(record.baselineId)
       if (result.success) {
-        message.success('归档成功')
+        message.success(t('pages.carbon.baselineList.messages.archiveSuccess'))
         fetchData()
       } else {
-        message.error(result.error || '归档失败')
+        message.error(result.error || t('pages.carbon.baselineList.messages.archiveFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '归档失败')
+      message.error(error.message || t('pages.carbon.baselineList.messages.archiveFailed'))
     }
   }
 
@@ -113,20 +115,20 @@ const BaselineList: React.FC = () => {
     try {
       const result = await baselineManageAPI.activate(record.baselineId)
       if (result.success) {
-        message.success('激活成功')
+        message.success(t('pages.carbon.baselineList.messages.activateSuccess'))
         fetchData()
       } else {
-        message.error(result.error || '激活失败')
+        message.error(result.error || t('pages.carbon.baselineList.messages.activateFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '激活失败')
+      message.error(error.message || t('pages.carbon.baselineList.messages.activateFailed'))
     }
   }
 
   // 表格列定义
   const columns: ColumnsType<CarbonBaseline> = [
     {
-      title: '基准值ID',
+      title: t('pages.carbon.baselineList.table.columns.baselineId'),
       dataIndex: 'baselineId',
       key: 'baselineId',
       width: 200,
@@ -134,51 +136,53 @@ const BaselineList: React.FC = () => {
       render: (baselineId: string) => baselineId || '-',
     },
     {
-      title: '地区',
+      title: t('pages.carbon.baselineList.table.columns.region'),
       key: 'region',
       width: 100,
       render: (_: any, record: CarbonBaseline) => {
         const region = record.category?.region
         if (!region) return '-'
         const regionMap: Record<string, string> = {
-          [Region.NORTH_CHINA]: '华北',
-          [Region.NORTHEAST]: '东北',
-          [Region.EAST_CHINA]: '华东',
-          [Region.CENTRAL_CHINA]: '华中',
-          [Region.NORTHWEST]: '西北',
-          [Region.SOUTH_CHINA]: '南方',
-          [Region.NATIONAL_AVERAGE]: '全国平均',
+          [Region.NORTH_CHINA]: t('pages.carbon.baselineList.regions.northChina'),
+          [Region.NORTHEAST]: t('pages.carbon.baselineList.regions.northeast'),
+          [Region.EAST_CHINA]: t('pages.carbon.baselineList.regions.eastChina'),
+          [Region.CENTRAL_CHINA]: t('pages.carbon.baselineList.regions.centralChina'),
+          [Region.NORTHWEST]: t('pages.carbon.baselineList.regions.northwest'),
+          [Region.SOUTH_CHINA]: t('pages.carbon.baselineList.regions.southChina'),
+          [Region.NATIONAL_AVERAGE]: t('pages.carbon.baselineList.regions.nationalAverage'),
         }
         return regionMap[region] || region
       },
     },
     {
-      title: '餐食类型',
+      title: t('pages.carbon.baselineList.table.columns.mealType'),
       key: 'mealType',
       width: 100,
       render: (_: any, record: CarbonBaseline) => {
         const mealType = record.category?.mealType
         if (!mealType) return '-'
-        return mealType === MealType.MEAT_SIMPLE ? '肉食简餐' : '肉食正餐'
+        return mealType === MealType.MEAT_SIMPLE 
+          ? t('pages.carbon.baselineList.mealTypes.meatSimple')
+          : t('pages.carbon.baselineList.mealTypes.meatFull')
       },
     },
     {
-      title: '用能方式',
+      title: t('pages.carbon.baselineList.table.columns.energyType'),
       key: 'energyType',
       width: 100,
       render: (_: any, record: CarbonBaseline) => {
         const energyType = record.category?.energyType
         if (!energyType) return '-'
         const energyMap: Record<string, string> = {
-          [EnergyType.ELECTRIC]: '全电',
-          [EnergyType.GAS]: '燃气',
-          [EnergyType.MIXED]: '混合',
+          [EnergyType.ELECTRIC]: t('pages.carbon.baselineList.energyTypes.electric'),
+          [EnergyType.GAS]: t('pages.carbon.baselineList.energyTypes.gas'),
+          [EnergyType.MIXED]: t('pages.carbon.baselineList.energyTypes.mixed'),
         }
         return energyMap[energyType] || energyType
       },
     },
     {
-      title: '基准值',
+      title: t('pages.carbon.baselineList.table.columns.value'),
       key: 'value',
       width: 120,
       render: (_: any, record: CarbonBaseline) => {
@@ -195,44 +199,45 @@ const BaselineList: React.FC = () => {
       },
     },
     {
-      title: '版本',
+      title: t('pages.carbon.baselineList.table.columns.version'),
       dataIndex: 'version',
       key: 'version',
       width: 100,
       render: (version: string) => version || '-',
     },
     {
-      title: '状态',
+      title: t('pages.carbon.baselineList.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
       render: (status: string) => {
         if (!status) return <Tag>-</Tag>
         const statusMap: Record<string, { color: string; text: string }> = {
-          [BaselineStatus.ACTIVE]: { color: 'success', text: '活跃' },
-          [BaselineStatus.ARCHIVED]: { color: 'default', text: '已归档' },
-          [BaselineStatus.DRAFT]: { color: 'warning', text: '草稿' },
+          [BaselineStatus.ACTIVE]: { color: 'success', text: t('pages.carbon.baselineList.status.active') },
+          [BaselineStatus.ARCHIVED]: { color: 'default', text: t('pages.carbon.baselineList.status.archived') },
+          [BaselineStatus.DRAFT]: { color: 'warning', text: t('pages.carbon.baselineList.status.draft') },
         }
         const cfg = statusMap[status] || { color: 'default', text: status }
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       },
     },
     {
-      title: '更新时间',
+      title: t('pages.carbon.baselineList.table.columns.updatedAt'),
       dataIndex: 'updatedAt',
       key: 'updatedAt',
       width: 180,
       render: (date: string | Date) => {
         if (!date) return '-'
         try {
-          return new Date(date).toLocaleString('zh-CN')
+          const locale = i18n.language === 'zh' ? 'zh-CN' : 'en-US'
+          return new Date(date).toLocaleString(locale)
         } catch {
           return '-'
         }
       },
     },
     {
-      title: '操作',
+      title: t('pages.carbon.baselineList.table.columns.actions'),
       key: 'action',
       width: 200,
       fixed: 'right',
@@ -244,7 +249,7 @@ const BaselineList: React.FC = () => {
             icon={<EyeOutlined />}
             onClick={() => navigate(`/carbon/baseline/${record.baselineId}`)}
           >
-            查看
+            {t('pages.carbon.baselineList.table.actions.view')}
           </Button>
           <Button
             type="link"
@@ -253,18 +258,18 @@ const BaselineList: React.FC = () => {
             onClick={() => navigate(`/carbon/baseline/${record.baselineId}/edit`)}
             disabled={record.status === BaselineStatus.ARCHIVED}
           >
-            编辑
+            {t('pages.carbon.baselineList.table.actions.edit')}
           </Button>
           {record.status === BaselineStatus.ACTIVE ? (
             <Popconfirm
-              title="确认归档"
-              description="确定要归档这条基准值吗？归档后将不再用于查询。"
+              title={t('pages.carbon.baselineList.messages.confirmArchive')}
+              description={t('pages.carbon.baselineList.messages.confirmArchiveDescription')}
               onConfirm={() => handleArchive(record)}
-              okText="确认"
-              cancelText="取消"
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
             >
               <Button type="link" size="small" danger>
-                归档
+                {t('pages.carbon.baselineList.table.actions.archive')}
               </Button>
             </Popconfirm>
           ) : (
@@ -273,7 +278,7 @@ const BaselineList: React.FC = () => {
               size="small"
               onClick={() => handleActivate(record)}
             >
-              激活
+              {t('pages.carbon.baselineList.table.actions.activate')}
             </Button>
           )}
         </Space>
@@ -284,21 +289,21 @@ const BaselineList: React.FC = () => {
   return (
     <div>
       <Card
-        title="碳足迹基准值管理"
+        title={t('pages.carbon.baselineList.title')}
         extra={
           <Space>
             <Button
               icon={<UploadOutlined />}
               onClick={() => navigate('/carbon/baseline/import')}
             >
-              批量导入
+              {t('pages.carbon.baselineList.buttons.import')}
             </Button>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => navigate('/carbon/baseline/add')}
             >
-              添加基准值
+              {t('pages.carbon.baselineList.buttons.add')}
             </Button>
           </Space>
         }
@@ -306,57 +311,57 @@ const BaselineList: React.FC = () => {
         {/* 筛选器 */}
         <Space style={{ marginBottom: 16 }} wrap>
           <Search
-            placeholder="搜索基准值ID、版本号、机构名称"
+            placeholder={t('pages.carbon.baselineList.filters.search')}
             allowClear
             onSearch={handleSearch}
             style={{ width: 300 }}
           />
           <Select
-            placeholder="地区"
+            placeholder={t('pages.carbon.baselineList.filters.region')}
             allowClear
             style={{ width: 120 }}
             onChange={(value) => handleFilterChange('region', value)}
           >
-            <Option value={Region.NORTH_CHINA}>华北</Option>
-            <Option value={Region.NORTHEAST}>东北</Option>
-            <Option value={Region.EAST_CHINA}>华东</Option>
-            <Option value={Region.CENTRAL_CHINA}>华中</Option>
-            <Option value={Region.NORTHWEST}>西北</Option>
-            <Option value={Region.SOUTH_CHINA}>南方</Option>
+            <Option value={Region.NORTH_CHINA}>{t('pages.carbon.baselineList.regions.northChina')}</Option>
+            <Option value={Region.NORTHEAST}>{t('pages.carbon.baselineList.regions.northeast')}</Option>
+            <Option value={Region.EAST_CHINA}>{t('pages.carbon.baselineList.regions.eastChina')}</Option>
+            <Option value={Region.CENTRAL_CHINA}>{t('pages.carbon.baselineList.regions.centralChina')}</Option>
+            <Option value={Region.NORTHWEST}>{t('pages.carbon.baselineList.regions.northwest')}</Option>
+            <Option value={Region.SOUTH_CHINA}>{t('pages.carbon.baselineList.regions.southChina')}</Option>
           </Select>
           <Select
-            placeholder="餐食类型"
+            placeholder={t('pages.carbon.baselineList.filters.mealType')}
             allowClear
             style={{ width: 120 }}
             onChange={(value) => handleFilterChange('mealType', value)}
           >
-            <Option value={MealType.MEAT_SIMPLE}>肉食简餐</Option>
-            <Option value={MealType.MEAT_FULL}>肉食正餐</Option>
+            <Option value={MealType.MEAT_SIMPLE}>{t('pages.carbon.baselineList.mealTypes.meatSimple')}</Option>
+            <Option value={MealType.MEAT_FULL}>{t('pages.carbon.baselineList.mealTypes.meatFull')}</Option>
           </Select>
           <Select
-            placeholder="用能方式"
+            placeholder={t('pages.carbon.baselineList.filters.energyType')}
             allowClear
             style={{ width: 120 }}
             onChange={(value) => handleFilterChange('energyType', value)}
           >
-            <Option value={EnergyType.ELECTRIC}>全电</Option>
-            <Option value={EnergyType.GAS}>燃气</Option>
+            <Option value={EnergyType.ELECTRIC}>{t('pages.carbon.baselineList.energyTypes.electric')}</Option>
+            <Option value={EnergyType.GAS}>{t('pages.carbon.baselineList.energyTypes.gas')}</Option>
           </Select>
           <Select
-            placeholder="状态"
+            placeholder={t('pages.carbon.baselineList.filters.status')}
             allowClear
             style={{ width: 120 }}
             onChange={(value) => handleFilterChange('status', value)}
           >
-            <Option value={BaselineStatus.ACTIVE}>活跃</Option>
-            <Option value={BaselineStatus.ARCHIVED}>已归档</Option>
-            <Option value={BaselineStatus.DRAFT}>草稿</Option>
+            <Option value={BaselineStatus.ACTIVE}>{t('pages.carbon.baselineList.status.active')}</Option>
+            <Option value={BaselineStatus.ARCHIVED}>{t('pages.carbon.baselineList.status.archived')}</Option>
+            <Option value={BaselineStatus.DRAFT}>{t('pages.carbon.baselineList.status.draft')}</Option>
           </Select>
           <Button
             icon={<ReloadOutlined />}
             onClick={fetchData}
           >
-            刷新
+            {t('pages.carbon.baselineList.buttons.refresh')}
           </Button>
         </Space>
 
@@ -371,8 +376,8 @@ const BaselineList: React.FC = () => {
               <div style={{ padding: '40px 0', textAlign: 'center' }}>
                 <p style={{ marginBottom: 16, color: '#999' }}>
                   {dataSource.length === 0 && pagination.total === 0
-                    ? '暂无数据，请先初始化数据库或添加基准值'
-                    : '暂无数据'}
+                    ? t('pages.carbon.baselineList.empty.noData')
+                    : t('pages.carbon.baselineList.empty.noDataSimple')}
                 </p>
                 {dataSource.length === 0 && pagination.total === 0 && (
                   <Space>
@@ -380,35 +385,35 @@ const BaselineList: React.FC = () => {
                       type="primary"
                       onClick={async () => {
                         try {
-                          message.loading('正在初始化数据库...', 0)
+                          message.loading(t('pages.carbon.baselineList.messages.initLoading'), 0)
                           const { baselineInitAPI } = await import('@/services/baseline')
                           const result = await baselineInitAPI.check()
                           if (result.success) {
                             message.destroy()
                             if (result.data.results?.check?.isComplete) {
-                              message.success('数据库已初始化，共 ' + result.data.results.check.found + ' 条数据')
+                              message.success(t('pages.carbon.baselineList.messages.initSuccess', { count: result.data.results.check.found }))
                               fetchData()
                             } else {
-                              message.warning('数据库未完整初始化，请调用 carbon-baseline-init 云函数')
+                              message.warning(t('pages.carbon.baselineList.messages.initIncomplete'))
                             }
                           } else {
                             message.destroy()
-                            message.error(result.error || '检查失败')
+                            message.error(result.error || t('pages.carbon.baselineList.messages.initCheckFailed'))
                           }
                         } catch (error: any) {
                           message.destroy()
-                          message.error('初始化失败: ' + error.message)
+                          message.error(t('pages.carbon.baselineList.messages.initFailed', { error: error.message }))
                         }
                       }}
                     >
-                      检查数据库状态
+                      {t('pages.carbon.baselineList.buttons.checkDatabase')}
                     </Button>
                     <Button
                       type="default"
                       icon={<PlusOutlined />}
                       onClick={() => navigate('/carbon/baseline/add')}
                     >
-                      添加基准值
+                      {t('pages.carbon.baselineList.buttons.add')}
                     </Button>
                   </Space>
                 )}
@@ -417,7 +422,7 @@ const BaselineList: React.FC = () => {
           }}
           pagination={{
             ...pagination,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             showSizeChanger: true,
             showQuickJumper: true,
             onChange: (page, pageSize) => {
