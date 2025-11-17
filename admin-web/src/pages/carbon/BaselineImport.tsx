@@ -1,30 +1,31 @@
 /**
  * 批量导入基准值页
  */
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import {
-  Card,
-  Button,
-  Upload,
-  Table,
-  Space,
-  message,
-  Steps,
-  Descriptions,
-  Progress,
-} from 'antd'
-import {
-  ArrowLeftOutlined,
-  UploadOutlined,
-  FileExcelOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons'
-import type { UploadProps, UploadFile } from 'antd/es/upload'
 import { baselineManageAPI } from '@/services/baseline'
 import type { BaselineFormData } from '@/types/baseline'
-import * as XLSX from 'xlsx'
+import {
+  ArrowLeftOutlined,
+  CheckCircleOutlined,
+  FileExcelOutlined,
+  UploadOutlined,
+} from '@ant-design/icons'
+import {
+  Button,
+  Card,
+  Descriptions,
+  Progress,
+  Space,
+  Steps,
+  Table,
+  Upload,
+  message,
+} from 'antd'
+import type { UploadFile, UploadProps } from 'antd/es/upload'
 import dayjs from 'dayjs'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 
 const { Step } = Steps
 
@@ -34,6 +35,7 @@ interface ImportStep {
 }
 
 const BaselineImport: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const [fileList, setFileList] = useState<UploadFile[]>([])
@@ -43,9 +45,9 @@ const BaselineImport: React.FC = () => {
 
   // 步骤配置
   const steps: ImportStep[] = [
-    { step: 0, title: '上传文件' },
-    { step: 1, title: '数据预览' },
-    { step: 2, title: '导入结果' },
+    { step: 0, title: t('pages.carbon.baselineImport.steps.upload') },
+    { step: 1, title: t('pages.carbon.baselineImport.steps.preview') },
+    { step: 2, title: t('pages.carbon.baselineImport.steps.result') },
   ]
 
   // 处理文件上传
@@ -99,9 +101,9 @@ const BaselineImport: React.FC = () => {
       setParsedData(convertedData)
       setFileList([file])
       setCurrentStep(1)
-      message.success(`成功解析 ${convertedData.length} 条数据`)
+      message.success(t('pages.carbon.baselineImport.messages.parseSuccess', { count: convertedData.length }))
     } catch (error: any) {
-      message.error(`文件解析失败: ${error.message}`)
+      message.error(t('pages.carbon.baselineImport.messages.parseFailed', { error: error.message }))
     } finally {
       setLoading(false)
     }
@@ -117,23 +119,23 @@ const BaselineImport: React.FC = () => {
       const errors: string[] = []
 
       // 验证必填字段
-      if (!item.category.mealType) errors.push('餐食类型必填')
-      if (!item.category.region) errors.push('地区必填')
-      if (!item.category.energyType) errors.push('用能方式必填')
+      if (!item.category.mealType) errors.push(t('pages.carbon.baselineImport.validation.mealTypeRequired'))
+      if (!item.category.region) errors.push(t('pages.carbon.baselineImport.validation.regionRequired'))
+      if (!item.category.energyType) errors.push(t('pages.carbon.baselineImport.validation.energyTypeRequired'))
       if (!item.carbonFootprint.value || item.carbonFootprint.value <= 0) {
-        errors.push('基准值必须大于0')
+        errors.push(t('pages.carbon.baselineImport.validation.valueRequired'))
       }
-      if (!item.source.organization) errors.push('机构名称必填')
-      if (!item.version) errors.push('版本号必填')
-      if (!item.effectiveDate) errors.push('有效日期必填')
-      if (!item.expiryDate) errors.push('失效日期必填')
+      if (!item.source.organization) errors.push(t('pages.carbon.baselineImport.validation.organizationRequired'))
+      if (!item.version) errors.push(t('pages.carbon.baselineImport.validation.versionRequired'))
+      if (!item.effectiveDate) errors.push(t('pages.carbon.baselineImport.validation.effectiveDateRequired'))
+      if (!item.expiryDate) errors.push(t('pages.carbon.baselineImport.validation.expiryDateRequired'))
 
       // 验证日期逻辑
       if (item.effectiveDate && item.expiryDate) {
         const effective = dayjs(item.effectiveDate)
         const expiry = dayjs(item.expiryDate)
         if (expiry.isBefore(effective)) {
-          errors.push('失效日期必须晚于有效日期')
+          errors.push(t('pages.carbon.baselineImport.validation.expiryBeforeEffective'))
         }
       }
 
@@ -141,7 +143,10 @@ const BaselineImport: React.FC = () => {
       const total = item.breakdown.ingredients + item.breakdown.cookingEnergy + 
                     item.breakdown.packaging + item.breakdown.other
       if (Math.abs(total - item.carbonFootprint.value) > 0.1) {
-        errors.push(`分解数据总和(${total.toFixed(2)})应与基准值(${item.carbonFootprint.value.toFixed(2)})一致`)
+        errors.push(t('pages.carbon.baselineImport.validation.breakdownMismatch', {
+          total: total.toFixed(2),
+          value: item.carbonFootprint.value.toFixed(2)
+        }))
       }
 
       if (errors.length > 0) {
@@ -163,14 +168,14 @@ const BaselineImport: React.FC = () => {
     const { valid, invalid } = validateData(parsedData)
 
     if (invalid.length > 0) {
-      message.warning(`有 ${invalid.length} 条数据验证失败，请修正后重试`)
+      message.warning(t('pages.carbon.baselineImport.messages.validationFailed', { count: invalid.length }))
       // 显示错误详情
       console.error('验证失败的数据:', invalid)
       return
     }
 
     if (valid.length === 0) {
-      message.error('没有有效数据可导入')
+      message.error(t('pages.carbon.baselineImport.messages.noValidData'))
       return
     }
 
@@ -182,12 +187,15 @@ const BaselineImport: React.FC = () => {
       setCurrentStep(2)
       
       if (result.failed === 0) {
-        message.success(`成功导入 ${result.success} 条数据`)
+        message.success(t('pages.carbon.baselineImport.messages.importSuccess', { count: result.success }))
       } else {
-        message.warning(`导入完成：成功 ${result.success} 条，失败 ${result.failed} 条`)
+        message.warning(t('pages.carbon.baselineImport.messages.importPartial', {
+          success: result.success,
+          failed: result.failed
+        }))
       }
     } catch (error: any) {
-      message.error(`导入失败: ${error.message}`)
+      message.error(t('pages.carbon.baselineImport.messages.importFailed', { error: error.message }))
     } finally {
       setLoading(false)
     }
@@ -195,11 +203,11 @@ const BaselineImport: React.FC = () => {
 
   // 预览表格列
   const previewColumns = [
-    { title: '地区', dataIndex: ['category', 'region'], key: 'region' },
-    { title: '餐食类型', dataIndex: ['category', 'mealType'], key: 'mealType' },
-    { title: '用能方式', dataIndex: ['category', 'energyType'], key: 'energyType' },
-    { title: '基准值', dataIndex: ['carbonFootprint', 'value'], key: 'value' },
-    { title: '版本', dataIndex: 'version', key: 'version' },
+    { title: t('pages.carbon.baselineImport.preview.columns.region'), dataIndex: ['category', 'region'], key: 'region' },
+    { title: t('pages.carbon.baselineImport.preview.columns.mealType'), dataIndex: ['category', 'mealType'], key: 'mealType' },
+    { title: t('pages.carbon.baselineImport.preview.columns.energyType'), dataIndex: ['category', 'energyType'], key: 'energyType' },
+    { title: t('pages.carbon.baselineImport.preview.columns.value'), dataIndex: ['carbonFootprint', 'value'], key: 'value' },
+    { title: t('pages.carbon.baselineImport.preview.columns.version'), dataIndex: 'version', key: 'version' },
   ]
 
   return (
@@ -212,9 +220,9 @@ const BaselineImport: React.FC = () => {
               icon={<ArrowLeftOutlined />}
               onClick={() => navigate('/carbon/baseline')}
             >
-              返回列表
+              {t('pages.carbon.baselineImport.buttons.back')}
             </Button>
-            <span>批量导入基准值</span>
+            <span>{t('pages.carbon.baselineImport.title')}</span>
           </Space>
         }
       >
@@ -237,28 +245,28 @@ const BaselineImport: React.FC = () => {
               }}
             >
               <Button icon={<UploadOutlined />} loading={loading}>
-                选择文件
+                {t('pages.carbon.baselineImport.buttons.selectFile')}
               </Button>
             </Upload>
             <div style={{ marginTop: 16 }}>
-              <p>支持格式：Excel (.xlsx, .xls), CSV</p>
-              <p>请确保文件包含以下字段：</p>
+              <p>{t('pages.carbon.baselineImport.upload.formats')}</p>
+              <p>{t('pages.carbon.baselineImport.upload.requiredFields')}</p>
               <ul>
-                <li>餐食类型、地区、用能方式（必填）</li>
-                <li>基准值、不确定性（必填）</li>
-                <li>分解数据：食材、烹饪能耗、包装、其他（必填）</li>
-                <li>数据来源：来源类型、机构名称、报告名称、年份、计算方法（必填）</li>
-                <li>版本号、有效日期、失效日期（必填）</li>
+                <li>{t('pages.carbon.baselineImport.upload.requiredFieldsList.category')}</li>
+                <li>{t('pages.carbon.baselineImport.upload.requiredFieldsList.carbon')}</li>
+                <li>{t('pages.carbon.baselineImport.upload.requiredFieldsList.breakdown')}</li>
+                <li>{t('pages.carbon.baselineImport.upload.requiredFieldsList.source')}</li>
+                <li>{t('pages.carbon.baselineImport.upload.requiredFieldsList.version')}</li>
               </ul>
               <Button
                 type="link"
                 icon={<FileExcelOutlined />}
                 onClick={() => {
                   // TODO: 下载模板文件
-                  message.info('模板下载功能开发中')
+                  message.info(t('pages.carbon.baselineImport.upload.templateDownloading'))
                 }}
               >
-                下载导入模板
+                {t('pages.carbon.baselineImport.buttons.downloadTemplate')}
               </Button>
             </div>
           </div>
@@ -268,8 +276,8 @@ const BaselineImport: React.FC = () => {
         {currentStep === 1 && (
           <div>
             <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="总数据量">{parsedData.length} 条</Descriptions.Item>
-              <Descriptions.Item label="文件名称">{fileList[0]?.name}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.carbon.baselineImport.preview.totalData')}>{parsedData.length} {t('common.items')}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.carbon.baselineImport.preview.fileName')}>{fileList[0]?.name}</Descriptions.Item>
             </Descriptions>
             <Table
               columns={previewColumns}
@@ -279,9 +287,9 @@ const BaselineImport: React.FC = () => {
               style={{ marginBottom: 16 }}
             />
             <Space>
-              <Button onClick={() => setCurrentStep(0)}>重新上传</Button>
+              <Button onClick={() => setCurrentStep(0)}>{t('pages.carbon.baselineImport.buttons.reupload')}</Button>
               <Button type="primary" loading={loading} onClick={handleImport}>
-                确认导入
+                {t('pages.carbon.baselineImport.buttons.confirmImport')}
               </Button>
             </Space>
           </div>
@@ -292,23 +300,23 @@ const BaselineImport: React.FC = () => {
           <div>
             <Card>
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="成功">
+                <Descriptions.Item label={t('pages.carbon.baselineImport.result.success')}>
                   <span style={{ color: '#52c41a' }}>
-                    {importResult.success} 条
+                    {importResult.success} {t('common.items')}
                   </span>
                 </Descriptions.Item>
-                <Descriptions.Item label="失败">
+                <Descriptions.Item label={t('pages.carbon.baselineImport.result.failed')}>
                   <span style={{ color: '#ff4d4f' }}>
-                    {importResult.failed} 条
+                    {importResult.failed} {t('common.items')}
                   </span>
                 </Descriptions.Item>
-                <Descriptions.Item label="跳过">
+                <Descriptions.Item label={t('pages.carbon.baselineImport.result.skipped')}>
                   <span style={{ color: '#faad14' }}>
-                    {importResult.skipped} 条
+                    {importResult.skipped} {t('common.items')}
                   </span>
                 </Descriptions.Item>
-                <Descriptions.Item label="总计">
-                  {parsedData.length} 条
+                <Descriptions.Item label={t('pages.carbon.baselineImport.result.total')}>
+                  {parsedData.length} {t('common.items')}
                 </Descriptions.Item>
               </Descriptions>
 
@@ -320,11 +328,11 @@ const BaselineImport: React.FC = () => {
 
               {importResult.errors && importResult.errors.length > 0 && (
                 <div style={{ marginTop: 16 }}>
-                  <h4>错误详情：</h4>
+                  <h4>{t('pages.carbon.baselineImport.result.errorDetails')}</h4>
                   <ul>
                     {importResult.errors.map((error: any, index: number) => (
                       <li key={index} style={{ color: '#ff4d4f' }}>
-                        {error.baselineId || `第${index + 1}条`}: {error.error}
+                        {error.baselineId || `${t('common.page')}${index + 1}${t('common.items')}`}: {error.error}
                       </li>
                     ))}
                   </ul>
@@ -340,14 +348,14 @@ const BaselineImport: React.FC = () => {
                   setParsedData([])
                   setImportResult(null)
                 }}>
-                  继续导入
+                  {t('pages.carbon.baselineImport.buttons.continueImport')}
                 </Button>
                 <Button
                   type="primary"
                   icon={<CheckCircleOutlined />}
                   onClick={() => navigate('/carbon/baseline')}
                 >
-                  完成
+                  {t('pages.carbon.baselineImport.buttons.complete')}
                 </Button>
               </Space>
             </div>

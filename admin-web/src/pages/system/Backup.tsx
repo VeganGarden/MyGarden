@@ -1,8 +1,10 @@
 import { systemAPI } from '@/services/cloudbase'
 import { Alert, Button, Card, Space, message } from 'antd'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const Backup: React.FC = () => {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   const onBackup = async () => {
@@ -10,32 +12,32 @@ const Backup: React.FC = () => {
     try {
       const res = await systemAPI.runBackupExport()
       if (res.code === 0) {
-        message.success(res.message || '已触发备份')
+        message.success(res.message || t('pages.system.backup.messages.backupTriggered'))
       } else {
-        message.error(res.message || '触发失败')
+        message.error(res.message || t('pages.system.backup.messages.triggerFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '触发失败')
+      message.error(e.message || t('pages.system.backup.messages.triggerFailed'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Card title="数据备份" bordered={false}>
+    <Card title={t('pages.system.backup.title')} bordered={false}>
       <Alert
-        message="说明"
-        description="这里将提供数据库集合导出、备份计划管理与一键恢复能力。当前为占位页面，后续接入云函数。"
+        message={t('pages.system.backup.alert.title')}
+        description={t('pages.system.backup.alert.description')}
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
       />
       <Space>
         <Button type="primary" onClick={onBackup} loading={loading}>
-          立即备份
+          {t('pages.system.backup.buttons.backupNow')}
         </Button>
-        <Button>导出集合</Button>
-        <Button danger>从备份恢复</Button>
+        <Button>{t('pages.system.backup.buttons.exportCollections')}</Button>
+        <Button danger>{t('pages.system.backup.buttons.restoreFromBackup')}</Button>
       </Space>
     </Card>
   )

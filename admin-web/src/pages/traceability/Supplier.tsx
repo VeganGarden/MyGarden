@@ -3,6 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button, Card, Input, Select, Table, Space, Tag, message, Modal } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, AuditOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
@@ -13,6 +14,7 @@ import { SupplierType, SupplierAuditStatus, RiskLevel } from '@/types/traceabili
 const { Search } = Input
 
 const SupplierPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -42,7 +44,7 @@ const SupplierPage: React.FC = () => {
           totalPages: 0
         })
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.traceability.supplier.messages.loadFailed'))
         setSuppliers([])
         setPagination({
           page: 1,
@@ -53,7 +55,7 @@ const SupplierPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('加载供应商数据失败:', error)
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
       setSuppliers([])
       setPagination({
         page: 1,
@@ -73,15 +75,15 @@ const SupplierPage: React.FC = () => {
   // 删除确认
   const handleDelete = (supplier: Supplier) => {
     Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除供应商"${supplier.name}"吗？`,
+      title: t('pages.traceability.supplier.messages.deleteConfirm'),
+      content: t('pages.traceability.supplier.messages.deleteMessage', { name: supplier.name }),
       onOk: async () => {
         const result = await supplierAPI.delete(supplier.supplierId, supplier.tenantId)
         if (result.success) {
-          message.success('删除成功')
+          message.success(t('pages.traceability.supplier.messages.deleteSuccess'))
           loadData()
         } else {
-          message.error(result.error || '删除失败')
+          message.error(result.error || t('pages.traceability.supplier.messages.deleteFailed'))
         }
       }
     })
@@ -90,32 +92,32 @@ const SupplierPage: React.FC = () => {
   // 表格列定义
   const columns = [
     {
-      title: '供应商名称',
+      title: t('pages.traceability.supplier.table.columns.name'),
       dataIndex: 'name',
       key: 'name'
     },
     {
-      title: '供应商ID',
+      title: t('pages.traceability.supplier.table.columns.supplierId'),
       dataIndex: 'supplierId',
       key: 'supplierId',
       width: 180
     },
     {
-      title: '类型',
+      title: t('pages.traceability.supplier.table.columns.type'),
       dataIndex: 'type',
       key: 'type',
       render: (type: SupplierType) => {
         const typeMap: Record<SupplierType, string> = {
-          [SupplierType.FARM]: '农场',
-          [SupplierType.PROCESSOR]: '加工商',
-          [SupplierType.DISTRIBUTOR]: '分销商',
-          [SupplierType.OTHER]: '其他'
+          [SupplierType.FARM]: t('pages.traceability.supplier.types.farm'),
+          [SupplierType.PROCESSOR]: t('pages.traceability.supplier.types.processor'),
+          [SupplierType.DISTRIBUTOR]: t('pages.traceability.supplier.types.distributor'),
+          [SupplierType.OTHER]: t('pages.traceability.supplier.types.other')
         }
         return typeMap[type] || type
       }
     },
     {
-      title: '风险等级',
+      title: t('pages.traceability.supplier.table.columns.riskLevel'),
       dataIndex: ['businessInfo', 'riskLevel'],
       key: 'riskLevel',
       render: (level: RiskLevel) => {
@@ -125,15 +127,15 @@ const SupplierPage: React.FC = () => {
           [RiskLevel.HIGH]: 'red'
         }
         const textMap: Record<RiskLevel, string> = {
-          [RiskLevel.LOW]: '低风险',
-          [RiskLevel.MEDIUM]: '中风险',
-          [RiskLevel.HIGH]: '高风险'
+          [RiskLevel.LOW]: t('pages.traceability.supplier.riskLevels.low'),
+          [RiskLevel.MEDIUM]: t('pages.traceability.supplier.riskLevels.medium'),
+          [RiskLevel.HIGH]: t('pages.traceability.supplier.riskLevels.high')
         }
         return <Tag color={colorMap[level]}>{textMap[level]}</Tag>
       }
     },
     {
-      title: '审核状态',
+      title: t('pages.traceability.supplier.table.columns.auditStatus'),
       dataIndex: ['audit', 'status'],
       key: 'auditStatus',
       render: (status: SupplierAuditStatus) => {
@@ -143,15 +145,15 @@ const SupplierPage: React.FC = () => {
           [SupplierAuditStatus.REJECTED]: 'red'
         }
         const textMap: Record<SupplierAuditStatus, string> = {
-          [SupplierAuditStatus.PENDING]: '待审核',
-          [SupplierAuditStatus.APPROVED]: '已通过',
-          [SupplierAuditStatus.REJECTED]: '已拒绝'
+          [SupplierAuditStatus.PENDING]: t('pages.traceability.supplier.auditStatus.pending'),
+          [SupplierAuditStatus.APPROVED]: t('pages.traceability.supplier.auditStatus.approved'),
+          [SupplierAuditStatus.REJECTED]: t('pages.traceability.supplier.auditStatus.rejected')
         }
         return <Tag color={colorMap[status]}>{textMap[status]}</Tag>
       }
     },
     {
-      title: '操作',
+      title: t('pages.traceability.supplier.table.columns.actions'),
       key: 'action',
       width: 200,
       render: (_: any, record: Supplier) => (
@@ -161,7 +163,7 @@ const SupplierPage: React.FC = () => {
             size="small"
             onClick={() => navigate(`/traceability/suppliers/${record.supplierId}`)}
           >
-            查看
+            {t('pages.traceability.supplier.buttons.view')}
           </Button>
           <Button
             type="link"
@@ -169,7 +171,7 @@ const SupplierPage: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`/traceability/suppliers/${record.supplierId}/edit`)}
           >
-            编辑
+            {t('pages.traceability.supplier.buttons.edit')}
           </Button>
           <Button
             type="link"
@@ -178,7 +180,7 @@ const SupplierPage: React.FC = () => {
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record)}
           >
-            删除
+            {t('pages.traceability.supplier.buttons.delete')}
           </Button>
         </Space>
       )
@@ -186,20 +188,20 @@ const SupplierPage: React.FC = () => {
   ]
 
   return (
-    <Card title="供应商管理" extra={
+    <Card title={t('pages.traceability.supplier.title')} extra={
       <Button
         type="primary"
         icon={<PlusOutlined />}
         onClick={() => navigate('/traceability/suppliers/add')}
       >
-        添加供应商
+        {t('pages.traceability.supplier.buttons.add')}
       </Button>
     }>
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         {/* 筛选器 */}
         <Space>
           <Search
-            placeholder="搜索供应商名称、注册号"
+            placeholder={t('pages.traceability.supplier.filters.search')}
             allowClear
             style={{ width: 300 }}
             onSearch={(value) => {
@@ -207,41 +209,41 @@ const SupplierPage: React.FC = () => {
             }}
           />
           <Select
-            placeholder="供应商类型"
+            placeholder={t('pages.traceability.supplier.filters.type')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
               setQueryParams({ ...queryParams, type: value, page: 1 })
             }}
           >
-            <Select.Option value={SupplierType.FARM}>农场</Select.Option>
-            <Select.Option value={SupplierType.PROCESSOR}>加工商</Select.Option>
-            <Select.Option value={SupplierType.DISTRIBUTOR}>分销商</Select.Option>
-            <Select.Option value={SupplierType.OTHER}>其他</Select.Option>
+            <Select.Option value={SupplierType.FARM}>{t('pages.traceability.supplier.types.farm')}</Select.Option>
+            <Select.Option value={SupplierType.PROCESSOR}>{t('pages.traceability.supplier.types.processor')}</Select.Option>
+            <Select.Option value={SupplierType.DISTRIBUTOR}>{t('pages.traceability.supplier.types.distributor')}</Select.Option>
+            <Select.Option value={SupplierType.OTHER}>{t('pages.traceability.supplier.types.other')}</Select.Option>
           </Select>
           <Select
-            placeholder="审核状态"
+            placeholder={t('pages.traceability.supplier.filters.auditStatus')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
               setQueryParams({ ...queryParams, status: value, page: 1 })
             }}
           >
-            <Select.Option value={SupplierAuditStatus.PENDING}>待审核</Select.Option>
-            <Select.Option value={SupplierAuditStatus.APPROVED}>已通过</Select.Option>
-            <Select.Option value={SupplierAuditStatus.REJECTED}>已拒绝</Select.Option>
+            <Select.Option value={SupplierAuditStatus.PENDING}>{t('pages.traceability.supplier.auditStatus.pending')}</Select.Option>
+            <Select.Option value={SupplierAuditStatus.APPROVED}>{t('pages.traceability.supplier.auditStatus.approved')}</Select.Option>
+            <Select.Option value={SupplierAuditStatus.REJECTED}>{t('pages.traceability.supplier.auditStatus.rejected')}</Select.Option>
           </Select>
           <Select
-            placeholder="风险等级"
+            placeholder={t('pages.traceability.supplier.filters.riskLevel')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => {
               setQueryParams({ ...queryParams, riskLevel: value, page: 1 })
             }}
           >
-            <Select.Option value={RiskLevel.LOW}>低风险</Select.Option>
-            <Select.Option value={RiskLevel.MEDIUM}>中风险</Select.Option>
-            <Select.Option value={RiskLevel.HIGH}>高风险</Select.Option>
+            <Select.Option value={RiskLevel.LOW}>{t('pages.traceability.supplier.riskLevels.low')}</Select.Option>
+            <Select.Option value={RiskLevel.MEDIUM}>{t('pages.traceability.supplier.riskLevels.medium')}</Select.Option>
+            <Select.Option value={RiskLevel.HIGH}>{t('pages.traceability.supplier.riskLevels.high')}</Select.Option>
           </Select>
         </Space>
 
@@ -255,7 +257,7 @@ const SupplierPage: React.FC = () => {
             current: pagination.page,
             pageSize: pagination.pageSize,
             total: pagination.total,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             onChange: (page, pageSize) => {
               setQueryParams({ ...queryParams, page, pageSize })
             }

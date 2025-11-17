@@ -1,0 +1,98 @@
+.globalSearch {
+  width: 100%;
+}
+
+.searchOption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: var(--spacing-xs) 0;
+}
+
+.searchLabel {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.searchPath {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-left: var(--spacing-sm);
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.searchDropdown {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: slideDown var(--transition-base) var(--ease-out);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 搜索框样式优化 - 统一高度和样式 */
+.globalSearch {
+  height: 32px !important; /* 与 Select 和 Tag 高度一致 */
+}
+
+.globalSearch :global(.ant-input-affix-wrapper) {
+  height: 32px !important;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast) var(--ease-out);
+  border-color: var(--border-color-base) !important;
+}
+
+.globalSearch :global(.ant-input) {
+  height: 30px !important;
+  line-height: 30px !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+.globalSearch :global(.ant-input-affix-wrapper):hover {
+  border-color: var(--primary-hover);
+}
+
+.globalSearch :global(.ant-input-affix-wrapper-focused) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--bg-active);
+}
+
+/* 优化前缀图标和输入文字的间距 - 关键修复 */
+.globalSearch :global(.ant-input-affix-wrapper .ant-input-prefix) {
+  margin-right: 12px !important; /* 增加图标和文字之间的间距，防止 placeholder 重叠 */
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  padding-left: var(--spacing-sm);
+}
+
+/* 关键修复：不要覆盖 Ant Design 的默认 padding-left */
+/* Ant Design 会自动计算 padding-left，确保 placeholder 从 prefix 右侧开始 */
+.globalSearch :global(.ant-input-affix-wrapper .ant-input) {
+  /* 移除之前设置的 padding-left: 0，让 Ant Design 自动处理 */
+  /* 如果需要，可以设置一个最小值确保不重叠 */
+}
+
+/* 搜索图标样式 */
+.searchIcon {
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+/* 确保 placeholder 文字样式正确 */
+.globalSearch :global(.ant-input::placeholder) {
+  color: var(--text-tertiary);
+  opacity: 1;
+}

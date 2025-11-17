@@ -1,0 +1,2609 @@
+{
+  "common": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "search": "搜索",
+    "reset": "重置",
+    "submit": "提交",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "loading": "加载中...",
+    "noData": "暂无数据",
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "提示",
+    "view": "查看",
+    "import": "导入",
+    "export": "导出",
+    "refresh": "刷新",
+    "archive": "归档",
+    "activate": "激活",
+    "deactivate": "停用",
+    "copy": "复制",
+    "download": "下载",
+    "upload": "上传",
+    "batchImport": "批量导入",
+    "batchExport": "批量导出",
+    "batchDelete": "批量删除",
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "create": "创建",
+    "update": "更新",
+    "remove": "移除",
+    "close": "关闭",
+    "open": "打开",
+    "expand": "展开",
+    "collapse": "收起",
+    "filter": "筛选",
+    "sort": "排序",
+    "clear": "清空",
+    "apply": "应用",
+    "ok": "确定",
+    "yes": "是",
+    "no": "否",
+    "all": "全部",
+    "none": "无",
+    "select": "选择",
+    "pleaseSelect": "请选择",
+    "pleaseInput": "请输入",
+    "required": "必填",
+    "optional": "可选",
+    "actions": "操作",
+    "status": "状态",
+    "active": "活跃",
+    "inactive": "未激活",
+    "archived": "已归档",
+    "draft": "草稿",
+    "published": "已发布",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "createdBy": "创建人",
+    "updatedBy": "更新人",
+    "description": "描述",
+    "remarks": "备注",
+    "name": "名称",
+    "title": "标题",
+    "type": "类型",
+    "category": "分类",
+    "tags": "标签",
+    "image": "图片",
+    "attachment": "附件",
+    "link": "链接",
+    "url": "网址",
+    "phone": "电话",
+    "email": "邮箱",
+    "address": "地址",
+    "date": "日期",
+    "time": "时间",
+    "datetime": "日期时间",
+    "year": "年",
+    "month": "月",
+    "day": "日",
+    "hour": "小时",
+    "minute": "分钟",
+    "second": "秒",
+    "page": "页码",
+    "pageSize": "每页条数",
+    "total": "总计",
+    "items": "项",
+    "rows": "行",
+    "columns": "列",
+    "noResults": "无结果",
+    "searchPlaceholder": "请输入关键词搜索",
+    "filterPlaceholder": "请选择",
+    "datePlaceholder": "请选择日期",
+    "timePlaceholder": "请选择时间",
+    "datetimePlaceholder": "请选择日期时间",
+    "loadingData": "正在加载数据...",
+    "loadFailed": "加载失败",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "updateSuccess": "更新成功",
+    "updateFailed": "更新失败",
+    "createSuccess": "创建成功",
+    "createFailed": "创建失败",
+    "operationSuccess": "操作成功",
+    "operationFailed": "操作失败",
+    "confirmDelete": "确认删除",
+    "confirmDeleteMessage": "确定要删除这条记录吗？",
+    "confirmArchive": "确认归档",
+    "confirmArchiveMessage": "确定要归档这条记录吗？",
+    "confirmActivate": "确认激活",
+    "confirmActivateMessage": "确定要激活这条记录吗？",
+    "noPermission": "无权限",
+    "networkError": "网络错误",
+    "serverError": "服务器错误",
+    "unknownError": "未知错误",
+        "yuan": "元",
+        "retry": "重试",
+        "reload": "重新加载",
+        "to": "至"
+      },
+  "menu": {
+    "dashboard": "数据看板",
+    "system": "系统管理",
+    "systemUsers": "用户管理",
+    "systemRoles": "角色权限配置",
+    "systemAudit": "审计日志",
+    "systemMonitor": "系统监控",
+    "systemBackup": "数据备份",
+    "climateRestaurant": "气候餐厅认证",
+    "certificationApplication": "认证申请",
+    "certificationProgress": "认证进度",
+    "certificationCertificate": "证书管理",
+    "carbonCalculator": "碳足迹核算",
+    "carbonMenu": "菜单碳足迹",
+    "carbonOrder": "订单碳统计",
+    "carbonReport": "碳报告",
+    "carbonBaseline": "基准值管理",
+    "traceability": "供应链溯源",
+    "traceabilitySuppliers": "供应商管理",
+    "traceabilityLots": "食材批次",
+    "traceabilityChains": "溯源链",
+    "traceabilityCertificates": "溯源证书",
+    "operation": "餐厅运营",
+    "operationOrder": "订单管理",
+    "operationLedger": "运营台账",
+    "operationBehavior": "行为统计",
+    "operationCoupon": "优惠券管理",
+    "operationReview": "用户评价",
+    "report": "报表与生态",
+    "reportBusiness": "经营数据报表",
+    "reportCarbon": "碳减排报表",
+    "reportESG": "ESG报告",
+    "reportDashboard": "数据看板",
+    "recipe": "菜谱管理",
+    "recipeList": "菜谱列表",
+    "recipeCreate": "创建菜谱",
+    "recipeCategories": "分类管理",
+    "platform": "平台管理",
+    "platformRestaurants": "餐厅列表管理",
+    "platformCrossTenant": "跨租户数据查看",
+    "platformStatistics": "平台级统计报表",
+    "platformAccountApprovals": "入驻申请审批"
+  },
+  "header": {
+    "searchPlaceholder": "搜索菜单、功能...",
+    "notifications": "通知",
+    "help": "帮助",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "profile": "个人中心",
+    "logout": "退出登录"
+  },
+  "logo": {
+    "title": "气候餐厅",
+    "subtitle": "Climate Restaurant",
+    "goHome": "返回首页"
+  },
+  "notification": {
+    "title": "通知中心",
+    "empty": "暂无通知",
+    "markAllRead": "全部标记为已读",
+    "clearAll": "清空全部",
+    "unread": "未读"
+  },
+  "help": {
+    "title": "帮助中心",
+    "documentation": "使用文档",
+    "shortcuts": "快捷键",
+    "feedback": "意见反馈",
+    "about": "关于系统"
+  },
+  "language": {
+    "switch": "切换语言",
+    "chinese": "中文",
+    "english": "English"
+  },
+  "theme": {
+    "switch": "切换主题",
+    "light": "亮色",
+    "dark": "暗色",
+    "auto": "自动"
+  },
+  "empty": {
+    "default": "当前没有数据，请稍后再试",
+    "search": "未找到相关内容",
+    "searchDesc": "请尝试其他关键词或调整搜索条件",
+    "data": "暂无数据",
+    "dataDesc": "数据加载中或暂无相关数据",
+    "error": "加载失败",
+    "errorDesc": "数据加载失败，请刷新重试"
+  },
+  "pages": {
+    "carbon": {
+      "baselineList": {
+        "title": "碳足迹基准值管理",
+        "buttons": {
+          "add": "添加基准值",
+          "import": "批量导入",
+          "refresh": "刷新",
+          "checkDatabase": "检查数据库状态"
+        },
+        "table": {
+          "columns": {
+            "baselineId": "基准值ID",
+            "region": "地区",
+            "mealType": "餐食类型",
+            "energyType": "用能方式",
+            "value": "基准值",
+            "version": "版本",
+            "status": "状态",
+            "updatedAt": "更新时间",
+            "actions": "操作"
+          },
+          "actions": {
+            "view": "查看",
+            "edit": "编辑",
+            "archive": "归档",
+            "activate": "激活"
+          }
+        },
+        "filters": {
+          "search": "搜索基准值ID、版本号、机构名称",
+          "region": "地区",
+          "mealType": "餐食类型",
+          "energyType": "用能方式",
+          "status": "状态"
+        },
+        "regions": {
+          "northChina": "华北",
+          "northeast": "东北",
+          "eastChina": "华东",
+          "centralChina": "华中",
+          "northwest": "西北",
+          "southChina": "南方",
+          "nationalAverage": "全国平均"
+        },
+        "mealTypes": {
+          "meatSimple": "肉食简餐",
+          "meatFull": "肉食正餐"
+        },
+        "energyTypes": {
+          "electric": "全电",
+          "gas": "燃气",
+          "mixed": "混合"
+        },
+        "status": {
+          "active": "活跃",
+          "archived": "已归档",
+          "draft": "草稿"
+        },
+        "messages": {
+          "loadFailed": "获取列表失败",
+          "archiveSuccess": "归档成功",
+          "archiveFailed": "归档失败",
+          "activateSuccess": "激活成功",
+          "activateFailed": "激活失败",
+          "confirmArchive": "确认归档",
+          "confirmArchiveDescription": "确定要归档这条基准值吗？归档后将不再用于查询。",
+          "initLoading": "正在初始化数据库...",
+          "initSuccess": "数据库已初始化，共 {{count}} 条数据",
+          "initIncomplete": "数据库未完整初始化，请调用 carbon-baseline-init 云函数",
+          "initCheckFailed": "检查失败",
+          "initFailed": "初始化失败: {{error}}"
+        },
+        "empty": {
+          "noData": "暂无数据，请先初始化数据库或添加基准值",
+          "noDataSimple": "暂无数据"
+        },
+        "pagination": {
+          "total": "共 {{total}} 条记录"
+        }
+      },
+      "baselineAdd": {
+        "title": "添加基准值",
+        "buttons": {
+          "back": "返回列表",
+          "prev": "上一步",
+          "next": "下一步",
+          "submit": "提交"
+        },
+        "steps": {
+          "basicInfo": "基本信息",
+          "baselineData": "基准值数据",
+          "sourceVersion": "数据来源与版本"
+        },
+        "messages": {
+          "createSuccess": "创建成功",
+          "createFailed": "创建失败",
+          "breakdownMismatch": "分解数据总和({{total}})应与基准值({{value}})一致"
+        }
+      },
+      "baselineEdit": {
+        "title": "编辑基准值",
+        "buttons": {
+          "back": "返回详情",
+          "cancel": "取消",
+          "save": "保存"
+        },
+        "version": {
+          "updateCurrent": "更新当前版本",
+          "createNew": "创建新版本",
+          "confirmTitle": "确认创建新版本",
+          "confirmMessage": "确定要创建新版本吗？当前版本将被保留，新版本将使用新的版本号。"
+        },
+        "messages": {
+          "getDetailFailed": "获取详情失败",
+          "updateSuccess": "更新成功",
+          "updateFailed": "更新失败",
+          "breakdownMismatch": "分解数据总和({{total}})应与基准值({{value}})一致"
+        }
+      },
+      "baselineDetail": {
+        "title": "基准值详情",
+        "buttons": {
+          "back": "返回列表",
+          "edit": "编辑"
+        },
+        "sections": {
+          "basicInfo": "基本信息",
+          "baselineData": "基准值数据",
+          "source": "数据来源",
+          "version": "版本信息",
+          "notes": "备注"
+        },
+        "fields": {
+          "baselineId": "基准值ID",
+          "status": "状态",
+          "region": "地区",
+          "mealType": "餐食类型",
+          "energyType": "用能方式",
+          "city": "城市",
+          "restaurantType": "餐厅类型",
+          "baselineValue": "基准值",
+          "uncertainty": "不确定性",
+          "confidenceLower": "置信区间下限",
+          "confidenceUpper": "置信区间上限",
+          "breakdown": "分解数据",
+          "ingredients": "食材",
+          "cookingEnergy": "烹饪能耗",
+          "packaging": "包装",
+          "other": "其他",
+          "sourceType": "来源类型",
+          "organization": "机构名称",
+          "report": "报告名称",
+          "year": "年份",
+          "methodology": "计算方法",
+          "version": "版本号",
+          "usageCount": "使用次数",
+          "effectiveDate": "有效日期",
+          "expiryDate": "失效日期",
+          "createdAt": "创建时间",
+          "updatedAt": "更新时间",
+          "createdBy": "创建人",
+          "updatedBy": "更新人",
+          "lastUsedAt": "最后使用时间"
+        },
+        "messages": {
+          "getDetailFailed": "获取详情失败"
+        }
+      },
+      "baselineImport": {
+        "title": "批量导入基准值",
+        "buttons": {
+          "back": "返回列表",
+          "selectFile": "选择文件",
+          "downloadTemplate": "下载导入模板",
+          "reupload": "重新上传",
+          "confirmImport": "确认导入",
+          "continueImport": "继续导入",
+          "complete": "完成"
+        },
+        "steps": {
+          "upload": "上传文件",
+          "preview": "数据预览",
+          "result": "导入结果"
+        },
+        "upload": {
+          "formats": "支持格式：Excel (.xlsx, .xls), CSV",
+          "requiredFields": "请确保文件包含以下字段：",
+          "requiredFieldsList": {
+            "category": "餐食类型、地区、用能方式（必填）",
+            "carbon": "基准值、不确定性（必填）",
+            "breakdown": "分解数据：食材、烹饪能耗、包装、其他（必填）",
+            "source": "数据来源：来源类型、机构名称、报告名称、年份、计算方法（必填）",
+            "version": "版本号、有效日期、失效日期（必填）"
+          },
+          "templateDownloading": "模板下载功能开发中"
+        },
+        "preview": {
+          "totalData": "总数据量",
+          "fileName": "文件名称",
+          "columns": {
+            "region": "地区",
+            "mealType": "餐食类型",
+            "energyType": "用能方式",
+            "value": "基准值",
+            "version": "版本"
+          }
+        },
+        "result": {
+          "success": "成功",
+          "failed": "失败",
+          "skipped": "跳过",
+          "total": "总计",
+          "errorDetails": "错误详情："
+        },
+        "messages": {
+          "parseSuccess": "成功解析 {{count}} 条数据",
+          "parseFailed": "文件解析失败: {{error}}",
+          "validationFailed": "有 {{count}} 条数据验证失败，请修正后重试",
+          "noValidData": "没有有效数据可导入",
+          "importSuccess": "成功导入 {{count}} 条数据",
+          "importPartial": "导入完成：成功 {{success}} 条，失败 {{failed}} 条",
+          "importFailed": "导入失败: {{error}}"
+        },
+        "validation": {
+          "mealTypeRequired": "餐食类型必填",
+          "regionRequired": "地区必填",
+          "energyTypeRequired": "用能方式必填",
+          "valueRequired": "基准值必须大于0",
+          "organizationRequired": "机构名称必填",
+          "versionRequired": "版本号必填",
+          "effectiveDateRequired": "有效日期必填",
+          "expiryDateRequired": "失效日期必填",
+          "expiryBeforeEffective": "失效日期必须晚于有效日期",
+          "breakdownMismatch": "分解数据总和({{total}})应与基准值({{value}})一致"
+        }
+      },
+      "menu": {
+        "title": "菜单碳足迹管理",
+        "buttons": {
+          "batchImport": "批量导入",
+          "addDish": "添加菜品",
+          "recalculate": "重新计算",
+          "edit": "编辑",
+          "delete": "删除",
+          "calculate": "计算碳足迹"
+        },
+        "table": {
+          "columns": {
+            "name": "菜品名称",
+            "carbonFootprint": "碳足迹",
+            "carbonLabel": "碳标签",
+            "carbonScore": "碳评分",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "filters": {
+          "search": "搜索菜品名称",
+          "carbonLabel": "筛选碳标签"
+        },
+        "modal": {
+          "title": "菜品信息",
+          "fields": {
+            "name": "菜品名称",
+            "ingredients": "食材清单",
+            "cookingMethod": "烹饪方式",
+            "portion": "份量(g)"
+          },
+          "cookingMethods": {
+            "raw": "生食/凉拌",
+            "steam": "蒸",
+            "boil": "煮/炖",
+            "fry": "炒/煎",
+            "bake": "烤/烘焙",
+            "deepFry": "炸"
+          },
+          "placeholders": {
+            "name": "请输入菜品名称",
+            "ingredients": "请输入食材及份量，例如：菠菜200g、胡萝卜150g",
+            "cookingMethod": "请选择烹饪方式",
+            "portion": "请输入份量"
+          }
+        },
+        "messages": {
+          "selectRestaurant": "提示：请先选择要管理的餐厅",
+          "calculateInProgress": "碳足迹计算功能开发中",
+          "importInProgress": "批量导入功能开发中",
+          "deleteConfirm": "确认删除",
+          "deleteMessage": "确定要删除这道菜品吗？",
+          "deleteSuccess": "删除成功",
+          "saveSuccess": "保存成功"
+        },
+        "pagination": {
+          "total": "共 {{total}} 条记录"
+        }
+      },
+      "order": {
+        "title": "订单碳足迹统计",
+        "buttons": {
+          "export": "导出数据"
+        },
+        "statistics": {
+          "todayCarbon": "今日订单碳足迹",
+          "todayReduction": "今日碳减排量",
+          "totalReduction": "累计碳减排量",
+          "totalOrders": "订单总数"
+        },
+        "trend": {
+          "title": "订单碳足迹趋势"
+        },
+        "table": {
+          "title": "订单列表",
+          "columns": {
+            "orderNo": "订单号",
+            "orderDate": "订单日期",
+            "totalCarbon": "订单碳足迹",
+            "carbonReduction": "碳减排量",
+            "orderAmount": "订单金额",
+            "status": "状态"
+          }
+        }
+      },
+      "report": {
+        "title": "碳报告管理",
+        "buttons": {
+          "generate": "生成报告",
+          "preview": "预览",
+          "downloadPdf": "下载PDF",
+          "downloadExcel": "下载Excel",
+          "share": "分享"
+        },
+        "types": {
+          "monthly": "月度报告",
+          "yearly": "年度报告",
+          "esg": "ESG报告"
+        },
+        "tabs": {
+          "preview": "报告预览",
+          "history": "历史报告"
+        },
+        "preview": {
+          "monthlyTitle": "月度碳报告",
+          "yearlyTitle": "年度碳报告",
+          "esgTitle": "ESG碳报告",
+          "monthlyData": "月度碳减排数据",
+          "yearlyTrend": "年度碳减排趋势",
+          "esgContent": "ESG报告内容",
+          "environmental": "环境数据 (Environmental)",
+          "social": "社会数据 (Social)",
+          "governance": "治理数据 (Governance)"
+        },
+        "history": {
+          "inProgress": "历史报告列表功能开发中"
+        },
+        "messages": {
+          "generateInProgress": "报告生成功能开发中",
+          "downloadInProgress": "{{format}}格式报告下载功能开发中",
+          "shareInProgress": "报告分享功能开发中"
+        }
+      }
+    },
+    "recipe": {
+      "list": {
+        "title": "菜谱列表",
+        "buttons": {
+          "search": "搜索",
+          "create": "创建新菜谱"
+        },
+        "table": {
+          "columns": {
+            "name": "菜谱名称",
+            "category": "分类",
+            "ingredients": "食材数",
+            "carbonFootprint": "碳足迹",
+            "carbonLabel": "碳标签",
+            "status": "状态",
+            "version": "版本",
+            "actions": "操作"
+          },
+          "actions": {
+            "view": "查看",
+            "edit": "编辑",
+            "copy": "复制",
+            "delete": "删除"
+          },
+          "ingredientsCount": "{{count}} 种"
+        },
+        "filters": {
+          "search": "搜索菜谱名称...",
+          "status": {
+            "all": "全部状态",
+            "draft": "草稿",
+            "published": "已发布",
+            "archived": "已归档"
+          },
+          "category": {
+            "all": "全部分类",
+            "hot": "热菜",
+            "cold": "凉菜",
+            "soup": "汤品",
+            "staple": "主食",
+            "dessert": "甜品",
+            "drink": "饮品"
+          },
+          "carbonLabel": {
+            "all": "全部碳标签",
+            "ultraLow": "超低碳",
+            "low": "低碳",
+            "medium": "中碳",
+            "high": "高碳",
+            "notCalculated": "未计算"
+          }
+        },
+        "status": {
+          "draft": "草稿",
+          "published": "已发布",
+          "archived": "已归档",
+          "unknown": "未知"
+        },
+        "messages": {
+          "loadFailed": "加载菜谱列表失败",
+          "deleteSuccess": "删除成功",
+          "deleteFailed": "删除失败",
+          "confirmDelete": "确定要删除这个菜谱吗？"
+        },
+        "tips": {
+          "viewAllRestaurants": "提示：当前查看所有餐厅的菜谱，可在右上角切换查看具体餐厅的菜谱"
+        },
+        "pagination": {
+          "total": "共 {{total}} 条"
+        }
+      },
+      "create": {
+        "title": "创建菜谱",
+        "fields": {
+          "name": "菜谱名称",
+          "description": "描述",
+          "category": "分类",
+          "cookingMethod": "烹饪方式",
+          "ingredients": "食材配置",
+          "carbonResult": "碳足迹结果",
+          "channels": "渠道配置"
+        },
+        "buttons": {
+          "addIngredient": "添加食材",
+          "calculateCarbon": "计算碳足迹",
+          "saveDraft": "保存草稿",
+          "publish": "发布",
+          "cancel": "取消"
+        },
+        "ingredientsTable": {
+          "columns": {
+            "name": "食材名称",
+            "quantity": "数量",
+            "unit": "单位",
+            "actions": "操作"
+          },
+          "actions": {
+            "delete": "删除"
+          }
+        },
+        "carbonResult": {
+          "footprint": "碳足迹：",
+          "label": "碳标签：",
+          "score": "碳评分："
+        },
+        "channels": {
+          "dineIn": "堂食",
+          "takeOut": "外卖",
+          "promotion": "宣传物料"
+        },
+        "placeholders": {
+          "name": "请输入菜谱名称",
+          "description": "请输入菜谱描述（可选）",
+          "category": "请选择分类",
+          "cookingMethod": "请选择烹饪方式"
+        },
+        "messages": {
+          "nameRequired": "请输入菜谱名称",
+          "categoryRequired": "请选择分类",
+          "cookingMethodRequired": "请选择烹饪方式",
+          "addIngredientFirst": "请先添加食材",
+          "setQuantity": "请设置所有食材的数量",
+          "selectCookingMethod": "请先选择烹饪方式",
+          "addAtLeastOne": "请至少添加一种食材",
+          "calculateSuccess": "碳足迹计算成功",
+          "calculateFailed": "计算失败",
+          "publishSuccess": "发布成功",
+          "updateSuccess": "更新成功",
+          "saveSuccess": "保存成功",
+          "saveFailed": "保存失败",
+          "loadFailed": "加载菜谱失败"
+        },
+        "copy": {
+          "suffix": " (副本)"
+        }
+      },
+      "edit": {
+        "loading": "加载中..."
+      },
+      "detail": {
+        "title": "菜谱详情",
+        "buttons": {
+          "back": "返回",
+          "edit": "编辑",
+          "copy": "复制",
+          "delete": "删除"
+        },
+        "sections": {
+          "basicInfo": "基本信息",
+          "ingredients": "食材清单",
+          "carbon": "碳足迹信息",
+          "channels": "渠道配置"
+        },
+        "fields": {
+          "name": "菜谱名称",
+          "description": "描述",
+          "category": "分类",
+          "cookingMethod": "烹饪方式",
+          "status": "状态",
+          "version": "版本",
+          "carbonFootprint": "碳足迹",
+          "carbonLabel": "碳标签",
+          "carbonScore": "碳评分",
+          "createdAt": "创建时间",
+          "updatedAt": "更新时间"
+        },
+        "ingredientsTable": {
+          "columns": {
+            "name": "食材名称",
+            "quantity": "数量",
+            "unit": "单位",
+            "carbonCoefficient": "碳系数"
+          }
+        },
+        "messages": {
+          "loadFailed": "加载菜谱失败",
+          "deleteSuccess": "删除成功",
+          "deleteFailed": "删除失败",
+          "confirmDelete": "确定要删除这个菜谱吗？"
+        }
+      },
+      "categories": {
+        "title": "菜谱分类管理",
+        "buttons": {
+          "add": "添加分类",
+          "edit": "编辑",
+          "delete": "删除"
+        },
+        "table": {
+          "columns": {
+            "name": "分类名称",
+            "code": "分类代码",
+            "description": "描述",
+            "recipeCount": "菜谱数量",
+            "actions": "操作"
+          }
+        },
+        "modal": {
+          "addTitle": "添加分类",
+          "editTitle": "编辑分类",
+          "fields": {
+            "name": "分类名称",
+            "code": "分类代码",
+            "description": "描述"
+          },
+          "placeholders": {
+            "name": "请输入分类名称",
+            "code": "请输入分类代码（英文）",
+            "description": "请输入分类描述（可选）"
+          },
+          "messages": {
+            "nameRequired": "请输入分类名称",
+            "codeRequired": "请输入分类代码"
+          }
+        },
+        "messages": {
+          "addSuccess": "添加成功",
+          "updateSuccess": "更新成功",
+          "deleteSuccess": "删除成功",
+          "confirmDelete": "确定要删除这个分类吗？"
+        }
+      }
+    },
+    "traceability": {
+      "supplier": {
+        "title": "供应商管理",
+        "buttons": {
+          "add": "添加供应商",
+          "view": "查看",
+          "edit": "编辑",
+          "delete": "删除"
+        },
+        "table": {
+          "columns": {
+            "name": "供应商名称",
+            "supplierId": "供应商ID",
+            "type": "类型",
+            "riskLevel": "风险等级",
+            "auditStatus": "审核状态",
+            "actions": "操作"
+          }
+        },
+        "filters": {
+          "search": "搜索供应商名称、注册号",
+          "type": "供应商类型",
+          "auditStatus": "审核状态",
+          "riskLevel": "风险等级"
+        },
+        "types": {
+          "farm": "农场",
+          "processor": "加工商",
+          "distributor": "分销商",
+          "other": "其他"
+        },
+        "riskLevels": {
+          "low": "低风险",
+          "medium": "中风险",
+          "high": "高风险"
+        },
+        "auditStatus": {
+          "pending": "待审核",
+          "approved": "已通过",
+          "rejected": "已拒绝"
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "deleteConfirm": "确认删除",
+          "deleteMessage": "确定要删除供应商\"{{name}}\"吗？",
+          "deleteSuccess": "删除成功",
+          "deleteFailed": "删除失败"
+        }
+      },
+      "supplierAdd": {
+        "title": "添加供应商",
+        "buttons": {
+          "back": "返回",
+          "submit": "提交",
+          "cancel": "取消"
+        },
+        "fields": {
+          "name": "供应商名称",
+          "type": "供应商类型",
+          "legalName": "法人名称",
+          "registrationNumber": "注册号/统一社会信用代码",
+          "riskLevel": "风险等级",
+          "phone": "联系电话",
+          "email": "邮箱",
+          "province": "省份",
+          "city": "城市",
+          "district": "区县",
+          "detail": "详细地址",
+          "businessScope": "经营范围",
+          "annualCapacity": "年产能（吨）",
+          "mainProducts": "主要产品（用逗号分隔）"
+        },
+        "sections": {
+          "contact": "联系信息",
+          "address": "地址信息"
+        },
+        "placeholders": {
+          "name": "请输入供应商名称",
+          "type": "请选择供应商类型",
+          "legalName": "请输入法人名称",
+          "registrationNumber": "请输入注册号",
+          "phone": "请输入联系电话",
+          "email": "请输入邮箱",
+          "province": "请输入省份",
+          "city": "请输入城市",
+          "district": "请输入区县",
+          "detail": "请输入详细地址",
+          "businessScope": "请输入经营范围",
+          "annualCapacity": "请输入年产能",
+          "mainProducts": "例如：大米,小麦,玉米"
+        },
+        "messages": {
+          "nameRequired": "请输入供应商名称",
+          "typeRequired": "请选择供应商类型",
+          "createSuccess": "创建成功",
+          "createFailed": "创建失败"
+        }
+      },
+      "supplierEdit": {
+        "title": "编辑供应商",
+        "messages": {
+          "loadFailed": "加载失败",
+          "updateSuccess": "更新成功",
+          "updateFailed": "更新失败"
+        }
+      },
+      "supplierDetail": {
+        "title": "供应商详情",
+        "tabs": {
+          "basic": "基本信息",
+          "certifications": "认证信息",
+          "cooperation": "合作记录",
+          "audit": "审核历史"
+        },
+        "fields": {
+          "supplierId": "供应商ID",
+          "name": "供应商名称",
+          "type": "供应商类型",
+          "legalName": "法人名称",
+          "registrationNumber": "注册号",
+          "riskLevel": "风险等级",
+          "auditStatus": "审核状态",
+          "cooperationStatus": "合作状态",
+          "phone": "联系电话",
+          "email": "邮箱",
+          "address": "地址"
+        },
+        "cooperationStatus": {
+          "pending": "待合作",
+          "active": "合作中",
+          "suspended": "已暂停",
+          "terminated": "已终止"
+        },
+        "certifications": {
+          "columns": {
+            "type": "认证类型",
+            "name": "认证名称",
+            "certificateNumber": "证书编号",
+            "issuer": "发证机构",
+            "issueDate": "发证日期",
+            "expiryDate": "到期日期",
+            "status": "状态"
+          },
+          "status": {
+            "valid": "有效",
+            "expired": "已过期",
+            "revoked": "已撤销"
+          }
+        },
+        "cooperation": {
+          "fields": {
+            "startDate": "合作开始日期",
+            "lastOrderDate": "最后订单日期",
+            "totalOrders": "总订单数",
+            "totalAmount": "总交易金额"
+          }
+        },
+        "audit": {
+          "fields": {
+            "submittedAt": "提交时间",
+            "reviewedAt": "审核时间",
+            "reviewedBy": "审核人",
+            "version": "版本",
+            "reviewComments": "审核意见"
+          }
+        },
+        "messages": {
+          "loadFailed": "加载失败"
+        }
+      },
+      "ingredientLotList": {
+        "title": "食材批次管理",
+        "buttons": {
+          "add": "添加批次",
+          "view": "查看",
+          "edit": "编辑"
+        },
+        "table": {
+          "columns": {
+            "batchNumber": "批次号",
+            "ingredientName": "食材名称",
+            "supplierName": "供应商",
+            "harvestDate": "采收日期",
+            "quantity": "数量",
+            "inventory": "库存",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "filters": {
+          "search": "搜索食材名称",
+          "supplier": "供应商",
+          "status": "库存状态",
+          "harvestDateStart": "采收日期开始",
+          "harvestDateEnd": "采收日期结束"
+        },
+        "status": {
+          "inStock": "有库存",
+          "lowStock": "库存不足",
+          "outOfStock": "缺货",
+          "expired": "已过期"
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "deleteNotImplemented": "删除功能待实现"
+        }
+      },
+      "ingredientLotAdd": {
+        "title": "添加食材批次",
+        "fields": {
+          "ingredientId": "食材ID",
+          "supplierId": "供应商ID",
+          "batchNumber": "批次号",
+          "harvestDate": "采收日期",
+          "productionDate": "生产日期",
+          "expiryDate": "保质期至",
+          "quantity": "数量",
+          "unit": "单位",
+          "province": "省份",
+          "city": "城市",
+          "district": "区县",
+          "farmName": "农场名称",
+          "restaurantId": "餐厅ID"
+        },
+        "sections": {
+          "origin": "产地信息"
+        },
+        "placeholders": {
+          "ingredientId": "请输入食材ID",
+          "supplierId": "请输入供应商ID",
+          "batchNumber": "请输入批次号",
+          "quantity": "请输入数量",
+          "province": "请输入省份",
+          "city": "请输入城市",
+          "district": "请输入区县",
+          "farmName": "请输入农场名称",
+          "restaurantId": "请输入餐厅ID（可选）"
+        },
+        "units": {
+          "ton": "吨",
+          "piece": "件"
+        },
+        "messages": {
+          "ingredientIdRequired": "请输入食材ID",
+          "supplierIdRequired": "请输入供应商ID",
+          "batchNumberRequired": "请输入批次号",
+          "harvestDateRequired": "请选择采收日期",
+          "quantityRequired": "请输入数量",
+          "unitRequired": "请选择单位",
+          "createSuccess": "创建成功",
+          "createFailed": "创建失败"
+        }
+      },
+      "ingredientLotEdit": {
+        "title": "编辑食材批次",
+        "messages": {
+          "loadFailed": "加载失败",
+          "updateSuccess": "更新成功",
+          "updateFailed": "更新失败"
+        }
+      },
+      "ingredientLotDetail": {
+        "title": "食材批次详情",
+        "tabs": {
+          "basic": "基本信息",
+          "quality": "质检信息",
+          "logistics": "物流信息",
+          "inventory": "库存信息",
+          "usage": "使用记录"
+        },
+        "fields": {
+          "lotId": "批次ID",
+          "batchNumber": "批次号",
+          "ingredientName": "食材名称",
+          "supplierName": "供应商",
+          "harvestDate": "采收日期",
+          "productionDate": "生产日期",
+          "expiryDate": "保质期至",
+          "quantity": "数量",
+          "originProvince": "产地省份",
+          "originCity": "产地城市",
+          "farmName": "农场名称",
+          "inspectionDate": "质检日期",
+          "inspector": "质检人",
+          "inspectionResult": "质检结果",
+          "testItems": "检测项目",
+          "transportMode": "运输方式",
+          "transportCompany": "运输公司",
+          "departureDate": "出发日期",
+          "arrivalDate": "到达日期",
+          "departureLocation": "出发地",
+          "arrivalLocation": "到达地",
+          "transportCarbonFootprint": "运输碳足迹",
+          "currentStock": "当前库存",
+          "inventoryStatus": "库存状态",
+          "location": "存储位置",
+          "lastUsedDate": "最后使用日期"
+        },
+        "qualityResult": {
+          "pass": "通过",
+          "fail": "不通过",
+          "pending": "待检"
+        },
+        "qualityTable": {
+          "columns": {
+            "item": "检测项目",
+            "standard": "标准值",
+            "actual": "实际值",
+            "result": "结果"
+          }
+        },
+        "usageTable": {
+          "columns": {
+            "menuItemName": "菜品名称",
+            "quantity": "使用数量",
+            "usedDate": "使用日期",
+            "orderId": "订单ID"
+          }
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "noQualityInfo": "暂无质检信息",
+          "noLogisticsInfo": "暂无物流信息",
+          "noUsageRecords": "暂无使用记录"
+        }
+      },
+      "traceChainList": {
+        "title": "溯源链管理",
+        "buttons": {
+          "build": "构建溯源链",
+          "view": "查看"
+        },
+        "table": {
+          "columns": {
+            "traceId": "溯源链ID",
+            "menuItemName": "菜品名称",
+            "nodeCount": "节点数量",
+            "trustScore": "信任度评分",
+            "scoreUnit": "分",
+            "status": "状态",
+            "verificationStatus": "验证状态",
+            "actions": "操作"
+          }
+        },
+        "filters": {
+          "search": "搜索菜品名称或溯源链ID",
+          "status": "状态",
+          "verificationStatus": "验证状态"
+        },
+        "status": {
+          "draft": "草稿",
+          "active": "活跃",
+          "archived": "已归档",
+          "expired": "已过期"
+        },
+        "verificationStatus": {
+          "pending": "待验证",
+          "verified": "已验证",
+          "rejected": "已拒绝"
+        },
+        "messages": {
+          "loadFailed": "加载失败"
+        }
+      },
+      "traceChainBuild": {
+        "title": "构建溯源链",
+        "steps": {
+          "selectMenuItem": "选择菜品和批次",
+          "addNodes": "添加溯源节点",
+          "verifyAndSubmit": "验证和提交"
+        },
+        "fields": {
+          "menuItemId": "菜品ID",
+          "lotId": "食材批次ID",
+          "restaurantId": "餐厅ID",
+          "chainType": "溯源链类型"
+        },
+        "placeholders": {
+          "menuItemId": "请输入菜品ID",
+          "lotId": "请输入批次ID",
+          "restaurantId": "请输入餐厅ID（可选）",
+          "nodeName": "节点名称"
+        },
+        "chainTypes": {
+          "full": "完整",
+          "partial": "部分",
+          "simplified": "简化"
+        },
+        "nodeTypes": {
+          "supplier": "供应商",
+          "processor": "加工",
+          "transport": "运输",
+          "restaurant": "餐厅",
+          "other": "其他"
+        },
+        "nodeLabel": "节点 {{order}}",
+        "buttons": {
+          "addNode": "添加节点"
+        },
+        "verify": {
+          "nodeCount": "节点数量: {{count}}",
+          "confirmMessage": "请确认信息无误后提交"
+        },
+        "messages": {
+          "addNodeRequired": "请至少添加一个节点",
+          "menuItemIdRequired": "请输入菜品ID",
+          "lotIdRequired": "请输入批次ID",
+          "buildSuccess": "构建成功",
+          "buildFailed": "构建失败"
+        }
+      },
+      "traceChainView": {
+        "title": "溯源链详情",
+        "buttons": {
+          "generateQRCode": "生成二维码",
+          "share": "分享"
+        },
+        "fields": {
+          "menuItemName": "菜品名称",
+          "traceId": "溯源链ID",
+          "nodeCount": "节点数量",
+          "totalCarbonFootprint": "总碳足迹"
+        },
+        "cards": {
+          "flowChart": "溯源流程图",
+          "timeline": "溯源时间轴",
+          "carbonBreakdown": "碳足迹分解"
+        },
+        "carbonBreakdown": {
+          "production": "生产阶段",
+          "transport": "运输阶段",
+          "processing": "加工阶段",
+          "storage": "存储阶段",
+          "other": "其他"
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "shareLinkGenerated": "分享链接已生成",
+          "generateFailed": "生成失败"
+        }
+      },
+      "certificateList": {
+        "title": "溯源证书",
+        "buttons": {
+          "view": "查看"
+        },
+        "table": {
+          "columns": {
+            "certificateNumber": "证书编号",
+            "menuItemName": "菜品名称",
+            "traceId": "溯源链ID",
+            "status": "状态",
+            "createdAt": "生成时间",
+            "actions": "操作"
+          }
+        },
+        "status": {
+          "active": "有效",
+          "expired": "已过期",
+          "revoked": "已撤销"
+        },
+        "messages": {
+          "loadFailed": "加载失败"
+        }
+      },
+      "certificateView": {
+        "title": "溯源证书",
+        "buttons": {
+          "download": "下载证书",
+          "share": "分享",
+          "downloadAndView": "下载证书查看"
+        },
+        "pdfTitle": "证书PDF",
+        "imageAlt": "证书图片",
+        "qrCodeAlt": "证书二维码",
+        "certificateInfo": {
+          "title": "证书信息",
+          "fields": {
+            "certificateNumber": "证书编号",
+            "createdAt": "生成时间",
+            "status": "状态"
+          },
+          "status": {
+            "active": "有效",
+            "inactive": "无效"
+          }
+        },
+        "pdfControls": {
+          "previousPage": "上一页",
+          "nextPage": "下一页",
+          "pageInfo": "第 {{current}} 页 / 共 {{total}} 页",
+          "switchingPage": "切换页面中...",
+          "loadingPDF": "正在加载PDF...",
+          "loadingPage": "正在加载第 {{page}} 页..."
+        },
+        "pdfErrors": {
+          "loadFailed": "PDF文件加载失败",
+          "corsError": "PDF文件加载失败：跨域访问被阻止（CORS限制）",
+          "fetchError": "PDF文件加载失败：无法获取文件，可能是CORS限制或网络问题",
+          "loadFailedWithDetail": "PDF文件加载失败：{{detail}}",
+          "downloadAndView": "无法加载PDF文件，请尝试下载后查看",
+          "previewFailed": "PDF预览加载失败",
+          "cannotDisplayInBrowser": "PDF无法在此浏览器中显示",
+          "corsRestriction": "可能是CORS限制，请下载后查看"
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "certificateFileNotExists": "证书文件不存在",
+          "imageLoadFailed": "证书图片加载失败",
+          "certificateNotGenerated": "证书PDF文件尚未生成",
+          "contactAdmin": "请联系管理员生成证书"
+        }
+      }
+    },
+    "certification": {
+      "apply": {
+        "steps": {
+          "basicInfo": "基本信息",
+          "basicInfoDesc": "填写餐厅基本信息",
+          "menuInfo": "菜单信息",
+          "menuInfoDesc": "上传菜单和菜品信息",
+          "supplyChain": "供应链信息",
+          "supplyChainDesc": "填写供应商和食材来源",
+          "operationData": "运营数据",
+          "operationDataDesc": "填写能源使用和浪费管理数据",
+          "documents": "资料上传",
+          "documentsDesc": "上传相关证明文件",
+          "preview": "预览确认",
+          "previewDesc": "确认并提交申请"
+        },
+        "fields": {
+          "restaurantName": "餐厅名称",
+          "legalPerson": "法人代表",
+          "contactPhone": "联系电话",
+          "contactEmail": "联系邮箱",
+          "address": "餐厅地址",
+          "supplierInfo": "供应商信息",
+          "ingredientSource": "食材来源",
+          "localIngredientRatio": "本地食材占比",
+          "energyUsage": "能源使用情况",
+          "wasteReduction": "食物浪费管理",
+          "socialInitiatives": "社会传播与教育"
+        },
+        "placeholders": {
+          "restaurantName": "请输入餐厅名称",
+          "legalPerson": "请输入法人代表",
+          "contactPhone": "请输入联系电话",
+          "contactEmail": "请输入联系邮箱",
+          "address": "请输入详细地址",
+          "selectRestaurant": "选择餐厅",
+          "supplierInfo": "请填写主要供应商名称、联系方式、认证信息等",
+          "ingredientSource": "请填写食材产地、运输方式、可追溯性等信息",
+          "percentage": "请输入百分比",
+          "energyUsage": "请填写年度能源消耗数据、能源类型、节能措施等",
+          "wasteReduction": "请填写月度浪费减量目标、监测流程、数据记录等",
+          "socialInitiatives": "请填写不少于3项低碳倡导举措（如顾客教育、员工培训、公益活动等）"
+        },
+        "buttons": {
+          "batchImportMenu": "批量导入菜单",
+          "addDish": "添加菜品",
+          "saveDraft": "保存草稿",
+          "submit": "提交申请"
+        },
+        "menuTable": {
+          "columns": {
+            "name": "菜品名称",
+            "ingredients": "食材",
+            "quantity": "份量",
+            "unit": "单位",
+            "actions": "操作"
+          }
+        },
+        "documents": {
+          "businessLicense": "营业执照",
+          "foodLicense": "食品经营许可证",
+          "supplierCert": "供应商认证证书",
+          "otherDocuments": "其他证明文件"
+        },
+        "preview": {
+          "confirmMessage": "请确认以下信息无误后提交申请",
+          "contactInfo": "联系信息"
+        },
+        "certificationLevels": {
+          "gold": "金牌",
+          "silver": "银牌",
+          "bronze": "铜牌",
+          "platinum": "白金"
+        },
+        "status": {
+          "certified": "已认证"
+        },
+        "alerts": {
+          "selectRestaurant": "请选择要申请认证的餐厅",
+          "restaurantCertified": "{{name}}已获得认证",
+          "currentLevel": "当前认证等级：{{level}}"
+        },
+        "messages": {
+          "draftSaved": "草稿已保存",
+          "selectRestaurantRequired": "请先选择要申请认证的餐厅",
+          "submitSuccess": "认证申请已提交，等待审核",
+          "menuImportInProgress": "菜单批量导入功能开发中",
+          "restaurantNameRequired": "请输入餐厅名称",
+          "legalPersonRequired": "请输入法人代表",
+          "contactPhoneRequired": "请输入联系电话",
+          "contactEmailRequired": "请输入联系邮箱",
+          "emailInvalid": "请输入有效的邮箱地址",
+          "addressRequired": "请输入餐厅地址",
+          "supplierInfoRequired": "请输入供应商信息",
+          "ingredientSourceRequired": "请输入食材来源",
+          "localIngredientRatioRequired": "请输入本地食材占比",
+          "energyUsageRequired": "请填写能源使用情况",
+          "wasteReductionRequired": "请填写食物浪费管理情况",
+          "socialInitiativesRequired": "请填写社会传播与教育举措"
+        }
+      },
+      "status": {
+        "title": "认证进度",
+        "fields": {
+          "currentStatus": "当前状态",
+          "applyTime": "申请时间",
+          "estimatedCompletion": "预计完成时间",
+          "certificationLevel": "认证等级"
+        },
+        "overallStatus": {
+          "pending": "待提交",
+          "reviewing": "审核中",
+          "approved": "已通过",
+          "rejected": "已拒绝"
+        },
+        "auditStatus": {
+          "approved": "已通过",
+          "rejected": "已拒绝",
+          "pending": "待审核"
+        },
+        "stages": {
+          "documentReview": "资料审查",
+          "onSiteInspection": "现场核查",
+          "review": "复评"
+        },
+        "comments": {
+          "documentComplete": "资料完整，符合要求"
+        },
+        "reviewer": "审核员{{name}}",
+        "pendingEvaluation": "待评估",
+        "auditHistory": {
+          "title": "审核历史",
+          "comment": "审核意见",
+          "reviewer": "审核人"
+        },
+        "rejection": {
+          "title": "拒绝原因",
+          "message": "您的认证申请未通过审核，原因如下：",
+          "reasons": {
+            "menuIncomplete": "菜单信息不完整，缺少部分菜品的食材清单",
+            "supplierCertMissing": "供应链信息需要补充供应商认证证书"
+          },
+          "buttons": {
+            "modifyAndResubmit": "修改并重新提交"
+          }
+        }
+      },
+      "certificate": {
+        "title": "认证证书",
+        "buttons": {
+          "preview": "预览",
+          "downloadPdf": "下载PDF",
+          "share": "分享"
+        },
+        "fields": {
+          "certificateNo": "证书编号",
+          "restaurantName": "餐厅名称",
+          "certificationLevel": "认证等级",
+          "status": "证书状态",
+          "issueDate": "颁发日期",
+          "expiryDate": "有效期至"
+        },
+        "status": {
+          "valid": "有效",
+          "expired": "已过期"
+        },
+        "certificateDisplay": {
+          "certificateNo": "证书编号",
+          "validity": "有效期"
+        },
+        "renewal": {
+          "title": "续费提醒",
+          "message": "您的证书将于 {{date}} 到期，请提前30天办理续费手续。",
+          "buttons": {
+            "apply": "申请续费"
+          }
+        },
+        "upgrade": {
+          "title": "证书升级",
+          "message": "完成成长激励任务可解锁勋章、曝光位等权益。",
+          "buttons": {
+            "viewTasks": "查看成长任务"
+          }
+        },
+        "messages": {
+          "downloadInProgress": "证书下载功能开发中",
+          "shareInProgress": "证书分享功能开发中",
+          "previewInProgress": "证书预览功能开发中"
+        }
+      }
+    },
+    "operation": {
+      "order": {
+        "title": "订单管理",
+        "statistics": {
+          "title": "订单统计",
+          "todayOrders": "今日订单",
+          "todayRevenue": "今日收入",
+          "todayCarbonReduction": "今日碳减排",
+          "avgOrderValue": "平均客单价",
+          "unit": "单"
+        },
+        "table": {
+          "columns": {
+            "orderNo": "订单号",
+            "orderDate": "订单日期",
+            "customerName": "客户名称",
+            "amount": "订单金额",
+            "carbonFootprint": "碳足迹",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "status": {
+          "pending": "待处理",
+          "processing": "处理中",
+          "completed": "已完成",
+          "cancelled": "已取消"
+        },
+        "filters": {
+          "search": "搜索订单号或客户名称",
+          "status": "筛选状态"
+        },
+        "buttons": {
+          "export": "导出数据",
+          "viewDetail": "查看详情"
+        }
+      },
+      "ledger": {
+        "title": "运营台账",
+        "buttons": {
+          "addRecord": "添加记录"
+        },
+        "table": {
+          "columns": {
+            "date": "日期",
+            "type": "类型",
+            "description": "描述",
+            "value": "数值",
+            "actions": "操作"
+          }
+        },
+        "types": {
+          "energy": "能源使用",
+          "waste": "食物浪费",
+          "training": "培训活动",
+          "other": "其他"
+        },
+        "filters": {
+          "search": "搜索描述"
+        },
+        "modal": {
+          "title": "运营台账记录"
+        },
+        "form": {
+          "fields": {
+            "date": "日期",
+            "type": "类型",
+            "description": "描述",
+            "value": "数值",
+            "unit": "单位"
+          },
+          "placeholders": {
+            "type": "能源使用/食物浪费/培训活动/其他",
+            "description": "请输入详细描述",
+            "value": "请输入数值",
+            "unit": "请输入单位"
+          }
+        },
+        "messages": {
+          "batchImportInProgress": "批量导入功能开发中"
+        }
+      },
+      "behavior": {
+        "overview": {
+          "title": "行为统计概览",
+          "lowCarbonRatio": "低碳菜品占比",
+          "monthlyCarbonReduction": "本月碳减排",
+          "customerLowCarbonChoiceRate": "顾客低碳选择率",
+          "behaviorRecordCount": "行为记录数",
+          "unit": "条"
+        },
+        "trend": {
+          "title": "低碳菜品占比趋势"
+        },
+        "detail": {
+          "title": "行为指标明细"
+        },
+        "table": {
+          "columns": {
+            "date": "日期",
+            "lowCarbonRatio": "低碳菜品占比",
+            "customerBehavior": "顾客行为",
+            "carbonReduction": "碳减排量"
+          }
+        }
+      },
+      "coupon": {
+        "title": "优惠券管理",
+        "buttons": {
+          "create": "创建优惠券",
+          "distribute": "发放"
+        },
+        "table": {
+          "columns": {
+            "name": "优惠券名称",
+            "type": "类型",
+            "value": "面值",
+            "usage": "使用情况",
+            "validity": "有效期",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "types": {
+          "discount": "折扣券",
+          "cash": "现金券",
+          "fullReduction": "满减券"
+        },
+        "status": {
+          "active": "有效",
+          "expired": "已过期",
+          "disabled": "已禁用"
+        },
+        "discountUnit": "折",
+        "filters": {
+          "search": "搜索优惠券名称"
+        },
+        "modal": {
+          "title": "创建优惠券"
+        },
+        "form": {
+          "fields": {
+            "name": "优惠券名称",
+            "type": "类型",
+            "value": "面值",
+            "minAmount": "最低消费金额",
+            "totalCount": "发放数量",
+            "validity": "有效期"
+          },
+          "placeholders": {
+            "name": "请输入优惠券名称",
+            "type": "请选择类型",
+            "value": "请输入面值",
+            "minAmount": "请输入最低消费金额",
+            "totalCount": "请输入发放数量"
+          }
+        }
+      },
+      "review": {
+        "title": "用户评价管理",
+        "buttons": {
+          "viewDetail": "查看详情",
+          "reply": "回复"
+        },
+        "table": {
+          "columns": {
+            "orderNo": "订单号",
+            "customerName": "客户名称",
+            "rating": "评分",
+            "content": "评价内容",
+            "carbonSatisfaction": "碳减排满意度",
+            "reviewDate": "评价日期",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "status": {
+          "replied": "已回复",
+          "pending": "待回复"
+        },
+        "filters": {
+          "search": "搜索订单号或客户名称"
+        },
+        "modal": {
+          "title": "回复评价",
+          "customerReview": "客户评价",
+          "rating": "评分",
+          "fields": {
+            "reply": "回复内容"
+          },
+          "placeholders": {
+            "reply": "请输入回复内容"
+          },
+          "messages": {
+            "replyRequired": "请输入回复内容"
+          }
+        }
+      }
+    },
+    "report": {
+      "dashboard": {
+        "title": "数据看板",
+        "buttons": {
+          "customize": "自定义"
+        },
+        "statistics": {
+          "totalRevenue": "总收入",
+          "totalOrders": "订单总数",
+          "totalCarbonReduction": "累计碳减排",
+          "targetCompletionRate": "目标完成率"
+        },
+        "charts": {
+          "revenueTrend": "收入趋势",
+          "carbonReductionTrend": "碳减排趋势",
+          "categoryRatio": "菜品分类占比",
+          "keyMetrics": "关键指标"
+        },
+        "metrics": {
+          "avgOrderValue": "平均客单价",
+          "repurchaseRate": "复购率",
+          "lowCarbonRatio": "低碳菜品占比",
+          "userSatisfaction": "用户满意度"
+        }
+      },
+      "business": {
+        "overview": {
+          "title": "经营数据概览",
+          "totalRevenue": "总收入",
+          "totalOrders": "订单总数",
+          "avgOrderValue": "平均客单价",
+          "repurchaseRate": "复购率"
+        },
+        "revenueTrend": {
+          "title": "收入趋势"
+        },
+        "orderStatistics": {
+          "title": "订单量统计"
+        },
+        "costAnalysis": {
+          "title": "成本分析",
+          "ingredientCost": "食材成本",
+          "operationCost": "运营成本",
+          "profitMargin": "利润率"
+        },
+        "buttons": {
+          "export": "导出数据"
+        }
+      },
+      "carbon": {
+        "overview": {
+          "title": "碳减排数据概览",
+          "totalCarbonReduction": "累计碳减排",
+          "monthlyCarbonReduction": "月度碳减排",
+          "targetCompletionRate": "目标完成率",
+          "annualTarget": "年度目标"
+        },
+        "trend": {
+          "title": "碳减排趋势"
+        },
+        "targetCompletion": {
+          "title": "目标完成情况"
+        },
+        "analysis": {
+          "title": "多维度分析",
+          "byDish": {
+            "title": "按菜品",
+            "lowCarbon": "低碳菜品贡献",
+            "mediumCarbon": "中碳菜品贡献",
+            "highCarbon": "高碳菜品贡献"
+          },
+          "byTime": {
+            "title": "按时段",
+            "breakfast": "早餐时段",
+            "lunch": "午餐时段",
+            "dinner": "晚餐时段"
+          },
+          "byUser": {
+            "title": "按用户",
+            "newUser": "新用户",
+            "oldUser": "老用户"
+          }
+        },
+        "buttons": {
+          "export": "导出数据"
+        }
+      },
+      "esg": {
+        "title": "ESG报告管理",
+        "types": {
+          "monthly": "月度报告",
+          "yearly": "年度报告"
+        },
+        "buttons": {
+          "generate": "生成报告"
+        },
+        "tabs": {
+          "environmental": "环境数据 (Environmental)",
+          "social": "社会数据 (Social)",
+          "governance": "治理数据 (Governance)",
+          "actions": "报告操作"
+        },
+        "environmental": {
+          "title": "环境数据",
+          "totalCarbonReduction": "累计碳减排",
+          "energyConsumption": "能源消耗",
+          "optimizedReduction": "优化后减少",
+          "wasteManagement": "废物处理",
+          "zeroWaste": "实现零废弃目标",
+          "waterUsage": "水资源使用",
+          "reduced": "减少",
+          "packaging": "包装材料",
+          "recyclable": "可回收"
+        },
+        "social": {
+          "title": "社会数据",
+          "employment": "就业人数",
+          "people": "人",
+          "communityContribution": "社区贡献",
+          "participated": "参与",
+          "publicActivities": "次公益活动",
+          "userSatisfaction": "用户满意度",
+          "staffTraining": "员工培训",
+          "monthly": "每月",
+          "lowCarbonTraining": "次低碳培训",
+          "customerEducation": "顾客教育",
+          "lowCarbonAdvocacy": "低碳消费倡导活动"
+        },
+        "governance": {
+          "title": "治理数据",
+          "compliance": "合规性",
+          "certificationStandard": "符合认证标准",
+          "transparency": "透明度",
+          "dataTransparent": "数据公开透明",
+          "responsibilityManagement": "责任管理",
+          "managementSystem": "建立完善的管理体系",
+          "auditRecords": "审计记录",
+          "completeAuditLog": "完整的审计日志",
+          "riskControl": "风险管控",
+          "riskWarning": "建立风险预警机制"
+        },
+        "actions": {
+          "title": "报告操作",
+          "description": "ESG报告包含环境、社会、治理三个维度的完整数据，可用于：",
+          "buttons": {
+            "preview": "预览",
+            "downloadPdf": "下载PDF",
+            "downloadExcel": "下载Excel",
+            "share": "分享"
+          },
+          "uses": {
+            "sustainability": "企业可持续发展报告",
+            "government": "政府监管报送",
+            "partners": "合作伙伴展示",
+            "investors": "投资方披露"
+          }
+        },
+        "messages": {
+          "generateInProgress": "ESG报告生成功能开发中",
+          "downloadInProgress": "{{format}}格式报告下载功能开发中",
+          "shareInProgress": "报告分享功能开发中"
+        }
+      }
+    },
+    "system": {
+      "users": {
+        "title": "用户管理",
+        "buttons": {
+          "create": "新建用户",
+          "disable": "禁用",
+          "enable": "启用",
+          "resetPassword": "重置密码"
+        },
+        "filters": {
+          "role": "角色",
+          "status": "状态",
+          "keyword": "关键字（用户名）",
+          "roles": {
+            "all": "全部",
+            "systemAdmin": "系统管理员",
+            "platformOperator": "平台运营",
+            "carbonSpecialist": "碳核算专员",
+            "governmentPartner": "政府/外部合作方",
+            "restaurantAdmin": "餐厅管理员"
+          }
+        },
+        "table": {
+          "columns": {
+            "username": "用户名",
+            "name": "姓名",
+            "role": "角色",
+            "tenantId": "租户ID",
+            "restaurantCount": "餐厅数",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "modal": {
+          "title": "新建用户"
+        },
+        "form": {
+          "fields": {
+            "username": "用户名",
+            "password": "初始密码",
+            "name": "姓名",
+            "email": "邮箱",
+            "phone": "电话",
+            "role": "角色"
+          },
+          "placeholders": {
+            "username": "示例：ops_admin01",
+            "password": "至少6位"
+          },
+          "roles": {
+            "platformOperator": "平台运营（platform_operator）",
+            "carbonSpecialist": "碳核算专员（carbon_specialist）",
+            "governmentPartner": "政府/外部合作方（government_partner）"
+          },
+          "messages": {
+            "usernameRequired": "请输入用户名",
+            "usernamePattern": "以字母开头，4-21位，仅字母数字下划线和中划线",
+            "passwordRequired": "请输入初始密码",
+            "passwordMin": "至少6位",
+            "emailInvalid": "邮箱格式不正确",
+            "roleRequired": "请选择角色"
+          }
+        },
+        "messages": {
+          "statusUpdated": "已更新状态",
+          "passwordReset": "已重置：{{password}}"
+        }
+      },
+      "roles": {
+        "title": "角色权限配置",
+        "buttons": {
+          "create": "新建角色",
+          "editPermissions": "编辑权限",
+          "disable": "禁用",
+          "enable": "启用"
+        },
+        "table": {
+          "columns": {
+            "roleCode": "角色代码",
+            "roleName": "角色名称",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "modal": {
+          "create": {
+            "title": "新建角色"
+          },
+          "editPermissions": {
+            "title": "编辑权限 - {{roleCode}}"
+          }
+        },
+        "form": {
+          "fields": {
+            "roleCode": "角色代码",
+            "roleName": "角色名称",
+            "description": "描述",
+            "permissions": "初始权限(逗号分隔)"
+          },
+          "placeholders": {
+            "roleCode": "例如: custom_role",
+            "roleName": "角色中文名称",
+            "permissions": "例如: system:user:manage,system:role:manage"
+          },
+          "messages": {
+            "roleCodeRequired": "请输入角色代码",
+            "roleNameRequired": "请输入角色名称"
+          }
+        },
+        "messages": {
+          "permissionsUpdated": "已更新权限",
+          "statusUpdated": "已更新状态"
+        }
+      },
+      "audit": {
+        "title": "审计日志",
+        "filters": {
+          "username": "用户名",
+          "action": "动作",
+          "status": "状态",
+          "module": "模块",
+          "tenantId": "租户ID"
+        },
+        "table": {
+          "columns": {
+            "time": "时间",
+            "username": "用户",
+            "role": "角色",
+            "action": "动作",
+            "resource": "资源",
+            "module": "模块",
+            "status": "状态",
+            "ip": "IP"
+          }
+        }
+      },
+      "monitor": {
+        "title": "系统监控",
+        "filters": {
+          "domain": "按域筛选"
+        },
+        "table": {
+          "columns": {
+            "collection": "集合",
+            "domain": "域",
+            "description": "说明",
+            "count": "文档数"
+          }
+        },
+        "storage": {
+          "label": "存储空间使用（模拟）"
+        }
+      },
+      "backup": {
+        "title": "数据备份",
+        "alert": {
+          "title": "说明",
+          "description": "这里将提供数据库集合导出、备份计划管理与一键恢复能力。当前为占位页面，后续接入云函数。"
+        },
+        "buttons": {
+          "backupNow": "立即备份",
+          "exportCollections": "导出集合",
+          "restoreFromBackup": "从备份恢复"
+        },
+        "messages": {
+          "backupTriggered": "已触发备份",
+          "triggerFailed": "触发失败"
+        }
+      }
+    },
+    "platform": {
+      "restaurantList": {
+        "title": "餐厅列表管理",
+        "buttons": {
+          "add": "添加餐厅",
+          "detail": "详情",
+          "suspend": "暂停",
+          "activate": "激活"
+        },
+        "filters": {
+          "search": "搜索餐厅名称、负责人",
+          "status": "状态",
+          "certificationLevel": "认证等级"
+        },
+        "status": {
+          "active": "正常",
+          "inactive": "停用",
+          "pending": "待审核",
+          "suspended": "已暂停"
+        },
+        "certificationLevels": {
+          "bronze": "铜牌",
+          "silver": "银牌",
+          "gold": "金牌",
+          "platinum": "白金",
+          "notCertified": "未认证"
+        },
+        "table": {
+          "columns": {
+            "name": "餐厅名称",
+            "owner": "负责人",
+            "phone": "电话",
+            "status": "状态",
+            "certificationLevel": "认证等级",
+            "totalOrders": "订单数",
+            "totalRevenue": "总收入",
+            "carbonReduction": "碳减排",
+            "actions": "操作"
+          }
+        },
+        "modal": {
+          "detail": {
+            "title": "餐厅详情"
+          },
+          "add": {
+            "title": "添加餐厅"
+          },
+          "edit": {
+            "title": "编辑餐厅"
+          },
+          "suspend": {
+            "title": "确认暂停",
+            "content": "确定要暂停该餐厅吗？暂停后餐厅将无法正常使用。"
+          },
+          "activate": {
+            "title": "确认激活",
+            "content": "确定要激活该餐厅吗？"
+          }
+        },
+        "detail": {
+          "fields": {
+            "name": "餐厅名称",
+            "owner": "负责人",
+            "phone": "电话",
+            "email": "邮箱",
+            "address": "地址",
+            "status": "状态",
+            "certificationLevel": "认证等级",
+            "tenantId": "租户ID",
+            "createdAt": "创建时间",
+            "totalOrders": "订单数",
+            "totalRevenue": "总收入",
+            "carbonReduction": "碳减排"
+          }
+        },
+        "form": {
+          "fields": {
+            "name": "餐厅名称",
+            "owner": "负责人",
+            "phone": "电话",
+            "email": "邮箱",
+            "address": "地址",
+            "status": "状态"
+          },
+          "placeholders": {
+            "name": "请输入餐厅名称",
+            "owner": "请输入负责人姓名",
+            "phone": "请输入联系电话",
+            "email": "请输入邮箱地址",
+            "address": "请输入详细地址",
+            "status": "请选择状态"
+          },
+          "messages": {
+            "nameRequired": "请输入餐厅名称",
+            "ownerRequired": "请输入负责人",
+            "phoneRequired": "请输入电话",
+            "phoneInvalid": "请输入正确的手机号码",
+            "emailRequired": "请输入邮箱",
+            "emailInvalid": "请输入正确的邮箱地址",
+            "addressRequired": "请输入地址"
+          }
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "suspended": "已暂停",
+          "activated": "已激活"
+        }
+      },
+      "adminUsers": {
+        "title": "管理员账号管理（仅邀请/创建，不对外注册）",
+        "buttons": {
+          "create": "邀请/创建管理员",
+          "disable": "停用",
+          "enable": "启用",
+          "resetPassword": "重置密码"
+        },
+        "roles": {
+          "systemAdmin": "系统管理员",
+          "platformOperator": "平台运营",
+          "carbonSpecialist": "碳核算专员"
+        },
+        "status": {
+          "active": "启用",
+          "disabled": "停用"
+        },
+        "table": {
+          "columns": {
+            "username": "用户名",
+            "name": "姓名",
+            "email": "邮箱",
+            "phone": "电话",
+            "role": "角色",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "modal": {
+          "title": "邀请/创建管理员",
+          "passwordReset": {
+            "title": "密码已重置",
+            "content": "新密码：{{password}}（请尽快通知用户并要求修改密码）"
+          }
+        },
+        "form": {
+          "fields": {
+            "username": "用户名",
+            "password": "初始密码",
+            "name": "姓名",
+            "email": "邮箱",
+            "phone": "电话",
+            "role": "角色"
+          },
+          "messages": {
+            "usernameRequired": "请输入用户名",
+            "passwordRequired": "请输入初始密码",
+            "passwordMin": "至少6位",
+            "emailInvalid": "邮箱格式不正确",
+            "roleRequired": "请选择角色"
+          }
+        },
+        "messages": {
+          "statusUpdated": "已更新状态",
+          "resetFailed": "重置失败"
+        }
+      },
+      "accountApprovals": {
+        "title": "入驻申请审批",
+        "buttons": {
+          "approve": "审批通过并创建账号",
+          "reject": "驳回"
+        },
+        "status": {
+          "pending": "待审核",
+          "approved": "已通过",
+          "rejected": "已驳回"
+        },
+        "table": {
+          "columns": {
+            "organizationName": "机构/餐厅",
+            "desiredUsername": "期望账户名",
+            "contactName": "联系人",
+            "contactPhone": "电话",
+            "contactEmail": "邮箱",
+            "city": "城市",
+            "restaurantCount": "门店数",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "modal": {
+          "reject": {
+            "title": "驳回申请",
+            "placeholder": "请输入驳回原因（可选）"
+          }
+        },
+        "messages": {
+          "approved": "已审批通过",
+          "rejected": "已驳回"
+        }
+      },
+      "crossTenant": {
+        "title": "跨租户数据查看",
+        "filters": {
+          "tenant": "选择租户（可多选）",
+          "dataType": "数据类型"
+        },
+        "dataTypes": {
+          "order": "订单",
+          "carbon": "碳减排",
+          "user": "用户",
+          "revenue": "收入"
+        },
+        "table": {
+          "columns": {
+            "tenantId": "租户ID",
+            "restaurantName": "餐厅名称",
+            "dataType": "数据类型",
+            "count": "数量",
+            "amount": "金额",
+            "date": "日期"
+          }
+        },
+        "summary": {
+          "title": "数据汇总",
+          "totalTenants": "总租户数",
+          "totalOrders": "总订单数",
+          "totalCarbonReduction": "总碳减排",
+          "totalRevenue": "总收入",
+          "description": "说明：跨租户数据查看功能允许平台管理员查看所有租户的数据，用于平台级的数据分析和监控。",
+          "dataIncludes": "数据包括：订单数据、碳减排数据、用户数据、收入数据等。"
+        },
+        "messages": {
+          "loadFailed": "获取数据失败",
+          "exportInProgress": "导出功能开发中"
+        }
+      },
+      "statistics": {
+        "title": "平台级统计报表",
+        "buttons": {
+          "export": "导出报表"
+        },
+        "periods": {
+          "last7Days": "近7天",
+          "last30Days": "近30天",
+          "last90Days": "近90天",
+          "custom": "自定义"
+        },
+        "statistics": {
+          "totalRestaurants": "餐厅总数",
+          "active": "活跃",
+          "totalOrders": "总订单数",
+          "avgOrderValue": "平均订单额",
+          "totalRevenue": "总收入",
+          "totalCarbonReduction": "总碳减排",
+          "avgCarbonPerOrder": "平均每单",
+          "totalUsers": "总用户数",
+          "activeRestaurantRate": "活跃餐厅率",
+          "avgOrders": "平均订单数",
+          "avgRevenue": "平均收入"
+        },
+        "ranking": {
+          "title": "餐厅排行榜"
+        },
+        "table": {
+          "columns": {
+            "rank": "排名",
+            "restaurantName": "餐厅名称",
+            "tenantId": "租户ID",
+            "orders": "订单数",
+            "revenue": "收入",
+            "carbonReduction": "碳减排(kg)",
+            "certificationLevel": "认证等级"
+          }
+        },
+        "certificationLevels": {
+          "bronze": "铜牌",
+          "silver": "银牌",
+          "gold": "金牌",
+          "platinum": "白金",
+          "notCertified": "未认证"
+        },
+        "messages": {
+          "loadFailed": "获取统计数据失败",
+          "exportInProgress": "导出报表功能开发中"
+        }
+      }
+    },
+    "profile": {
+      "title": "个人信息",
+      "roles": {
+        "systemAdmin": "系统管理员",
+        "platformOperator": "平台运营",
+        "carbonSpecialist": "碳核算专员",
+        "governmentPartner": "政府/外部合作方",
+        "restaurantAdmin": "餐厅管理员",
+        "admin": "管理员"
+      },
+      "certificationLevels": {
+        "bronze": "铜牌",
+        "silver": "银牌",
+        "gold": "金牌",
+        "platinum": "白金"
+      },
+      "form": {
+        "fields": {
+          "name": "姓名",
+          "email": "邮箱",
+          "phone": "手机号"
+        },
+        "placeholders": {
+          "name": "请输入姓名",
+          "email": "请输入邮箱",
+          "phone": "请输入手机号"
+        },
+        "messages": {
+          "nameRequired": "请输入姓名",
+          "emailInvalid": "请输入有效的邮箱地址",
+          "phoneInvalid": "请输入正确的手机号码"
+        }
+      },
+      "detail": {
+        "fields": {
+          "userId": "用户ID",
+          "name": "姓名",
+          "email": "邮箱",
+          "phone": "手机号",
+          "role": "角色",
+          "tenantId": "租户ID"
+        },
+        "notSet": "未设置",
+        "none": "无"
+      },
+      "tenant": {
+        "title": "租户信息",
+        "fields": {
+          "name": "租户名称",
+          "id": "租户ID",
+          "restaurantCount": "餐厅数量"
+        },
+        "restaurantCount": "{{count}} 家",
+        "myRestaurants": "我的餐厅"
+      },
+      "restaurant": {
+        "status": {
+          "active": "正常",
+          "inactive": "未激活"
+        }
+      },
+      "upload": {
+        "uploadAvatar": "上传头像",
+        "convertingHeic": "正在转换 HEIC 图片为 JPG...",
+        "convertedToJpg": "已转换为 JPG",
+        "unsupportedFormat": "仅支持 JPG/PNG/HEIC（自动转JPG）格式",
+        "fileTooLarge": "图片大小请小于 2MB",
+        "uploadSuccess": "头像已上传",
+        "uploadFailed": "上传失败"
+      },
+      "messages": {
+        "updateSuccess": "个人信息更新成功"
+      },
+      "settings": {
+        "password": {
+          "title": "修改密码",
+          "alert": {
+            "title": "密码安全提示",
+            "description": "请使用至少8位字符的强密码，包含字母、数字和特殊字符。"
+          },
+          "form": {
+            "fields": {
+              "oldPassword": "当前密码",
+              "newPassword": "新密码",
+              "confirmPassword": "确认新密码"
+            },
+            "placeholders": {
+              "oldPassword": "请输入当前密码",
+              "newPassword": "请输入新密码",
+              "confirmPassword": "请再次输入新密码"
+            },
+            "messages": {
+              "oldPasswordRequired": "请输入当前密码",
+              "newPasswordRequired": "请输入新密码",
+              "passwordMin": "密码长度至少8位",
+              "passwordPattern": "密码必须包含大小写字母、数字和特殊字符",
+              "confirmPasswordRequired": "请确认新密码",
+              "passwordMismatch": "两次输入的密码不一致"
+            }
+          },
+          "buttons": {
+            "change": "修改密码"
+          },
+          "messages": {
+            "passwordMismatch": "两次输入的密码不一致",
+            "changeSuccess": "密码修改成功"
+          }
+        },
+        "notification": {
+          "title": "通知设置",
+          "items": {
+            "email": {
+              "title": "邮件通知",
+              "description": "接收系统重要通知邮件"
+            },
+            "sms": {
+              "title": "短信通知",
+              "description": "接收重要操作的短信提醒"
+            },
+            "order": {
+              "title": "订单通知",
+              "description": "接收新订单和订单状态变更通知"
+            },
+            "certification": {
+              "title": "认证通知",
+              "description": "接收认证申请进度和结果通知"
+            }
+          },
+          "messages": {
+            "updateSuccess": "通知设置已更新",
+            "updateFailed": "通知设置更新失败"
+          }
+        },
+        "security": {
+          "title": "安全设置",
+          "items": {
+            "loginProtection": {
+              "title": "登录保护",
+              "description": "启用后，登录时需要验证码"
+            },
+            "operationLog": {
+              "title": "操作日志",
+              "description": "记录所有重要操作，便于审计"
+            }
+          }
+        }
+      },
+      "activity": {
+        "title": "活动日志",
+        "filters": {
+          "module": "按模块筛选"
+        },
+        "status": {
+          "success": "成功",
+          "pending": "进行中",
+          "failed": "失败"
+        },
+        "empty": "暂无活动记录",
+        "loadMore": "加载更多（已加载 {{loaded}} / 共 {{total}}）"
+      }
+    },
+    "login": {
+      "title": "气候餐厅管理后台",
+      "form": {
+        "placeholders": {
+          "username": "用户名",
+          "password": "密码"
+        },
+        "messages": {
+          "usernameRequired": "请输入用户名",
+          "passwordRequired": "请输入密码"
+        }
+      },
+      "buttons": {
+        "login": "登录"
+      },
+      "footer": {
+        "noAccount": "还没有账号？",
+        "apply": "申请开通 / 入驻",
+        "forgotPassword": "忘记密码"
+      },
+      "messages": {
+        "loginSuccess": "登录成功",
+        "loginFailed": "登录失败，请检查用户名和密码",
+        "accountDisabled": "该账号已被禁用，请联系系统管理员",
+        "networkError": "登录失败，请检查网络连接"
+      }
+    },
+    "onboarding": {
+      "apply": {
+        "title": "气候餐厅平台 - 入驻申请",
+        "form": {
+          "fields": {
+            "desiredUsername": "期望账户名（用于后台登录）",
+            "organizationName": "机构/餐厅名称",
+            "contactName": "联系人姓名",
+            "contactPhone": "联系电话",
+            "contactEmail": "联系邮箱",
+            "restaurantCount": "门店数量",
+            "city": "所在城市",
+            "note": "备注"
+          },
+          "placeholders": {
+            "desiredUsername": "例如：green_vegan_admin",
+            "organizationName": "例如：素开心餐饮管理有限公司 / 素开心（虹桥店）",
+            "contactName": "请输入联系人姓名",
+            "contactPhone": "请输入联系电话",
+            "restaurantCount": "可选，例如 1",
+            "city": "可选，例如 上海",
+            "note": "可选，补充说明需求与背景"
+          },
+          "tooltips": {
+            "desiredUsername": "以字母开头，4-21位；如已被占用，平台会帮您调整或通知确认"
+          },
+          "messages": {
+            "desiredUsernameRequired": "请输入期望账户名",
+            "desiredUsernamePattern": "以字母开头，4-21位，仅字母数字下划线和中划线",
+            "organizationNameRequired": "请输入机构/餐厅名称",
+            "contactNameRequired": "请输入联系人姓名",
+            "contactPhoneRequired": "请输入联系电话",
+            "contactPhoneInvalid": "请输入有效的电话",
+            "contactEmailInvalid": "邮箱格式不正确"
+          }
+        },
+        "buttons": {
+          "submit": "提交申请"
+        },
+        "footer": {
+          "hasAccount": "已有账号？",
+          "backToLogin": "返回登录"
+        },
+        "messages": {
+          "submitSuccess": "申请已提交，平台审核通过后会联系您",
+          "submitFailed": "提交失败，请稍后重试",
+          "networkError": "提交失败，请检查网络"
+        }
+      }
+    },
+    "dashboard": {
+      "title": "气候餐厅管理数据看板",
+      "tags": {
+        "currentView": "当前查看：{{name}}",
+        "viewAll": "查看所有餐厅（共{{count}}家）"
+      },
+      "alerts": {
+        "welcomeRestaurant": "欢迎查看{{name}}的运营数据",
+        "welcomeTenant": "欢迎查看{{name}}所有餐厅的运营数据",
+        "welcomeSystem": "欢迎使用气候餐厅管理系统",
+        "descriptionRestaurant": "这里是{{name}}的详细运营数据，包括订单、收入、碳减排等关键指标。",
+        "descriptionTenant": "这里是{{name}}旗下所有餐厅的汇总数据。您可以在右上角切换查看具体某家餐厅的数据。",
+        "descriptionSystem": "这里是系统概览，您可以查看关键业务指标和统计数据。"
+      },
+      "statistics": {
+        "totalRecipes": "菜谱总数",
+        "totalCarbonReduction": "累计碳减排",
+        "certifiedRestaurants": "认证餐厅",
+        "activeUsers": "活跃用户",
+        "todayOrders": "今日订单",
+        "todayRevenue": "今日收入"
+      },
+      "quickAccess": {
+        "title": "快速入口",
+        "description": "系统包含以下核心功能模块：",
+        "modules": {
+          "certification": "气候餐厅认证 - 餐厅入驻、认证申请、审核流程、证书管理",
+          "carbon": "碳足迹核算 - 菜单碳足迹计算、订单碳统计、碳标签生成与管理",
+          "traceability": "供应链溯源 - 供应商管理、食材批次追踪、溯源链构建与展示",
+          "operation": "餐厅运营 - 订单管理、积分系统、运营台账、行为统计",
+          "report": "报表与生态拓展 - 数据报表、ESG报告、对外接口、生态联动"
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { Column } from '@ant-design/charts'
 import { Card, Col, DatePicker, Row, Space, Statistic, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
@@ -14,27 +15,28 @@ interface BehaviorMetric {
 }
 
 const OperationBehavior: React.FC = () => {
+  const { t } = useTranslation()
   const [dataSource] = useState<BehaviorMetric[]>([])
 
   const columns: ColumnsType<BehaviorMetric> = [
     {
-      title: '日期',
+      title: t('pages.operation.behavior.table.columns.date'),
       dataIndex: 'date',
       key: 'date',
     },
     {
-      title: '低碳菜品占比',
+      title: t('pages.operation.behavior.table.columns.lowCarbonRatio'),
       dataIndex: 'lowCarbonRatio',
       key: 'lowCarbonRatio',
       render: (value: number) => `${(value * 100).toFixed(1)}%`,
     },
     {
-      title: '顾客行为',
+      title: t('pages.operation.behavior.table.columns.customerBehavior'),
       dataIndex: 'customerBehavior',
       key: 'customerBehavior',
     },
     {
-      title: '碳减排量',
+      title: t('pages.operation.behavior.table.columns.carbonReduction'),
       dataIndex: 'carbonReduction',
       key: 'carbonReduction',
       render: (value: number) => `${value.toFixed(2)} kg CO₂e`,
@@ -49,11 +51,11 @@ const OperationBehavior: React.FC = () => {
 
   return (
     <div>
-      <Card title="行为统计概览" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.operation.behavior.overview.title')} style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="低碳菜品占比"
+              title={t('pages.operation.behavior.overview.lowCarbonRatio')}
               value={68.5}
               suffix="%"
               valueStyle={{ color: '#3f8600' }}
@@ -61,7 +63,7 @@ const OperationBehavior: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="本月碳减排"
+              title={t('pages.operation.behavior.overview.monthlyCarbonReduction')}
               value={1250}
               suffix="kg CO₂e"
               valueStyle={{ color: '#cf1322' }}
@@ -69,7 +71,7 @@ const OperationBehavior: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="顾客低碳选择率"
+              title={t('pages.operation.behavior.overview.customerLowCarbonChoiceRate')}
               value={75.2}
               suffix="%"
               valueStyle={{ color: '#1890ff' }}
@@ -77,9 +79,9 @@ const OperationBehavior: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="行为记录数"
+              title={t('pages.operation.behavior.overview.behaviorRecordCount')}
               value={1250}
-              suffix="条"
+              suffix={t('pages.operation.behavior.overview.unit')}
               valueStyle={{ color: '#722ed1' }}
             />
           </Col>
@@ -87,7 +89,7 @@ const OperationBehavior: React.FC = () => {
       </Card>
 
       <Card
-        title="低碳菜品占比趋势"
+        title={t('pages.operation.behavior.trend.title')}
         extra={<RangePicker />}
         style={{ marginBottom: 16 }}
       >
@@ -103,7 +105,7 @@ const OperationBehavior: React.FC = () => {
         />
       </Card>
 
-      <Card title="行为指标明细">
+      <Card title={t('pages.operation.behavior.detail.title')}>
         <Space style={{ marginBottom: 16 }}>
           <RangePicker />
         </Space>
@@ -115,7 +117,7 @@ const OperationBehavior: React.FC = () => {
           pagination={{
             total: dataSource.length,
             pageSize: 10,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
           }}
         />
       </Card>

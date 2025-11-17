@@ -1,8 +1,10 @@
 import { systemAPI } from '@/services/cloudbase'
 import { Button, Card, Modal, Space, Table, Tag, Form, Input, message, Tree } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const Roles: React.FC = () => {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any[]>([])
   const [createOpen, setCreateOpen] = useState(false)
@@ -19,10 +21,10 @@ const Roles: React.FC = () => {
       if (res.code === 0) {
         setData(res.data?.list || res.data || [])
       } else {
-        message.error(res.message || '加载失败')
+        message.error(res.message || t('common.loadFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '加载失败')
+      message.error(e.message || t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -54,12 +56,12 @@ const Roles: React.FC = () => {
         status: 'active',
       })
       if (res.code === 0) {
-        message.success('创建成功')
+        message.success(t('common.createSuccess'))
         setCreateOpen(false)
         form.resetFields()
         load()
       } else {
-        message.error(res.message || '创建失败')
+        message.error(res.message || t('common.createFailed'))
       }
     } finally {
       setLoading(false)
@@ -71,12 +73,12 @@ const Roles: React.FC = () => {
       setLoading(true)
       const res = await systemAPI.updateRolePermissions(permOpen.role.roleCode, checkedPerms)
       if (res.code === 0) {
-        message.success('已更新权限')
+        message.success(t('pages.system.roles.messages.permissionsUpdated'))
         setPermOpen({ open: false })
         setCheckedPerms([])
         load()
       } else {
-        message.error(res.message || '更新失败')
+        message.error(res.message || t('common.updateFailed'))
       }
     } finally {
       setLoading(false)
@@ -89,13 +91,13 @@ const Roles: React.FC = () => {
     try {
       const res = await systemAPI.updateRoleStatus(record.roleCode, next)
       if (res.code === 0) {
-        message.success('已更新状态')
+        message.success(t('pages.system.roles.messages.statusUpdated'))
         load()
       } else {
-        message.error(res.message || '操作失败')
+        message.error(res.message || t('common.operationFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '操作失败')
+      message.error(e.message || t('common.operationFailed'))
     } finally {
       setLoading(false)
     }
@@ -103,11 +105,11 @@ const Roles: React.FC = () => {
 
   return (
     <Card
-      title="角色权限配置"
+      title={t('pages.system.roles.title')}
       bordered={false}
       extra={
         <Button type="primary" onClick={() => setCreateOpen(true)}>
-          新建角色
+          {t('pages.system.roles.buttons.create')}
         </Button>
       }
     >
@@ -116,15 +118,15 @@ const Roles: React.FC = () => {
         loading={loading}
         dataSource={data}
         columns={[
-          { title: '角色代码', dataIndex: 'roleCode' },
-          { title: '角色名称', dataIndex: 'roleName' },
+          { title: t('pages.system.roles.table.columns.roleCode'), dataIndex: 'roleCode' },
+          { title: t('pages.system.roles.table.columns.roleName'), dataIndex: 'roleName' },
           {
-            title: '状态',
+            title: t('pages.system.roles.table.columns.status'),
             dataIndex: 'status',
             render: (v) => <Tag color={v === 'active' ? 'green' : 'red'}>{v || 'active'}</Tag>,
           },
           {
-            title: '操作',
+            title: t('pages.system.roles.table.columns.actions'),
             render: (_, record) => (
               <Space>
                 <Button
@@ -135,10 +137,10 @@ const Roles: React.FC = () => {
                     setCheckedPerms(record.permissions || [])
                   }}
                 >
-                  编辑权限
+                  {t('pages.system.roles.buttons.editPermissions')}
                 </Button>
                 <Button type="link" onClick={() => toggleStatus(record)}>
-                  {record.status === 'active' ? '禁用' : '启用'}
+                  {record.status === 'active' ? t('pages.system.roles.buttons.disable') : t('pages.system.roles.buttons.enable')}
                 </Button>
               </Space>
             ),
@@ -147,30 +149,30 @@ const Roles: React.FC = () => {
       />
 
       <Modal
-        title="新建角色"
+        title={t('pages.system.roles.modal.create.title')}
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={onCreate}
         confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="roleCode" label="角色代码" rules={[{ required: true, message: '请输入角色代码' }]}>
-            <Input placeholder="例如: custom_role" />
+          <Form.Item name="roleCode" label={t('pages.system.roles.form.fields.roleCode')} rules={[{ required: true, message: t('pages.system.roles.form.messages.roleCodeRequired') }]}>
+            <Input placeholder={t('pages.system.roles.form.placeholders.roleCode')} />
           </Form.Item>
-          <Form.Item name="roleName" label="角色名称" rules={[{ required: true, message: '请输入角色名称' }]}>
-            <Input placeholder="角色中文名称" />
+          <Form.Item name="roleName" label={t('pages.system.roles.form.fields.roleName')} rules={[{ required: true, message: t('pages.system.roles.form.messages.roleNameRequired') }]}>
+            <Input placeholder={t('pages.system.roles.form.placeholders.roleName')} />
           </Form.Item>
-          <Form.Item name="description" label="描述">
-            <Input.TextArea rows={3} placeholder="可选" />
+          <Form.Item name="description" label={t('pages.system.roles.form.fields.description')}>
+            <Input.TextArea rows={3} placeholder={t('common.optional')} />
           </Form.Item>
-          <Form.Item name="permissions" label="初始权限(逗号分隔)">
-            <Input placeholder="例如: system:user:manage,system:role:manage" />
+          <Form.Item name="permissions" label={t('pages.system.roles.form.fields.permissions')}>
+            <Input placeholder={t('pages.system.roles.form.placeholders.permissions')} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={`编辑权限 - ${permOpen.role?.roleCode || ''}`}
+        title={t('pages.system.roles.modal.editPermissions.title', { roleCode: permOpen.role?.roleCode || '' })}
         open={permOpen.open}
         onCancel={() => setPermOpen({ open: false })}
         onOk={onUpdatePerm}

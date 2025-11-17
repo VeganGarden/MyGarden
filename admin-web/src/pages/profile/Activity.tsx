@@ -1,8 +1,9 @@
-import { useAppSelector } from '@/store/hooks'
 import { systemAPI } from '@/services/cloudbase'
+import { useAppSelector } from '@/store/hooks'
 import { CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons'
 import { Button, Card, Empty, Select, Space, Tag, Timeline } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ActivityLog {
   id: string
@@ -14,6 +15,7 @@ interface ActivityLog {
 }
 
 const Activity: React.FC = () => {
+  const { t } = useTranslation()
   const { user } = useAppSelector((state: any) => state.auth)
   const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
   const [activities, setActivities] = useState<ActivityLog[]>([])
@@ -36,7 +38,7 @@ const Activity: React.FC = () => {
         module: moduleFilter,
         page,
         pageSize,
-      })
+      } as any)
       if (res.code === 0) {
         const list = (res.data?.list || []).map((x: any) => ({
           id: x._id,
@@ -78,7 +80,7 @@ const Activity: React.FC = () => {
         module: moduleFilter,
         page: next,
         pageSize,
-      })
+      } as any)
       if (res.code === 0) {
         const list = (res.data?.list || []).map((x: any) => ({
           id: x._id,
@@ -131,9 +133,9 @@ const Activity: React.FC = () => {
   const getStatusTag = (status?: string) => {
     if (!status) return null
     const config: Record<string, { color: string; text: string }> = {
-      success: { color: 'success', text: '成功' },
-      pending: { color: 'processing', text: '进行中' },
-      failed: { color: 'error', text: '失败' },
+      success: { color: 'success', text: t('pages.profile.activity.status.success') },
+      pending: { color: 'processing', text: t('pages.profile.activity.status.pending') },
+      failed: { color: 'error', text: t('pages.profile.activity.status.failed') },
     }
     const cfg = config[status] || config.success
     return <Tag color={cfg.color}>{cfg.text}</Tag>
@@ -142,12 +144,12 @@ const Activity: React.FC = () => {
   return (
     <div>
       <Card
-        title="活动日志"
+        title={t('pages.profile.activity.title')}
         extra={
           <Space>
             <Select
               allowClear
-              placeholder="按模块筛选"
+              placeholder={t('pages.profile.activity.filters.module')}
               style={{ width: 180 }}
               options={[
                 { label: 'system', value: 'system' },
@@ -159,12 +161,12 @@ const Activity: React.FC = () => {
               value={moduleFilter}
               onChange={(v) => setModuleFilter(v)}
             />
-            <Button onClick={onQuery} loading={loading}>查询</Button>
+            <Button onClick={onQuery} loading={loading}>{t('common.search')}</Button>
           </Space>
         }
       >
         {activities.length === 0 ? (
-          <Empty description="暂无活动记录" />
+          <Empty description={t('pages.profile.activity.empty')} />
         ) : (
           <Timeline>
             {activities.map((activity) => (
@@ -190,7 +192,7 @@ const Activity: React.FC = () => {
         {activities.length < total && (
           <div style={{ textAlign: 'center', marginTop: 12 }}>
             <Button onClick={loadMore} loading={loading}>
-              加载更多（已加载 {activities.length} / 共 {total}）
+              {t('pages.profile.activity.loadMore', { loaded: activities.length, total })}
             </Button>
           </div>
         )}

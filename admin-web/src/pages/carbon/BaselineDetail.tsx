@@ -1,27 +1,29 @@
 /**
  * 基准值详情页
  */
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import {
-  Card,
-  Descriptions,
-  Tag,
-  Button,
-  Space,
-  message,
-  Spin,
-  Timeline,
-  Statistic,
-  Row,
-  Col,
-} from 'antd'
-import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
+import i18n from '@/i18n'
 import { baselineManageAPI } from '@/services/baseline'
 import type { CarbonBaseline } from '@/types/baseline'
-import { MealType, Region, EnergyType, BaselineStatus } from '@/types/baseline'
+import { BaselineStatus, EnergyType, MealType, Region } from '@/types/baseline'
+import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  message
+} from 'antd'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const BaselineDetail: React.FC = () => {
+  const { t } = useTranslation()
   const { baselineId } = useParams<{ baselineId: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -42,11 +44,11 @@ const BaselineDetail: React.FC = () => {
       if (result.success && result.data) {
         setBaseline(result.data)
       } else {
-        message.error(result.error || '获取详情失败')
+        message.error(result.error || t('pages.carbon.baselineDetail.messages.getDetailFailed'))
         navigate('/carbon/baseline')
       }
     } catch (error: any) {
-      message.error(error.message || '获取详情失败')
+      message.error(error.message || t('pages.carbon.baselineDetail.messages.getDetailFailed'))
       navigate('/carbon/baseline')
     } finally {
       setLoading(false)
@@ -66,30 +68,43 @@ const BaselineDetail: React.FC = () => {
   }
 
   const regionMap: Record<string, string> = {
-    [Region.NORTH_CHINA]: '华北区域',
-    [Region.NORTHEAST]: '东北区域',
-    [Region.EAST_CHINA]: '华东区域',
-    [Region.CENTRAL_CHINA]: '华中区域',
-    [Region.NORTHWEST]: '西北区域',
-    [Region.SOUTH_CHINA]: '南方区域',
-    [Region.NATIONAL_AVERAGE]: '全国平均',
+    [Region.NORTH_CHINA]: t('pages.carbon.baselineList.regions.northChina'),
+    [Region.NORTHEAST]: t('pages.carbon.baselineList.regions.northeast'),
+    [Region.EAST_CHINA]: t('pages.carbon.baselineList.regions.eastChina'),
+    [Region.CENTRAL_CHINA]: t('pages.carbon.baselineList.regions.centralChina'),
+    [Region.NORTHWEST]: t('pages.carbon.baselineList.regions.northwest'),
+    [Region.SOUTH_CHINA]: t('pages.carbon.baselineList.regions.southChina'),
+    [Region.NATIONAL_AVERAGE]: t('pages.carbon.baselineList.regions.nationalAverage'),
   }
 
   const mealTypeMap: Record<string, string> = {
-    [MealType.MEAT_SIMPLE]: '肉食简餐',
-    [MealType.MEAT_FULL]: '肉食正餐',
+    [MealType.MEAT_SIMPLE]: t('pages.carbon.baselineList.mealTypes.meatSimple'),
+    [MealType.MEAT_FULL]: t('pages.carbon.baselineList.mealTypes.meatFull'),
   }
 
   const energyTypeMap: Record<string, string> = {
-    [EnergyType.ELECTRIC]: '全电厨房',
-    [EnergyType.GAS]: '燃气厨房',
-    [EnergyType.MIXED]: '混合用能',
+    [EnergyType.ELECTRIC]: t('pages.carbon.baselineList.energyTypes.electric'),
+    [EnergyType.GAS]: t('pages.carbon.baselineList.energyTypes.gas'),
+    [EnergyType.MIXED]: t('pages.carbon.baselineList.energyTypes.mixed'),
   }
 
   const statusMap: Record<string, { color: string; text: string }> = {
-    [BaselineStatus.ACTIVE]: { color: 'success', text: '活跃' },
-    [BaselineStatus.ARCHIVED]: { color: 'default', text: '已归档' },
-    [BaselineStatus.DRAFT]: { color: 'warning', text: '草稿' },
+    [BaselineStatus.ACTIVE]: { color: 'success', text: t('pages.carbon.baselineList.status.active') },
+    [BaselineStatus.ARCHIVED]: { color: 'default', text: t('pages.carbon.baselineList.status.archived') },
+    [BaselineStatus.DRAFT]: { color: 'warning', text: t('pages.carbon.baselineList.status.draft') },
+  }
+
+  // 根据当前语言格式化日期
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    const locale = i18n.language === 'en' ? 'en-US' : 'zh-CN'
+    return dateObj.toLocaleDateString(locale)
+  }
+
+  const formatDateTime = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    const locale = i18n.language === 'en' ? 'en-US' : 'zh-CN'
+    return dateObj.toLocaleString(locale)
   }
 
   return (
@@ -102,9 +117,9 @@ const BaselineDetail: React.FC = () => {
               icon={<ArrowLeftOutlined />}
               onClick={() => navigate('/carbon/baseline')}
             >
-              返回列表
+              {t('pages.carbon.baselineDetail.buttons.back')}
             </Button>
-            <span>基准值详情</span>
+            <span>{t('pages.carbon.baselineDetail.title')}</span>
           </Space>
         }
         extra={
@@ -114,34 +129,34 @@ const BaselineDetail: React.FC = () => {
               onClick={() => navigate(`/carbon/baseline/${baselineId}/edit`)}
               disabled={baseline.status === BaselineStatus.ARCHIVED}
             >
-              编辑
+              {t('pages.carbon.baselineDetail.buttons.edit')}
             </Button>
           </Space>
         }
       >
         {/* 基本信息 */}
-        <Card title="基本信息" style={{ marginBottom: 16 }}>
+        <Card title={t('pages.carbon.baselineDetail.sections.basicInfo')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered>
-            <Descriptions.Item label="基准值ID">{baseline.baselineId}</Descriptions.Item>
-            <Descriptions.Item label="状态">
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.baselineId')}>{baseline.baselineId}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.status')}>
               <Tag color={statusMap[baseline.status]?.color}>
                 {statusMap[baseline.status]?.text}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="地区">
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.region')}>
               {regionMap[baseline.category.region] || baseline.category.region}
             </Descriptions.Item>
-            <Descriptions.Item label="餐食类型">
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.mealType')}>
               {mealTypeMap[baseline.category.mealType] || baseline.category.mealType}
             </Descriptions.Item>
-            <Descriptions.Item label="用能方式">
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.energyType')}>
               {energyTypeMap[baseline.category.energyType] || baseline.category.energyType}
             </Descriptions.Item>
             {baseline.category.city && (
-              <Descriptions.Item label="城市">{baseline.category.city}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.city')}>{baseline.category.city}</Descriptions.Item>
             )}
             {baseline.category.restaurantType && (
-              <Descriptions.Item label="餐厅类型">
+              <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.restaurantType')}>
                 {baseline.category.restaurantType}
               </Descriptions.Item>
             )}
@@ -149,11 +164,11 @@ const BaselineDetail: React.FC = () => {
         </Card>
 
         {/* 基准值数据 */}
-        <Card title="基准值数据" style={{ marginBottom: 16 }}>
+        <Card title={t('pages.carbon.baselineDetail.sections.baselineData')} style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={6}>
               <Statistic
-                title="基准值"
+                title={t('pages.carbon.baselineDetail.fields.baselineValue')}
                 value={baseline.carbonFootprint.value}
                 suffix="kg CO₂e"
                 precision={1}
@@ -161,7 +176,7 @@ const BaselineDetail: React.FC = () => {
             </Col>
             <Col span={6}>
               <Statistic
-                title="不确定性"
+                title={t('pages.carbon.baselineDetail.fields.uncertainty')}
                 value={baseline.carbonFootprint.uncertainty}
                 suffix="kg CO₂e"
                 precision={1}
@@ -169,7 +184,7 @@ const BaselineDetail: React.FC = () => {
             </Col>
             <Col span={6}>
               <Statistic
-                title="置信区间下限"
+                title={t('pages.carbon.baselineDetail.fields.confidenceLower')}
                 value={baseline.carbonFootprint.confidenceInterval.lower}
                 suffix="kg CO₂e"
                 precision={1}
@@ -177,7 +192,7 @@ const BaselineDetail: React.FC = () => {
             </Col>
             <Col span={6}>
               <Statistic
-                title="置信区间上限"
+                title={t('pages.carbon.baselineDetail.fields.confidenceUpper')}
                 value={baseline.carbonFootprint.confidenceInterval.upper}
                 suffix="kg CO₂e"
                 precision={1}
@@ -186,11 +201,11 @@ const BaselineDetail: React.FC = () => {
           </Row>
 
           <div style={{ marginTop: 24 }}>
-            <h4>分解数据</h4>
+            <h4>{t('pages.carbon.baselineDetail.fields.breakdown')}</h4>
             <Row gutter={16}>
               <Col span={6}>
                 <Statistic
-                  title="食材"
+                  title={t('pages.carbon.baselineDetail.fields.ingredients')}
                   value={baseline.breakdown.ingredients}
                   suffix="kg CO₂e"
                   precision={1}
@@ -198,7 +213,7 @@ const BaselineDetail: React.FC = () => {
               </Col>
               <Col span={6}>
                 <Statistic
-                  title="烹饪能耗"
+                  title={t('pages.carbon.baselineDetail.fields.cookingEnergy')}
                   value={baseline.breakdown.cookingEnergy}
                   suffix="kg CO₂e"
                   precision={1}
@@ -206,7 +221,7 @@ const BaselineDetail: React.FC = () => {
               </Col>
               <Col span={6}>
                 <Statistic
-                  title="包装"
+                  title={t('pages.carbon.baselineDetail.fields.packaging')}
                   value={baseline.breakdown.packaging}
                   suffix="kg CO₂e"
                   precision={1}
@@ -214,7 +229,7 @@ const BaselineDetail: React.FC = () => {
               </Col>
               <Col span={6}>
                 <Statistic
-                  title="其他"
+                  title={t('pages.carbon.baselineDetail.fields.other')}
                   value={baseline.breakdown.other}
                   suffix="kg CO₂e"
                   precision={1}
@@ -225,50 +240,50 @@ const BaselineDetail: React.FC = () => {
         </Card>
 
         {/* 数据来源 */}
-        <Card title="数据来源" style={{ marginBottom: 16 }}>
+        <Card title={t('pages.carbon.baselineDetail.sections.source')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered>
-            <Descriptions.Item label="来源类型">{baseline.source.type}</Descriptions.Item>
-            <Descriptions.Item label="机构名称">{baseline.source.organization}</Descriptions.Item>
-            <Descriptions.Item label="报告名称" span={2}>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.sourceType')}>{baseline.source.type}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.organization')}>{baseline.source.organization}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.report')} span={2}>
               {baseline.source.report}
             </Descriptions.Item>
-            <Descriptions.Item label="年份">{baseline.source.year}</Descriptions.Item>
-            <Descriptions.Item label="计算方法" span={2}>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.year')}>{baseline.source.year}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.methodology')} span={2}>
               {baseline.source.methodology}
             </Descriptions.Item>
           </Descriptions>
         </Card>
 
         {/* 版本信息 */}
-        <Card title="版本信息" style={{ marginBottom: 16 }}>
+        <Card title={t('pages.carbon.baselineDetail.sections.version')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered>
-            <Descriptions.Item label="版本号">{baseline.version}</Descriptions.Item>
-            <Descriptions.Item label="使用次数">{baseline.usageCount || 0}</Descriptions.Item>
-            <Descriptions.Item label="有效日期">
-              {new Date(baseline.effectiveDate).toLocaleDateString('zh-CN')}
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.version')}>{baseline.version}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.usageCount')}>{baseline.usageCount || 0}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.effectiveDate')}>
+              {formatDate(baseline.effectiveDate)}
             </Descriptions.Item>
-            <Descriptions.Item label="失效日期">
-              {new Date(baseline.expiryDate).toLocaleDateString('zh-CN')}
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.expiryDate')}>
+              {formatDate(baseline.expiryDate)}
             </Descriptions.Item>
-            <Descriptions.Item label="创建时间">
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.createdAt')}>
               {baseline.createdAt
-                ? new Date(baseline.createdAt).toLocaleString('zh-CN')
+                ? formatDateTime(baseline.createdAt)
                 : '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="更新时间">
+            <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.updatedAt')}>
               {baseline.updatedAt
-                ? new Date(baseline.updatedAt).toLocaleString('zh-CN')
+                ? formatDateTime(baseline.updatedAt)
                 : '-'}
             </Descriptions.Item>
             {baseline.createdBy && (
-              <Descriptions.Item label="创建人">{baseline.createdBy}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.createdBy')}>{baseline.createdBy}</Descriptions.Item>
             )}
             {baseline.updatedBy && (
-              <Descriptions.Item label="更新人">{baseline.updatedBy}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.updatedBy')}>{baseline.updatedBy}</Descriptions.Item>
             )}
             {baseline.lastUsedAt && (
-              <Descriptions.Item label="最后使用时间" span={2}>
-                {new Date(baseline.lastUsedAt).toLocaleString('zh-CN')}
+              <Descriptions.Item label={t('pages.carbon.baselineDetail.fields.lastUsedAt')} span={2}>
+                {formatDateTime(baseline.lastUsedAt)}
               </Descriptions.Item>
             )}
           </Descriptions>
@@ -276,7 +291,7 @@ const BaselineDetail: React.FC = () => {
 
         {/* 备注 */}
         {baseline.notes && (
-          <Card title="备注">
+          <Card title={t('pages.carbon.baselineDetail.sections.notes')}>
             <p>{baseline.notes}</p>
           </Card>
         )}

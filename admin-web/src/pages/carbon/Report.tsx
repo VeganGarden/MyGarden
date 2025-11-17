@@ -2,11 +2,13 @@ import { Column, Line } from '@ant-design/charts'
 import { DownloadOutlined, EyeOutlined, ShareAltOutlined } from '@ant-design/icons'
 import { Button, Card, DatePicker, Select, Space, Tabs, message } from 'antd'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { TabPane } = Tabs
 const { RangePicker } = DatePicker
 
 const CarbonReport: React.FC = () => {
+  const { t } = useTranslation()
   const [reportType, setReportType] = useState<'monthly' | 'yearly' | 'esg'>('monthly')
 
   const monthlyData = [
@@ -22,24 +24,24 @@ const CarbonReport: React.FC = () => {
   ]
 
   const handleGenerate = () => {
-    message.success('报告生成功能开发中')
+    message.success(t('pages.carbon.report.messages.generateInProgress'))
     // TODO: 调用报告生成API
   }
 
   const handleDownload = (format: 'pdf' | 'excel' | 'word') => {
-    message.success(`${format.toUpperCase()}格式报告下载功能开发中`)
+    message.success(t('pages.carbon.report.messages.downloadInProgress', { format: format.toUpperCase() }))
     // TODO: 实现报告下载
   }
 
   const handleShare = () => {
-    message.success('报告分享功能开发中')
+    message.success(t('pages.carbon.report.messages.shareInProgress'))
     // TODO: 生成分享链接
   }
 
   return (
     <div>
       <Card
-        title="碳报告管理"
+        title={t('pages.carbon.report.title')}
         extra={
           <Space>
             <Select
@@ -47,39 +49,43 @@ const CarbonReport: React.FC = () => {
               onChange={setReportType}
               style={{ width: 150 }}
             >
-              <Select.Option value="monthly">月度报告</Select.Option>
-              <Select.Option value="yearly">年度报告</Select.Option>
-              <Select.Option value="esg">ESG报告</Select.Option>
+              <Select.Option value="monthly">{t('pages.carbon.report.types.monthly')}</Select.Option>
+              <Select.Option value="yearly">{t('pages.carbon.report.types.yearly')}</Select.Option>
+              <Select.Option value="esg">{t('pages.carbon.report.types.esg')}</Select.Option>
             </Select>
             <RangePicker />
             <Button type="primary" onClick={handleGenerate}>
-              生成报告
+              {t('pages.carbon.report.buttons.generate')}
             </Button>
           </Space>
         }
       >
         <Tabs defaultActiveKey="preview">
-          <TabPane tab="报告预览" key="preview">
+          <TabPane tab={t('pages.carbon.report.tabs.preview')} key="preview">
             <Card
-              title={`${reportType === 'monthly' ? '月度' : reportType === 'yearly' ? '年度' : 'ESG'}碳报告`}
+              title={reportType === 'monthly' 
+                ? t('pages.carbon.report.preview.monthlyTitle')
+                : reportType === 'yearly'
+                ? t('pages.carbon.report.preview.yearlyTitle')
+                : t('pages.carbon.report.preview.esgTitle')}
               extra={
                 <Space>
-                  <Button icon={<EyeOutlined />}>预览</Button>
+                  <Button icon={<EyeOutlined />}>{t('pages.carbon.report.buttons.preview')}</Button>
                   <Button icon={<DownloadOutlined />} onClick={() => handleDownload('pdf')}>
-                    下载PDF
+                    {t('pages.carbon.report.buttons.downloadPdf')}
                   </Button>
                   <Button icon={<DownloadOutlined />} onClick={() => handleDownload('excel')}>
-                    下载Excel
+                    {t('pages.carbon.report.buttons.downloadExcel')}
                   </Button>
                   <Button icon={<ShareAltOutlined />} onClick={handleShare}>
-                    分享
+                    {t('pages.carbon.report.buttons.share')}
                   </Button>
                 </Space>
               }
             >
               {reportType === 'monthly' && (
                 <div>
-                  <h3>月度碳减排数据</h3>
+                  <h3>{t('pages.carbon.report.preview.monthlyData')}</h3>
                   <Column
                     data={monthlyData}
                     xField="month"
@@ -98,7 +104,7 @@ const CarbonReport: React.FC = () => {
 
               {reportType === 'yearly' && (
                 <div>
-                  <h3>年度碳减排趋势</h3>
+                  <h3>{t('pages.carbon.report.preview.yearlyTrend')}</h3>
                   <Line
                     data={yearlyData}
                     xField="year"
@@ -114,23 +120,23 @@ const CarbonReport: React.FC = () => {
 
               {reportType === 'esg' && (
                 <div>
-                  <h3>ESG报告内容</h3>
+                  <h3>{t('pages.carbon.report.preview.esgContent')}</h3>
                   <div style={{ padding: 24 }}>
-                    <h4>环境数据 (Environmental)</h4>
+                    <h4>{t('pages.carbon.report.preview.environmental')}</h4>
                     <ul>
                       <li>累计碳减排: 30,000 kg CO₂e</li>
                       <li>能源消耗: 优化后减少15%</li>
                       <li>废物处理: 实现零废弃目标</li>
                     </ul>
 
-                    <h4 style={{ marginTop: 24 }}>社会数据 (Social)</h4>
+                    <h4 style={{ marginTop: 24 }}>{t('pages.carbon.report.preview.social')}</h4>
                     <ul>
                       <li>就业人数: 50人</li>
                       <li>社区贡献: 参与10次公益活动</li>
                       <li>用户满意度: 4.5/5.0</li>
                     </ul>
 
-                    <h4 style={{ marginTop: 24 }}>治理数据 (Governance)</h4>
+                    <h4 style={{ marginTop: 24 }}>{t('pages.carbon.report.preview.governance')}</h4>
                     <ul>
                       <li>合规性: 100%符合认证标准</li>
                       <li>透明度: 数据公开透明</li>
@@ -142,9 +148,9 @@ const CarbonReport: React.FC = () => {
             </Card>
           </TabPane>
 
-          <TabPane tab="历史报告" key="history">
+          <TabPane tab={t('pages.carbon.report.tabs.history')} key="history">
             <div>
-              <p>历史报告列表功能开发中</p>
+              <p>{t('pages.carbon.report.history.inProgress')}</p>
             </div>
           </TabPane>
         </Tabs>

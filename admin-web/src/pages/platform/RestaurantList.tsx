@@ -20,6 +20,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface Restaurant {
   id: string
@@ -38,6 +39,7 @@ interface Restaurant {
 }
 
 const RestaurantList: React.FC = () => {
+  const { t } = useTranslation()
   const [dataSource, setDataSource] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -105,7 +107,7 @@ const RestaurantList: React.FC = () => {
       ]
       setDataSource(mockData)
     } catch (error) {
-      message.error('获取餐厅列表失败')
+      message.error(t('pages.platform.restaurantList.messages.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -113,79 +115,79 @@ const RestaurantList: React.FC = () => {
 
   const columns: ColumnsType<Restaurant> = [
     {
-      title: '餐厅名称',
+      title: t('pages.platform.restaurantList.table.columns.name'),
       dataIndex: 'name',
       key: 'name',
       width: 150,
     },
     {
-      title: '负责人',
+      title: t('pages.platform.restaurantList.table.columns.owner'),
       dataIndex: 'owner',
       key: 'owner',
       width: 100,
     },
     {
-      title: '联系电话',
+      title: t('pages.platform.restaurantList.table.columns.phone'),
       dataIndex: 'phone',
       key: 'phone',
       width: 120,
     },
     {
-      title: '状态',
+      title: t('pages.platform.restaurantList.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
       render: (status: string) => {
         const config: Record<string, { color: string; text: string }> = {
-          active: { color: 'success', text: '正常' },
-          inactive: { color: 'default', text: '未激活' },
-          pending: { color: 'processing', text: '待审核' },
-          suspended: { color: 'error', text: '已暂停' },
+          active: { color: 'success', text: t('pages.platform.restaurantList.status.active') },
+          inactive: { color: 'default', text: t('pages.platform.restaurantList.status.inactive') },
+          pending: { color: 'processing', text: t('pages.platform.restaurantList.status.pending') },
+          suspended: { color: 'error', text: t('pages.platform.restaurantList.status.suspended') },
         }
         const cfg = config[status] || config.inactive
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       },
     },
     {
-      title: '认证等级',
+      title: t('pages.platform.restaurantList.table.columns.certificationLevel'),
       dataIndex: 'certificationLevel',
       key: 'certificationLevel',
       width: 120,
       render: (level?: string) => {
-        if (!level) return <Tag>未认证</Tag>
+        if (!level) return <Tag>{t('pages.platform.restaurantList.certificationLevels.notCertified')}</Tag>
         const config: Record<string, { color: string; text: string }> = {
-          bronze: { color: 'default', text: '铜牌' },
-          silver: { color: 'default', text: '银牌' },
-          gold: { color: 'gold', text: '金牌' },
-          platinum: { color: 'purple', text: '白金' },
+          bronze: { color: 'default', text: t('pages.platform.restaurantList.certificationLevels.bronze') },
+          silver: { color: 'default', text: t('pages.platform.restaurantList.certificationLevels.silver') },
+          gold: { color: 'gold', text: t('pages.platform.restaurantList.certificationLevels.gold') },
+          platinum: { color: 'purple', text: t('pages.platform.restaurantList.certificationLevels.platinum') },
         }
         const cfg = config[level] || config.bronze
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       },
     },
     {
-      title: '累计订单',
+      title: t('pages.platform.restaurantList.table.columns.totalOrders'),
       dataIndex: 'totalOrders',
       key: 'totalOrders',
       width: 100,
       render: (value: number) => value.toLocaleString(),
     },
     {
-      title: '累计收入',
+      title: t('pages.platform.restaurantList.table.columns.totalRevenue'),
       dataIndex: 'totalRevenue',
       key: 'totalRevenue',
       width: 120,
       render: (value: number) => `¥${value.toLocaleString()}`,
     },
     {
-      title: '碳减排(kg)',
+      title: t('pages.platform.restaurantList.table.columns.carbonReduction'),
       dataIndex: 'carbonReduction',
       key: 'carbonReduction',
       width: 120,
       render: (value: number) => value.toLocaleString(),
     },
     {
-      title: '操作',
+      title: t('pages.platform.restaurantList.table.columns.actions'),
       key: 'action',
       fixed: 'right',
       width: 200,
@@ -196,14 +198,14 @@ const RestaurantList: React.FC = () => {
             icon={<EyeOutlined />}
             onClick={() => handleViewDetail(record)}
           >
-            详情
+            {t('pages.platform.restaurantList.buttons.detail')}
           </Button>
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
-            编辑
+            {t('common.edit')}
           </Button>
           {record.status === 'active' ? (
             <Button
@@ -212,7 +214,7 @@ const RestaurantList: React.FC = () => {
               icon={<CloseCircleOutlined />}
               onClick={() => handleSuspend(record.id)}
             >
-              暂停
+              {t('pages.platform.restaurantList.buttons.suspend')}
             </Button>
           ) : (
             <Button
@@ -220,7 +222,7 @@ const RestaurantList: React.FC = () => {
               icon={<CheckCircleOutlined />}
               onClick={() => handleActivate(record.id)}
             >
-              激活
+              {t('pages.platform.restaurantList.buttons.activate')}
             </Button>
           )}
         </Space>
@@ -241,8 +243,8 @@ const RestaurantList: React.FC = () => {
 
   const handleSuspend = (id: string) => {
     Modal.confirm({
-      title: '确认暂停',
-      content: '确定要暂停该餐厅吗？暂停后餐厅将无法使用系统功能。',
+      title: t('pages.platform.restaurantList.modal.suspend.title'),
+      content: t('pages.platform.restaurantList.modal.suspend.content'),
       onOk: async () => {
         try {
           // TODO: 调用API暂停餐厅
@@ -252,9 +254,9 @@ const RestaurantList: React.FC = () => {
               item.id === id ? { ...item, status: 'suspended' } : item
             )
           )
-          message.success('已暂停餐厅')
+          message.success(t('pages.platform.restaurantList.messages.suspended'))
         } catch (error) {
-          message.error('操作失败')
+          message.error(t('common.operationFailed'))
         }
       },
     })
@@ -262,8 +264,8 @@ const RestaurantList: React.FC = () => {
 
   const handleActivate = (id: string) => {
     Modal.confirm({
-      title: '确认激活',
-      content: '确定要激活该餐厅吗？',
+      title: t('pages.platform.restaurantList.modal.activate.title'),
+      content: t('pages.platform.restaurantList.modal.activate.content'),
       onOk: async () => {
         try {
           // TODO: 调用API激活餐厅
@@ -273,9 +275,9 @@ const RestaurantList: React.FC = () => {
               item.id === id ? { ...item, status: 'active' } : item
             )
           )
-          message.success('已激活餐厅')
+          message.success(t('pages.platform.restaurantList.messages.activated'))
         } catch (error) {
-          message.error('操作失败')
+          message.error(t('common.operationFailed'))
         }
       },
     })
@@ -298,7 +300,7 @@ const RestaurantList: React.FC = () => {
               item.id === selectedRecord.id ? { ...item, ...values } : item
             )
           )
-          message.success('更新成功')
+          message.success(t('common.updateSuccess'))
         } else {
           // TODO: 调用API创建餐厅
           // await platformAPI.restaurant.create(values)
@@ -313,11 +315,11 @@ const RestaurantList: React.FC = () => {
             carbonReduction: 0,
           }
           setDataSource([...dataSource, newRestaurant])
-          message.success('创建成功')
+          message.success(t('common.createSuccess'))
         }
         setIsModalVisible(false)
       } catch (error) {
-        message.error('操作失败')
+        message.error(t('common.operationFailed'))
       }
     })
   }
@@ -325,16 +327,16 @@ const RestaurantList: React.FC = () => {
   return (
     <div>
       <Card
-        title="餐厅列表管理"
+        title={t('pages.platform.restaurantList.title')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            添加餐厅
+            {t('pages.platform.restaurantList.buttons.add')}
           </Button>
         }
       >
         <Space style={{ marginBottom: 16 }}>
           <Input.Search
-            placeholder="搜索餐厅名称、负责人、电话"
+            placeholder={t('pages.platform.restaurantList.filters.search')}
             style={{ width: 300 }}
             allowClear
             onSearch={(value) => {
@@ -343,7 +345,7 @@ const RestaurantList: React.FC = () => {
             }}
           />
           <Select
-            placeholder="筛选状态"
+            placeholder={t('pages.platform.restaurantList.filters.status')}
             style={{ width: 150 }}
             allowClear
             onChange={(value) => {
@@ -351,13 +353,13 @@ const RestaurantList: React.FC = () => {
               console.log('筛选状态:', value)
             }}
           >
-            <Select.Option value="active">正常</Select.Option>
-            <Select.Option value="inactive">未激活</Select.Option>
-            <Select.Option value="pending">待审核</Select.Option>
-            <Select.Option value="suspended">已暂停</Select.Option>
+            <Select.Option value="active">{t('pages.platform.restaurantList.status.active')}</Select.Option>
+            <Select.Option value="inactive">{t('pages.platform.restaurantList.status.inactive')}</Select.Option>
+            <Select.Option value="pending">{t('pages.platform.restaurantList.status.pending')}</Select.Option>
+            <Select.Option value="suspended">{t('pages.platform.restaurantList.status.suspended')}</Select.Option>
           </Select>
           <Select
-            placeholder="筛选认证等级"
+            placeholder={t('pages.platform.restaurantList.filters.certificationLevel')}
             style={{ width: 150 }}
             allowClear
             onChange={(value) => {
@@ -365,10 +367,10 @@ const RestaurantList: React.FC = () => {
               console.log('筛选认证等级:', value)
             }}
           >
-            <Select.Option value="bronze">铜牌</Select.Option>
-            <Select.Option value="silver">银牌</Select.Option>
-            <Select.Option value="gold">金牌</Select.Option>
-            <Select.Option value="platinum">白金</Select.Option>
+            <Select.Option value="bronze">{t('pages.platform.restaurantList.certificationLevels.bronze')}</Select.Option>
+            <Select.Option value="silver">{t('pages.platform.restaurantList.certificationLevels.silver')}</Select.Option>
+            <Select.Option value="gold">{t('pages.platform.restaurantList.certificationLevels.gold')}</Select.Option>
+            <Select.Option value="platinum">{t('pages.platform.restaurantList.certificationLevels.platinum')}</Select.Option>
           </Select>
         </Space>
 
@@ -381,7 +383,7 @@ const RestaurantList: React.FC = () => {
           pagination={{
             total: dataSource.length,
             pageSize: 10,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             showSizeChanger: true,
             showQuickJumper: true,
           }}
@@ -390,26 +392,26 @@ const RestaurantList: React.FC = () => {
 
       {/* 详情模态框 */}
       <Modal
-        title="餐厅详情"
+        title={t('pages.platform.restaurantList.modal.detail.title')}
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
         footer={[
           <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
-            关闭
+            {t('common.close')}
           </Button>,
         ]}
         width={800}
       >
         {selectedRecord && (
           <Descriptions column={2} bordered>
-            <Descriptions.Item label="餐厅名称">{selectedRecord.name}</Descriptions.Item>
-            <Descriptions.Item label="负责人">{selectedRecord.owner}</Descriptions.Item>
-            <Descriptions.Item label="联系电话">{selectedRecord.phone}</Descriptions.Item>
-            <Descriptions.Item label="邮箱">{selectedRecord.email}</Descriptions.Item>
-            <Descriptions.Item label="地址" span={2}>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.name')}>{selectedRecord.name}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.owner')}>{selectedRecord.owner}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.phone')}>{selectedRecord.phone}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.email')}>{selectedRecord.email}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.address')} span={2}>
               {selectedRecord.address}
             </Descriptions.Item>
-            <Descriptions.Item label="状态">
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.status')}>
               <Tag
                 color={
                   selectedRecord.status === 'active'
@@ -422,28 +424,28 @@ const RestaurantList: React.FC = () => {
                 }
               >
                 {selectedRecord.status === 'active'
-                  ? '正常'
+                  ? t('pages.platform.restaurantList.status.active')
                   : selectedRecord.status === 'pending'
-                  ? '待审核'
+                  ? t('pages.platform.restaurantList.status.pending')
                   : selectedRecord.status === 'suspended'
-                  ? '已暂停'
-                  : '未激活'}
+                  ? t('pages.platform.restaurantList.status.suspended')
+                  : t('pages.platform.restaurantList.status.inactive')}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="认证等级">
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.certificationLevel')}>
               {selectedRecord.certificationLevel ? (
                 <Tag color="gold">{selectedRecord.certificationLevel}</Tag>
               ) : (
-                <Tag>未认证</Tag>
+                <Tag>{t('pages.platform.restaurantList.certificationLevels.notCertified')}</Tag>
               )}
             </Descriptions.Item>
-            <Descriptions.Item label="租户ID">{selectedRecord.tenantId}</Descriptions.Item>
-            <Descriptions.Item label="创建时间">{selectedRecord.createdAt}</Descriptions.Item>
-            <Descriptions.Item label="累计订单">{selectedRecord.totalOrders.toLocaleString()}</Descriptions.Item>
-            <Descriptions.Item label="累计收入">
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.tenantId')}>{selectedRecord.tenantId}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.createdAt')}>{selectedRecord.createdAt}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.totalOrders')}>{selectedRecord.totalOrders.toLocaleString()}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.totalRevenue')}>
               ¥{selectedRecord.totalRevenue.toLocaleString()}
             </Descriptions.Item>
-            <Descriptions.Item label="累计碳减排">
+            <Descriptions.Item label={t('pages.platform.restaurantList.detail.fields.carbonReduction')}>
               {selectedRecord.carbonReduction.toLocaleString()} kg CO₂e
             </Descriptions.Item>
           </Descriptions>
@@ -452,48 +454,48 @@ const RestaurantList: React.FC = () => {
 
       {/* 编辑/创建模态框 */}
       <Modal
-        title={selectedRecord ? '编辑餐厅' : '添加餐厅'}
+        title={selectedRecord ? t('pages.platform.restaurantList.modal.edit.title') : t('pages.platform.restaurantList.modal.add.title')}
         open={isModalVisible}
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
         width={600}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="餐厅名称" rules={[{ required: true, message: '请输入餐厅名称' }]}>
-            <Input placeholder="请输入餐厅名称" />
+          <Form.Item name="name" label={t('pages.platform.restaurantList.form.fields.name')} rules={[{ required: true, message: t('pages.platform.restaurantList.form.messages.nameRequired') }]}>
+            <Input placeholder={t('pages.platform.restaurantList.form.placeholders.name')} />
           </Form.Item>
-          <Form.Item name="owner" label="负责人" rules={[{ required: true, message: '请输入负责人' }]}>
-            <Input placeholder="请输入负责人姓名" />
+          <Form.Item name="owner" label={t('pages.platform.restaurantList.form.fields.owner')} rules={[{ required: true, message: t('pages.platform.restaurantList.form.messages.ownerRequired') }]}>
+            <Input placeholder={t('pages.platform.restaurantList.form.placeholders.owner')} />
           </Form.Item>
           <Form.Item
             name="phone"
-            label="联系电话"
+            label={t('pages.platform.restaurantList.form.fields.phone')}
             rules={[
-              { required: true, message: '请输入联系电话' },
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' },
+              { required: true, message: t('pages.platform.restaurantList.form.messages.phoneRequired') },
+              { pattern: /^1[3-9]\d{9}$/, message: t('pages.platform.restaurantList.form.messages.phoneInvalid') },
             ]}
           >
-            <Input placeholder="请输入联系电话" />
+            <Input placeholder={t('pages.platform.restaurantList.form.placeholders.phone')} />
           </Form.Item>
           <Form.Item
             name="email"
-            label="邮箱"
+            label={t('pages.platform.restaurantList.form.fields.email')}
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入正确的邮箱地址' },
+              { required: true, message: t('pages.platform.restaurantList.form.messages.emailRequired') },
+              { type: 'email', message: t('pages.platform.restaurantList.form.messages.emailInvalid') },
             ]}
           >
-            <Input placeholder="请输入邮箱" />
+            <Input placeholder={t('pages.platform.restaurantList.form.placeholders.email')} />
           </Form.Item>
-          <Form.Item name="address" label="地址" rules={[{ required: true, message: '请输入地址' }]}>
-            <Input.TextArea rows={2} placeholder="请输入详细地址" />
+          <Form.Item name="address" label={t('pages.platform.restaurantList.form.fields.address')} rules={[{ required: true, message: t('pages.platform.restaurantList.form.messages.addressRequired') }]}>
+            <Input.TextArea rows={2} placeholder={t('pages.platform.restaurantList.form.placeholders.address')} />
           </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select placeholder="请选择状态">
-              <Select.Option value="active">正常</Select.Option>
-              <Select.Option value="inactive">未激活</Select.Option>
-              <Select.Option value="pending">待审核</Select.Option>
-              <Select.Option value="suspended">已暂停</Select.Option>
+          <Form.Item name="status" label={t('pages.platform.restaurantList.form.fields.status')}>
+            <Select placeholder={t('pages.platform.restaurantList.form.placeholders.status')}>
+              <Select.Option value="active">{t('pages.platform.restaurantList.status.active')}</Select.Option>
+              <Select.Option value="inactive">{t('pages.platform.restaurantList.status.inactive')}</Select.Option>
+              <Select.Option value="pending">{t('pages.platform.restaurantList.status.pending')}</Select.Option>
+              <Select.Option value="suspended">{t('pages.platform.restaurantList.status.suspended')}</Select.Option>
             </Select>
           </Form.Item>
         </Form>

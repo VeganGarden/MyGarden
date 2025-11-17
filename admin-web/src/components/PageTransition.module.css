@@ -1,0 +1,64 @@
+.pageTransition {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 退出动画 */
+.exiting {
+  animation: fadeOut var(--transition-fast) var(--ease-in);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 进入动画 */
+.entering {
+  animation: fadeIn var(--transition-base) var(--ease-out);
+  opacity: 0;
+}
+
+.entered {
+  opacity: 1;
+  animation: none;
+}
+
+/* 前进动画（默认） */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 退出动画 */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+/* 后退动画（可选，通过 data-direction 控制） */
+.pageTransition[data-direction='back'] .entering {
+  animation: fadeInBack var(--transition-base) var(--ease-out);
+}
+
+@keyframes fadeInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+

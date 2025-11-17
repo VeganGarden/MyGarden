@@ -4,6 +4,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { Card, Descriptions, Tag, Button, Space, Tabs, Table, message } from 'antd'
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
 import { supplierAPI } from '@/services/traceability'
@@ -11,6 +13,7 @@ import type { Supplier } from '@/types/traceability'
 import { SupplierType, SupplierAuditStatus, RiskLevel, CooperationStatus } from '@/types/traceability'
 
 const SupplierDetailPage: React.FC = () => {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -30,80 +33,93 @@ const SupplierDetailPage: React.FC = () => {
       if (result.success && result.data) {
         setSupplier(result.data)
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.traceability.supplierDetail.messages.loadFailed'))
         navigate('/traceability/suppliers')
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
   }
 
   if (!supplier) {
-    return <div>加载中...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   const typeMap: Record<SupplierType, string> = {
-    [SupplierType.FARM]: '农场',
-    [SupplierType.PROCESSOR]: '加工商',
-    [SupplierType.DISTRIBUTOR]: '分销商',
-    [SupplierType.OTHER]: '其他'
+    [SupplierType.FARM]: t('pages.traceability.supplier.types.farm'),
+    [SupplierType.PROCESSOR]: t('pages.traceability.supplier.types.processor'),
+    [SupplierType.DISTRIBUTOR]: t('pages.traceability.supplier.types.distributor'),
+    [SupplierType.OTHER]: t('pages.traceability.supplier.types.other')
   }
 
   const auditStatusMap: Record<SupplierAuditStatus, { text: string; color: string }> = {
-    [SupplierAuditStatus.PENDING]: { text: '待审核', color: 'orange' },
-    [SupplierAuditStatus.APPROVED]: { text: '已通过', color: 'green' },
-    [SupplierAuditStatus.REJECTED]: { text: '已拒绝', color: 'red' }
+    [SupplierAuditStatus.PENDING]: { text: t('pages.traceability.supplier.auditStatus.pending'), color: 'orange' },
+    [SupplierAuditStatus.APPROVED]: { text: t('pages.traceability.supplier.auditStatus.approved'), color: 'green' },
+    [SupplierAuditStatus.REJECTED]: { text: t('pages.traceability.supplier.auditStatus.rejected'), color: 'red' }
   }
 
   const riskLevelMap: Record<RiskLevel, { text: string; color: string }> = {
-    [RiskLevel.LOW]: { text: '低风险', color: 'green' },
-    [RiskLevel.MEDIUM]: { text: '中风险', color: 'orange' },
-    [RiskLevel.HIGH]: { text: '高风险', color: 'red' }
+    [RiskLevel.LOW]: { text: t('pages.traceability.supplier.riskLevels.low'), color: 'green' },
+    [RiskLevel.MEDIUM]: { text: t('pages.traceability.supplier.riskLevels.medium'), color: 'orange' },
+    [RiskLevel.HIGH]: { text: t('pages.traceability.supplier.riskLevels.high'), color: 'red' }
   }
 
   const cooperationStatusMap: Record<CooperationStatus, { text: string; color: string }> = {
-    [CooperationStatus.PENDING]: { text: '待合作', color: 'default' },
-    [CooperationStatus.ACTIVE]: { text: '合作中', color: 'green' },
-    [CooperationStatus.SUSPENDED]: { text: '已暂停', color: 'orange' },
-    [CooperationStatus.TERMINATED]: { text: '已终止', color: 'red' }
+    [CooperationStatus.PENDING]: { text: t('pages.traceability.supplierDetail.cooperationStatus.pending'), color: 'default' },
+    [CooperationStatus.ACTIVE]: { text: t('pages.traceability.supplierDetail.cooperationStatus.active'), color: 'green' },
+    [CooperationStatus.SUSPENDED]: { text: t('pages.traceability.supplierDetail.cooperationStatus.suspended'), color: 'orange' },
+    [CooperationStatus.TERMINATED]: { text: t('pages.traceability.supplierDetail.cooperationStatus.terminated'), color: 'red' }
+  }
+
+  // 根据当前语言格式化日期
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    const locale = i18n.language === 'en' ? 'en-US' : 'zh-CN'
+    return dateObj.toLocaleDateString(locale)
+  }
+
+  const formatDateTime = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    const locale = i18n.language === 'en' ? 'en-US' : 'zh-CN'
+    return dateObj.toLocaleString(locale)
   }
 
   const tabItems = [
     {
       key: 'basic',
-      label: '基本信息',
+      label: t('pages.traceability.supplierDetail.tabs.basic'),
       children: (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="供应商ID">{supplier.supplierId}</Descriptions.Item>
-          <Descriptions.Item label="供应商名称">{supplier.name}</Descriptions.Item>
-          <Descriptions.Item label="供应商类型">{typeMap[supplier.type]}</Descriptions.Item>
-          <Descriptions.Item label="法人名称">{supplier.legalName || '-'}</Descriptions.Item>
-          <Descriptions.Item label="注册号">{supplier.registrationNumber || '-'}</Descriptions.Item>
-          <Descriptions.Item label="风险等级">
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.supplierId')}>{supplier.supplierId}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.name')}>{supplier.name}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.type')}>{typeMap[supplier.type]}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.legalName')}>{supplier.legalName || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.registrationNumber')}>{supplier.registrationNumber || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.riskLevel')}>
             <Tag color={riskLevelMap[supplier.businessInfo.riskLevel].color}>
               {riskLevelMap[supplier.businessInfo.riskLevel].text}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="审核状态">
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.auditStatus')}>
             <Tag color={auditStatusMap[supplier.audit.status].color}>
               {auditStatusMap[supplier.audit.status].text}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="合作状态">
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.cooperationStatus')}>
             <Tag color={cooperationStatusMap[supplier.cooperation.status].color}>
               {cooperationStatusMap[supplier.cooperation.status].text}
             </Tag>
           </Descriptions.Item>
           {supplier.contact?.phone && (
-            <Descriptions.Item label="联系电话">{supplier.contact.phone}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.phone')}>{supplier.contact.phone}</Descriptions.Item>
           )}
           {supplier.contact?.email && (
-            <Descriptions.Item label="邮箱">{supplier.contact.email}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.email')}>{supplier.contact.email}</Descriptions.Item>
           )}
           {supplier.contact?.address && (
-            <Descriptions.Item label="地址" span={2}>
+            <Descriptions.Item label={t('pages.traceability.supplierDetail.fields.address')} span={2}>
               {[
                 supplier.contact.address.province,
                 supplier.contact.address.city,
@@ -117,18 +133,18 @@ const SupplierDetailPage: React.FC = () => {
     },
     {
       key: 'certifications',
-      label: '认证信息',
+      label: t('pages.traceability.supplierDetail.tabs.certifications'),
       children: (
         <Table
           columns={[
-            { title: '认证类型', dataIndex: 'type' },
-            { title: '认证名称', dataIndex: 'name' },
-            { title: '证书编号', dataIndex: 'certificateNumber' },
-            { title: '发证机构', dataIndex: 'issuer' },
-            { title: '发证日期', dataIndex: 'issueDate', render: (date) => date ? new Date(date).toLocaleDateString() : '-' },
-            { title: '到期日期', dataIndex: 'expiryDate', render: (date) => date ? new Date(date).toLocaleDateString() : '-' },
+            { title: t('pages.traceability.supplierDetail.certifications.columns.type'), dataIndex: 'type' },
+            { title: t('pages.traceability.supplierDetail.certifications.columns.name'), dataIndex: 'name' },
+            { title: t('pages.traceability.supplierDetail.certifications.columns.certificateNumber'), dataIndex: 'certificateNumber' },
+            { title: t('pages.traceability.supplierDetail.certifications.columns.issuer'), dataIndex: 'issuer' },
+            { title: t('pages.traceability.supplierDetail.certifications.columns.issueDate'), dataIndex: 'issueDate', render: (date) => date ? formatDate(date) : '-' },
+            { title: t('pages.traceability.supplierDetail.certifications.columns.expiryDate'), dataIndex: 'expiryDate', render: (date) => date ? formatDate(date) : '-' },
             {
-              title: '状态',
+              title: t('pages.traceability.supplierDetail.certifications.columns.status'),
               dataIndex: 'status',
               render: (status: string) => {
                 const colorMap: Record<string, string> = {
@@ -136,7 +152,12 @@ const SupplierDetailPage: React.FC = () => {
                   expired: 'orange',
                   revoked: 'red'
                 }
-                return <Tag color={colorMap[status]}>{status === 'valid' ? '有效' : status === 'expired' ? '已过期' : '已撤销'}</Tag>
+                const textMap: Record<string, string> = {
+                  valid: t('pages.traceability.supplierDetail.certifications.status.valid'),
+                  expired: t('pages.traceability.supplierDetail.certifications.status.expired'),
+                  revoked: t('pages.traceability.supplierDetail.certifications.status.revoked')
+                }
+                return <Tag color={colorMap[status]}>{textMap[status]}</Tag>
               }
             }
           ]}
@@ -148,35 +169,35 @@ const SupplierDetailPage: React.FC = () => {
     },
     {
       key: 'cooperation',
-      label: '合作记录',
+      label: t('pages.traceability.supplierDetail.tabs.cooperation'),
       children: (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="合作开始日期">
-            {supplier.cooperation.startDate ? new Date(supplier.cooperation.startDate).toLocaleDateString() : '-'}
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.cooperation.fields.startDate')}>
+            {supplier.cooperation.startDate ? formatDate(supplier.cooperation.startDate) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="最后订单日期">
-            {supplier.cooperation.lastOrderDate ? new Date(supplier.cooperation.lastOrderDate).toLocaleDateString() : '-'}
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.cooperation.fields.lastOrderDate')}>
+            {supplier.cooperation.lastOrderDate ? formatDate(supplier.cooperation.lastOrderDate) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="总订单数">{supplier.cooperation.totalOrders}</Descriptions.Item>
-          <Descriptions.Item label="总交易金额">{supplier.cooperation.totalAmount.toFixed(2)} 元</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.cooperation.fields.totalOrders')}>{supplier.cooperation.totalOrders}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.cooperation.fields.totalAmount')}>{supplier.cooperation.totalAmount.toFixed(2)} {t('common.yuan')}</Descriptions.Item>
         </Descriptions>
       )
     },
     {
       key: 'audit',
-      label: '审核历史',
+      label: t('pages.traceability.supplierDetail.tabs.audit'),
       children: (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="提交时间">
-            {new Date(supplier.audit.submittedAt).toLocaleString()}
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.audit.fields.submittedAt')}>
+            {formatDateTime(supplier.audit.submittedAt)}
           </Descriptions.Item>
-          <Descriptions.Item label="审核时间">
-            {supplier.audit.reviewedAt ? new Date(supplier.audit.reviewedAt).toLocaleString() : '-'}
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.audit.fields.reviewedAt')}>
+            {supplier.audit.reviewedAt ? formatDateTime(supplier.audit.reviewedAt) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="审核人">{supplier.audit.reviewedBy || '-'}</Descriptions.Item>
-          <Descriptions.Item label="版本">{supplier.audit.version}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.audit.fields.reviewedBy')}>{supplier.audit.reviewedBy || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.supplierDetail.audit.fields.version')}>{supplier.audit.version}</Descriptions.Item>
           {supplier.audit.reviewComments && (
-            <Descriptions.Item label="审核意见" span={2}>{supplier.audit.reviewComments}</Descriptions.Item>
+            <Descriptions.Item label={t('pages.traceability.supplierDetail.audit.fields.reviewComments')} span={2}>{supplier.audit.reviewComments}</Descriptions.Item>
           )}
         </Descriptions>
       )
@@ -188,14 +209,14 @@ const SupplierDetailPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/traceability/suppliers')}>
-            返回
+            {t('common.back')}
           </Button>
-          <span>供应商详情</span>
+          <span>{t('pages.traceability.supplierDetail.title')}</span>
         </Space>
       }
       extra={
         <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/traceability/suppliers/${id}/edit`)}>
-          编辑
+          {t('common.edit')}
         </Button>
       }
       loading={loading}

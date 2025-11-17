@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card, Descriptions, Tag, Button, Space, Tabs, Table, message } from 'antd'
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
 import { ingredientLotAPI } from '@/services/traceability'
@@ -12,6 +13,7 @@ import { InventoryStatus } from '@/types/traceability'
 import dayjs from 'dayjs'
 
 const IngredientLotDetailPage: React.FC = () => {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -31,54 +33,54 @@ const IngredientLotDetailPage: React.FC = () => {
       if (result.success && result.data) {
         setLot(result.data)
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.traceability.ingredientLotDetail.messages.loadFailed'))
         navigate('/traceability/lots')
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
   }
 
   if (!lot) {
-    return <div>加载中...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   const statusMap: Record<InventoryStatus, { text: string; color: string }> = {
-    [InventoryStatus.IN_STOCK]: { text: '有库存', color: 'green' },
-    [InventoryStatus.LOW_STOCK]: { text: '库存不足', color: 'orange' },
-    [InventoryStatus.OUT_OF_STOCK]: { text: '缺货', color: 'red' },
-    [InventoryStatus.EXPIRED]: { text: '已过期', color: 'red' }
+    [InventoryStatus.IN_STOCK]: { text: t('pages.traceability.ingredientLotList.status.inStock'), color: 'green' },
+    [InventoryStatus.LOW_STOCK]: { text: t('pages.traceability.ingredientLotList.status.lowStock'), color: 'orange' },
+    [InventoryStatus.OUT_OF_STOCK]: { text: t('pages.traceability.ingredientLotList.status.outOfStock'), color: 'red' },
+    [InventoryStatus.EXPIRED]: { text: t('pages.traceability.ingredientLotList.status.expired'), color: 'red' }
   }
 
   const tabItems = [
     {
       key: 'basic',
-      label: '基本信息',
+      label: t('pages.traceability.ingredientLotDetail.tabs.basic'),
       children: (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="批次ID">{lot.lotId}</Descriptions.Item>
-          <Descriptions.Item label="批次号">{lot.batchNumber}</Descriptions.Item>
-          <Descriptions.Item label="食材名称">{lot.ingredientName}</Descriptions.Item>
-          <Descriptions.Item label="供应商">{lot.supplierName}</Descriptions.Item>
-          <Descriptions.Item label="采收日期">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.lotId')}>{lot.lotId}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.batchNumber')}>{lot.batchNumber}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.ingredientName')}>{lot.ingredientName}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.supplierName')}>{lot.supplierName}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.harvestDate')}>
             {lot.harvestDate ? dayjs(lot.harvestDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="生产日期">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.productionDate')}>
             {lot.productionDate ? dayjs(lot.productionDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="保质期至">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.expiryDate')}>
             {lot.expiryDate ? dayjs(lot.expiryDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="数量">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.quantity')}>
             {lot.quantity} {lot.unit}
           </Descriptions.Item>
           {lot.origin && (
             <>
-              <Descriptions.Item label="产地省份">{lot.origin.province || '-'}</Descriptions.Item>
-              <Descriptions.Item label="产地城市">{lot.origin.city || '-'}</Descriptions.Item>
-              <Descriptions.Item label="农场名称">{lot.origin.farmName || '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.originProvince')}>{lot.origin.province || '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.originCity')}>{lot.origin.city || '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.farmName')}>{lot.origin.farmName || '-'}</Descriptions.Item>
             </>
           )}
         </Descriptions>
@@ -86,31 +88,31 @@ const IngredientLotDetailPage: React.FC = () => {
     },
     {
       key: 'quality',
-      label: '质检信息',
+      label: t('pages.traceability.ingredientLotDetail.tabs.quality'),
       children: lot.quality ? (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="质检日期">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.inspectionDate')}>
             {lot.quality.inspectionDate ? dayjs(lot.quality.inspectionDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="质检人">{lot.quality.inspector || '-'}</Descriptions.Item>
-          <Descriptions.Item label="质检结果">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.inspector')}>{lot.quality.inspector || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.inspectionResult')}>
             <Tag color={lot.quality.inspectionResult === 'pass' ? 'green' : lot.quality.inspectionResult === 'fail' ? 'red' : 'orange'}>
-              {lot.quality.inspectionResult === 'pass' ? '通过' : lot.quality.inspectionResult === 'fail' ? '不通过' : '待检'}
+              {lot.quality.inspectionResult === 'pass' ? t('pages.traceability.ingredientLotDetail.qualityResult.pass') : lot.quality.inspectionResult === 'fail' ? t('pages.traceability.ingredientLotDetail.qualityResult.fail') : t('pages.traceability.ingredientLotDetail.qualityResult.pending')}
             </Tag>
           </Descriptions.Item>
           {lot.quality.testItems && lot.quality.testItems.length > 0 && (
-            <Descriptions.Item label="检测项目" span={2}>
+            <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.testItems')} span={2}>
               <Table
                 columns={[
-                  { title: '检测项目', dataIndex: 'item' },
-                  { title: '标准值', dataIndex: 'standard' },
-                  { title: '实际值', dataIndex: 'actual' },
+                  { title: t('pages.traceability.ingredientLotDetail.qualityTable.columns.item'), dataIndex: 'item' },
+                  { title: t('pages.traceability.ingredientLotDetail.qualityTable.columns.standard'), dataIndex: 'standard' },
+                  { title: t('pages.traceability.ingredientLotDetail.qualityTable.columns.actual'), dataIndex: 'actual' },
                   {
-                    title: '结果',
+                    title: t('pages.traceability.ingredientLotDetail.qualityTable.columns.result'),
                     dataIndex: 'result',
                     render: (result: string) => (
                       <Tag color={result === 'pass' ? 'green' : 'red'}>
-                        {result === 'pass' ? '合格' : '不合格'}
+                        {result === 'pass' ? t('pages.traceability.ingredientLotDetail.qualityResult.pass') : t('pages.traceability.ingredientLotDetail.qualityResult.fail')}
                       </Tag>
                     )
                   }
@@ -124,47 +126,47 @@ const IngredientLotDetailPage: React.FC = () => {
           )}
         </Descriptions>
       ) : (
-        <div>暂无质检信息</div>
+        <div>{t('pages.traceability.ingredientLotDetail.messages.noQualityInfo')}</div>
       )
     },
     {
       key: 'logistics',
-      label: '物流信息',
+      label: t('pages.traceability.ingredientLotDetail.tabs.logistics'),
       children: lot.logistics ? (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="运输方式">{lot.logistics.transportMode || '-'}</Descriptions.Item>
-          <Descriptions.Item label="运输公司">{lot.logistics.transportCompany || '-'}</Descriptions.Item>
-          <Descriptions.Item label="出发日期">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.transportMode')}>{lot.logistics.transportMode || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.transportCompany')}>{lot.logistics.transportCompany || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.departureDate')}>
             {lot.logistics.departureDate ? dayjs(lot.logistics.departureDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="到达日期">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.arrivalDate')}>
             {lot.logistics.arrivalDate ? dayjs(lot.logistics.arrivalDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="出发地">{lot.logistics.departureLocation || '-'}</Descriptions.Item>
-          <Descriptions.Item label="到达地">{lot.logistics.arrivalLocation || '-'}</Descriptions.Item>
-          <Descriptions.Item label="运输碳足迹">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.departureLocation')}>{lot.logistics.departureLocation || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.arrivalLocation')}>{lot.logistics.arrivalLocation || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.transportCarbonFootprint')}>
             {lot.logistics.carbonFootprint ? `${lot.logistics.carbonFootprint.toFixed(2)} kg CO₂e` : '-'}
           </Descriptions.Item>
         </Descriptions>
       ) : (
-        <div>暂无物流信息</div>
+        <div>{t('pages.traceability.ingredientLotDetail.messages.noLogisticsInfo')}</div>
       )
     },
     {
       key: 'inventory',
-      label: '库存信息',
+      label: t('pages.traceability.ingredientLotDetail.tabs.inventory'),
       children: (
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="当前库存">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.currentStock')}>
             {lot.inventory.currentStock} {lot.inventory.unit}
           </Descriptions.Item>
-          <Descriptions.Item label="库存状态">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.inventoryStatus')}>
             <Tag color={statusMap[lot.inventory.status].color}>
               {statusMap[lot.inventory.status].text}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="存储位置">{lot.inventory.location || '-'}</Descriptions.Item>
-          <Descriptions.Item label="最后使用日期">
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.location')}>{lot.inventory.location || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('pages.traceability.ingredientLotDetail.fields.lastUsedDate')}>
             {lot.inventory.lastUsedDate ? dayjs(lot.inventory.lastUsedDate).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
         </Descriptions>
@@ -172,25 +174,25 @@ const IngredientLotDetailPage: React.FC = () => {
     },
     {
       key: 'usage',
-      label: '使用记录',
+      label: t('pages.traceability.ingredientLotDetail.tabs.usage'),
       children: lot.usageRecords && lot.usageRecords.length > 0 ? (
         <Table
           columns={[
-            { title: '菜品名称', dataIndex: 'menuItemName' },
-            { title: '使用数量', dataIndex: 'quantity' },
+            { title: t('pages.traceability.ingredientLotDetail.usageTable.columns.menuItemName'), dataIndex: 'menuItemName' },
+            { title: t('pages.traceability.ingredientLotDetail.usageTable.columns.quantity'), dataIndex: 'quantity' },
             {
-              title: '使用日期',
+              title: t('pages.traceability.ingredientLotDetail.usageTable.columns.usedDate'),
               dataIndex: 'usedDate',
               render: (date: string | Date) => date ? dayjs(date).format('YYYY-MM-DD') : '-'
             },
-            { title: '订单ID', dataIndex: 'orderId' }
+            { title: t('pages.traceability.ingredientLotDetail.usageTable.columns.orderId'), dataIndex: 'orderId' }
           ]}
           dataSource={lot.usageRecords}
           rowKey={(record, index) => `${record.menuItemId}-${index}`}
           pagination={false}
         />
       ) : (
-        <div>暂无使用记录</div>
+        <div>{t('pages.traceability.ingredientLotDetail.messages.noUsageRecords')}</div>
       )
     }
   ]
@@ -200,14 +202,14 @@ const IngredientLotDetailPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/traceability/lots')}>
-            返回
+            {t('common.back')}
           </Button>
-          <span>食材批次详情</span>
+          <span>{t('pages.traceability.ingredientLotDetail.title')}</span>
         </Space>
       }
       extra={
         <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/traceability/lots/${id}/edit`)}>
-          编辑
+          {t('common.edit')}
         </Button>
       }
       loading={loading}

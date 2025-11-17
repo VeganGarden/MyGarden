@@ -4,6 +4,7 @@ import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table } from 'ant
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
@@ -18,28 +19,29 @@ interface OrderCarbon {
 }
 
 const CarbonOrder: React.FC = () => {
+  const { t } = useTranslation()
   const [dataSource] = useState<OrderCarbon[]>([])
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   const columns: ColumnsType<OrderCarbon> = [
     {
-      title: '订单号',
+      title: t('pages.carbon.order.table.columns.orderNo'),
       dataIndex: 'orderNo',
       key: 'orderNo',
     },
     {
-      title: '订单日期',
+      title: t('pages.carbon.order.table.columns.orderDate'),
       dataIndex: 'orderDate',
       key: 'orderDate',
     },
     {
-      title: '订单碳足迹',
+      title: t('pages.carbon.order.table.columns.totalCarbon'),
       dataIndex: 'totalCarbon',
       key: 'totalCarbon',
       render: (value: number) => `${value.toFixed(2)} kg CO₂e`,
     },
     {
-      title: '碳减排量',
+      title: t('pages.carbon.order.table.columns.carbonReduction'),
       dataIndex: 'carbonReduction',
       key: 'carbonReduction',
       render: (value: number) => (
@@ -47,13 +49,13 @@ const CarbonOrder: React.FC = () => {
       ),
     },
     {
-      title: '订单金额',
+      title: t('pages.carbon.order.table.columns.orderAmount'),
       dataIndex: 'orderAmount',
       key: 'orderAmount',
       render: (value: number) => `¥${value.toFixed(2)}`,
     },
     {
-      title: '状态',
+      title: t('pages.carbon.order.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
     },
@@ -89,11 +91,11 @@ const CarbonOrder: React.FC = () => {
 
   return (
     <div>
-      <Card title="订单碳足迹统计" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.carbon.order.title')} style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="今日订单碳足迹"
+              title={t('pages.carbon.order.statistics.todayCarbon')}
               value={0}
               suffix="kg CO₂e"
               valueStyle={{ color: '#3f8600' }}
@@ -101,7 +103,7 @@ const CarbonOrder: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="今日碳减排量"
+              title={t('pages.carbon.order.statistics.todayReduction')}
               value={0}
               suffix="kg CO₂e"
               valueStyle={{ color: '#cf1322' }}
@@ -109,7 +111,7 @@ const CarbonOrder: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="累计碳减排量"
+              title={t('pages.carbon.order.statistics.totalReduction')}
               value={0}
               suffix="kg CO₂e"
               valueStyle={{ color: '#1890ff' }}
@@ -117,9 +119,9 @@ const CarbonOrder: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="订单总数"
+              title={t('pages.carbon.order.statistics.totalOrders')}
               value={0}
-              suffix="单"
+              suffix={t('common.items')}
               valueStyle={{ color: '#722ed1' }}
             />
           </Col>
@@ -127,7 +129,7 @@ const CarbonOrder: React.FC = () => {
       </Card>
 
       <Card
-        title="订单碳足迹趋势"
+        title={t('pages.carbon.order.trend.title')}
         extra={
           <Space>
             <RangePicker
@@ -135,7 +137,7 @@ const CarbonOrder: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
             />
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出数据
+              {t('pages.carbon.order.buttons.export')}
             </Button>
           </Space>
         }
@@ -144,7 +146,7 @@ const CarbonOrder: React.FC = () => {
         <Line {...chartConfig} height={300} />
       </Card>
 
-      <Card title="订单列表">
+      <Card title={t('pages.carbon.order.table.title')}>
         <Table
           columns={columns}
           dataSource={dataSource}
@@ -152,7 +154,7 @@ const CarbonOrder: React.FC = () => {
           pagination={{
             total: dataSource.length,
             pageSize: 10,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
           }}
         />
       </Card>

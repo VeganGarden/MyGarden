@@ -1,47 +1,30 @@
-import React, { useState, useEffect } from 'react'
+import IngredientSelector from '@/components/IngredientSelector'
+import { carbonAPI } from '@/services/cloudbase'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { fetchIngredients } from '@/store/slices/ingredientSlice'
+import { createRecipe, updateRecipe } from '@/store/slices/recipeSlice'
+import { ChannelType, Recipe, RecipeIngredient, RecipeStatus } from '@/types'
+import { DeleteOutlined, PlusOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons'
 import {
-  Form,
-  Input,
-  Select,
   Button,
   Card,
+  Checkbox,
+  Form,
+  Input,
+  InputNumber,
+  Select,
   Space,
   Table,
   message,
-  InputNumber,
-  Checkbox,
 } from 'antd'
-import { SaveOutlined, SendOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { createRecipe, updateRecipe } from '@/store/slices/recipeSlice'
-import { fetchIngredients } from '@/store/slices/ingredientSlice'
-import { carbonAPI } from '@/services/cloudbase'
-import { Recipe, RecipeIngredient, RecipeStatus, ChannelType } from '@/types'
-import IngredientSelector from '@/components/IngredientSelector'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
 const { TextArea } = Input
 
-const RECIPE_CATEGORIES = [
-  { label: '热菜', value: 'hot' },
-  { label: '凉菜', value: 'cold' },
-  { label: '汤品', value: 'soup' },
-  { label: '主食', value: 'staple' },
-  { label: '甜品', value: 'dessert' },
-  { label: '饮品', value: 'drink' },
-]
-
-const COOKING_METHODS = [
-  { label: '蒸', value: 'steamed' },
-  { label: '煮', value: 'boiled' },
-  { label: '炒', value: 'stir_fried' },
-  { label: '炸', value: 'fried' },
-  { label: '烤', value: 'baked' },
-  { label: '炖', value: 'stewed' },
-  { label: '凉拌', value: 'cold_dish' },
-  { label: '生食', value: 'raw' },
-]
+// 这些常量将在组件内部使用翻译函数动态生成
 
 interface RecipeCreateProps {
   editMode?: boolean
@@ -49,6 +32,7 @@ interface RecipeCreateProps {
 }
 
 const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialData }) => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useAppDispatch()
@@ -70,6 +54,28 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
   const { ingredients: availableIngredients, loading: ingredientsLoading } =
     useAppSelector((state) => state.ingredient)
 
+  // 使用翻译函数生成分类选项
+  const RECIPE_CATEGORIES = [
+    { label: t('pages.recipe.list.filters.category.hot'), value: 'hot' },
+    { label: t('pages.recipe.list.filters.category.cold'), value: 'cold' },
+    { label: t('pages.recipe.list.filters.category.soup'), value: 'soup' },
+    { label: t('pages.recipe.list.filters.category.staple'), value: 'staple' },
+    { label: t('pages.recipe.list.filters.category.dessert'), value: 'dessert' },
+    { label: t('pages.recipe.list.filters.category.drink'), value: 'drink' },
+  ]
+
+  // 使用翻译函数生成烹饪方式选项
+  const COOKING_METHODS = [
+    { label: t('pages.carbon.menu.modal.cookingMethods.steam'), value: 'steamed' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.boil'), value: 'boiled' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.fry'), value: 'stir_fried' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.deepFry'), value: 'fried' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.bake'), value: 'baked' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.boil'), value: 'stewed' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.raw'), value: 'cold_dish' },
+    { label: t('pages.carbon.menu.modal.cookingMethods.raw'), value: 'raw' },
+  ]
+
   useEffect(() => {
     dispatch(fetchIngredients({ page: 1, pageSize: 1000 }))
     
@@ -88,7 +94,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
     if (location.state?.copyFrom) {
       const copyFrom = location.state.copyFrom as Recipe
       form.setFieldsValue({
-        name: `${copyFrom.name} (副本)`,
+        name: `${copyFrom.name}${t('pages.recipe.create.copy.suffix')}`,
         description: copyFrom.description,
         category: copyFrom.category,
         cookingMethod: copyFrom.cookingMethod,
@@ -132,19 +138,19 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
 
   const handleCalculateCarbon = async () => {
     if (ingredients.length === 0) {
-      message.warning('请先添加食材')
+      message.warning(t('pages.recipe.create.messages.addIngredientFirst'))
       return
     }
 
     const hasZeroQuantity = ingredients.some((ing) => !ing.quantity || ing.quantity <= 0)
     if (hasZeroQuantity) {
-      message.warning('请设置所有食材的数量')
+      message.warning(t('pages.recipe.create.messages.setQuantity'))
       return
     }
 
     const cookingMethod = form.getFieldValue('cookingMethod')
     if (!cookingMethod) {
-      message.warning('请先选择烹饪方式')
+      message.warning(t('pages.recipe.create.messages.selectCookingMethod'))
       return
     }
 
@@ -165,12 +171,12 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
           carbonLabel: result.data.carbonLabel,
           carbonScore: result.data.carbonScore,
         })
-        message.success('碳足迹计算成功')
+        message.success(t('pages.recipe.create.messages.calculateSuccess'))
       } else {
-        message.error(result.message || '计算失败')
+        message.error(result.message || t('pages.recipe.create.messages.calculateFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '计算失败')
+      message.error(error.message || t('pages.recipe.create.messages.calculateFailed'))
     } finally {
       setCalculating(false)
     }
@@ -181,13 +187,13 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
       const values = await form.validateFields()
       
       if (ingredients.length === 0) {
-        message.warning('请至少添加一种食材')
+        message.warning(t('pages.recipe.create.messages.addAtLeastOne'))
         return
       }
 
       const hasZeroQuantity = ingredients.some((ing) => !ing.quantity || ing.quantity <= 0)
       if (hasZeroQuantity) {
-        message.warning('请设置所有食材的数量')
+        message.warning(t('pages.recipe.create.messages.setQuantity'))
         return
       }
 
@@ -209,10 +215,10 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
 
       if (editMode && initialData?._id) {
         await dispatch(updateRecipe({ recipeId: initialData._id, recipe: recipeData })).unwrap()
-        message.success(publish ? '发布成功' : '更新成功')
+        message.success(publish ? t('pages.recipe.create.messages.publishSuccess') : t('pages.recipe.create.messages.updateSuccess'))
       } else {
         await dispatch(createRecipe(recipeData)).unwrap()
-        message.success(publish ? '发布成功' : '保存成功')
+        message.success(publish ? t('pages.recipe.create.messages.publishSuccess') : t('pages.recipe.create.messages.saveSuccess'))
       }
       navigate('/recipe')
     } catch (error: any) {
@@ -220,7 +226,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
         // 表单验证错误
         return
       }
-      message.error(error.message || '保存失败')
+      message.error(error.message || t('pages.recipe.create.messages.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -228,13 +234,13 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
 
   const ingredientColumns = [
     {
-      title: '食材名称',
+      title: t('pages.recipe.create.ingredientsTable.columns.name'),
       dataIndex: 'name',
       key: 'name',
       width: 200,
     },
     {
-      title: '数量',
+      title: t('pages.recipe.create.ingredientsTable.columns.quantity'),
       key: 'quantity',
       width: 150,
       render: (_: any, record: RecipeIngredient, index: number) => (
@@ -247,13 +253,13 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
       ),
     },
     {
-      title: '单位',
+      title: t('pages.recipe.create.ingredientsTable.columns.unit'),
       dataIndex: 'unit',
       key: 'unit',
       width: 100,
     },
     {
-      title: '操作',
+      title: t('pages.recipe.create.ingredientsTable.columns.actions'),
       key: 'action',
       width: 100,
       render: (_: any, __: RecipeIngredient, index: number) => (
@@ -263,7 +269,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
           icon={<DeleteOutlined />}
           onClick={() => handleRemoveIngredient(index)}
         >
-          删除
+          {t('pages.recipe.create.ingredientsTable.actions.delete')}
         </Button>
       ),
     },
@@ -281,23 +287,23 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
           }}
         >
           <Form.Item
-            label="菜谱名称"
+            label={t('pages.recipe.create.fields.name')}
             name="name"
-            rules={[{ required: true, message: '请输入菜谱名称' }]}
+            rules={[{ required: true, message: t('pages.recipe.create.messages.nameRequired') }]}
           >
-            <Input placeholder="请输入菜谱名称" />
+            <Input placeholder={t('pages.recipe.create.placeholders.name')} />
           </Form.Item>
 
-          <Form.Item label="描述" name="description">
-            <TextArea rows={3} placeholder="请输入菜谱描述（可选）" />
+          <Form.Item label={t('pages.recipe.create.fields.description')} name="description">
+            <TextArea rows={3} placeholder={t('pages.recipe.create.placeholders.description')} />
           </Form.Item>
 
           <Form.Item
-            label="分类"
+            label={t('pages.recipe.create.fields.category')}
             name="category"
-            rules={[{ required: true, message: '请选择分类' }]}
+            rules={[{ required: true, message: t('pages.recipe.create.messages.categoryRequired') }]}
           >
-            <Select placeholder="请选择分类">
+            <Select placeholder={t('pages.recipe.create.placeholders.category')}>
               {RECIPE_CATEGORIES.map((cat) => (
                 <Option key={cat.value} value={cat.value}>
                   {cat.label}
@@ -307,11 +313,11 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
           </Form.Item>
 
           <Form.Item
-            label="烹饪方式"
+            label={t('pages.recipe.create.fields.cookingMethod')}
             name="cookingMethod"
-            rules={[{ required: true, message: '请选择烹饪方式' }]}
+            rules={[{ required: true, message: t('pages.recipe.create.messages.cookingMethodRequired') }]}
           >
-            <Select placeholder="请选择烹饪方式">
+            <Select placeholder={t('pages.recipe.create.placeholders.cookingMethod')}>
               {COOKING_METHODS.map((method) => (
                 <Option key={method.value} value={method.value}>
                   {method.label}
@@ -320,7 +326,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
             </Select>
           </Form.Item>
 
-          <Form.Item label="食材配置">
+          <Form.Item label={t('pages.recipe.create.fields.ingredients')}>
             <Space direction="vertical" style={{ width: '100%' }}>
               <Button
                 type="dashed"
@@ -328,7 +334,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
                 onClick={handleAddIngredient}
                 block
               >
-                添加食材
+                {t('pages.recipe.create.buttons.addIngredient')}
               </Button>
               {ingredients.length > 0 && (
                 <Table
@@ -345,46 +351,46 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
                   onClick={handleCalculateCarbon}
                   loading={calculating}
                 >
-                  计算碳足迹
+                  {t('pages.recipe.create.buttons.calculateCarbon')}
                 </Button>
               )}
             </Space>
           </Form.Item>
 
           {carbonResult.carbonFootprint !== undefined && (
-            <Form.Item label="碳足迹结果">
+            <Form.Item label={t('pages.recipe.create.fields.carbonResult')}>
               <Space direction="vertical">
                 <div>
-                  <strong>碳足迹：</strong>
+                  <strong>{t('pages.recipe.create.carbonResult.footprint')}</strong>
                   {carbonResult.carbonFootprint.toFixed(2)} kg CO₂e
                 </div>
                 {carbonResult.carbonLabel && (
                   <div>
-                    <strong>碳标签：</strong>
+                    <strong>{t('pages.recipe.create.carbonResult.label')}</strong>
                     {carbonResult.carbonLabel === 'ultra_low'
-                      ? '超低碳'
+                      ? t('pages.recipe.list.filters.carbonLabel.ultraLow')
                       : carbonResult.carbonLabel === 'low'
-                      ? '低碳'
+                      ? t('pages.recipe.list.filters.carbonLabel.low')
                       : carbonResult.carbonLabel === 'medium'
-                      ? '中碳'
-                      : '高碳'}
+                      ? t('pages.recipe.list.filters.carbonLabel.medium')
+                      : t('pages.recipe.list.filters.carbonLabel.high')}
                   </div>
                 )}
                 {carbonResult.carbonScore !== undefined && (
                   <div>
-                    <strong>碳评分：</strong>
-                    {carbonResult.carbonScore} 分
+                    <strong>{t('pages.recipe.create.carbonResult.score')}</strong>
+                    {carbonResult.carbonScore} {t('common.minute') === '分钟' ? '分' : 'pts'}
                   </div>
                 )}
               </Space>
             </Form.Item>
           )}
 
-          <Form.Item label="渠道配置" name="channels">
+          <Form.Item label={t('pages.recipe.create.fields.channels')} name="channels">
             <Checkbox.Group>
-              <Checkbox value={ChannelType.DINE_IN}>堂食</Checkbox>
-              <Checkbox value={ChannelType.TAKE_OUT}>外卖</Checkbox>
-              <Checkbox value={ChannelType.PROMOTION}>宣传物料</Checkbox>
+              <Checkbox value={ChannelType.DINE_IN}>{t('pages.recipe.create.channels.dineIn')}</Checkbox>
+              <Checkbox value={ChannelType.TAKE_OUT}>{t('pages.recipe.create.channels.takeOut')}</Checkbox>
+              <Checkbox value={ChannelType.PROMOTION}>{t('pages.recipe.create.channels.promotion')}</Checkbox>
             </Checkbox.Group>
           </Form.Item>
 
@@ -395,7 +401,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
                 onClick={() => handleSave(false)}
                 loading={saving}
               >
-                保存草稿
+                {t('pages.recipe.create.buttons.saveDraft')}
               </Button>
               <Button
                 type="primary"
@@ -403,9 +409,9 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
                 onClick={() => handleSave(true)}
                 loading={saving}
               >
-                发布
+                {t('pages.recipe.create.buttons.publish')}
               </Button>
-              <Button onClick={() => navigate('/recipe')}>取消</Button>
+              <Button onClick={() => navigate('/recipe')}>{t('pages.recipe.create.buttons.cancel')}</Button>
             </Space>
           </Form.Item>
         </Form>

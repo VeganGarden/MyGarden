@@ -1,0 +1,366 @@
+/* MainLayout 固定布局样式 */
+
+.mainLayout {
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 侧边栏 - 固定定位 */
+.sider {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  z-index: 1001;
+  transition: width var(--transition-base) var(--ease-in-out);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-sider) !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 主内容区域 - 包含Header和Content */
+.mainContent {
+  margin-left: var(--sider-width);
+  transition: margin-left var(--transition-base) var(--ease-in-out);
+  min-height: 100vh;
+  width: calc(100% - var(--sider-width));
+}
+
+/* 侧边栏折叠时的主内容区域 */
+.mainContentCollapsed {
+  margin-left: var(--sider-collapsed-width);
+  width: calc(100% - var(--sider-collapsed-width));
+}
+
+/* 顶部导航栏 - 固定定位 */
+.header {
+  position: fixed;
+  top: 0;
+  height: var(--header-height);
+  z-index: 1000;
+  background: var(--bg-container);
+  box-shadow: var(--shadow-md);
+  transition: left var(--transition-base) var(--ease-in-out),
+    width var(--transition-base) var(--ease-in-out);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-md);
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color-split);
+}
+
+/* Header 左侧区域 */
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+  min-width: 0; /* 允许收缩 */
+}
+
+/* Header 中间区域 */
+.headerCenter {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 500px;
+  margin: 0 auto;
+  min-width: 0; /* 允许收缩 */
+  padding: 0 var(--spacing-sm);
+}
+
+/* Header 右侧区域 */
+.headerRight {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 侧边栏展开时的Header */
+.headerExpanded {
+  left: var(--sider-width);
+  width: calc(100% - var(--sider-width));
+}
+
+/* 侧边栏折叠时的Header */
+.headerCollapsed {
+  left: var(--sider-collapsed-width);
+  width: calc(100% - var(--sider-collapsed-width));
+}
+
+/* 内容区域 - 可滚动 */
+.content {
+  margin-top: var(--header-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - var(--header-height));
+  background: var(--bg-body);
+  padding: var(--spacing-lg);
+  transition: margin-left var(--transition-base) var(--ease-in-out);
+}
+
+/* 内容容器卡片 */
+.contentContainer {
+  background: var(--bg-container);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  min-height: calc(100vh - var(--header-height) - var(--spacing-xxl));
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.contentContainer:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Logo区域 - 已移至BrandLogo组件 */
+
+/* 菜单折叠按钮 */
+.trigger {
+  font-size: 18px;
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-primary);
+}
+
+.trigger:hover {
+  background: var(--bg-hover);
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.trigger:active {
+  transform: scale(0.95);
+}
+
+/* 菜单项样式优化 - 通过全局样式覆盖 */
+:global(.ant-layout-sider) {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* 菜单容器 - 确保可以滚动 */
+:global(.ant-layout-sider > .ant-menu-wrapper) {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+:global(.ant-layout-sider .ant-menu) {
+  background: transparent !important;
+  border-right: none !important;
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: calc(100vh - 64px - var(--spacing-md) * 2) !important;
+  /* 优化滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+:global(.ant-layout-sider .ant-menu::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:global(.ant-layout-sider .ant-menu::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
+:global(.ant-layout-sider .ant-menu::-webkit-scrollbar-thumb) {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+:global(.ant-layout-sider .ant-menu::-webkit-scrollbar-thumb:hover) {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 确保菜单根元素可以滚动 */
+:global(.ant-layout-sider .ant-menu-root) {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+:global(.ant-layout-sider .ant-menu-item) {
+  margin: 4px 8px !important;
+  border-radius: var(--radius-md) !important;
+  transition: all var(--transition-fast) var(--ease-out) !important;
+}
+
+:global(.ant-layout-sider .ant-menu-item:hover) {
+  background: var(--bg-sider-hover) !important;
+}
+
+:global(.ant-layout-sider .ant-menu-item-selected) {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+}
+
+:global(.ant-layout-sider .ant-menu-item-selected::after) {
+  display: none !important;
+}
+
+:global(.ant-layout-sider .ant-menu-submenu-title) {
+  margin: 4px 8px !important;
+  border-radius: var(--radius-md) !important;
+  transition: all var(--transition-fast) var(--ease-out) !important;
+}
+
+:global(.ant-layout-sider .ant-menu-submenu-title:hover) {
+  background: var(--bg-sider-hover) !important;
+}
+
+:global(.ant-layout-sider .ant-menu-submenu-open > .ant-menu-submenu-title) {
+  background: var(--bg-sider-hover) !important;
+}
+
+/* 菜单容器 - 确保可以滚动 */
+.menuContainer {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: calc(100vh - 64px - var(--spacing-md) * 2);
+}
+
+.menuContainer :global(.ant-menu) {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  /* 强制显示滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.menuContainer :global(.ant-menu::-webkit-scrollbar) {
+  width: 6px;
+  display: block !important;
+}
+
+.menuContainer :global(.ant-menu::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
+.menuContainer :global(.ant-menu::-webkit-scrollbar-thumb) {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.menuContainer :global(.ant-menu::-webkit-scrollbar-thumb:hover) {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 确保菜单根元素可以滚动 */
+.menuContainer :global(.ant-menu-root) {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* 响应式设计 - 移动端 */
+@media (max-width: 767px) {
+  /* 主内容区域 - 移动端全宽 */
+  .mainContent {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .mainContentCollapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Header - 移动端全宽 */
+  .header {
+    left: 0 !important;
+    width: 100% !important;
+    padding: 0 var(--spacing-sm);
+  }
+
+  .headerExpanded,
+  .headerCollapsed {
+    left: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Header 中间区域 - 移动端隐藏 */
+  .headerCenter {
+    display: none;
+  }
+
+  /* Header 左侧区域 - 移动端优化 */
+  .headerLeft {
+    gap: var(--spacing-sm);
+  }
+
+  /* Header 右侧区域 - 移动端优化 */
+  .headerRight {
+    gap: var(--spacing-xs);
+  }
+
+  /* 内容区域 - 移动端优化 */
+  .content {
+    padding: var(--spacing-md);
+  }
+
+  .contentContainer {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+  }
+
+  /* 移动端抽屉样式 */
+  .mobileDrawer :global(.ant-drawer-body) {
+    padding: 0;
+    background: var(--bg-sider);
+  }
+
+  .mobileDrawer :global(.ant-drawer-header) {
+    display: none;
+  }
+}
+
+/* 响应式设计 - 平板端 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* 平板端侧边栏默认折叠 */
+  .sider {
+    width: var(--sider-collapsed-width) !important;
+  }
+
+  .mainContent {
+    margin-left: var(--sider-collapsed-width) !important;
+    width: calc(100% - var(--sider-collapsed-width)) !important;
+  }
+
+  .headerExpanded,
+  .headerCollapsed {
+    left: var(--sider-collapsed-width) !important;
+    width: calc(100% - var(--sider-collapsed-width)) !important;
+  }
+
+  /* 平板端 Header 中间区域缩小 */
+  .headerCenter {
+    max-width: 300px;
+  }
+
+  /* 平板端内容区域优化 */
+  .content {
+    padding: var(--spacing-md);
+  }
+}
+

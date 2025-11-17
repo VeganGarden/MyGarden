@@ -1,8 +1,10 @@
 import { adminUsersAPI } from '@/services/cloudbase'
 import { Button, Card, Space, Table, Tag, message, Modal, Form, Input, Select } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const Users: React.FC = () => {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any[]>([])
   const [createOpen, setCreateOpen] = useState(false)
@@ -16,10 +18,10 @@ const Users: React.FC = () => {
       if (res.code === 0) {
         setData(res.data?.list || res.data || [])
       } else {
-        message.error(res.message || '加载失败')
+        message.error(res.message || t('common.loadFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '加载失败')
+      message.error(e.message || t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -35,13 +37,13 @@ const Users: React.FC = () => {
     try {
       const res = await adminUsersAPI.updateStatus(record._id, next)
       if (res.code === 0) {
-        message.success('已更新状态')
+        message.success(t('pages.system.users.messages.statusUpdated'))
         load()
       } else {
-        message.error(res.message || '操作失败')
+        message.error(res.message || t('common.operationFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '操作失败')
+      message.error(e.message || t('common.operationFailed'))
     } finally {
       setLoading(false)
     }
@@ -52,12 +54,12 @@ const Users: React.FC = () => {
     try {
       const res = await adminUsersAPI.resetPassword(record._id)
       if (res.code === 0) {
-        message.success(`已重置：${res.data?.password}`)
+        message.success(t('pages.system.users.messages.passwordReset', { password: res.data?.password }))
       } else {
-        message.error(res.message || '操作失败')
+        message.error(res.message || t('common.operationFailed'))
       }
     } catch (e: any) {
-      message.error(e.message || '操作失败')
+      message.error(e.message || t('common.operationFailed'))
     } finally {
       setLoading(false)
     }
@@ -69,12 +71,12 @@ const Users: React.FC = () => {
       setLoading(true)
       const res = await adminUsersAPI.create(values)
       if (res.code === 0) {
-        message.success('创建成功')
+        message.success(t('common.createSuccess'))
         setCreateOpen(false)
         form.resetFields()
         load()
       } else {
-        message.error(res.message || '创建失败')
+        message.error(res.message || t('common.createFailed'))
       }
     } catch {
       // ignore
@@ -83,30 +85,38 @@ const Users: React.FC = () => {
     }
   }
 
+  const roleOptions = [
+    { label: t('pages.system.users.filters.roles.all'), value: '' },
+    { label: t('pages.system.users.filters.roles.systemAdmin'), value: 'system_admin' },
+    { label: t('pages.system.users.filters.roles.platformOperator'), value: 'platform_operator' },
+    { label: t('pages.system.users.filters.roles.carbonSpecialist'), value: 'carbon_specialist' },
+    { label: t('pages.system.users.filters.roles.governmentPartner'), value: 'government_partner' },
+    { label: t('pages.system.users.filters.roles.restaurantAdmin'), value: 'restaurant_admin' },
+  ]
+
+  const createRoleOptions = [
+    { label: t('pages.system.users.form.roles.platformOperator'), value: 'platform_operator' },
+    { label: t('pages.system.users.form.roles.carbonSpecialist'), value: 'carbon_specialist' },
+    { label: t('pages.system.users.form.roles.governmentPartner'), value: 'government_partner' },
+  ]
+
   return (
     <Card
-      title="用户管理"
+      title={t('pages.system.users.title')}
       bordered={false}
       extra={
         <Space>
           <Select
             allowClear
-            placeholder="角色"
+            placeholder={t('pages.system.users.filters.role')}
             style={{ width: 180 }}
-            options={[
-              { label: '全部', value: '' },
-              { label: '系统管理员', value: 'system_admin' },
-              { label: '平台运营', value: 'platform_operator' },
-              { label: '碳核算专员', value: 'carbon_specialist' },
-              { label: '政府/外部合作方', value: 'government_partner' },
-              { label: '餐厅管理员', value: 'restaurant_admin' },
-            ]}
+            options={roleOptions}
             value={filters.role}
             onChange={(v) => setFilters((f) => ({ ...f, role: v || undefined }))}
           />
           <Select
             allowClear
-            placeholder="状态"
+            placeholder={t('pages.system.users.filters.status')}
             style={{ width: 140 }}
             options={[
               { label: 'active', value: 'active' },
@@ -116,14 +126,14 @@ const Users: React.FC = () => {
             onChange={(v) => setFilters((f) => ({ ...f, status: v }))} />
           <Input
             allowClear
-            placeholder="关键字（用户名）"
+            placeholder={t('pages.system.users.filters.keyword')}
             style={{ width: 200 }}
             value={filters.keyword}
             onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))}
           />
-          <Button onClick={load} loading={loading}>查询</Button>
+          <Button onClick={load} loading={loading}>{t('common.search')}</Button>
           <Button type="primary" onClick={() => setCreateOpen(true)}>
-            新建用户
+            {t('pages.system.users.buttons.create')}
           </Button>
         </Space>
       }
@@ -133,35 +143,35 @@ const Users: React.FC = () => {
         loading={loading}
         dataSource={data}
         columns={[
-          { title: '用户名', dataIndex: 'username' },
-          { title: '姓名', dataIndex: 'name', render: (v: string) => v || '-' },
-          { title: '角色', dataIndex: 'role' },
-          { title: '租户ID', dataIndex: 'tenantId', render: (v: string) => v || '-' },
-          { title: '餐厅数', dataIndex: 'restaurantCount', width: 100, render: (v: number) => v ?? 0 },
+          { title: t('pages.system.users.table.columns.username'), dataIndex: 'username' },
+          { title: t('pages.system.users.table.columns.name'), dataIndex: 'name', render: (v: string) => v || '-' },
+          { title: t('pages.system.users.table.columns.role'), dataIndex: 'role' },
+          { title: t('pages.system.users.table.columns.tenantId'), dataIndex: 'tenantId', render: (v: string) => v || '-' },
+          { title: t('pages.system.users.table.columns.restaurantCount'), dataIndex: 'restaurantCount', width: 100, render: (v: number) => v ?? 0 },
           {
-            title: '状态',
+            title: t('pages.system.users.table.columns.status'),
             dataIndex: 'status',
             render: (v) => <Tag color={v === 'active' ? 'green' : 'red'}>{v || 'active'}</Tag>,
           },
           {
-            title: '操作',
+            title: t('pages.system.users.table.columns.actions'),
             render: (_, record) => (
               <Space>
                 <Button type="link" onClick={() => toggleStatus(record)}>
-                  {record.status === 'active' ? '禁用' : '启用'}
+                  {record.status === 'active' ? t('pages.system.users.buttons.disable') : t('pages.system.users.buttons.enable')}
                 </Button>
                 <Button type="link" onClick={() => resetPassword(record)}>
-                  重置密码
+                  {t('pages.system.users.buttons.resetPassword')}
                 </Button>
                 <Button type="link" danger onClick={() => adminUsersAPI.softDelete(record._id).then((res) => {
                   if (res.code === 0) {
-                    message.success('已删除')
+                    message.success(t('common.deleteSuccess'))
                     load()
                   } else {
-                    message.error(res.message || '删除失败')
+                    message.error(res.message || t('common.deleteFailed'))
                   }
                 })}>
-                  删除
+                  {t('common.delete')}
                 </Button>
               </Space>
             ),
@@ -169,7 +179,7 @@ const Users: React.FC = () => {
         ]}
       />
       <Modal
-        title="新建用户"
+        title={t('pages.system.users.modal.title')}
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={onCreate}
@@ -177,44 +187,41 @@ const Users: React.FC = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            label="用户名"
+            label={t('pages.system.users.form.fields.username')}
             name="username"
             rules={[
-              { required: true, message: '请输入用户名' },
-              { pattern: /^[a-zA-Z][a-zA-Z0-9_\-]{3,20}$/, message: '以字母开头，4-21位，仅字母数字下划线和中划线' },
+              { required: true, message: t('pages.system.users.form.messages.usernameRequired') },
+              { pattern: /^[a-zA-Z][a-zA-Z0-9_\-]{3,20}$/, message: t('pages.system.users.form.messages.usernamePattern') },
             ]}
           >
-            <Input placeholder="示例：ops_admin01" />
+            <Input placeholder={t('pages.system.users.form.placeholders.username')} />
           </Form.Item>
           <Form.Item
-            label="初始密码"
+            label={t('pages.system.users.form.fields.password')}
             name="password"
-            rules={[{ required: true, message: '请输入初始密码' }, { min: 6, message: '至少6位' }]}
+            rules={[
+              { required: true, message: t('pages.system.users.form.messages.passwordRequired') },
+              { min: 6, message: t('pages.system.users.form.messages.passwordMin') }
+            ]}
           >
-            <Input.Password placeholder="至少6位" />
+            <Input.Password placeholder={t('pages.system.users.form.placeholders.password')} />
           </Form.Item>
-          <Form.Item label="姓名" name="name">
-            <Input placeholder="可选" />
+          <Form.Item label={t('pages.system.users.form.fields.name')} name="name">
+            <Input placeholder={t('common.optional')} />
           </Form.Item>
-          <Form.Item label="邮箱" name="email" rules={[{ type: 'email', message: '邮箱格式不正确' }]}>
-            <Input placeholder="可选" />
+          <Form.Item label={t('pages.system.users.form.fields.email')} name="email" rules={[{ type: 'email', message: t('pages.system.users.form.messages.emailInvalid') }]}>
+            <Input placeholder={t('common.optional')} />
           </Form.Item>
-          <Form.Item label="电话" name="phone">
-            <Input placeholder="可选" />
+          <Form.Item label={t('pages.system.users.form.fields.phone')} name="phone">
+            <Input placeholder={t('common.optional')} />
           </Form.Item>
           <Form.Item
-            label="角色"
+            label={t('pages.system.users.form.fields.role')}
             name="role"
             initialValue="platform_operator"
-            rules={[{ required: true, message: '请选择角色' }]}
+            rules={[{ required: true, message: t('pages.system.users.form.messages.roleRequired') }]}
           >
-            <Select
-              options={[
-                { label: '平台运营（platform_operator）', value: 'platform_operator' },
-                { label: '碳核算专员（carbon_specialist）', value: 'carbon_specialist' },
-                { label: '政府/外部合作方（government_partner）', value: 'government_partner' },
-              ]}
-            />
+            <Select options={createRoleOptions} />
           </Form.Item>
         </Form>
       </Modal>

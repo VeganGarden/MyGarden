@@ -1,6 +1,7 @@
 import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { Button, Card, Descriptions, Tag, Timeline } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface AuditRecord {
   id: string
@@ -12,6 +13,7 @@ interface AuditRecord {
 }
 
 const CertificationStatus: React.FC = () => {
+  const { t } = useTranslation()
   const [auditRecords, setAuditRecords] = useState<AuditRecord[]>([])
   const [currentStatus, setCurrentStatus] = useState<'pending' | 'reviewing' | 'approved' | 'rejected'>('reviewing')
 
@@ -20,21 +22,21 @@ const CertificationStatus: React.FC = () => {
     const mockData: AuditRecord[] = [
       {
         id: '1',
-        stage: '资料审查',
+        stage: t('pages.certification.status.stages.documentReview'),
         status: 'approved',
-        comment: '资料完整，符合要求',
-        reviewer: '审核员A',
+        comment: t('pages.certification.status.comments.documentComplete'),
+        reviewer: t('pages.certification.status.reviewer', { name: 'A' }),
         timestamp: '2025-01-15 10:00:00',
       },
       {
         id: '2',
-        stage: '现场核查',
+        stage: t('pages.certification.status.stages.onSiteInspection'),
         status: 'pending',
         timestamp: '2025-01-16 14:00:00',
       },
       {
         id: '3',
-        stage: '复评',
+        stage: t('pages.certification.status.stages.review'),
         status: 'pending',
         timestamp: '',
       },
@@ -45,11 +47,11 @@ const CertificationStatus: React.FC = () => {
   const getStatusTag = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Tag color="success" icon={<CheckCircleOutlined />}>已通过</Tag>
+        return <Tag color="success" icon={<CheckCircleOutlined />}>{t('pages.certification.status.auditStatus.approved')}</Tag>
       case 'rejected':
-        return <Tag color="error" icon={<CloseCircleOutlined />}>已拒绝</Tag>
+        return <Tag color="error" icon={<CloseCircleOutlined />}>{t('pages.certification.status.auditStatus.rejected')}</Tag>
       case 'pending':
-        return <Tag color="processing" icon={<ClockCircleOutlined />}>待审核</Tag>
+        return <Tag color="processing" icon={<ClockCircleOutlined />}>{t('pages.certification.status.auditStatus.pending')}</Tag>
       default:
         return null
     }
@@ -58,13 +60,13 @@ const CertificationStatus: React.FC = () => {
   const getOverallStatus = () => {
     switch (currentStatus) {
       case 'pending':
-        return <Tag color="default">待提交</Tag>
+        return <Tag color="default">{t('pages.certification.status.overallStatus.pending')}</Tag>
       case 'reviewing':
-        return <Tag color="processing">审核中</Tag>
+        return <Tag color="processing">{t('pages.certification.status.overallStatus.reviewing')}</Tag>
       case 'approved':
-        return <Tag color="success">已通过</Tag>
+        return <Tag color="success">{t('pages.certification.status.overallStatus.approved')}</Tag>
       case 'rejected':
-        return <Tag color="error">已拒绝</Tag>
+        return <Tag color="error">{t('pages.certification.status.overallStatus.rejected')}</Tag>
       default:
         return null
     }
@@ -72,24 +74,24 @@ const CertificationStatus: React.FC = () => {
 
   return (
     <div>
-      <Card title="认证进度" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.certification.status.title')} style={{ marginBottom: 16 }}>
         <Descriptions column={2}>
-          <Descriptions.Item label="当前状态">
+          <Descriptions.Item label={t('pages.certification.status.fields.currentStatus')}>
             {getOverallStatus()}
           </Descriptions.Item>
-          <Descriptions.Item label="申请时间">
+          <Descriptions.Item label={t('pages.certification.status.fields.applyTime')}>
             2025-01-15 09:00:00
           </Descriptions.Item>
-          <Descriptions.Item label="预计完成时间">
+          <Descriptions.Item label={t('pages.certification.status.fields.estimatedCompletion')}>
             2025-01-25 18:00:00
           </Descriptions.Item>
-          <Descriptions.Item label="认证等级">
-            <Tag color="blue">待评估</Tag>
+          <Descriptions.Item label={t('pages.certification.status.fields.certificationLevel')}>
+            <Tag color="blue">{t('pages.certification.status.pendingEvaluation')}</Tag>
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="审核历史">
+      <Card title={t('pages.certification.status.auditHistory.title')}>
         <Timeline>
           {auditRecords.map((record) => (
             <Timeline.Item
@@ -109,12 +111,12 @@ const CertificationStatus: React.FC = () => {
                   </div>
                   {record.comment && (
                     <div style={{ color: '#666', marginBottom: 4 }}>
-                      审核意见: {record.comment}
+                      {t('pages.certification.status.auditHistory.comment')}: {record.comment}
                     </div>
                   )}
                   {record.reviewer && (
                     <div style={{ color: '#999', fontSize: 12 }}>
-                      审核人: {record.reviewer}
+                      {t('pages.certification.status.auditHistory.reviewer')}: {record.reviewer}
                     </div>
                   )}
                   {record.timestamp && (
@@ -131,14 +133,14 @@ const CertificationStatus: React.FC = () => {
       </Card>
 
       {currentStatus === 'rejected' && (
-        <Card title="拒绝原因" style={{ marginTop: 16 }}>
-          <p>您的认证申请未通过审核，原因如下：</p>
+        <Card title={t('pages.certification.status.rejection.title')} style={{ marginTop: 16 }}>
+          <p>{t('pages.certification.status.rejection.message')}</p>
           <ul>
-            <li>菜单信息不完整，缺少部分菜品的食材清单</li>
-            <li>供应链信息需要补充供应商认证证书</li>
+            <li>{t('pages.certification.status.rejection.reasons.menuIncomplete')}</li>
+            <li>{t('pages.certification.status.rejection.reasons.supplierCertMissing')}</li>
           </ul>
           <Button type="primary" style={{ marginTop: 16 }}>
-            修改并重新提交
+            {t('pages.certification.status.rejection.buttons.modifyAndResubmit')}
           </Button>
         </Card>
       )}

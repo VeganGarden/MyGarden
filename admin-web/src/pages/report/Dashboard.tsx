@@ -3,10 +3,12 @@ import { DownloadOutlined, SettingOutlined } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Row, Space, Statistic } from 'antd'
 import dayjs from 'dayjs'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
 const ReportDashboard: React.FC = () => {
+  const { t } = useTranslation()
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   const revenueTrend = [
@@ -38,7 +40,7 @@ const ReportDashboard: React.FC = () => {
   return (
     <div>
       <Card
-        title="数据看板"
+        title={t('pages.report.dashboard.title')}
         extra={
           <Space>
             <RangePicker
@@ -46,10 +48,10 @@ const ReportDashboard: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
             />
             <Button icon={<SettingOutlined />} onClick={handleCustomize}>
-              自定义
+              {t('pages.report.dashboard.buttons.customize')}
             </Button>
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出
+              {t('common.export')}
             </Button>
           </Space>
         }
@@ -57,7 +59,7 @@ const ReportDashboard: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col span={6}>
             <Statistic
-              title="总收入"
+              title={t('pages.report.dashboard.statistics.totalRevenue')}
               value={153000}
               prefix="¥"
               valueStyle={{ color: '#3f8600' }}
@@ -65,15 +67,15 @@ const ReportDashboard: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="订单总数"
+              title={t('pages.report.dashboard.statistics.totalOrders')}
               value={3650}
-              suffix="单"
+              suffix={t('pages.operation.order.statistics.unit')}
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="累计碳减排"
+              title={t('pages.report.dashboard.statistics.totalCarbonReduction')}
               value={3650}
               suffix="kg CO₂e"
               valueStyle={{ color: '#cf1322' }}
@@ -81,7 +83,7 @@ const ReportDashboard: React.FC = () => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="目标完成率"
+              title={t('pages.report.dashboard.statistics.targetCompletionRate')}
               value={100}
               suffix="%"
               valueStyle={{ color: '#722ed1' }}
@@ -91,7 +93,7 @@ const ReportDashboard: React.FC = () => {
 
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col span={12}>
-            <Card title="收入趋势" size="small">
+            <Card title={t('pages.report.dashboard.charts.revenueTrend')} size="small">
               <Line
                 data={revenueTrend}
                 xField="date"
@@ -105,7 +107,7 @@ const ReportDashboard: React.FC = () => {
             </Card>
           </Col>
           <Col span={12}>
-            <Card title="碳减排趋势" size="small">
+            <Card title={t('pages.report.dashboard.charts.carbonReductionTrend')} size="small">
               <Line
                 data={carbonTrend}
                 xField="date"
@@ -122,7 +124,7 @@ const ReportDashboard: React.FC = () => {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Card title="菜品分类占比" size="small">
+            <Card title={t('pages.report.dashboard.charts.categoryRatio')} size="small">
               <Pie
                 data={categoryData}
                 angleField="value"
@@ -137,19 +139,19 @@ const ReportDashboard: React.FC = () => {
             </Card>
           </Col>
           <Col span={12}>
-            <Card title="关键指标" size="small">
+            <Card title={t('pages.report.dashboard.charts.keyMetrics')} size="small">
               <Row gutter={16}>
                 <Col span={12}>
-                  <Statistic title="平均客单价" value={41.92} prefix="¥" />
+                  <Statistic title={t('pages.report.dashboard.metrics.avgOrderValue')} value={41.92} prefix="¥" />
                 </Col>
                 <Col span={12}>
-                  <Statistic title="复购率" value={68.5} suffix="%" />
+                  <Statistic title={t('pages.report.dashboard.metrics.repurchaseRate')} value={68.5} suffix="%" />
                 </Col>
                 <Col span={12} style={{ marginTop: 16 }}>
-                  <Statistic title="低碳菜品占比" value={65} suffix="%" />
+                  <Statistic title={t('pages.report.dashboard.metrics.lowCarbonRatio')} value={65} suffix="%" />
                 </Col>
                 <Col span={12} style={{ marginTop: 16 }}>
-                  <Statistic title="用户满意度" value={4.5} suffix="/5.0" />
+                  <Statistic title={t('pages.report.dashboard.metrics.userSatisfaction')} value={4.5} suffix="/5.0" />
                 </Col>
               </Row>
             </Card>

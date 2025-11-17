@@ -5,6 +5,7 @@
 import { traceCertificateAPI } from '@/services/traceability'
 import { ArrowLeftOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons'
 import { Button, Card, Col, Descriptions, Row, Space, Spin, message } from 'antd'
+import { useTranslation } from 'react-i18next'
 import dayjs from 'dayjs'
 import React, { useEffect, useMemo, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -18,6 +19,7 @@ import './PdfViewer.css'
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
 const CertificateViewPage: React.FC = () => {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -67,11 +69,11 @@ const CertificateViewPage: React.FC = () => {
       if (result.success && result.data) {
         setCertificate(result.data)
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.traceability.certificateView.messages.loadFailed'))
         navigate('/traceability/certificates')
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
@@ -81,7 +83,7 @@ const CertificateViewPage: React.FC = () => {
     if (certificate?.certificateUrl) {
       window.open(certificate.certificateUrl, '_blank')
     } else {
-      message.warning('证书文件不存在')
+      message.warning(t('pages.traceability.certificateView.messages.certificateFileNotExists'))
     }
   }
 
@@ -95,15 +97,15 @@ const CertificateViewPage: React.FC = () => {
   }
 
   const onDocumentLoadError = (error: Error) => {
-    let errorMessage = 'PDF文件加载失败'
+    let errorMessage = t('pages.traceability.certificateView.pdfErrors.loadFailed')
     const errorStr = error.message || error.toString() || ''
     
     if (errorStr.includes('CORS') || errorStr.includes('Access-Control-Allow-Origin')) {
-      errorMessage = 'PDF文件加载失败：跨域访问被阻止（CORS限制）'
+      errorMessage = t('pages.traceability.certificateView.pdfErrors.corsError')
     } else if (errorStr.includes('Failed to fetch') || errorStr.includes('ERR_FAILED')) {
-      errorMessage = 'PDF文件加载失败：无法获取文件，可能是CORS限制或网络问题'
+      errorMessage = t('pages.traceability.certificateView.pdfErrors.fetchError')
     } else {
-      errorMessage = `PDF文件加载失败：${errorStr}`
+      errorMessage = t('pages.traceability.certificateView.pdfErrors.loadFailedWithDetail', { detail: errorStr })
     }
     
     setPdfError(errorMessage)
@@ -132,7 +134,7 @@ const CertificateViewPage: React.FC = () => {
           setPdfError(null)
         })
         .catch(() => {
-          setPdfError('无法加载PDF文件，请尝试下载后查看')
+          setPdfError(t('pages.traceability.certificateView.pdfErrors.downloadAndView'))
           setUseFallback(true)
         })
     } else {
@@ -247,7 +249,7 @@ const CertificateViewPage: React.FC = () => {
   }
 
   if (!certificate) {
-    return <div>加载中...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   return (
@@ -255,18 +257,18 @@ const CertificateViewPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/traceability/certificates')}>
-            返回
+            {t('common.back')}
           </Button>
-          <span>溯源证书</span>
+          <span>{t('pages.traceability.certificateView.title')}</span>
         </Space>
       }
       extra={
         <Space>
           <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-            下载证书
+            {t('pages.traceability.certificateView.buttons.download')}
           </Button>
           <Button icon={<ShareAltOutlined />}>
-            分享
+            {t('pages.traceability.certificateView.buttons.share')}
           </Button>
         </Space>
       }
@@ -302,10 +304,10 @@ const CertificateViewPage: React.FC = () => {
                           }
                         }}
                       >
-                        上一页
+                        {t('pages.traceability.certificateView.pdfControls.previousPage')}
                       </Button>
                       <span>
-                        第 {pageNumber} 页 / 共 {numPages || 0} 页
+                        {t('pages.traceability.certificateView.pdfControls.pageInfo', { current: pageNumber, total: numPages || 0 })}
                       </span>
                       <Button
                         disabled={pageNumber >= numPages || numPages === 0}
@@ -315,7 +317,7 @@ const CertificateViewPage: React.FC = () => {
                           }
                         }}
                       >
-                        下一页
+                        {t('pages.traceability.certificateView.pdfControls.nextPage')}
                       </Button>
                     </Space>
                   </div>
@@ -331,12 +333,12 @@ const CertificateViewPage: React.FC = () => {
                       position: 'relative', 
                       backgroundColor: '#f5f5f5'
                     }}>
-                    <Spin spinning={pdfLoading} tip={pdfLoading ? '加载中...' : undefined}>
+                    <Spin spinning={pdfLoading} tip={pdfLoading ? t('common.loading') : undefined}>
                       {useFallback ? (
                         <div style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
                           {pdfError && (
                             <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#fff3cd', borderRadius: '4px', marginBottom: 16 }}>
-                              <p style={{ color: '#856404', marginBottom: 8, fontWeight: 'bold' }}>⚠️ PDF预览加载失败</p>
+                              <p style={{ color: '#856404', marginBottom: 8, fontWeight: 'bold' }}>⚠️ {t('pages.traceability.certificateView.pdfErrors.previewFailed')}</p>
                               <p style={{ color: '#856404', fontSize: '12px', marginBottom: 0 }}>{pdfError}</p>
                             </div>
                           )}
@@ -355,22 +357,22 @@ const CertificateViewPage: React.FC = () => {
                                   padding: 0,
                                   backgroundColor: 'transparent'
                                 }}
-                                title="证书PDF"
+                                title={t('pages.traceability.certificateView.pdfTitle')}
                                 frameBorder="0"
                               />
                             ) : useFallback && !pdfBlobUrl ? (
                               browserType === 'chrome' ? (
                                 <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                                  <p style={{ color: '#666', marginBottom: 16 }}>PDF无法在此浏览器中显示</p>
+                                  <p style={{ color: '#666', marginBottom: 16 }}>{t('pages.traceability.certificateView.pdfErrors.cannotDisplayInBrowser')}</p>
                                   <p style={{ color: '#999', fontSize: '12px', marginBottom: 16 }}>
-                                    可能是CORS限制，请下载后查看
+                                    {t('pages.traceability.certificateView.pdfErrors.corsRestriction')}
                                   </p>
                                   <Button 
                                     type="primary" 
                                     icon={<DownloadOutlined />} 
                                     onClick={handleDownload}
                                   >
-                                    下载证书查看
+                                    {t('pages.traceability.certificateView.buttons.downloadAndView')}
                                   </Button>
                                 </div>
                               ) : null
@@ -382,7 +384,7 @@ const CertificateViewPage: React.FC = () => {
                           {isPageChanging && (
                             <div className="page-loading-overlay">
                               <Spin size="large" />
-                              <span style={{ marginLeft: 16 }}>切换页面中...</span>
+                              <span style={{ marginLeft: 16 }}>{t('pages.traceability.certificateView.pdfControls.switchingPage')}</span>
                             </div>
                           )}
                           <Document
@@ -392,7 +394,7 @@ const CertificateViewPage: React.FC = () => {
                             loading={
                               <div style={{ textAlign: 'center', padding: '50px', width: '100%' }}>
                                 <Spin size="large" />
-                                <p style={{ marginTop: 16 }}>正在加载PDF...</p>
+                                <p style={{ marginTop: 16 }}>{t('pages.traceability.certificateView.pdfControls.loadingPDF')}</p>
                               </div>
                             }
                             options={pdfOptions}
@@ -414,7 +416,7 @@ const CertificateViewPage: React.FC = () => {
                                   loading={
                                     <div style={{ textAlign: 'center', padding: '20px', width: '100%' }}>
                                       <Spin />
-                                      <p style={{ marginTop: 8, fontSize: '12px' }}>正在加载第 {pageNumber} 页...</p>
+                                      <p style={{ marginTop: 8, fontSize: '12px' }}>{t('pages.traceability.certificateView.pdfControls.loadingPage', { page: pageNumber })}</p>
                                     </div>
                                   }
                                   className="pdf-page"
@@ -431,10 +433,10 @@ const CertificateViewPage: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: 'clamp(16px, 3vh, 32px)' }}>
                   <img
                     src={certificate.certificateUrl}
-                    alt="证书图片"
+                    alt={t('pages.traceability.certificateView.imageAlt')}
                     style={{ maxWidth: '100%', height: 'auto' }}
                     onError={() => {
-                      message.error('证书图片加载失败')
+                      message.error(t('pages.traceability.certificateView.messages.imageLoadFailed'))
                     }}
                   />
                 </div>
@@ -442,29 +444,29 @@ const CertificateViewPage: React.FC = () => {
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '100px 0' }}>
-              <p>证书PDF文件尚未生成</p>
-              <p style={{ color: '#999', fontSize: '12px' }}>请联系管理员生成证书</p>
+              <p>{t('pages.traceability.certificateView.messages.certificateNotGenerated')}</p>
+              <p style={{ color: '#999', fontSize: '12px' }}>{t('pages.traceability.certificateView.messages.contactAdmin')}</p>
             </div>
           )}
         </Col>
         <Col span={8}>
-          <Card title="证书信息" size="small">
+          <Card title={t('pages.traceability.certificateView.certificateInfo.title')} size="small">
             <Descriptions column={1} size="small">
-              <Descriptions.Item label="证书编号">
+              <Descriptions.Item label={t('pages.traceability.certificateView.certificateInfo.fields.certificateNumber')}>
                 {certificate.certificateNumber || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="生成时间">
+              <Descriptions.Item label={t('pages.traceability.certificateView.certificateInfo.fields.createdAt')}>
                 {certificate.createdAt ? dayjs(certificate.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="状态">
+              <Descriptions.Item label={t('pages.traceability.certificateView.certificateInfo.fields.status')}>
                 <span style={{ color: certificate.status === 'active' ? '#52c41a' : '#999' }}>
-                  {certificate.status === 'active' ? '有效' : '无效'}
+                  {certificate.status === 'active' ? t('pages.traceability.certificateView.certificateInfo.status.active') : t('pages.traceability.certificateView.certificateInfo.status.inactive')}
                 </span>
               </Descriptions.Item>
             </Descriptions>
             {certificate.qrCode && (
               <div style={{ textAlign: 'center', marginTop: 16 }}>
-                <img src={certificate.qrCode} alt="证书二维码" style={{ maxWidth: '100%' }} />
+                <img src={certificate.qrCode} alt={t('pages.traceability.certificateView.qrCodeAlt')} style={{ maxWidth: '100%' }} />
               </div>
             )}
           </Card>

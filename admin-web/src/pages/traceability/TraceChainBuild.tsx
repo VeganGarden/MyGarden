@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card, Form, Input, Select, Button, Space, message, Steps, List, Modal } from 'antd'
 import { ArrowLeftOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { traceChainAPI } from '@/services/traceability'
@@ -14,6 +15,7 @@ import dayjs from 'dayjs'
 const { Step } = Steps
 
 const TraceChainBuildPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [currentStep, setCurrentStep] = useState(0)
@@ -41,7 +43,7 @@ const TraceChainBuildPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (nodes.length === 0) {
-      message.error('请至少添加一个节点')
+      message.error(t('pages.traceability.traceChainBuild.messages.addNodeRequired'))
       return
     }
 
@@ -62,64 +64,64 @@ const TraceChainBuildPage: React.FC = () => {
 
       const result = await traceChainAPI.build(formData)
       if (result.success) {
-        message.success('构建成功')
+        message.success(t('pages.traceability.traceChainBuild.messages.buildSuccess'))
         navigate(`/traceability/chains/${result.data?.traceId}`)
       } else {
-        message.error(result.error || '构建失败')
+        message.error(result.error || t('pages.traceability.traceChainBuild.messages.buildFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('common.networkError'))
     } finally {
       setLoading(false)
     }
   }
 
   const nodeTypeMap: Record<NodeType, string> = {
-    [NodeType.SUPPLIER]: '供应商',
-    [NodeType.PROCESSOR]: '加工',
-    [NodeType.TRANSPORT]: '运输',
-    [NodeType.RESTAURANT]: '餐厅',
-    [NodeType.OTHER]: '其他'
+    [NodeType.SUPPLIER]: t('pages.traceability.traceChainBuild.nodeTypes.supplier'),
+    [NodeType.PROCESSOR]: t('pages.traceability.traceChainBuild.nodeTypes.processor'),
+    [NodeType.TRANSPORT]: t('pages.traceability.traceChainBuild.nodeTypes.transport'),
+    [NodeType.RESTAURANT]: t('pages.traceability.traceChainBuild.nodeTypes.restaurant'),
+    [NodeType.OTHER]: t('pages.traceability.traceChainBuild.nodeTypes.other')
   }
 
   const steps = [
     {
-      title: '选择菜品和批次',
+      title: t('pages.traceability.traceChainBuild.steps.selectMenuItem'),
       content: (
         <Form form={form} layout="vertical">
           <Form.Item
             name="menuItemId"
-            label="菜品ID"
-            rules={[{ required: true, message: '请输入菜品ID' }]}
+            label={t('pages.traceability.traceChainBuild.fields.menuItemId')}
+            rules={[{ required: true, message: t('pages.traceability.traceChainBuild.messages.menuItemIdRequired') }]}
           >
-            <Input placeholder="请输入菜品ID" />
+            <Input placeholder={t('pages.traceability.traceChainBuild.placeholders.menuItemId')} />
           </Form.Item>
           <Form.Item
             name="lotId"
-            label="食材批次ID"
-            rules={[{ required: true, message: '请输入批次ID' }]}
+            label={t('pages.traceability.traceChainBuild.fields.lotId')}
+            rules={[{ required: true, message: t('pages.traceability.traceChainBuild.messages.lotIdRequired') }]}
           >
-            <Input placeholder="请输入批次ID" />
+            <Input placeholder={t('pages.traceability.traceChainBuild.placeholders.lotId')} />
           </Form.Item>
-          <Form.Item name="restaurantId" label="餐厅ID">
-            <Input placeholder="请输入餐厅ID（可选）" />
+          <Form.Item name="restaurantId" label={t('pages.traceability.traceChainBuild.fields.restaurantId')}>
+            <Input placeholder={t('pages.traceability.traceChainBuild.placeholders.restaurantId')} />
           </Form.Item>
-          <Form.Item name="chainType" label="溯源链类型">
+          <Form.Item name="chainType" label={t('pages.traceability.traceChainBuild.fields.chainType')}>
             <Select defaultValue="full">
-              <Select.Option value="full">完整</Select.Option>
-              <Select.Option value="partial">部分</Select.Option>
-              <Select.Option value="simplified">简化</Select.Option>
+              <Select.Option value="full">{t('pages.traceability.traceChainBuild.chainTypes.full')}</Select.Option>
+              <Select.Option value="partial">{t('pages.traceability.traceChainBuild.chainTypes.partial')}</Select.Option>
+              <Select.Option value="simplified">{t('pages.traceability.traceChainBuild.chainTypes.simplified')}</Select.Option>
             </Select>
           </Form.Item>
         </Form>
       )
     },
     {
-      title: '添加溯源节点',
+      title: t('pages.traceability.traceChainBuild.steps.addNodes'),
       content: (
         <div>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNode} style={{ marginBottom: 16 }}>
-            添加节点
+            {t('pages.traceability.traceChainBuild.buttons.addNode')}
           </Button>
           <List
             dataSource={nodes}
@@ -127,14 +129,14 @@ const TraceChainBuildPage: React.FC = () => {
               <List.Item
                 actions={[
                   <Button type="link" onClick={() => handleRemoveNode(index)} icon={<DeleteOutlined />}>
-                    删除
+                    {t('common.delete')}
                   </Button>
                 ]}
               >
                 <List.Item.Meta
                   title={
                     <Space>
-                      <span>节点 {node.nodeOrder}</span>
+                      <span>{t('pages.traceability.traceChainBuild.nodeLabel', { order: node.nodeOrder })}</span>
                       <Select
                         value={node.nodeType}
                         onChange={(value) => {
@@ -152,7 +154,7 @@ const TraceChainBuildPage: React.FC = () => {
                   }
                   description={
                     <Input
-                      placeholder="节点名称"
+                      placeholder={t('pages.traceability.traceChainBuild.placeholders.nodeName')}
                       value={node.nodeName}
                       onChange={(e) => {
                         const newNodes = [...nodes]
@@ -169,11 +171,11 @@ const TraceChainBuildPage: React.FC = () => {
       )
     },
     {
-      title: '验证和提交',
+      title: t('pages.traceability.traceChainBuild.steps.verifyAndSubmit'),
       content: (
         <div>
-          <p>节点数量: {nodes.length}</p>
-          <p>请确认信息无误后提交</p>
+          <p>{t('pages.traceability.traceChainBuild.verify.nodeCount', { count: nodes.length })}</p>
+          <p>{t('pages.traceability.traceChainBuild.verify.confirmMessage')}</p>
         </div>
       )
     }
@@ -184,9 +186,9 @@ const TraceChainBuildPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/traceability/chains')}>
-            返回
+            {t('common.back')}
           </Button>
-          <span>构建溯源链</span>
+          <span>{t('pages.traceability.traceChainBuild.title')}</span>
         </Space>
       }
     >
@@ -203,17 +205,17 @@ const TraceChainBuildPage: React.FC = () => {
       <Space>
         {currentStep > 0 && (
           <Button onClick={() => setCurrentStep(currentStep - 1)}>
-            上一步
+            {t('common.previous')}
           </Button>
         )}
         {currentStep < steps.length - 1 && (
           <Button type="primary" onClick={() => setCurrentStep(currentStep + 1)}>
-            下一步
+            {t('common.next')}
           </Button>
         )}
         {currentStep === steps.length - 1 && (
           <Button type="primary" onClick={handleSubmit} loading={loading}>
-            提交
+            {t('common.submit')}
           </Button>
         )}
       </Space>

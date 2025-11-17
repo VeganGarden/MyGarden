@@ -7,8 +7,10 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Button, Card, Form, Input, message } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const Login: React.FC = () => {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -20,7 +22,7 @@ const Login: React.FC = () => {
       const result = await authAPI.login(values.username, values.password)
 
       if (result.code !== 0) {
-        message.error(result.message || '登录失败，请检查用户名和密码')
+        message.error(result.message || t('pages.login.messages.loginFailed'))
         return
       }
 
@@ -28,7 +30,7 @@ const Login: React.FC = () => {
 
       // 禁用账号拦截
       if (user?.status && user.status !== 'active') {
-        message.error('该账号已被禁用，请联系系统管理员')
+        message.error(t('pages.login.messages.accountDisabled'))
         return
       }
 
@@ -82,11 +84,11 @@ const Login: React.FC = () => {
         dispatch(clearTenant())
       }
 
-      message.success('登录成功')
+      message.success(t('pages.login.messages.loginSuccess'))
       navigate('/dashboard')
     } catch (error: any) {
       console.error('登录失败:', error)
-      message.error(error.message || '登录失败，请检查网络连接')
+      message.error(error.message || t('pages.login.messages.networkError'))
     } finally {
       setLoading(false)
     }
@@ -105,7 +107,7 @@ const Login: React.FC = () => {
       <Card
         title={
           <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}>
-            气候餐厅管理后台
+            {t('pages.login.title')}
           </div>
         }
         style={{ width: 400 }}
@@ -118,21 +120,21 @@ const Login: React.FC = () => {
         >
           <Form.Item
             name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            rules={[{ required: true, message: t('pages.login.form.messages.usernameRequired') }]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="用户名"
+              placeholder={t('pages.login.form.placeholders.username')}
             />
           </Form.Item>
 
           <Form.Item
             name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
+            rules={[{ required: true, message: t('pages.login.form.messages.passwordRequired') }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="密码"
+              placeholder={t('pages.login.form.placeholders.password')}
             />
           </Form.Item>
 
@@ -143,15 +145,15 @@ const Login: React.FC = () => {
               block
               loading={loading}
             >
-              登录
+              {t('pages.login.buttons.login')}
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          还没有账号？<a onClick={() => navigate('/apply')}>申请开通 / 入驻</a>
+          {t('pages.login.footer.noAccount')} <a onClick={() => navigate('/apply')}>{t('pages.login.footer.apply')}</a>
           <span style={{ margin: '0 8px', color: '#ddd' }}>|</span>
-          <a>忘记密码</a>
+          <a>{t('pages.login.footer.forgotPassword')}</a>
         </div>
 
         {/* 底部提示移除测试账号信息 */}
