@@ -61,6 +61,14 @@ exports.main = async (event, context) => {
         // 根据restaurantId获取餐厅相关数据（菜单、订单等）
         return await getRestaurantData(data)
 
+      case 'getDashboard':
+        // 获取数据看板统计数据
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await getDashboard(data, gate.user)
+        }
+
       case 'init':
         // 初始化租户和餐厅数据
         const initScript = require('./init-tenant-data')
@@ -181,6 +189,11 @@ exports.main = async (event, context) => {
         // 添加"小苹果"租户
         const addScript = require('./add-xiaopingguo-tenant')
         return await addScript.main(event, context)
+
+      case 'migrateXiaopingguoToApple':
+        // 将"小苹果"租户的菜谱数据迁移到"apple"账号
+        const migrateScript = require('./migrate-xiaopingguo-to-apple')
+        return await migrateScript.main(event, context)
 
       default:
         return {
@@ -1057,7 +1070,8 @@ async function getTenant(tenantId) {
       .get()
 
     return {
-      success: true,
+      code: 0,
+      message: '获取成功',
       data: {
         ...result.data,
         restaurants: restaurants.data || [],
@@ -1065,8 +1079,8 @@ async function getTenant(tenantId) {
     }
   }
   return {
-    success: false,
-    error: '租户不存在',
+    code: 404,
+    message: '租户不存在',
   }
 }
 
@@ -1074,6 +1088,14 @@ async function getTenant(tenantId) {
  * 获取餐厅列表
  */
 async function getRestaurants(tenantId, restaurantId) {
+  if (!tenantId) {
+    return {
+      code: 400,
+      message: 'tenantId不能为空',
+      data: [],
+    }
+  }
+
   let query = db.collection('restaurants').where({
     tenantId: tenantId,
   })
@@ -1086,7 +1108,8 @@ async function getRestaurants(tenantId, restaurantId) {
 
   const result = await query.get()
   return {
-    success: true,
+    code: 0,
+    message: '获取成功',
     data: result.data || [],
   }
 }
@@ -1307,6 +1330,274 @@ async function getRestaurantData(data) {
   return {
     success: true,
     data: result.data,
+  }
+}
+
+/**
+ * 获取数据看板统计数据
+ * @param {Object} data - 查询参数 { restaurantId, tenantId }
+ * @param {Object} currentUser - 当前登录用户信息
+ */
+async function getDashboard(data, currentUser) {
+  const { restaurantId, tenantId } = data || {}
+  const userRole = currentUser?.role || ''
+
+  // 构建查询条件
+  const recipeQuery = {}
+  const orderQuery = {}
+  const restaurantQuery = {}
+
+  // 平台运营角色或系统管理员：查看所有数据，不区分租户
+  const isPlatformOperator = userRole === 'platform_operator' || userRole === 'system_admin'
+  
+  if (isPlatformOperator) {
+    // 平台运营角色：不应用任何过滤，返回全平台数据
+    // recipeQuery, orderQuery, restaurantQuery 保持为空对象
+  } else {
+    // 其他角色（如 restaurant_admin）：根据租户/餐厅过滤数据
+    
+    // 如果指定了餐厅ID，只查询该餐厅的数据
+    if (restaurantId) {
+      recipeQuery.restaurantId = restaurantId
+      orderQuery.restaurantId = restaurantId
+    }
+
+    // 如果指定了租户ID，查询该租户下的数据
+    // 如果没有指定租户ID，但用户有 tenantId，使用用户的 tenantId
+    const targetTenantId = tenantId || currentUser?.tenantId
+    
+    if (targetTenantId) {
+      restaurantQuery.tenantId = targetTenantId
+      // 租户下的餐厅ID列表（用于查询订单和菜谱）
+      const restaurantsRes = await db
+        .collection('restaurants')
+        .where({ tenantId: targetTenantId })
+        .field({ _id: 1 })
+        .get()
+      
+      const restaurantIds = restaurantsRes.data.map((r) => r._id)
+      
+      if (restaurantIds.length > 0) {
+        if (!restaurantId) {
+          // 如果没有指定具体餐厅，则查询租户下所有餐厅
+          // 菜谱可能使用 restaurantId 或 tenantId 字段，需要同时查询
+          // 使用 _.or() 构建复合查询条件
+          recipeQuery = _.or([
+            { restaurantId: _.in(restaurantIds) },
+            { tenantId: _.in(restaurantIds) },
+            { tenantId: targetTenantId } // 也支持直接使用租户ID
+          ])
+          orderQuery.restaurantId = _.in(restaurantIds)
+        }
+      } else {
+        // 租户下没有餐厅，返回空数据
+        return {
+          code: 0,
+          data: {
+            totalRecipes: 0,
+            totalCarbonReduction: 0,
+            certifiedRestaurants: 0,
+            activeUsers: 0,
+            todayOrders: 0,
+            todayRevenue: 0,
+          },
+        }
+      }
+    } else {
+      // 既没有指定租户ID，用户也没有 tenantId，返回空数据
+      return {
+        code: 0,
+        data: {
+          totalRecipes: 0,
+          totalCarbonReduction: 0,
+          certifiedRestaurants: 0,
+          activeUsers: 0,
+          todayOrders: 0,
+          todayRevenue: 0,
+        },
+      }
+    }
+  }
+
+  // 1. 统计总菜谱数
+  let totalRecipes = 0
+  try {
+    // 如果查询条件为空对象，查询所有数据
+    if (Object.keys(recipeQuery).length > 0) {
+      const recipesRes = await db.collection('recipes').where(recipeQuery).count()
+      totalRecipes = recipesRes.total || 0
+    } else {
+      // 平台运营角色：查询所有菜谱
+      const recipesRes = await db.collection('recipes').count()
+      totalRecipes = recipesRes.total || 0
+    }
+  } catch (error) {
+    console.error('统计菜谱数失败:', error)
+    // 如果查询失败，尝试更简单的查询方式
+    try {
+      if (Object.keys(recipeQuery).length > 0) {
+        // 如果使用复杂查询失败，尝试分别查询 restaurantId 和 tenantId
+        const allRecipes = await db.collection('recipes')
+          .where(_.or([
+            { restaurantId: recipeQuery.restaurantId || recipeQuery.tenantId },
+            { tenantId: recipeQuery.tenantId || recipeQuery.restaurantId }
+          ]))
+          .get()
+        totalRecipes = allRecipes.data.length
+      }
+    } catch (fallbackError) {
+      console.error('菜谱查询备用方法也失败:', fallbackError)
+    }
+  }
+
+  // 2. 统计总碳减排量（从 restaurant_orders 集合）
+  let totalCarbonReduction = 0
+  try {
+    // 如果查询条件为空对象，查询所有数据
+    const ordersQueryObj = Object.keys(orderQuery).length > 0
+      ? db.collection('restaurant_orders').where(orderQuery)
+      : db.collection('restaurant_orders')
+    const ordersRes = await ordersQueryObj
+      .field({
+        'carbonImpact.carbonSavingsVsMeat': 1,
+      })
+      .get()
+
+    totalCarbonReduction = ordersRes.data.reduce((sum, order) => {
+      const reduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+      return sum + reduction
+    }, 0)
+  } catch (error) {
+    console.error('统计碳减排量失败:', error)
+    // 如果 restaurant_orders 不存在，尝试从 meals 集合统计
+    try {
+      const mealsQuery = {}
+      if (restaurantId) {
+        mealsQuery['restaurant.restaurantId'] = restaurantId
+      }
+      const mealsRes = await db
+        .collection('meals')
+        .where(mealsQuery)
+        .field({
+          'comparedToMeat.reduction': 1,
+        })
+        .get()
+
+      totalCarbonReduction = mealsRes.data.reduce((sum, meal) => {
+        const reduction = meal.comparedToMeat?.reduction || 0
+        return sum + reduction
+      }, 0)
+    } catch (mealsError) {
+      console.error('从 meals 统计碳减排量失败:', mealsError)
+    }
+  }
+
+  // 3. 统计认证餐厅数
+  let certifiedRestaurants = 0
+  try {
+    // 构建查询条件：先查询所有符合条件的餐厅，然后在代码中过滤认证餐厅
+    // 这样可以避免复杂的 MongoDB 查询语法问题
+    let baseQuery = {}
+    if (Object.keys(restaurantQuery).length > 0) {
+      baseQuery = { ...restaurantQuery }
+    }
+    
+    // 查询所有餐厅（根据租户条件）
+    const allRestaurants = Object.keys(baseQuery).length > 0
+      ? await db.collection('restaurants').where(baseQuery).get()
+      : await db.collection('restaurants').get()
+    
+    // 在代码中过滤认证餐厅：certificationLevel 存在且不为空
+    certifiedRestaurants = allRestaurants.data.filter(r => 
+      r.certificationLevel && 
+      r.certificationLevel !== null && 
+      r.certificationLevel !== '' &&
+      r.certificationLevel !== undefined
+    ).length
+  } catch (error) {
+    console.error('统计认证餐厅数失败:', error)
+  }
+
+  // 4. 统计活跃用户数（最近30天有活动的用户）
+  let activeUsers = 0
+  try {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
+    // 如果指定了餐厅，查询该餐厅的订单用户
+    if (restaurantId && !isPlatformOperator) {
+      const activeUserIds = await db
+        .collection('restaurant_orders')
+        .where({
+          restaurantId,
+          createdAt: _.gte(thirtyDaysAgo),
+        })
+        .field({ userId: 1 })
+        .get()
+      
+      const uniqueUserIds = [...new Set(activeUserIds.data.map((o) => o.userId).filter(Boolean))]
+      activeUsers = uniqueUserIds.length
+    } else {
+      // 平台运营角色或未指定餐厅：查询所有最近30天有活动的用户
+      const activeUsersRes = await db
+        .collection('users')
+        .where({
+          lastLoginAt: _.gte(thirtyDaysAgo),
+        })
+        .count()
+      activeUsers = activeUsersRes.total || 0
+    }
+  } catch (error) {
+    console.error('统计活跃用户数失败:', error)
+  }
+
+  // 5. 统计今日订单数和营收
+  let todayOrders = 0
+  let todayRevenue = 0
+  
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const todayOrderQuery = {
+      ...orderQuery,
+      createdAt: _.gte(today).and(_.lt(tomorrow)),
+    }
+    
+    // 如果 orderQuery 为空，只使用日期条件
+    const todayQueryObj = Object.keys(orderQuery).length > 0
+      ? db.collection('restaurant_orders').where(todayOrderQuery)
+      : db.collection('restaurant_orders').where({
+          createdAt: _.gte(today).and(_.lt(tomorrow)),
+        })
+
+    const todayOrdersRes = await todayQueryObj
+      .field({
+        'pricing.total': 1,
+      })
+      .get()
+
+    todayOrders = todayOrdersRes.data.length
+    todayRevenue = todayOrdersRes.data.reduce((sum, order) => {
+      const total = order.pricing?.total || 0
+      return sum + total
+    }, 0)
+  } catch (error) {
+    console.error('统计今日订单失败:', error)
+  }
+
+  return {
+    code: 0,
+    data: {
+      totalRecipes,
+      totalCarbonReduction: Math.round(totalCarbonReduction * 100) / 100, // 保留2位小数
+      certifiedRestaurants,
+      activeUsers,
+      todayOrders,
+      todayRevenue: Math.round(todayRevenue * 100) / 100, // 保留2位小数
+    },
   }
 }
 

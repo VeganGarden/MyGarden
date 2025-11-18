@@ -464,9 +464,9 @@ export const reportAPI = {
 
   // 数据看板
   dashboard: (params?: any) =>
-    callCloudFunction('restaurant-dashboard', {
+    callCloudFunction('tenant', {
       action: 'getDashboard',
-      ...params,
+      data: params,
     }),
 }
 

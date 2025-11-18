@@ -1,6 +1,7 @@
 import { useAppSelector } from '@/store/hooks'
+import { operationAPI } from '@/services/cloudbase'
 import { DownloadOutlined, EyeOutlined } from '@ant-design/icons'
-import { Button, Card, Col, DatePicker, Input, Row, Select, Space, Statistic, Table, Tag } from 'antd'
+import { Button, Card, Col, DatePicker, Input, Row, Select, Space, Statistic, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,26 +28,33 @@ const OperationOrder: React.FC = () => {
   }, [currentRestaurantId])
 
   const fetchOrderData = async () => {
-    // TODO: 调用API获取订单数据
-    // const result = await operationAPI.order.list({
-    //   restaurantId: currentRestaurantId,
-    // })
-    // setDataSource(result)
-    
-    // 模拟数据
-    if (currentRestaurantId) {
-      setDataSource([
-        {
-          id: '1',
-          orderNo: `ORD${currentRestaurantId.slice(-3)}001`,
-          orderDate: '2025-01-20 10:30:00',
-          customerName: '张三',
-          amount: 128.00,
-          carbonFootprint: 2.5,
-          status: 'completed',
-        },
-      ])
-    } else {
+    try {
+      if (!currentRestaurantId) {
+        setDataSource([])
+        return
+      }
+      
+      const result = await operationAPI.order.list({
+        restaurantId: currentRestaurantId,
+      })
+      
+      if (result && result.code === 0 && result.data) {
+        const orders = Array.isArray(result.data) ? result.data : []
+        setDataSource(orders.map((order: any) => ({
+          id: order.id || order._id || order.orderNo,
+          orderNo: order.orderNo || order.order_id || '',
+          orderDate: order.orderDate || order.createTime || order.createdAt || '',
+          customerName: order.customerName || order.customer_name || order.userName || '',
+          amount: order.amount || order.totalAmount || order.total_amount || 0,
+          carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonReduction || 0,
+          status: order.status || 'pending',
+        })))
+      } else {
+        setDataSource([])
+      }
+    } catch (error: any) {
+      console.error('获取订单数据失败:', error)
+      message.error(error.message || '获取订单数据失败，请稍后重试')
       setDataSource([])
     }
   }
@@ -112,16 +120,52 @@ const OperationOrder: React.FC = () => {
       <Card title={t('pages.operation.order.statistics.title')} style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
-            <Statistic title={t('pages.operation.order.statistics.todayOrders')} value={0} suffix={t('pages.operation.order.statistics.unit')} valueStyle={{ color: '#3f8600' }} />
+            <Statistic 
+              title={t('pages.operation.order.statistics.todayOrders')} 
+              value={dataSource.filter((order) => {
+                const orderDate = new Date(order.orderDate)
+                const today = new Date()
+                return orderDate.toDateString() === today.toDateString()
+              }).length} 
+              suffix={t('pages.operation.order.statistics.unit')} 
+              valueStyle={{ color: '#3f8600' }} 
+            />
           </Col>
           <Col span={6}>
-            <Statistic title={t('pages.operation.order.statistics.todayRevenue')} value={0} prefix="¥" valueStyle={{ color: '#1890ff' }} />
+            <Statistic 
+              title={t('pages.operation.order.statistics.todayRevenue')} 
+              value={dataSource
+                .filter((order) => {
+                  const orderDate = new Date(order.orderDate)
+                  const today = new Date()
+                  return orderDate.toDateString() === today.toDateString()
+                })
+                .reduce((sum, order) => sum + order.amount, 0)} 
+              prefix="¥" 
+              valueStyle={{ color: '#1890ff' }} 
+            />
           </Col>
           <Col span={6}>
-            <Statistic title={t('pages.operation.order.statistics.todayCarbonReduction')} value={0} suffix="kg CO₂e" valueStyle={{ color: '#cf1322' }} />
+            <Statistic 
+              title={t('pages.operation.order.statistics.todayCarbonReduction')} 
+              value={dataSource
+                .filter((order) => {
+                  const orderDate = new Date(order.orderDate)
+                  const today = new Date()
+                  return orderDate.toDateString() === today.toDateString()
+                })
+                .reduce((sum, order) => sum + order.carbonFootprint, 0)} 
+              suffix="kg CO₂e" 
+              valueStyle={{ color: '#cf1322' }} 
+            />
           </Col>
           <Col span={6}>
-            <Statistic title={t('pages.operation.order.statistics.avgOrderValue')} value={0} prefix="¥" valueStyle={{ color: '#722ed1' }} />
+            <Statistic 
+              title={t('pages.operation.order.statistics.avgOrderValue')} 
+              value={dataSource.length > 0 ? (dataSource.reduce((sum, order) => sum + order.amount, 0) / dataSource.length).toFixed(2) : 0} 
+              prefix="¥" 
+              valueStyle={{ color: '#722ed1' }} 
+            />
           </Col>
         </Row>
       </Card>

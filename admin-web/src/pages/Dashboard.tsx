@@ -1,4 +1,5 @@
 import { useAppSelector } from '@/store/hooks'
+import { reportAPI } from '@/services/cloudbase'
 import {
   BookOutlined,
   FireOutlined,
@@ -6,7 +7,7 @@ import {
   TeamOutlined,
   TrophyOutlined
 } from '@ant-design/icons'
-import { Alert, Card, Col, Row, Statistic, Tag } from 'antd'
+import { Alert, Card, Col, Row, Statistic, Tag, message } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -39,49 +40,46 @@ const Dashboard: React.FC = () => {
     : null
 
   useEffect(() => {
-    // TODO: 从API获取数据，根据currentRestaurantId筛选
     const fetchData = async () => {
       try {
-        // const result = await reportAPI.dashboard({
-        //   restaurantId: currentRestaurantId,
-        //   tenantId: currentTenant?.id,
-        // })
-        // setData(result)
+        setLoading(true)
+        const result = await reportAPI.dashboard({
+          restaurantId: currentRestaurantId,
+          tenantId: currentTenant?.id,
+        })
         
-        // 模拟数据 - 根据选中的餐厅返回不同数据
-        if (currentRestaurantId === 'restaurant_sukuaixin') {
-          // 素开心的数据
+        if (result && result.code === 0 && result.data) {
           setData({
-            totalRecipes: 85,
-            totalCarbonReduction: 2200,
-            certifiedRestaurants: 1,
-            activeUsers: 650,
-            todayOrders: 28,
-            todayRevenue: 1200,
-          })
-        } else if (currentRestaurantId === 'restaurant_suhuanle') {
-          // 素欢乐的数据
-          setData({
-            totalRecipes: 65,
-            totalCarbonReduction: 1450,
-            certifiedRestaurants: 1,
-            activeUsers: 420,
-            todayOrders: 17,
-            todayRevenue: 650,
+            totalRecipes: result.data.totalRecipes || 0,
+            totalCarbonReduction: result.data.totalCarbonReduction || 0,
+            certifiedRestaurants: result.data.certifiedRestaurants || 0,
+            activeUsers: result.data.activeUsers || 0,
+            todayOrders: result.data.todayOrders || 0,
+            todayRevenue: result.data.todayRevenue || 0,
           })
         } else {
-          // 所有餐厅的汇总数据
+          // 如果API返回错误，使用默认值
           setData({
-            totalRecipes: 150,
-            totalCarbonReduction: 3650,
-            certifiedRestaurants: 2,
-            activeUsers: 1070,
-            todayOrders: 45,
-            todayRevenue: 1850,
+            totalRecipes: 0,
+            totalCarbonReduction: 0,
+            certifiedRestaurants: 0,
+            activeUsers: 0,
+            todayOrders: 0,
+            todayRevenue: 0,
           })
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('获取数据失败:', error)
+        message.error(error.message || '获取数据失败，请稍后重试')
+        // 出错时使用默认值
+        setData({
+          totalRecipes: 0,
+          totalCarbonReduction: 0,
+          certifiedRestaurants: 0,
+          activeUsers: 0,
+          todayOrders: 0,
+          todayRevenue: 0,
+        })
       } finally {
         setLoading(false)
       }

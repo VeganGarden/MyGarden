@@ -11,8 +11,22 @@ const RestaurantSwitcher: React.FC = () => {
   const { user } = useAppSelector((state: any) => state.auth)
 
   // 仅餐厅管理员显示；其余角色隐藏
-  if (user?.role !== 'restaurant_admin' || !currentTenant || restaurants.length === 0) {
+  // 即使餐厅列表为空，只要有租户信息就显示（但会提示没有餐厅）
+  if (user?.role !== 'restaurant_admin' || !currentTenant) {
     return null
+  }
+  
+  // 如果没有餐厅，显示提示信息
+  if (restaurants.length === 0) {
+    return (
+      <div className={styles.restaurantSwitcher}>
+        <ShopOutlined style={{ color: 'var(--brand-primary)', fontSize: 18 }} />
+        <span className={styles.tenantInfo}>当前租户：{currentTenant.name}</span>
+        <span style={{ color: '#ff4d4f', marginLeft: 8, fontSize: 12 }}>
+          （该租户下暂无餐厅数据）
+        </span>
+      </div>
+    )
   }
 
   const handleChange = (value: string) => {

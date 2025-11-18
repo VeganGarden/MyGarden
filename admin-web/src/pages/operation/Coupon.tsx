@@ -1,7 +1,9 @@
+import { useAppSelector } from '@/store/hooks'
+import { operationAPI } from '@/services/cloudbase'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons'
 import { Button, Card, DatePicker, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
@@ -21,9 +23,49 @@ interface Coupon {
 
 const OperationCoupon: React.FC = () => {
   const { t } = useTranslation()
+  const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
   const [dataSource, setDataSource] = useState<Coupon[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
+
+  useEffect(() => {
+    fetchCouponData()
+  }, [currentRestaurantId])
+
+  const fetchCouponData = async () => {
+    try {
+      if (!currentRestaurantId) {
+        setDataSource([])
+        return
+      }
+      
+      const result = await operationAPI.coupon.list({
+        restaurantId: currentRestaurantId,
+      })
+      
+      if (result && result.code === 0 && result.data) {
+        const coupons = Array.isArray(result.data) ? result.data : []
+        setDataSource(coupons.map((coupon: any) => ({
+          id: coupon.id || coupon._id || '',
+          name: coupon.name || coupon.title || '',
+          type: coupon.type || 'discount',
+          value: coupon.value || coupon.amount || 0,
+          minAmount: coupon.minAmount || coupon.min_amount || undefined,
+          totalCount: coupon.totalCount || coupon.total_count || 0,
+          usedCount: coupon.usedCount || coupon.used_count || 0,
+          validFrom: coupon.validFrom || coupon.valid_from || coupon.startTime || '',
+          validTo: coupon.validTo || coupon.valid_to || coupon.endTime || '',
+          status: coupon.status || 'active',
+        })))
+      } else {
+        setDataSource([])
+      }
+    } catch (error: any) {
+      console.error('获取优惠券数据失败:', error)
+      message.error(error.message || '获取优惠券数据失败，请稍后重试')
+      setDataSource([])
+    }
+  }
 
   const columns: ColumnsType<Coupon> = [
     {
@@ -104,12 +146,41 @@ const OperationCoupon: React.FC = () => {
     setIsModalVisible(true)
   }
 
-  const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      console.log('提交数据:', values)
-      message.success(t('common.saveSuccess'))
-      setIsModalVisible(false)
-    })
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields()
+      
+      if (!currentRestaurantId) {
+        message.error('请先选择餐厅')
+        return
+      }
+      
+      const validity = values.validity
+      const couponData = {
+        ...values,
+        restaurantId: currentRestaurantId,
+        validFrom: validity?.[0]?.format('YYYY-MM-DD') || '',
+        validTo: validity?.[1]?.format('YYYY-MM-DD') || '',
+      }
+      delete couponData.validity
+      
+      const result = await operationAPI.coupon.create(couponData)
+      
+      if (result && result.code === 0) {
+        message.success(t('common.saveSuccess'))
+        setIsModalVisible(false)
+        fetchCouponData() // 重新获取数据
+      } else {
+        message.error(result?.message || '保存失败')
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        // 表单验证错误
+        return
+      }
+      console.error('提交数据失败:', error)
+      message.error(error.message || '保存失败，请稍后重试')
+    }
   }
 
   return (

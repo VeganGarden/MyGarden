@@ -1,9 +1,11 @@
+import { useAppSelector } from '@/store/hooks'
+import { carbonFootprintAPI } from '@/services/cloudbase'
 import { Line } from '@ant-design/charts'
 import { DownloadOutlined } from '@ant-design/icons'
-import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table } from 'antd'
+import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
@@ -20,8 +22,87 @@ interface OrderCarbon {
 
 const CarbonOrder: React.FC = () => {
   const { t } = useTranslation()
-  const [dataSource] = useState<OrderCarbon[]>([])
+  const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
+  const [dataSource, setDataSource] = useState<OrderCarbon[]>([])
+  const [chartData, setChartData] = useState<Array<{ date: string; carbon: number }>>([])
+  const [statistics, setStatistics] = useState({
+    todayCarbon: 0,
+    todayReduction: 0,
+    totalReduction: 0,
+    totalOrders: 0,
+  })
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
+
+  useEffect(() => {
+    fetchOrderCarbonData()
+  }, [currentRestaurantId, dateRange])
+
+  const fetchOrderCarbonData = async () => {
+    try {
+      if (!currentRestaurantId) {
+        setDataSource([])
+        setChartData([])
+        setStatistics({
+          todayCarbon: 0,
+          todayReduction: 0,
+          totalReduction: 0,
+          totalOrders: 0,
+        })
+        return
+      }
+      
+      const result = await carbonFootprintAPI.getOrderCarbonStats({
+        restaurantId: currentRestaurantId,
+        startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
+        endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
+      })
+      
+      if (result && result.code === 0 && result.data) {
+        const data = result.data
+        
+        // 设置统计数据
+        if (data.statistics) {
+          setStatistics({
+            todayCarbon: data.statistics.todayCarbon || data.statistics.today_carbon || 0,
+            todayReduction: data.statistics.todayReduction || data.statistics.today_reduction || 0,
+            totalReduction: data.statistics.totalReduction || data.statistics.total_reduction || 0,
+            totalOrders: data.statistics.totalOrders || data.statistics.total_orders || 0,
+          })
+        }
+        
+        // 设置图表数据
+        if (data.chartData && Array.isArray(data.chartData)) {
+          setChartData(data.chartData.map((item: any) => ({
+            date: item.date || '',
+            carbon: item.carbon || item.totalCarbon || 0,
+          })))
+        }
+        
+        // 设置订单列表
+        if (data.orders && Array.isArray(data.orders)) {
+          setDataSource(data.orders.map((order: any) => ({
+            id: order.id || order._id || order.orderNo || '',
+            orderNo: order.orderNo || order.order_id || '',
+            orderDate: order.orderDate || order.createTime || order.createdAt || '',
+            totalCarbon: order.totalCarbon || order.total_carbon || 0,
+            carbonReduction: order.carbonReduction || order.carbon_reduction || 0,
+            orderAmount: order.orderAmount || order.totalAmount || order.total_amount || 0,
+            status: order.status || '',
+          })))
+        } else {
+          setDataSource([])
+        }
+      } else {
+        setDataSource([])
+        setChartData([])
+      }
+    } catch (error: any) {
+      console.error('获取订单碳足迹数据失败:', error)
+      message.error(error.message || '获取订单碳足迹数据失败，请稍后重试')
+      setDataSource([])
+      setChartData([])
+    }
+  }
 
   const columns: ColumnsType<OrderCarbon> = [
     {
@@ -61,14 +142,6 @@ const CarbonOrder: React.FC = () => {
     },
   ]
 
-  const chartData = [
-    { date: '2025-01-01', carbon: 120.5 },
-    { date: '2025-01-02', carbon: 135.2 },
-    { date: '2025-01-03', carbon: 98.6 },
-    { date: '2025-01-04', carbon: 145.8 },
-    { date: '2025-01-05', carbon: 112.3 },
-  ]
-
   const chartConfig = {
     data: chartData,
     xField: 'date',
@@ -96,7 +169,7 @@ const CarbonOrder: React.FC = () => {
           <Col span={6}>
             <Statistic
               title={t('pages.carbon.order.statistics.todayCarbon')}
-              value={0}
+              value={statistics.todayCarbon}
               suffix="kg CO₂e"
               valueStyle={{ color: '#3f8600' }}
             />
@@ -104,7 +177,7 @@ const CarbonOrder: React.FC = () => {
           <Col span={6}>
             <Statistic
               title={t('pages.carbon.order.statistics.todayReduction')}
-              value={0}
+              value={statistics.todayReduction}
               suffix="kg CO₂e"
               valueStyle={{ color: '#cf1322' }}
             />
@@ -112,7 +185,7 @@ const CarbonOrder: React.FC = () => {
           <Col span={6}>
             <Statistic
               title={t('pages.carbon.order.statistics.totalReduction')}
-              value={0}
+              value={statistics.totalReduction}
               suffix="kg CO₂e"
               valueStyle={{ color: '#1890ff' }}
             />
@@ -120,7 +193,7 @@ const CarbonOrder: React.FC = () => {
           <Col span={6}>
             <Statistic
               title={t('pages.carbon.order.statistics.totalOrders')}
-              value={0}
+              value={statistics.totalOrders}
               suffix={t('common.items')}
               valueStyle={{ color: '#722ed1' }}
             />

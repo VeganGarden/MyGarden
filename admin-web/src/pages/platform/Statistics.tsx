@@ -1,3 +1,4 @@
+import { platformAPI } from '@/services/cloudbase'
 import {
     BarChartOutlined,
     DownloadOutlined,
@@ -62,81 +63,48 @@ const Statistics: React.FC = () => {
   const fetchStatistics = async () => {
     setLoading(true)
     try {
-      // TODO: 调用API获取平台统计数据
-      // const [statisticsResult, topRestaurantsResult] = await Promise.all([
-      //   platformAPI.statistics.getPlatformStatistics({
-      //     startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-      //     endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      //     period: period as any,
-      //   }),
-      //   platformAPI.statistics.getTopRestaurants({
-      //     limit: 10,
-      //     startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-      //     endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      //   }),
-      // ])
-      // setStatistics(statisticsResult)
-      // setTopRestaurants(topRestaurantsResult)
-      
-      // 模拟数据
-      setStatistics({
-        totalRestaurants: 25,
-        activeRestaurants: 20,
-        totalOrders: 12580,
-        totalRevenue: 1258000,
-        totalCarbonReduction: 36500,
-        totalUsers: 3500,
-        averageOrderValue: 100,
-        averageCarbonPerOrder: 2.9,
-      })
-
-      setTopRestaurants([
-        {
-          rank: 1,
-          restaurantName: '虹桥素坊',
-          tenantId: 'tenant_001',
-          orders: 1250,
-          revenue: 125000,
-          carbonReduction: 3650,
-          certificationLevel: 'gold',
-        },
-        {
-          rank: 2,
-          restaurantName: '绿色餐厅',
-          tenantId: 'tenant_002',
-          orders: 890,
-          revenue: 89000,
-          carbonReduction: 2100,
-          certificationLevel: 'silver',
-        },
-        {
-          rank: 3,
-          restaurantName: '素食天地',
-          tenantId: 'tenant_003',
-          orders: 650,
-          revenue: 65000,
-          carbonReduction: 1800,
-          certificationLevel: 'bronze',
-        },
-        {
-          rank: 4,
-          restaurantName: '健康素食',
-          tenantId: 'tenant_004',
-          orders: 520,
-          revenue: 52000,
-          carbonReduction: 1500,
-        },
-        {
-          rank: 5,
-          restaurantName: '环保餐厅',
-          tenantId: 'tenant_005',
-          orders: 480,
-          revenue: 48000,
-          carbonReduction: 1400,
-        },
+      const [statisticsResult, topRestaurantsResult] = await Promise.all([
+        platformAPI.statistics.getPlatformStatistics({
+          startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
+          endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
+          period: period as any,
+        }),
+        platformAPI.statistics.getTopRestaurants({
+          limit: 10,
+          startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
+          endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
+        }),
       ])
-    } catch (error) {
-      message.error(t('pages.platform.statistics.messages.loadFailed'))
+      
+      if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
+        const stats = statisticsResult.data
+        setStatistics({
+          totalRestaurants: stats.totalRestaurants || stats.total_restaurants || 0,
+          activeRestaurants: stats.activeRestaurants || stats.active_restaurants || 0,
+          totalOrders: stats.totalOrders || stats.total_orders || 0,
+          totalRevenue: stats.totalRevenue || stats.total_revenue || 0,
+          totalCarbonReduction: stats.totalCarbonReduction || stats.total_carbon_reduction || 0,
+          totalUsers: stats.totalUsers || stats.total_users || 0,
+          averageOrderValue: stats.averageOrderValue || stats.average_order_value || 0,
+          averageCarbonPerOrder: stats.averageCarbonPerOrder || stats.average_carbon_per_order || 0,
+        })
+      }
+      
+      if (topRestaurantsResult && topRestaurantsResult.code === 0 && topRestaurantsResult.data) {
+        const restaurants = Array.isArray(topRestaurantsResult.data) ? topRestaurantsResult.data : []
+        setTopRestaurants(restaurants.map((restaurant: any, index: number) => ({
+          rank: index + 1,
+          restaurantName: restaurant.restaurantName || restaurant.name || restaurant.restaurant_name || '',
+          tenantId: restaurant.tenantId || restaurant.tenant_id || '',
+          orders: restaurant.orders || restaurant.order_count || 0,
+          revenue: restaurant.revenue || restaurant.total_revenue || 0,
+          carbonReduction: restaurant.carbonReduction || restaurant.carbon_reduction || 0,
+          certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
+        })))
+      }
+    } catch (error: any) {
+      console.error('获取统计数据失败:', error)
+      message.error(error.message || t('pages.platform.statistics.messages.loadFailed'))
     } finally {
       setLoading(false)
     }

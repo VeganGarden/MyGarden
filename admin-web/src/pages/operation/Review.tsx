@@ -1,7 +1,9 @@
+import { useAppSelector } from '@/store/hooks'
+import { operationAPI } from '@/services/cloudbase'
 import { EyeOutlined, MessageOutlined } from '@ant-design/icons'
-import { Input as AntInput, Button, Card, Form, Input, Modal, Rate, Space, Table, Tag } from 'antd'
+import { Input as AntInput, Button, Card, Form, Input, Modal, Rate, Space, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const { TextArea } = AntInput
@@ -20,10 +22,49 @@ interface Review {
 
 const OperationReview: React.FC = () => {
   const { t } = useTranslation()
-  const [dataSource] = useState<Review[]>([])
+  const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
+  const [dataSource, setDataSource] = useState<Review[]>([])
   const [isReplyModalVisible, setIsReplyModalVisible] = useState(false)
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [form] = Form.useForm()
+
+  useEffect(() => {
+    fetchReviewData()
+  }, [currentRestaurantId])
+
+  const fetchReviewData = async () => {
+    try {
+      if (!currentRestaurantId) {
+        setDataSource([])
+        return
+      }
+      
+      const result = await operationAPI.review.list({
+        restaurantId: currentRestaurantId,
+      })
+      
+      if (result && result.code === 0 && result.data) {
+        const reviews = Array.isArray(result.data) ? result.data : []
+        setDataSource(reviews.map((review: any) => ({
+          id: review.id || review._id || '',
+          orderNo: review.orderNo || review.order_id || '',
+          customerName: review.customerName || review.customer_name || review.userName || '',
+          rating: review.rating || review.score || 0,
+          content: review.content || review.comment || '',
+          carbonSatisfaction: review.carbonSatisfaction || review.carbon_satisfaction || 0,
+          reviewDate: review.reviewDate || review.createTime || review.createdAt || '',
+          reply: review.reply || '',
+          replyDate: review.replyDate || review.reply_time || '',
+        })))
+      } else {
+        setDataSource([])
+      }
+    } catch (error: any) {
+      console.error('获取评价数据失败:', error)
+      message.error(error.message || '获取评价数据失败，请稍后重试')
+      setDataSource([])
+    }
+  }
 
   const columns: ColumnsType<Review> = [
     {
@@ -101,12 +142,28 @@ const OperationReview: React.FC = () => {
     setIsReplyModalVisible(true)
   }
 
-  const handleSubmitReply = () => {
-    form.validateFields().then((values) => {
-      console.log('回复内容:', values)
-      // TODO: 提交回复
-      setIsReplyModalVisible(false)
-    })
+  const handleSubmitReply = async () => {
+    try {
+      const values = await form.validateFields()
+      if (!selectedReview) return
+      
+      const result = await operationAPI.review.reply(selectedReview.id, values.reply)
+      
+      if (result && result.code === 0) {
+        message.success('回复成功')
+        setIsReplyModalVisible(false)
+        fetchReviewData() // 重新获取数据
+      } else {
+        message.error(result?.message || '回复失败')
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        // 表单验证错误
+        return
+      }
+      console.error('提交回复失败:', error)
+      message.error(error.message || '提交回复失败，请稍后重试')
+    }
   }
 
   return (

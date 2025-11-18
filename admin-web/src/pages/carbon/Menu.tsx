@@ -47,38 +47,33 @@ const CarbonMenu: React.FC = () => {
   }, [currentRestaurantId])
 
   const fetchMenuData = async () => {
-    // TODO: 调用API获取菜单数据
-    // const result = await carbonFootprintAPI.calculateMenu({
-    //   restaurantId: currentRestaurantId,
-    // })
-    // setDataSource(result)
-    
-    // 模拟数据 - 根据餐厅返回不同数据
-    if (currentRestaurantId === 'restaurant_sukuaixin') {
-      setDataSource([
-        {
-          id: '1',
-          name: '素开心招牌面',
-          carbonFootprint: 0.85,
-          carbonLevel: 'low',
-          carbonScore: 85,
-          ingredients: '面条200g、青菜100g、豆腐50g',
-          status: 'published',
-        },
-      ])
-    } else if (currentRestaurantId === 'restaurant_suhuanle') {
-      setDataSource([
-        {
-          id: '2',
-          name: '素欢乐特色菜',
-          carbonFootprint: 0.92,
-          carbonLevel: 'low',
-          carbonScore: 82,
-          ingredients: '米饭150g、蔬菜200g、豆制品80g',
-          status: 'published',
-        },
-      ])
-    } else {
+    try {
+      if (!currentRestaurantId) {
+        setDataSource([])
+        return
+      }
+      
+      const result = await carbonFootprintAPI.getMenuList({
+        restaurantId: currentRestaurantId,
+      })
+      
+      if (result && result.code === 0 && result.data) {
+        const menus = Array.isArray(result.data) ? result.data : []
+        setDataSource(menus.map((menu: any) => ({
+          id: menu.id || menu._id || '',
+          name: menu.name || menu.dishName || '',
+          carbonFootprint: menu.carbonFootprint || menu.carbon_footprint || 0,
+          carbonLevel: menu.carbonLevel || menu.carbon_level || 'medium',
+          carbonScore: menu.carbonScore || menu.carbon_score || 0,
+          ingredients: menu.ingredients || menu.ingredient_list || '',
+          status: menu.status || 'draft',
+        })))
+      } else {
+        setDataSource([])
+      }
+    } catch (error: any) {
+      console.error('获取菜单数据失败:', error)
+      message.error(error.message || '获取菜单数据失败，请稍后重试')
       setDataSource([])
     }
   }

@@ -6,8 +6,8 @@ import { validateUserStorage } from '@/utils/storage'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Button, Card, Form, Input, message } from 'antd'
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
@@ -46,38 +46,42 @@ const Login: React.FC = () => {
         })
       )
 
-      // 如果是餐厅管理员且有租户ID，尝试加载租户数据
+      // 如果是餐厅管理员且有租户ID，从云函数加载租户数据
       if (user.tenantId && user.role === 'restaurant_admin') {
-        // TODO: 从云函数加载租户数据
-        // 暂时使用本地模拟数据（如果用户名包含"小苹果"）
-        if (values.username.includes('小苹果') || values.username.includes('xiaopingguo')) {
-          const tenantData = {
-            id: 'tenant_xiaopingguo',
-            name: '小苹果',
-            restaurants: [
-              {
-                id: 'restaurant_sukuaixin',
-                name: '素开心',
-                address: '上海市虹桥区XX路123号',
-                phone: '021-12345678',
-                status: 'active' as const,
-                certificationLevel: 'gold' as const,
-                certificationStatus: 'certified' as const,
-                createdAt: '2024-01-15',
-              },
-              {
-                id: 'restaurant_suhuanle',
-                name: '素欢乐',
-                address: '上海市浦东新区XX街456号',
-                phone: '021-87654321',
-                status: 'active' as const,
-                certificationLevel: 'silver' as const,
-                certificationStatus: 'certified' as const,
-                createdAt: '2024-02-20',
-              },
-            ],
+        try {
+          // 从云函数获取租户和餐厅信息
+          const { tenantAPI } = await import('@/services/cloudbase')
+          const tenantResult = await tenantAPI.getTenant(user.tenantId)
+          const restaurantsResult = await tenantAPI.getRestaurants({ tenantId: user.tenantId })
+          
+          if (tenantResult.code === 0 && tenantResult.data) {
+            // 使用 restaurantsResult.data 或 tenantResult.data.restaurants
+            const restaurantsList = restaurantsResult.code === 0 
+              ? (restaurantsResult.data || [])
+              : (tenantResult.data.restaurants || [])
+            
+            const tenantData = {
+              id: tenantResult.data._id || tenantResult.data.id,
+              name: tenantResult.data.name,
+              restaurants: restaurantsList.map((r: any) => ({
+                id: r._id || r.id,
+                name: r.name,
+                address: r.address,
+                phone: r.phone,
+                status: r.status || 'active',
+                certificationLevel: r.certificationLevel,
+                certificationStatus: r.certificationStatus,
+                createdAt: r.createdAt || r.created_at,
+              })),
+            }
+            dispatch(setTenant(tenantData))
+          } else {
+            dispatch(clearTenant())
           }
-          dispatch(setTenant(tenantData))
+        } catch (error) {
+          console.error('加载租户数据失败:', error)
+          // 如果加载失败，清空租户信息
+          dispatch(clearTenant())
         }
       } else {
         // 非餐厅管理员：清空本地租户态，避免顶栏显示租户切换器

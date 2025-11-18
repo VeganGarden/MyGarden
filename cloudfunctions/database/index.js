@@ -3,6 +3,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
+// 引入测试数据插入函数
+const { insertRestaurantTestData } = require('./insert-restaurant-test-data');
+
 /**
  * 数据库管理云函数 - 统一入口
  * 
@@ -21,6 +24,7 @@ const _ = db.command;
  * - initAdminCollections: 初始化管理后台集合（admin_users, role_configs, permissions, audit_logs）
  * - initAdminData: 初始化管理后台数据（角色和权限配置）
  * - initMessageCollections: 初始化消息管理集合（messages, user_messages, message_event_rules）
+ * - insertRestaurantTestData: 为"素开心"和"素欢乐"餐厅插入测试数据（订单、评价、优惠券、行为统计）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -63,6 +67,8 @@ exports.main = async (event) => {
         return await initMessageCollections(event);
       case 'initMessageEventRules':
         return await initMessageEventRules(event);
+      case 'insertRestaurantTestData':
+        return await insertRestaurantTestData(event);
       default:
         return await initCollectionsV1(event);
     }
