@@ -5,6 +5,7 @@ const _ = db.command;
 
 // 引入测试数据插入函数
 const { insertRestaurantTestData } = require('./insert-restaurant-test-data');
+const { main: insertCarbonTestData } = require('./insert-carbon-test-data');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -25,6 +26,7 @@ const { insertRestaurantTestData } = require('./insert-restaurant-test-data');
  * - initAdminData: 初始化管理后台数据（角色和权限配置）
  * - initMessageCollections: 初始化消息管理集合（messages, user_messages, message_event_rules）
  * - insertRestaurantTestData: 为"素开心"和"素欢乐"餐厅插入测试数据（订单、评价、优惠券、行为统计）
+ * - insertCarbonTestData: 为指定租户的餐厅插入菜单碳足迹和订单碳足迹示例数据
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -69,6 +71,8 @@ exports.main = async (event) => {
         return await initMessageEventRules(event);
       case 'insertRestaurantTestData':
         return await insertRestaurantTestData(event);
+      case 'insertCarbonTestData':
+        return await insertCarbonTestData(event);
       default:
         return await initCollectionsV1(event);
     }

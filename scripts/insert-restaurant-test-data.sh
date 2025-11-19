@@ -40,3 +40,5 @@ echo "  - 数据库集合：restaurant_orders, restaurant_reviews, restaurant_ca
 echo "  - 详细说明请查看：cloudfunctions/database/插入餐厅测试数据-使用指南.md"
 echo ""
 
+
+

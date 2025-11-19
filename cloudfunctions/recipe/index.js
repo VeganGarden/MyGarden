@@ -45,7 +45,14 @@ exports.main = async (event, context) => {
 
     // 获取餐厅ID（租户ID）
     // 优先使用请求参数中的restaurantId，否则从用户信息中获取
-    const tenantId = await getRestaurantId(restaurantId || recipe?.restaurantId, openid)
+    // 注意：restaurantId 和 tenantId 可能不同（数据迁移后）
+    const requestedRestaurantId = restaurantId || recipe?.restaurantId
+    const tenantId = await getRestaurantId(requestedRestaurantId, openid)
+    
+    // 如果提供了 restaurantId，也传递给 listRecipes 函数
+    if (action === 'list' && requestedRestaurantId) {
+      event.restaurantId = requestedRestaurantId
+    }
 
     switch (action) {
       case 'create':
@@ -68,7 +75,9 @@ exports.main = async (event, context) => {
         // 获取菜谱列表
         // 支持更多筛选参数
         const { status, category, carbonLabel } = event
-        return await listRecipes(recipeCollection, keyword, page, pageSize, tenantId, {
+        // 如果提供了 restaurantId，优先使用它（因为数据迁移后，restaurantId 更准确）
+        const queryRestaurantId = event.restaurantId || tenantId
+        return await listRecipes(recipeCollection, keyword, page, pageSize, queryRestaurantId, {
           status,
           category,
           carbonLabel,
@@ -415,12 +424,30 @@ async function getRecipe(recipeCollection, recipeId, tenantId) {
  * @param {string} keyword - 搜索关键词
  * @param {number} page - 页码
  * @param {number} pageSize - 每页数量
- * @param {string} tenantId - 租户ID（餐厅ID），用于多租户数据隔离
+ * @param {string} tenantId - 租户ID（可能是餐厅ID或租户ID），用于多租户数据隔离
  * @param {Object} filters - 筛选条件 { status, category, carbonLabel }
  */
 async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, filters = {}) {
   try {
     console.log('查询菜谱列表，参数:', { keyword, page, pageSize, tenantId, filters })
+    
+    // 如果提供了 tenantId，先尝试获取餐厅信息，确定实际的 tenantId
+    let actualTenantId = tenantId
+    let restaurantId = tenantId
+    
+    if (tenantId && !tenantId.startsWith('tenant_')) {
+      // 如果传入的是餐厅ID（不是租户ID），查询餐厅信息获取租户ID
+      try {
+        const restaurantResult = await db.collection('restaurants').doc(tenantId).get()
+        if (restaurantResult.data && restaurantResult.data.tenantId) {
+          actualTenantId = restaurantResult.data.tenantId
+          restaurantId = tenantId
+          console.log(`通过餐厅ID ${tenantId} 获取到租户ID: ${actualTenantId}`)
+        }
+      } catch (error) {
+        console.warn('查询餐厅信息失败，使用原值:', error.message)
+      }
+    }
     
     // 构建基础查询条件
     let query = recipeCollection.where({
@@ -429,11 +456,21 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
 
     // 多租户隔离：只查询当前餐厅的菜谱
     // 支持通过 tenantId 或 restaurantId 查询
-    if (tenantId) {
-      // 先尝试使用 tenantId 查询
-      query = query.where({
-        tenantId: tenantId
-      })
+    if (actualTenantId || restaurantId) {
+      // 使用 $or 查询，同时支持 tenantId 和 restaurantId
+      const queryConditions = []
+      
+      if (actualTenantId) {
+        queryConditions.push({ tenantId: actualTenantId })
+      }
+      
+      if (restaurantId) {
+        queryConditions.push({ restaurantId: restaurantId })
+      }
+      
+      if (queryConditions.length > 0) {
+        query = query.where(_.or(queryConditions))
+      }
     }
     // 如果没有提供tenantId，查询所有餐厅的菜谱（不添加餐厅过滤）
 
@@ -471,65 +508,7 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
     // 获取总数
     const countResult = await query.count()
     const total = countResult.total
-    console.log('使用 tenantId 查询结果总数:', total)
-
-    // 如果使用 tenantId 查询不到数据，且提供了 tenantId，尝试使用 restaurantId 查询
-    if (total === 0 && tenantId) {
-      console.log('使用 tenantId 查询不到数据，尝试使用 restaurantId 查询...')
-      
-      // 重新构建查询，使用 restaurantId
-      let queryByRestaurantId = recipeCollection.where({
-        status: _.neq('archived'),
-        restaurantId: tenantId
-      })
-      
-      // 应用筛选条件
-      if (filters.status && filters.status !== 'all') {
-        queryByRestaurantId = queryByRestaurantId.where({ status: filters.status })
-      }
-      if (filters.category && filters.category !== 'all') {
-        queryByRestaurantId = queryByRestaurantId.where({ category: filters.category })
-      }
-      if (filters.carbonLabel && filters.carbonLabel !== 'all') {
-        queryByRestaurantId = queryByRestaurantId.where({ carbonLabel: filters.carbonLabel })
-      }
-      
-      // 如果有关键词，添加搜索条件
-      if (keyword && keyword.trim()) {
-        queryByRestaurantId = queryByRestaurantId.where({
-          name: db.RegExp({
-            regexp: keyword.trim(),
-            options: 'i'
-          })
-        })
-      }
-      
-      const countByRestaurantId = await queryByRestaurantId.count()
-      console.log('使用 restaurantId 查询结果总数:', countByRestaurantId.total)
-      
-      if (countByRestaurantId.total > 0) {
-        const resultByRestaurantId = await queryByRestaurantId
-          .orderBy('createdAt', 'desc')
-          .skip((page - 1) * pageSize)
-          .limit(pageSize)
-          .get()
-        
-        console.log('使用 restaurantId 查询到数据:', resultByRestaurantId.data.length, '条')
-        
-        return {
-          code: 0,
-          data: {
-            data: resultByRestaurantId.data || [],
-            pagination: {
-              page,
-              pageSize,
-              total: countByRestaurantId.total,
-              totalPages: Math.ceil(countByRestaurantId.total / pageSize)
-            }
-          }
-        }
-      }
-    }
+    console.log('查询结果总数:', total)
 
     // 分页查询
     const result = await query
