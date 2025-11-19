@@ -1,5 +1,5 @@
-import { useAppSelector } from '@/store/hooks'
 import { operationAPI } from '@/services/cloudbase'
+import { useAppSelector } from '@/store/hooks'
 import { DownloadOutlined, EyeOutlined } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Input, Row, Select, Space, Statistic, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -49,7 +49,7 @@ const OperationOrder: React.FC = () => {
           carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonReduction || 0,
           status: order.status || 'pending',
         })))
-      } else {
+    } else {
         setDataSource([])
       }
     } catch (error: any) {

@@ -74,6 +74,12 @@ if [ -z "$(ls -A dist)" ]; then
   exit 1
 fi
 
+# 确保 404.html 被复制到 dist 目录（用于 SPA 路由支持）
+if [ -f "public/404.html" ]; then
+  cp public/404.html dist/404.html
+  echo -e "${GREEN}✅ 已复制 404.html 到 dist 目录${NC}"
+fi
+
 echo -e "${GREEN}✅ 构建完成${NC}"
 
 # 部署到腾讯云

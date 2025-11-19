@@ -99,7 +99,6 @@ const OperationLedger: React.FC = () => {
 
   const handleSubmit = () => {
     form.validateFields().then((values) => {
-      console.log('提交数据:', values)
       message.success(t('common.saveSuccess'))
       setIsModalVisible(false)
     })

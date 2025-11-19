@@ -62,7 +62,7 @@
 .logoTextMain {
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
-  color: var(--text-inverse);
+  color: var(--text-primary); /* 使用主题文字颜色，自动适配亮色/暗色 */
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -72,7 +72,7 @@
 .logoTextSub {
   font-size: 11px;
   font-weight: var(--font-weight-normal);
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-secondary); /* 使用主题次要文字颜色，自动适配亮色/暗色 */
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -85,7 +85,7 @@
 :global(.logo-text-collapsed) {
   font-size: 24px;
   font-weight: var(--font-weight-bold);
-  color: var(--text-inverse);
+  color: var(--text-primary); /* 使用主题文字颜色，自动适配亮色/暗色 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,7 +97,7 @@
 :global(.logo-text-fallback) {
   font-size: 20px;
   font-weight: var(--font-weight-bold);
-  color: var(--text-inverse);
+  color: var(--text-primary); /* 使用主题文字颜色，自动适配亮色/暗色 */
   letter-spacing: 3px;
   display: flex;
   align-items: center;

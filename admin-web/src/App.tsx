@@ -27,20 +27,20 @@ import CarbonReport from './pages/carbon/Report'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
-import TraceabilityChain from './pages/traceability/Chain'
-import TraceabilitySupplier from './pages/traceability/Supplier'
-import SupplierDetail from './pages/traceability/SupplierDetail'
-import SupplierAdd from './pages/traceability/SupplierAdd'
-import SupplierEdit from './pages/traceability/SupplierEdit'
-import IngredientLotList from './pages/traceability/IngredientLotList'
-import IngredientLotDetail from './pages/traceability/IngredientLotDetail'
-import IngredientLotAdd from './pages/traceability/IngredientLotAdd'
-import IngredientLotEdit from './pages/traceability/IngredientLotEdit'
-import TraceChainList from './pages/traceability/TraceChainList'
-import TraceChainBuild from './pages/traceability/TraceChainBuild'
-import TraceChainView from './pages/traceability/TraceChainView'
 import CertificateList from './pages/traceability/CertificateList'
 import CertificateView from './pages/traceability/CertificateView'
+import TraceabilityChain from './pages/traceability/Chain'
+import IngredientLotAdd from './pages/traceability/IngredientLotAdd'
+import IngredientLotDetail from './pages/traceability/IngredientLotDetail'
+import IngredientLotEdit from './pages/traceability/IngredientLotEdit'
+import IngredientLotList from './pages/traceability/IngredientLotList'
+import TraceabilitySupplier from './pages/traceability/Supplier'
+import SupplierAdd from './pages/traceability/SupplierAdd'
+import SupplierDetail from './pages/traceability/SupplierDetail'
+import SupplierEdit from './pages/traceability/SupplierEdit'
+import TraceChainBuild from './pages/traceability/TraceChainBuild'
+import TraceChainList from './pages/traceability/TraceChainList'
+import TraceChainView from './pages/traceability/TraceChainView'
 
 // 核心模块4: 餐厅运营
 import OperationBehavior from './pages/operation/Behavior'
@@ -61,6 +61,7 @@ import AdminUsers from './pages/platform/AdminUsers'
 import PlatformCrossTenant from './pages/platform/CrossTenant'
 import PlatformRestaurantList from './pages/platform/RestaurantList'
 import PlatformStatistics from './pages/platform/Statistics'
+import RestaurantManage from './pages/restaurant/Manage'
 
 // 个人中心
 import OnboardingApply from './pages/onboarding/Apply'
@@ -72,8 +73,8 @@ import SystemRoles from './pages/system/Roles'
 import SystemUsers from './pages/system/Users'
 
 // 消息管理
-import MessageList from './pages/messages/List'
 import MessageDetail from './pages/messages/Detail'
+import MessageList from './pages/messages/List'
 
 const App: React.FC = () => {
   return (
@@ -145,10 +146,14 @@ const App: React.FC = () => {
           
           {/* 菜谱管理 */}
           <Route path="recipe" element={<RecipeList />} />
+          <Route path="recipe/list" element={<RecipeList />} />
           <Route path="recipe/create" element={<RecipeCreate />} />
           <Route path="recipe/edit/:id" element={<RecipeEdit />} />
           <Route path="recipe/detail/:id" element={<RecipeDetail />} />
           <Route path="recipe/categories" element={<RecipeCategories />} />
+          
+          {/* 餐厅管理（仅餐厅管理员可见） */}
+          <Route path="restaurant/manage" element={<RestaurantManage />} />
           
           {/* 平台管理模块（仅平台管理员可见） */}
           <Route path="platform/restaurants" element={<PlatformRestaurantList />} />

@@ -16,6 +16,7 @@
   transition: width var(--transition-base) var(--ease-in-out);
   box-shadow: var(--shadow-md);
   background: var(--bg-sider) !important;
+  border-right: 1px solid var(--border-color-split); /* 添加右侧边框，与主内容区域区分 */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -167,9 +168,9 @@
   overflow-y: auto !important;
   overflow-x: hidden !important;
   max-height: calc(100vh - 64px - var(--spacing-md) * 2) !important;
-  /* 优化滚动条样式 */
+  /* 优化滚动条样式 - 适配浅色背景 */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  scrollbar-color: rgba(34, 197, 94, 0.3) transparent;
 }
 
 :global(.ant-layout-sider .ant-menu::-webkit-scrollbar) {
@@ -181,12 +182,12 @@
 }
 
 :global(.ant-layout-sider .ant-menu::-webkit-scrollbar-thumb) {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(34, 197, 94, 0.3);
   border-radius: 3px;
 }
 
 :global(.ant-layout-sider .ant-menu::-webkit-scrollbar-thumb:hover) {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(34, 197, 94, 0.5);
 }
 
 /* 确保菜单根元素可以滚动 */
@@ -200,10 +201,36 @@
   margin: 4px 8px !important;
   border-radius: var(--radius-md) !important;
   transition: all var(--transition-fast) var(--ease-out) !important;
+  color: var(--text-primary) !important; /* 确保文字颜色在浅色背景下可见 */
+  padding: 8px 12px !important; /* 增加内边距以容纳多行文字 */
+  height: auto !important; /* 允许高度自适应 */
+  min-height: 40px !important; /* 最小高度 */
+  display: flex !important; /* 使用 flex 布局 */
+  align-items: center !important; /* 垂直居中 */
+  flex-direction: row !important; /* 横向排列 */
+  gap: 0 !important; /* 移除 gap，改用图标的 margin-right */
+}
+
+/* 确保所有直接子元素之间没有额外间距 */
+/* 但排除图标元素，图标的 margin-right 由上面的规则单独控制 */
+:global(.ant-layout-sider .ant-menu-item > *:not(.anticon):not(.ant-menu-item-icon)) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+:global(.ant-layout-sider .ant-menu-item > span) {
+  white-space: normal !important; /* 允许文字换行 */
+  word-break: break-word !important; /* 允许单词内换行（必要时） */
+  line-height: 1.5 !important; /* 增加行高以支持多行文字 */
+  display: inline-block !important; /* 允许换行 */
+  flex: 1 1 auto !important; /* 占据剩余空间 */
+  min-width: 0 !important; /* 允许收缩 */
+  text-align: left !important; /* 文字左对齐 */
 }
 
 :global(.ant-layout-sider .ant-menu-item:hover) {
   background: var(--bg-sider-hover) !important;
+  color: var(--primary-color) !important; /* 悬停时使用主题色 */
 }
 
 :global(.ant-layout-sider .ant-menu-item-selected) {
@@ -215,18 +242,114 @@
   display: none !important;
 }
 
-:global(.ant-layout-sider .ant-menu-submenu-title) {
+:global(.ant-layout-sider .ant-menu-submenu-title),
+:global(.ant-layout-sider .ant-menu-submenu .ant-menu-submenu-title) {
   margin: 4px 8px !important;
   border-radius: var(--radius-md) !important;
   transition: all var(--transition-fast) var(--ease-out) !important;
+  color: var(--text-primary) !important; /* 确保文字颜色在浅色背景下可见 */
+  padding: 8px 12px !important; /* 增加内边距以容纳多行文字 */
+  height: auto !important; /* 允许高度自适应 */
+  min-height: 40px !important; /* 最小高度 */
+  display: flex !important; /* 使用 flex 布局 */
+  align-items: center !important; /* 垂直居中对齐（图标和文字在同一行） */
+  justify-content: flex-start !important; /* 水平左对齐 */
+  text-align: left !important; /* 文字左对齐 */
+  flex-direction: row !important; /* 确保横向排列 */
+  direction: ltr !important; /* 确保从左到右的文本方向 */
+  gap: 0 !important; /* 移除 gap，改用图标的 margin-right */
+}
+
+/* 确保所有直接子元素之间没有额外间距 */
+/* 但排除图标元素，图标的 margin-right 由上面的规则单独控制 */
+:global(.ant-layout-sider .ant-menu-submenu-title > *:not(.anticon):not(.ant-menu-item-icon)),
+:global(.ant-layout-sider .ant-menu-submenu .ant-menu-submenu-title > *:not(.anticon):not(.ant-menu-item-icon)) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* 确保图标在左侧 - 统一所有菜单项的图标间距 */
+/* 使用最高优先级的选择器，直接设置 margin-right 为 2px */
+:global(.ant-layout-sider .ant-menu-submenu-title .anticon),
+:global(.ant-layout-sider .ant-menu-submenu .ant-menu-submenu-title .anticon),
+:global(.ant-layout-sider .ant-menu-item .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title > .anticon),
+:global(.ant-layout-sider .ant-menu-item > .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon .anticon),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon) {
+  margin-right: 2px !important; /* 直接设置图标和文字之间的间距为 2px */
+  margin-left: 0 !important; /* 确保左边距为0 */
+  flex-shrink: 0 !important; /* 图标不收缩 */
+  order: 0 !important; /* 图标在最前面 */
+  width: auto !important; /* 确保图标宽度自适应 */
+  min-width: 0 !important; /* 允许收缩 */
+  align-self: center !important; /* 图标垂直居中 */
+  margin-top: 0 !important; /* 移除顶部边距 */
+  margin-bottom: 0 !important; /* 移除底部边距 */
+  padding-right: 0 !important; /* 移除右侧 padding */
+  padding-left: 0 !important; /* 移除左侧 padding */
+}
+
+/* 针对 Ant Design Menu 的内部结构：图标容器 */
+/* 注意：图标容器的 margin 应该为 0，图标本身的 margin-right 为 2px */
+:global(.ant-layout-sider .ant-menu-submenu-title > .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon) {
+  margin-right: 0 !important; /* 图标容器本身没有 margin */
+  margin-left: 0 !important;
+  padding: 0 !important; /* 移除所有 padding */
+  width: auto !important;
+  min-width: 0 !important;
+  display: inline-flex !important; /* 确保是 inline-flex */
+  align-items: center !important;
+}
+
+/* 针对 Ant Design Menu 的内部结构：文字容器 */
+:global(.ant-layout-sider .ant-menu-submenu-title > .ant-menu-title-content),
+:global(.ant-layout-sider .ant-menu-item > .ant-menu-title-content),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-title-content),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-title-content) {
+  margin-left: 0 !important; /* 移除默认的 margin-left */
+  margin-right: 0 !important;
+  padding: 0 !important; /* 移除所有 padding */
+  text-align: left !important;
+}
+
+:global(.ant-layout-sider .ant-menu-submenu-title > span),
+:global(.ant-layout-sider .ant-menu-submenu .ant-menu-submenu-title > span) {
+  white-space: normal !important; /* 允许文字换行 */
+  word-break: break-word !important; /* 允许单词内换行（必要时） */
+  line-height: 1.5 !important; /* 增加行高以支持多行文字 */
+  display: block !important; /* 改为 block，确保左对齐 */
+  flex: 1 1 auto !important; /* 占据剩余空间，允许收缩和扩展 */
+  text-align: left !important; /* 文字左对齐 */
+  text-align-last: left !important; /* 最后一行也左对齐 */
+  min-width: 0 !important; /* 允许收缩 */
+  order: 1 !important; /* 文字在图标后面 */
+  margin-left: 0 !important; /* 确保左边距为0 */
+  margin-right: 0 !important; /* 移除右边距 */
+  align-self: flex-start !important; /* flex 子元素左对齐 */
 }
 
 :global(.ant-layout-sider .ant-menu-submenu-title:hover) {
   background: var(--bg-sider-hover) !important;
+  color: var(--primary-color) !important; /* 悬停时使用主题色 */
 }
 
 :global(.ant-layout-sider .ant-menu-submenu-open > .ant-menu-submenu-title) {
   background: var(--bg-sider-hover) !important;
+  color: var(--primary-color) !important; /* 展开时使用主题色 */
+}
+
+/* 确保 submenu 箭头在右侧 */
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-submenu-arrow) {
+  margin-left: auto !important; /* 箭头靠右 */
+  flex-shrink: 0 !important; /* 箭头不收缩 */
+  order: 2 !important; /* 箭头在最后 */
+  margin-right: 0 !important; /* 移除右边距 */
 }
 
 /* 菜单容器 - 确保可以滚动 */
@@ -243,9 +366,9 @@
   height: 100% !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  /* 强制显示滚动条 */
+  /* 强制显示滚动条 - 适配浅色背景 */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  scrollbar-color: rgba(34, 197, 94, 0.3) transparent;
 }
 
 .menuContainer :global(.ant-menu::-webkit-scrollbar) {
@@ -258,12 +381,12 @@
 }
 
 .menuContainer :global(.ant-menu::-webkit-scrollbar-thumb) {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(34, 197, 94, 0.3);
   border-radius: 3px;
 }
 
 .menuContainer :global(.ant-menu::-webkit-scrollbar-thumb:hover) {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(34, 197, 94, 0.5);
 }
 
 /* 确保菜单根元素可以滚动 */

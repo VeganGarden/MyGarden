@@ -1,3 +1,4 @@
+import { carbonFootprintAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
   CalculatorOutlined,
@@ -48,14 +49,20 @@ const CarbonMenu: React.FC = () => {
 
   const fetchMenuData = async () => {
     try {
+      console.log('🔍 菜单碳足迹 - currentRestaurantId:', currentRestaurantId)
       if (!currentRestaurantId) {
+        console.log('⚠️ 菜单碳足迹 - currentRestaurantId 为空')
         setDataSource([])
         return
       }
       
-      const result = await carbonFootprintAPI.getMenuList({
+      const params = {
         restaurantId: currentRestaurantId,
-      })
+      }
+      console.log('📤 菜单碳足迹 - 请求参数:', params)
+      
+      const result = await carbonFootprintAPI.getMenuList(params)
+      console.log('📥 菜单碳足迹 - API 返回结果:', result)
       
       if (result && result.code === 0 && result.data) {
         const menus = Array.isArray(result.data) ? result.data : []

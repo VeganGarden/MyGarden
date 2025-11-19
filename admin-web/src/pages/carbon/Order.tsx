@@ -1,5 +1,5 @@
-import { useAppSelector } from '@/store/hooks'
 import { carbonFootprintAPI } from '@/services/cloudbase'
+import { useAppSelector } from '@/store/hooks'
 import { Line } from '@ant-design/charts'
 import { DownloadOutlined } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table, message } from 'antd'
@@ -39,7 +39,9 @@ const CarbonOrder: React.FC = () => {
 
   const fetchOrderCarbonData = async () => {
     try {
+      console.log('🔍 订单碳足迹 - currentRestaurantId:', currentRestaurantId)
       if (!currentRestaurantId) {
+        console.log('⚠️ 订单碳足迹 - currentRestaurantId 为空')
         setDataSource([])
         setChartData([])
         setStatistics({
@@ -51,11 +53,15 @@ const CarbonOrder: React.FC = () => {
         return
       }
       
-      const result = await carbonFootprintAPI.getOrderCarbonStats({
+      const params = {
         restaurantId: currentRestaurantId,
         startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
         endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      })
+      }
+      console.log('📤 订单碳足迹 - 请求参数:', params)
+      
+      const result = await carbonFootprintAPI.getOrderCarbonStats(params)
+      console.log('📥 订单碳足迹 - API 返回结果:', result)
       
       if (result && result.code === 0 && result.data) {
         const data = result.data

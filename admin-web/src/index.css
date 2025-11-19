@@ -157,3 +157,42 @@ code {
   box-shadow: 0 0 0 2px var(--bg-active);
 }
 
+/* ==================== Menu 图标和文字间距控制 ==================== */
+/* 使用最高优先级，直接设置图标的 margin-right 为 2px */
+/* 覆盖所有可能的 Ant Design Menu 内部结构 */
+:global(.ant-layout-sider .ant-menu-item .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title .anticon),
+:global(.ant-layout-sider .ant-menu-item > .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title > .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon .anticon),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon .anticon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon > *),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon > *) {
+  margin-right: 2px !important; /* 直接设置图标和文字之间的间距为 2px */
+  margin-left: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* 确保图标容器本身也没有额外的间距 */
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon) {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* 确保文字部分没有额外的左边距，并且明确左对齐 */
+:global(.ant-layout-sider .ant-menu-item > span),
+:global(.ant-layout-sider .ant-menu-submenu-title > span) {
+  margin-left: 0 !important;
+  text-align: left !important; /* 明确左对齐 */
+  display: block !important; /* 确保是块级元素 */
+  flex: 1 1 auto !important; /* 使用 flex 占据剩余空间，而不是固定宽度 */
+  min-width: 0 !important; /* 允许收缩 */
+  align-self: flex-start !important; /* flex 子元素左对齐 */
+}
+

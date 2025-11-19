@@ -249,22 +249,22 @@ export const carbonFootprintAPI = {
 
   // 获取菜单列表（根据restaurantId）
   getMenuList: (params?: { restaurantId?: string; page?: number; pageSize?: number }) =>
-    callCloudFunction('restaurant-carbon-calculator', {
+    callCloudFunction('tenant', {
       action: 'getMenuList',
       ...params,
     }),
 
   // 获取订单碳足迹统计
-  getOrderCarbonStats: (params: { startDate?: string; endDate?: string }) =>
-    callCloudFunction('restaurant-carbon-calculator', {
+  getOrderCarbonStats: (params: { restaurantId?: string; startDate?: string; endDate?: string }) =>
+    callCloudFunction('tenant', {
       action: 'getOrderCarbonStats',
       ...params,
     }),
 
   // 生成碳报告
-  generateReport: (params: { type: 'monthly' | 'yearly' | 'esg'; period: string }) =>
-    callCloudFunction('restaurant-esg-report', {
-      action: 'generateReport',
+  generateReport: (params: { restaurantId?: string; type: 'monthly' | 'yearly' | 'esg'; period: string }) =>
+    callCloudFunction('tenant', {
+      action: 'generateCarbonReport',
       ...params,
     }),
 }
@@ -344,19 +344,19 @@ export const traceabilityAPI = {
 export const operationAPI = {
   // 订单管理
   order: {
-    list: (params?: { restaurantId?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }) =>
-      callCloudFunction('restaurant-order-sync', {
-        action: 'list',
-        ...params,
+    list: (params?: { restaurantId?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number; status?: string; keyword?: string }) =>
+      callCloudFunction('tenant', {
+        action: 'listOrders',
+        data: params,
       }),
     get: (orderId: string) =>
-      callCloudFunction('restaurant-order-sync', {
-        action: 'get',
+      callCloudFunction('tenant', {
+        action: 'getOrder',
         orderId,
       }),
     updateStatus: (orderId: string, status: string) =>
-      callCloudFunction('restaurant-order-sync', {
-        action: 'updateStatus',
+      callCloudFunction('tenant', {
+        action: 'updateOrderStatus',
         orderId,
         status,
       }),
@@ -390,49 +390,47 @@ export const operationAPI = {
   // 行为统计
   behavior: {
     getMetrics: (params?: any) =>
-      callCloudFunction('behavior-analytics', {
-        action: 'getMetrics',
-        ...params,
+      callCloudFunction('tenant', {
+        action: 'getBehaviorMetrics',
+        data: params,
       }),
   },
 
   // 优惠券管理
   coupon: {
     list: (params?: any) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'listCoupons',
-        ...params,
+        data: params,
       }),
     create: (data: any) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'createCoupon',
-        data,
+        data: data,
       }),
     update: (id: string, data: any) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'updateCoupon',
-        id,
-        data,
+        data: { id, data },
       }),
     delete: (id: string) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'deleteCoupon',
-        id,
+        data: { id },
       }),
   },
 
   // 用户评价
   review: {
     list: (params?: any) =>
-      callCloudFunction('restaurant-reviews', {
-        action: 'list',
-        ...params,
+      callCloudFunction('tenant', {
+        action: 'listReviews',
+        data: params,
       }),
     reply: (reviewId: string, reply: string) =>
-      callCloudFunction('restaurant-reviews', {
-        action: 'reply',
-        reviewId,
-        reply,
+      callCloudFunction('tenant', {
+        action: 'replyReview',
+        data: { reviewId, reply },
       }),
   },
 }

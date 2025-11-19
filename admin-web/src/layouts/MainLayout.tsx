@@ -1,6 +1,5 @@
 import BrandLogo from '@/components/BrandLogo'
 import FullscreenToggle from '@/components/FullscreenToggle'
-import GlobalSearch from '@/components/GlobalSearch'
 import HelpCenter from '@/components/HelpCenter'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import NotificationCenter from '@/components/NotificationCenter'
@@ -21,6 +20,7 @@ import {
   MenuUnfoldOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  ShopOutlined,
   ShoppingCartOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -39,7 +39,7 @@ const MainLayout: React.FC = () => {
   const location = useLocation()
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state: any) => state.auth)
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   // 检测移动端和平板端
   const [isMobile, setIsMobile] = useState(false)
@@ -89,22 +89,12 @@ const MainLayout: React.FC = () => {
       ctrlKey: true,
       callback: () => setCollapsed(!collapsed),
     },
-    {
-      key: '/',
-      ctrlKey: true,
-      callback: () => {
-        // 触发帮助中心（可以通过ref或状态控制）
-        const helpButton = document.querySelector(
-          '.help-center-button'
-        ) as HTMLElement
-        helpButton?.click()
-      },
-    },
   ])
 
   // 角色判断
   const isPlatformAdmin = user?.role === 'platform_operator'
   const isSystemAdmin = user?.role === 'system_admin'
+  const isRestaurantAdmin = user?.role === 'restaurant_admin'
 
   // 使用useMemo确保菜单项能够响应user状态变化和语言变化
   const menuItems = useMemo(() => {
@@ -265,6 +255,22 @@ const MainLayout: React.FC = () => {
         },
       ],
     },
+    // 餐厅管理（仅餐厅管理员可见）
+    ...(isRestaurantAdmin
+      ? [
+          {
+            key: '/restaurant',
+            icon: <ShopOutlined />,
+            label: '餐厅管理',
+            children: [
+              {
+                key: '/restaurant/manage',
+                label: '我的餐厅',
+              },
+            ],
+          },
+        ]
+      : []),
     // 平台管理模块（仅平台运营可见）
     ...(isPlatformAdmin
       ? [
@@ -300,7 +306,7 @@ const MainLayout: React.FC = () => {
           },
         ]
       : []),
-  ]}, [isPlatformAdmin, isSystemAdmin, t])
+  ]}, [isPlatformAdmin, isSystemAdmin, isRestaurantAdmin, t])
 
   const handleLogout = () => {
     dispatch(logout())
@@ -345,7 +351,7 @@ const MainLayout: React.FC = () => {
     <>
       <BrandLogo collapsed={false} />
       <Menu
-        theme="dark"
+        theme="light"
         mode="inline"
         selectedKeys={[location.pathname]}
         openKeys={menuItems
@@ -353,6 +359,7 @@ const MainLayout: React.FC = () => {
           .map((item) => item.key as string)}
         items={menuItems}
         onClick={handleMenuClick}
+        getPopupContainer={(node) => node.parentElement || document.body}
       />
     </>
   )
@@ -366,13 +373,13 @@ const MainLayout: React.FC = () => {
           collapsible
           collapsed={collapsed}
           className={styles.sider}
-          width={200}
+          width={i18n.language === 'en' ? 240 : 200} // 英文时增加宽度
           collapsedWidth={80}
         >
           <BrandLogo collapsed={collapsed} />
           <div className={styles.menuContainer}>
             <Menu
-              theme="dark"
+              theme="light"
               mode="inline"
               selectedKeys={[location.pathname]}
               openKeys={menuItems
@@ -380,6 +387,7 @@ const MainLayout: React.FC = () => {
                 .map((item) => item.key as string)}
               items={menuItems}
               onClick={handleMenuClick}
+              getPopupContainer={(node) => node.parentElement || document.body}
             />
           </div>
         </Sider>
@@ -406,12 +414,36 @@ const MainLayout: React.FC = () => {
         className={`${styles.mainContent} ${
           collapsed ? styles.mainContentCollapsed : ''
         }`}
+        style={{
+          marginLeft: collapsed
+            ? undefined
+            : i18n.language === 'en'
+            ? '240px'
+            : undefined,
+          width: collapsed
+            ? undefined
+            : i18n.language === 'en'
+            ? 'calc(100% - 240px)'
+            : undefined,
+        }}
       >
         {/* 固定顶部导航栏 */}
         <Header
           className={`${styles.header} ${
             collapsed ? styles.headerCollapsed : styles.headerExpanded
           }`}
+          style={{
+            left: collapsed
+              ? undefined
+              : i18n.language === 'en'
+              ? '240px'
+              : undefined,
+            width: collapsed
+              ? undefined
+              : i18n.language === 'en'
+              ? 'calc(100% - 240px)'
+              : undefined,
+          }}
         >
           {/* 左侧区域 */}
           <div className={styles.headerLeft}>
@@ -430,11 +462,6 @@ const MainLayout: React.FC = () => {
               )
             )}
             {!isMobile && <RestaurantSwitcher />}
-          </div>
-
-          {/* 中间区域 - 全局搜索 */}
-          <div className={styles.headerCenter}>
-            <GlobalSearch />
           </div>
 
           {/* 右侧区域 */}

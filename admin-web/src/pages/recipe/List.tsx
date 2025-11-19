@@ -314,6 +314,10 @@ const RecipeList: React.FC = () => {
               dispatch(
                 fetchRecipes({
                   keyword: searchKeyword || undefined,
+                  restaurantId: currentRestaurantId || undefined,
+                  status: statusFilter !== 'all' ? statusFilter : undefined,
+                  category: categoryFilter !== 'all' ? categoryFilter : undefined,
+                  carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
                   page,
                   pageSize,
                 })
