@@ -1,308 +1,232 @@
 /**
  * 碳足迹基准值管理云函数
+ * 
+ * 功能：
+ * 1. 创建基准值
+ * 2. 更新基准值
+ * 3. 归档基准值
+ * 4. 权限验证
+ * 
+ * 调用示例：
+ * wx.cloud.callFunction({
+ *   name: 'carbon-baseline-manage',
+ *   data: {
+ *     action: 'create',
+ *     baseline: { ... }
+ *   }
+ * })
  */
-const cloud = require('wx-server-sdk')
+
+const cloud = require('wx-server-sdk');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
-})
+});
 
-const db = cloud.database()
+const db = cloud.database();
+const _ = db.command;
 
 /**
- * 生成 baselineId
+ * 生成基准值ID
  */
 function generateBaselineId(category) {
+  const { mealType, region, energyType, city, restaurantType } = category;
   const parts = [
-    category.mealType,
-    category.region,
-    category.energyType,
-    category.city || 'default',
-    category.restaurantType || 'default'
-  ]
-  return parts.join('_')
+    mealType,
+    region,
+    energyType,
+    city || 'default',
+    restaurantType || 'default'
+  ];
+  return parts.join('_');
+}
+
+/**
+ * 验证基准值数据
+ */
+function validateBaseline(baseline) {
+  const errors = [];
+  
+  if (!baseline.category || !baseline.category.mealType) {
+    errors.push('category.mealType 必填');
+  }
+  if (!baseline.category || !baseline.category.region) {
+    errors.push('category.region 必填');
+  }
+  if (!baseline.category || !baseline.category.energyType) {
+    errors.push('category.energyType 必填');
+  }
+  if (!baseline.carbonFootprint || !baseline.carbonFootprint.value) {
+    errors.push('carbonFootprint.value 必填');
+  }
+  
+  if (baseline.carbonFootprint && baseline.carbonFootprint.value < 0) {
+    errors.push('carbonFootprint.value 必须 >= 0');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * 检查权限（仅管理员可操作）
+ */
+async function checkPermission(openid) {
+  // TODO: 实现权限检查逻辑
+  // 这里简化处理，实际应该查询用户权限表
+  // 暂时允许所有操作，生产环境需要添加权限验证
+  return true;
 }
 
 /**
  * 创建基准值
  */
-async function createBaseline(baseline) {
-  try {
-    const baselineId = generateBaselineId(baseline.category)
-
-    // 检查是否已存在
-    const existing = await db.collection('carbon_baselines')
-      .where({
-        baselineId: baselineId,
-        status: 'active'
-      })
-      .get()
-
-    if (existing.data.length > 0) {
-      return {
-        code: 400,
-        message: '该基准值已存在',
-        data: existing.data[0]
-      }
-    }
-
-    // 创建新记录
-    const now = new Date()
-    const baselineData = {
-      baselineId,
-      category: baseline.category,
-      carbonFootprint: {
-        ...baseline.carbonFootprint,
-        unit: 'kg CO₂e'
-      },
-      breakdown: baseline.breakdown,
-      source: baseline.source,
-      version: baseline.version,
-      effectiveDate: new Date(baseline.effectiveDate),
-      expiryDate: new Date(baseline.expiryDate),
-      status: 'active',
-      notes: baseline.notes || '',
-      usageCount: 0,
-      createdAt: now,
-      updatedAt: now
-    }
-
-    const result = await db.collection('carbon_baselines').add({
-      data: baselineData
-    })
-
+async function createBaseline(baseline, openid) {
+  // 验证数据
+  const validation = validateBaseline(baseline);
+  if (!validation.valid) {
     return {
-      code: 0,
-      message: '创建成功',
+      success: false,
+      error: '数据验证失败',
+      errors: validation.errors
+    };
+  }
+  
+  // 生成baselineId
+  const baselineId = generateBaselineId(baseline.category);
+  
+  // 检查是否已存在
+  const existing = await db.collection('carbon_baselines')
+    .where({
+      baselineId: baselineId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length > 0) {
+    return {
+      success: false,
+      error: '基准值已存在',
+      baselineId
+    };
+  }
+  
+  // 添加元数据
+  const now = new Date();
+  const baselineData = {
+    ...baseline,
+    baselineId,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: openid || 'system',
+    updatedBy: openid || 'system',
+    usageCount: 0
+  };
+  
+  // 插入数据库
+  try {
+    const result = await db.collection('carbon_baselines').add(baselineData);
+    return {
+      success: true,
       data: {
         _id: result._id,
-        ...baselineData
+        baselineId
       }
-    }
+    };
   } catch (error) {
     return {
-      code: 500,
-      message: '创建失败',
-      error: error.message
-    }
+      success: false,
+      error: error.message || '创建失败'
+    };
   }
 }
 
 /**
  * 更新基准值
  */
-async function updateBaseline(baselineId, baseline, createNewVersion = false) {
+async function updateBaseline(baselineId, updates, openid) {
+  // 查找现有基准值
+  const existing = await db.collection('carbon_baselines')
+    .where({
+      baselineId: baselineId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length === 0) {
+    return {
+      success: false,
+      error: '基准值不存在'
+    };
+  }
+  
+  // 更新数据
+  const updateData = {
+    ...updates,
+    updatedAt: new Date(),
+    updatedBy: openid || 'system'
+  };
+  
   try {
-    // 获取现有记录
-    const existing = await db.collection('carbon_baselines')
-      .where({
-        baselineId: baselineId
-      })
-      .orderBy('version', 'desc')
-      .limit(1)
-      .get()
-
-    if (existing.data.length === 0) {
-      return {
-        code: 404,
-        message: '基准值不存在'
+    await db.collection('carbon_baselines')
+      .doc(existing.data[0]._id)
+      .update(updateData);
+    
+    return {
+      success: true,
+      data: {
+        baselineId
       }
-    }
-
-    const current = existing.data[0]
-
-    if (createNewVersion) {
-      // 创建新版本
-      const versionParts = current.version.split('.')
-      const year = parseInt(versionParts[0])
-      const month = parseInt(versionParts[1])
-      let newMonth = month + 1
-      let newYear = year
-      if (newMonth > 12) {
-        newMonth = 1
-        newYear = year + 1
-      }
-      const newVersion = `${newYear}.${String(newMonth).padStart(2, '0')}`
-
-      const now = new Date()
-      const baselineData = {
-        baselineId,
-        category: baseline.category || current.category,
-        carbonFootprint: {
-          ...(baseline.carbonFootprint || current.carbonFootprint),
-          unit: 'kg CO₂e'
-        },
-        breakdown: baseline.breakdown || current.breakdown,
-        source: baseline.source || current.source,
-        version: newVersion,
-        effectiveDate: baseline.effectiveDate ? new Date(baseline.effectiveDate) : current.effectiveDate,
-        expiryDate: baseline.expiryDate ? new Date(baseline.expiryDate) : current.expiryDate,
-        status: 'active',
-        notes: baseline.notes || current.notes || '',
-        usageCount: 0,
-        createdAt: now,
-        updatedAt: now
-      }
-
-      const result = await db.collection('carbon_baselines').add({
-        data: baselineData
-      })
-
-      return {
-        code: 0,
-        message: '新版本创建成功',
-        data: {
-          _id: result._id,
-          ...baselineData
-        }
-      }
-    } else {
-      // 更新当前版本
-      const updateData = {
-        updatedAt: new Date()
-      }
-
-      if (baseline.category) updateData.category = baseline.category
-      if (baseline.carbonFootprint) {
-        updateData.carbonFootprint = {
-          ...baseline.carbonFootprint,
-          unit: 'kg CO₂e'
-        }
-      }
-      if (baseline.breakdown) updateData.breakdown = baseline.breakdown
-      if (baseline.source) updateData.source = baseline.source
-      if (baseline.version) updateData.version = baseline.version
-      if (baseline.effectiveDate) updateData.effectiveDate = new Date(baseline.effectiveDate)
-      if (baseline.expiryDate) updateData.expiryDate = new Date(baseline.expiryDate)
-      if (baseline.notes !== undefined) updateData.notes = baseline.notes
-
-      await db.collection('carbon_baselines').doc(current._id).update({
-        data: updateData
-      })
-
-      return {
-        code: 0,
-        message: '更新成功',
-        data: {
-          _id: current._id,
-          ...current,
-          ...updateData
-        }
-      }
-    }
+    };
   } catch (error) {
     return {
-      code: 500,
-      message: '更新失败',
-      error: error.message
-    }
+      success: false,
+      error: error.message || '更新失败'
+    };
   }
 }
 
 /**
  * 归档基准值
  */
-async function archiveBaseline(baselineId) {
-  try {
-    const result = await db.collection('carbon_baselines')
-      .where({
-        baselineId: baselineId,
-        status: 'active'
-      })
-      .update({
-        data: {
-          status: 'archived',
-          updatedAt: new Date()
-        }
-      })
-
-    if (result.stats.updated === 0) {
-      return {
-        code: 404,
-        message: '未找到活跃状态的基准值'
-      }
-    }
-
+async function archiveBaseline(baselineId, openid) {
+  // 查找现有基准值
+  const existing = await db.collection('carbon_baselines')
+    .where({
+      baselineId: baselineId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length === 0) {
     return {
-      code: 0,
-      message: '归档成功'
-    }
-  } catch (error) {
-    return {
-      code: 500,
-      message: '归档失败',
-      error: error.message
-    }
+      success: false,
+      error: '基准值不存在'
+    };
   }
-}
-
-/**
- * 激活基准值
- */
-async function activateBaseline(baselineId) {
+  
   try {
-    const result = await db.collection('carbon_baselines')
-      .where({
-        baselineId: baselineId,
-        status: 'archived'
-      })
+    await db.collection('carbon_baselines')
+      .doc(existing.data[0]._id)
       .update({
-        data: {
-          status: 'active',
-          updatedAt: new Date()
-        }
-      })
-
-    if (result.stats.updated === 0) {
-      return {
-        code: 404,
-        message: '未找到归档状态的基准值'
-      }
-    }
-
+        status: 'archived',
+        updatedAt: new Date(),
+        updatedBy: openid || 'system'
+      });
+    
     return {
-      code: 0,
-      message: '激活成功'
-    }
+      success: true,
+      data: {
+        baselineId
+      }
+    };
   } catch (error) {
     return {
-      code: 500,
-      message: '激活失败',
-      error: error.message
-    }
-  }
-}
-
-/**
- * 获取基准值详情
- */
-async function getBaseline(baselineId) {
-  try {
-    const result = await db.collection('carbon_baselines')
-      .where({
-        baselineId: baselineId
-      })
-      .orderBy('version', 'desc')
-      .limit(1)
-      .get()
-
-    if (result.data.length === 0) {
-      return {
-        code: 404,
-        message: '基准值不存在'
-      }
-    }
-
-    return {
-      code: 0,
-      data: result.data[0]
-    }
-  } catch (error) {
-    return {
-      code: 500,
-      message: '获取失败',
-      error: error.message
-    }
+      success: false,
+      error: error.message || '归档失败'
+    };
   }
 }
 
@@ -310,143 +234,40 @@ async function getBaseline(baselineId) {
  * 获取基准值列表
  */
 async function listBaselines(params) {
+  const { mealType, region, status, page = 1, pageSize = 20 } = params;
+  
+  const query = {};
+  if (mealType) query['category.mealType'] = mealType;
+  if (region) query['category.region'] = region;
+  if (status) query.status = status;
+  
   try {
-    const {
-      mealType,
-      region,
-      energyType,
-      status,
-      version,
-      keyword,
-      page = 1,
-      pageSize = 20
-    } = params
-
-    let query = db.collection('carbon_baselines')
-
-    // 构建查询条件
-    const where = {}
-    if (mealType) where['category.mealType'] = mealType
-    if (region) where['category.region'] = region
-    if (energyType) where['category.energyType'] = energyType
-    if (status) where.status = status
-    if (version) where.version = version
-
-    if (Object.keys(where).length > 0) {
-      query = query.where(where)
-    }
-
-    // 关键词搜索
-    if (keyword) {
-      query = query.where({
-        $or: [
-          { baselineId: db.RegExp(keyword, 'i') },
-          { version: db.RegExp(keyword, 'i') },
-          { 'source.organization': db.RegExp(keyword, 'i') }
-        ]
-      })
-    }
-
-    // 获取总数
-    const countResult = await query.count()
-    const total = countResult.total
-
-    // 分页查询
-    const skip = (page - 1) * pageSize
-    const result = await query
-      .orderBy('updatedAt', 'desc')
-      .skip(skip)
+    const result = await db.collection('carbon_baselines')
+      .where(query)
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
       .limit(pageSize)
-      .get()
-
+      .get();
+    
+    const count = await db.collection('carbon_baselines')
+      .where(query)
+      .count();
+    
     return {
-      code: 0,
+      success: true,
       data: result.data,
-      total,
       pagination: {
         page,
         pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize)
+        total: count.total,
+        totalPages: Math.ceil(count.total / pageSize)
       }
-    }
+    };
   } catch (error) {
     return {
-      code: 500,
-      message: '获取列表失败',
-      error: error.message,
-      data: [],
-      total: 0
-    }
-  }
-}
-
-/**
- * 批量导入
- */
-async function batchImport(baselines) {
-  const results = {
-    success: 0,
-    failed: 0,
-    skipped: 0,
-    errors: []
-  }
-
-  for (const baseline of baselines) {
-    try {
-      const baselineId = generateBaselineId(baseline.category)
-
-      // 检查是否已存在
-      const existing = await db.collection('carbon_baselines')
-        .where({
-          baselineId: baselineId,
-          status: 'active'
-        })
-        .get()
-
-      if (existing.data.length > 0) {
-        results.skipped++
-        continue
-      }
-
-      // 创建新记录
-      const now = new Date()
-      const baselineData = {
-        baselineId,
-        category: baseline.category,
-        carbonFootprint: {
-          ...baseline.carbonFootprint,
-          unit: 'kg CO₂e'
-        },
-        breakdown: baseline.breakdown,
-        source: baseline.source,
-        version: baseline.version,
-        effectiveDate: new Date(baseline.effectiveDate),
-        expiryDate: new Date(baseline.expiryDate),
-        status: 'active',
-        notes: baseline.notes || '',
-        usageCount: 0,
-        createdAt: now,
-        updatedAt: now
-      }
-
-      await db.collection('carbon_baselines').add({
-        data: baselineData
-      })
-
-      results.success++
-    } catch (error) {
-      results.failed++
-      results.errors.push({
-        baselineId: baseline.baselineId || generateBaselineId(baseline.category),
-        error: error.message
-      })
-    }
-  }
-
-  return {
-    code: 0,
-    ...results
+      success: false,
+      error: error.message || '查询失败'
+    };
   }
 }
 
@@ -454,43 +275,49 @@ async function batchImport(baselines) {
  * 主函数
  */
 exports.main = async (event, context) => {
+  const { action, ...params } = event;
+  const { OPENID } = cloud.getWXContext();
+  
   try {
-    const { action } = event
-
+    // 权限检查（除查询外都需要权限）
+    if (action !== 'list' && action !== 'query') {
+      const hasPermission = await checkPermission(OPENID);
+      if (!hasPermission) {
+        return {
+          success: false,
+          error: '权限不足',
+          message: '只有管理员可以执行此操作'
+        };
+      }
+    }
+    
     switch (action) {
       case 'create':
-        return await createBaseline(event.baseline)
+        return await createBaseline(params.baseline, OPENID);
+        
       case 'update':
-        return await updateBaseline(
-          event.baselineId,
-          event.baseline,
-          event.createNewVersion || false
-        )
+        return await updateBaseline(params.baselineId, params.updates, OPENID);
+        
       case 'archive':
-        return await archiveBaseline(event.baselineId)
-      case 'activate':
-        return await activateBaseline(event.baselineId)
-      case 'get':
-        return await getBaseline(event.baselineId)
+        return await archiveBaseline(params.baselineId, OPENID);
+        
       case 'list':
-        return await listBaselines(event)
-      case 'batchImport':
-        return await batchImport(event.baselines || [])
+        return await listBaselines(params);
+        
       default:
         return {
-          code: 400,
-          message: '未知的 action 参数',
-          supportedActions: ['create', 'update', 'archive', 'activate', 'get', 'list', 'batchImport']
-        }
+          success: false,
+          error: '未知的 action 参数',
+          message: '支持的 action: create, update, archive, list'
+        };
     }
   } catch (error) {
-    console.error('❌ 操作失败:', error)
+    console.error('基准值管理失败:', error);
     return {
-      code: 500,
-      message: '操作失败',
-      error: error.message,
+      success: false,
+      error: error.message || '操作失败',
       stack: error.stack
-    }
+    };
   }
-}
+};
 

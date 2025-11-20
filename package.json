@@ -4,21 +4,10 @@
   "description": "我的花园 - 微信小程序",
   "main": "index.js",
   "scripts": {
-    "build:weapp": "taro build --type weapp",
-    "build:swan": "taro build --type swan",
-    "build:alipay": "taro build --type alipay",
-    "build:tt": "taro build --type tt",
-    "build:h5": "taro build --type h5",
-    "build:rn": "taro build --type rn",
-    "dev:weapp": "taro build --type weapp --watch",
-    "dev:swan": "taro build --type swan --watch",
-    "dev:alipay": "taro build --type alipay --watch",
-    "dev:tt": "taro build --type tt --watch",
-    "dev:h5": "taro build --type h5 --watch",
-    "dev:rn": "taro build --type rn --watch",
-    "devtools": "taro-devtools",
-    "deploy:functions": "node scripts/deploy-all-functions.js",
-    "deploy:function": "tcb fn deploy"
+    "baseline:init": "tcb fn invoke carbon-baseline-init --params '{\"action\":\"init\"}'",
+    "baseline:check": "tcb fn invoke carbon-baseline-init --params '{\"action\":\"check\"}'",
+    "baseline:test": "node scripts/test-baseline-cloud.js",
+    "baseline:deploy": "./scripts/deploy-baseline-database.sh"
   },
   "keywords": [
     "微信小程序",
@@ -50,6 +39,7 @@
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
     "babel-preset-taro": "^3.6.38",
+    "csv-parser": "^3.2.0",
     "eslint": "^8.0.0",
     "eslint-config-taro": "^3.6.38",
     "eslint-plugin-react": "^7.0.0",
