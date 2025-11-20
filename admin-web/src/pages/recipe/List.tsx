@@ -1,24 +1,26 @@
-import React, { useEffect, useState } from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { deleteRecipe, fetchRecipes } from '@/store/slices/recipeSlice'
+import { Recipe, RecipeStatus } from '@/types'
+import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
-  Table,
   Button,
+  Card,
+  Col,
   Input,
+  Popconfirm,
+  Row,
+  Select,
   Space,
+  Table,
   Tag,
   message,
-  Popconfirm,
-  Card,
-  Select,
-  Row,
-  Col,
 } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CopyOutlined } from '@ant-design/icons'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { fetchRecipes, deleteRecipe } from '@/store/slices/recipeSlice'
-import { Recipe, RecipeStatus, ChannelType } from '@/types'
 
 const RecipeList: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { recipes, loading, pagination } = useAppSelector((state) => state.recipe)
@@ -46,7 +48,7 @@ const RecipeList: React.FC = () => {
         })
       ).unwrap()
     } catch (error: any) {
-      message.error(error.message || '加载菜谱列表失败')
+      message.error(error.message || t('pages.recipe.list.messages.loadFailed'))
     }
   }
 
@@ -71,10 +73,10 @@ const RecipeList: React.FC = () => {
   const handleDelete = async (recipeId: string) => {
     try {
       await dispatch(deleteRecipe(recipeId)).unwrap()
-      message.success('删除成功')
+      message.success(t('pages.recipe.list.messages.deleteSuccess'))
       loadRecipes()
     } catch (error: any) {
-      message.error(error.message || '删除失败')
+      message.error(error.message || t('pages.recipe.list.messages.deleteFailed'))
     }
   }
 
@@ -95,50 +97,50 @@ const RecipeList: React.FC = () => {
   const getCarbonLabelText = (label?: string) => {
     switch (label) {
       case 'ultra_low':
-        return '超低碳'
+        return t('pages.recipe.list.filters.carbonLabel.ultraLow')
       case 'low':
-        return '低碳'
+        return t('pages.recipe.list.filters.carbonLabel.low')
       case 'medium':
-        return '中碳'
+        return t('pages.recipe.list.filters.carbonLabel.medium')
       case 'high':
-        return '高碳'
+        return t('pages.recipe.list.filters.carbonLabel.high')
       default:
-        return '未计算'
+        return t('pages.recipe.list.filters.carbonLabel.notCalculated')
     }
   }
 
   const getStatusTag = (status: RecipeStatus) => {
     const statusMap = {
-      [RecipeStatus.DRAFT]: { color: 'default', text: '草稿' },
-      [RecipeStatus.PUBLISHED]: { color: 'success', text: '已发布' },
-      [RecipeStatus.ARCHIVED]: { color: 'default', text: '已归档' },
+      [RecipeStatus.DRAFT]: { color: 'default', text: t('pages.recipe.list.status.draft') },
+      [RecipeStatus.PUBLISHED]: { color: 'success', text: t('pages.recipe.list.status.published') },
+      [RecipeStatus.ARCHIVED]: { color: 'default', text: t('pages.recipe.list.status.archived') },
     }
-    const statusInfo = statusMap[status] || { color: 'default', text: '未知' }
+    const statusInfo = statusMap[status] || { color: 'default', text: t('pages.recipe.list.status.unknown') }
     return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
   }
 
   const columns = [
     {
-      title: '菜谱名称',
+      title: t('pages.recipe.list.table.columns.name'),
       dataIndex: 'name',
       key: 'name',
       width: 200,
     },
     {
-      title: '分类',
+      title: t('pages.recipe.list.table.columns.category'),
       dataIndex: 'category',
       key: 'category',
       width: 100,
     },
     {
-      title: '食材数',
+      title: t('pages.recipe.list.table.columns.ingredients'),
       dataIndex: 'ingredients',
       key: 'ingredients',
       width: 100,
-      render: (ingredients: any[]) => `${ingredients?.length || 0} 种`,
+      render: (ingredients: any[]) => t('pages.recipe.list.table.ingredientsCount', { count: ingredients?.length || 0 }),
     },
     {
-      title: '碳足迹',
+      title: t('pages.recipe.list.table.columns.carbonFootprint'),
       dataIndex: 'carbonFootprint',
       key: 'carbonFootprint',
       width: 120,
@@ -146,7 +148,7 @@ const RecipeList: React.FC = () => {
         footprint !== undefined ? `${footprint.toFixed(2)} kg CO₂e` : '-',
     },
     {
-      title: '碳标签',
+      title: t('pages.recipe.list.table.columns.carbonLabel'),
       dataIndex: 'carbonLabel',
       key: 'carbonLabel',
       width: 100,
@@ -157,21 +159,21 @@ const RecipeList: React.FC = () => {
       ),
     },
     {
-      title: '状态',
+      title: t('pages.recipe.list.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
       render: (status: RecipeStatus) => getStatusTag(status),
     },
     {
-      title: '版本',
+      title: t('pages.recipe.list.table.columns.version'),
       dataIndex: 'version',
       key: 'version',
       width: 80,
       render: (version: number) => `v${version}`,
     },
     {
-      title: '操作',
+      title: t('pages.recipe.list.table.columns.actions'),
       key: 'action',
       width: 150,
       render: (_: any, record: Recipe) => (
@@ -181,30 +183,30 @@ const RecipeList: React.FC = () => {
             icon={<EyeOutlined />}
             onClick={() => navigate(`/recipe/detail/${record._id}`)}
           >
-            查看
+            {t('pages.recipe.list.table.actions.view')}
           </Button>
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => navigate(`/recipe/edit/${record._id}`)}
           >
-            编辑
+            {t('pages.recipe.list.table.actions.edit')}
           </Button>
           <Button
             type="link"
             icon={<CopyOutlined />}
             onClick={() => navigate('/recipe/create', { state: { copyFrom: record } })}
           >
-            复制
+            {t('pages.recipe.list.table.actions.copy')}
           </Button>
           <Popconfirm
-            title="确定要删除这个菜谱吗？"
+            title={t('pages.recipe.list.messages.confirmDelete')}
             onConfirm={() => handleDelete(record._id!)}
-            okText="确定"
-            cancelText="取消"
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
+              {t('pages.recipe.list.table.actions.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -217,14 +219,14 @@ const RecipeList: React.FC = () => {
       <Card>
         {!currentRestaurantId && restaurants.length > 1 && (
           <div style={{ marginBottom: 16, padding: 12, background: '#f0f0f0', borderRadius: 4 }}>
-            <span style={{ color: '#666' }}>提示：当前查看所有餐厅的菜谱，可在右上角切换查看具体餐厅的菜谱</span>
+            <span style={{ color: '#666' }}>{t('pages.recipe.list.tips.viewAllRestaurants')}</span>
           </div>
         )}
         <div style={{ marginBottom: 16 }}>
           <Row gutter={16} style={{ marginBottom: 16 }}>
             <Col span={6}>
               <Input
-                placeholder="搜索菜谱名称..."
+                placeholder={t('pages.recipe.list.filters.search')}
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onPressEnter={handleSearch}
@@ -240,10 +242,10 @@ const RecipeList: React.FC = () => {
                 }}
                 style={{ width: '100%' }}
               >
-                <Select.Option value="all">全部状态</Select.Option>
-                <Select.Option value={RecipeStatus.DRAFT}>草稿</Select.Option>
-                <Select.Option value={RecipeStatus.PUBLISHED}>已发布</Select.Option>
-                <Select.Option value={RecipeStatus.ARCHIVED}>已归档</Select.Option>
+                <Select.Option value="all">{t('pages.recipe.list.filters.status.all')}</Select.Option>
+                <Select.Option value={RecipeStatus.DRAFT}>{t('pages.recipe.list.filters.status.draft')}</Select.Option>
+                <Select.Option value={RecipeStatus.PUBLISHED}>{t('pages.recipe.list.filters.status.published')}</Select.Option>
+                <Select.Option value={RecipeStatus.ARCHIVED}>{t('pages.recipe.list.filters.status.archived')}</Select.Option>
               </Select>
             </Col>
             <Col span={4}>
@@ -255,13 +257,13 @@ const RecipeList: React.FC = () => {
                 }}
                 style={{ width: '100%' }}
               >
-                <Select.Option value="all">全部分类</Select.Option>
-                <Select.Option value="hot">热菜</Select.Option>
-                <Select.Option value="cold">凉菜</Select.Option>
-                <Select.Option value="soup">汤品</Select.Option>
-                <Select.Option value="staple">主食</Select.Option>
-                <Select.Option value="dessert">甜品</Select.Option>
-                <Select.Option value="drink">饮品</Select.Option>
+                <Select.Option value="all">{t('pages.recipe.list.filters.category.all')}</Select.Option>
+                <Select.Option value="hot">{t('pages.recipe.list.filters.category.hot')}</Select.Option>
+                <Select.Option value="cold">{t('pages.recipe.list.filters.category.cold')}</Select.Option>
+                <Select.Option value="soup">{t('pages.recipe.list.filters.category.soup')}</Select.Option>
+                <Select.Option value="staple">{t('pages.recipe.list.filters.category.staple')}</Select.Option>
+                <Select.Option value="dessert">{t('pages.recipe.list.filters.category.dessert')}</Select.Option>
+                <Select.Option value="drink">{t('pages.recipe.list.filters.category.drink')}</Select.Option>
               </Select>
             </Col>
             <Col span={4}>
@@ -273,24 +275,24 @@ const RecipeList: React.FC = () => {
                 }}
                 style={{ width: '100%' }}
               >
-                <Select.Option value="all">全部碳标签</Select.Option>
-                <Select.Option value="ultra_low">超低碳</Select.Option>
-                <Select.Option value="low">低碳</Select.Option>
-                <Select.Option value="medium">中碳</Select.Option>
-                <Select.Option value="high">高碳</Select.Option>
+                <Select.Option value="all">{t('pages.recipe.list.filters.carbonLabel.all')}</Select.Option>
+                <Select.Option value="ultra_low">{t('pages.recipe.list.filters.carbonLabel.ultraLow')}</Select.Option>
+                <Select.Option value="low">{t('pages.recipe.list.filters.carbonLabel.low')}</Select.Option>
+                <Select.Option value="medium">{t('pages.recipe.list.filters.carbonLabel.medium')}</Select.Option>
+                <Select.Option value="high">{t('pages.recipe.list.filters.carbonLabel.high')}</Select.Option>
               </Select>
             </Col>
             <Col span={6}>
               <Space>
                 <Button type="primary" onClick={handleSearch}>
-                  搜索
+                  {t('pages.recipe.list.buttons.search')}
                 </Button>
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => navigate('/recipe/create')}
                 >
-                  创建新菜谱
+                  {t('pages.recipe.list.buttons.create')}
                 </Button>
               </Space>
             </Col>
@@ -307,11 +309,15 @@ const RecipeList: React.FC = () => {
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: (total) => t('pages.recipe.list.pagination.total', { total }),
             onChange: (page, pageSize) => {
               dispatch(
                 fetchRecipes({
                   keyword: searchKeyword || undefined,
+                  restaurantId: currentRestaurantId || undefined,
+                  status: statusFilter !== 'all' ? statusFilter : undefined,
+                  category: categoryFilter !== 'all' ? categoryFilter : undefined,
+                  carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
                   page,
                   pageSize,
                 })

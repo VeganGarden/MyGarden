@@ -1,0 +1,10 @@
+{
+  "name": "message-push",
+  "version": "1.0.0",
+  "description": "消息推送云函数 - 批量推送消息",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

@@ -1,14 +1,14 @@
 import React from 'react'
-import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import AuthGuard from './components/AuthGuard'
 import MainLayout from './layouts/MainLayout'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
-import AuthGuard from './components/AuthGuard'
+import RecipeCategories from './pages/recipe/Categories'
 import RecipeCreate from './pages/recipe/Create'
+import RecipeDetail from './pages/recipe/Detail'
 import RecipeEdit from './pages/recipe/Edit'
 import RecipeList from './pages/recipe/List'
-import RecipeDetail from './pages/recipe/Detail'
-import RecipeCategories from './pages/recipe/Categories'
 
 // 核心模块1: 气候餐厅认证
 import CertificationApply from './pages/certification/Apply'
@@ -16,14 +16,31 @@ import CertificationCertificate from './pages/certification/Certificate'
 import CertificationStatus from './pages/certification/Status'
 
 // 核心模块2: 碳足迹核算
+import BaselineAdd from './pages/carbon/BaselineAdd'
+import BaselineDetail from './pages/carbon/BaselineDetail'
+import BaselineEdit from './pages/carbon/BaselineEdit'
+import BaselineImport from './pages/carbon/BaselineImport'
+import BaselineList from './pages/carbon/BaselineList'
 import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
+import CertificateList from './pages/traceability/CertificateList'
+import CertificateView from './pages/traceability/CertificateView'
 import TraceabilityChain from './pages/traceability/Chain'
+import IngredientLotAdd from './pages/traceability/IngredientLotAdd'
+import IngredientLotDetail from './pages/traceability/IngredientLotDetail'
+import IngredientLotEdit from './pages/traceability/IngredientLotEdit'
+import IngredientLotList from './pages/traceability/IngredientLotList'
 import TraceabilitySupplier from './pages/traceability/Supplier'
+import SupplierAdd from './pages/traceability/SupplierAdd'
+import SupplierDetail from './pages/traceability/SupplierDetail'
+import SupplierEdit from './pages/traceability/SupplierEdit'
+import TraceChainBuild from './pages/traceability/TraceChainBuild'
+import TraceChainList from './pages/traceability/TraceChainList'
+import TraceChainView from './pages/traceability/TraceChainView'
 
 // 核心模块4: 餐厅运营
 import OperationBehavior from './pages/operation/Behavior'
@@ -39,24 +56,56 @@ import ReportDashboard from './pages/report/Dashboard'
 import ReportESG from './pages/report/ESG'
 
 // 平台管理模块（仅平台管理员可见）
-import PlatformRestaurantList from './pages/platform/RestaurantList'
+import AccountApprovals from './pages/platform/AccountApprovals'
+import AdminUsers from './pages/platform/AdminUsers'
 import PlatformCrossTenant from './pages/platform/CrossTenant'
+import PlatformRestaurantList from './pages/platform/RestaurantList'
 import PlatformStatistics from './pages/platform/Statistics'
+import RestaurantManage from './pages/restaurant/Manage'
 
 // 个人中心
+import OnboardingApply from './pages/onboarding/Apply'
 import ProfilePage from './pages/profile'
+import SystemAudit from './pages/system/Audit'
+import SystemBackup from './pages/system/Backup'
+import SystemMonitor from './pages/system/Monitor'
+import SystemRoles from './pages/system/Roles'
+import SystemUsers from './pages/system/Users'
+
+// 消息管理
+import MessageDetail from './pages/messages/Detail'
+import MessageList from './pages/messages/List'
+
+// 基础数据管理（仅平台运营者）
+import BaseImport from './pages/base/Import'
+import BaseIngredientEdit from './pages/base/IngredientEdit'
+import BaseIngredientList from './pages/base/IngredientList'
+import BaseMeatIngredientEdit from './pages/base/MeatIngredientEdit'
+import BaseMeatIngredientList from './pages/base/MeatIngredientList'
+import BaseRecipeEdit from './pages/base/RecipeEdit'
+import BaseRecipeList from './pages/base/RecipeList'
+import BaseStatistics from './pages/base/Statistics'
 
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AuthGuard>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <Routes>
+        {/* 公共路由：登录与入驻申请 */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/apply" element={<OnboardingApply />} />
+        {/* 受保护路由 */}
+        <Route
+          path="/"
+          element={
+            <AuthGuard>
+              <MainLayout />
+            </AuthGuard>
+          }
+        >
           <Route
-            path="/"
-            element={<MainLayout />}
-          >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+            index
+            element={<Navigate to="/dashboard" replace />}
+          />
           <Route path="dashboard" element={<Dashboard />} />
           
           {/* 核心模块1: 气候餐厅认证 */}
@@ -68,9 +117,27 @@ const App: React.FC = () => {
           <Route path="carbon/menu" element={<CarbonMenu />} />
           <Route path="carbon/order" element={<CarbonOrder />} />
           <Route path="carbon/report" element={<CarbonReport />} />
+          <Route path="carbon/baseline" element={<BaselineList />} />
+          <Route path="carbon/baseline/:baselineId" element={<BaselineDetail />} />
+          <Route path="carbon/baseline/:baselineId/edit" element={<BaselineEdit />} />
+          <Route path="carbon/baseline/add" element={<BaselineAdd />} />
+          <Route path="carbon/baseline/import" element={<BaselineImport />} />
           
           {/* 核心模块3: 供应链溯源 */}
-          <Route path="traceability/supplier" element={<TraceabilitySupplier />} />
+          <Route path="traceability/suppliers" element={<TraceabilitySupplier />} />
+          <Route path="traceability/suppliers/:id" element={<SupplierDetail />} />
+          <Route path="traceability/suppliers/:id/edit" element={<SupplierEdit />} />
+          <Route path="traceability/suppliers/add" element={<SupplierAdd />} />
+          <Route path="traceability/lots" element={<IngredientLotList />} />
+          <Route path="traceability/lots/:id" element={<IngredientLotDetail />} />
+          <Route path="traceability/lots/:id/edit" element={<IngredientLotEdit />} />
+          <Route path="traceability/lots/add" element={<IngredientLotAdd />} />
+          <Route path="traceability/chains" element={<TraceChainList />} />
+          <Route path="traceability/chains/build" element={<TraceChainBuild />} />
+          <Route path="traceability/chains/:id" element={<TraceChainView />} />
+          <Route path="traceability/certificates" element={<CertificateList />} />
+          <Route path="traceability/certificates/:id" element={<CertificateView />} />
+          {/* 兼容旧路由 */}
           <Route path="traceability/batch" element={<TraceabilityBatch />} />
           <Route path="traceability/chain" element={<TraceabilityChain />} />
           
@@ -89,21 +156,50 @@ const App: React.FC = () => {
           
           {/* 菜谱管理 */}
           <Route path="recipe" element={<RecipeList />} />
+          <Route path="recipe/list" element={<RecipeList />} />
           <Route path="recipe/create" element={<RecipeCreate />} />
           <Route path="recipe/edit/:id" element={<RecipeEdit />} />
           <Route path="recipe/detail/:id" element={<RecipeDetail />} />
           <Route path="recipe/categories" element={<RecipeCategories />} />
           
+          {/* 餐厅管理（仅餐厅管理员可见） */}
+          <Route path="restaurant/manage" element={<RestaurantManage />} />
+          
           {/* 平台管理模块（仅平台管理员可见） */}
           <Route path="platform/restaurants" element={<PlatformRestaurantList />} />
           <Route path="platform/cross-tenant" element={<PlatformCrossTenant />} />
           <Route path="platform/statistics" element={<PlatformStatistics />} />
+          <Route path="platform/account-approvals" element={<AccountApprovals />} />
+          <Route path="platform/admin-users" element={<AdminUsers />} />
+          
+          {/* 系统管理（仅系统管理员可见 - 由菜单与守卫共同控制） */}
+          <Route path="system/users" element={<SystemUsers />} />
+          <Route path="system/roles" element={<SystemRoles />} />
+          <Route path="system/audit" element={<SystemAudit />} />
+          <Route path="system/monitor" element={<SystemMonitor />} />
+          <Route path="system/backup" element={<SystemBackup />} />
           
           {/* 个人中心 */}
           <Route path="profile" element={<ProfilePage />} />
+          
+          {/* 消息管理 */}
+          <Route path="messages" element={<MessageList />} />
+          <Route path="messages/:messageId" element={<MessageDetail />} />
+
+          {/* 基础数据管理（仅平台运营者） */}
+          <Route path="base/ingredients" element={<BaseIngredientList />} />
+          <Route path="base/ingredients/add" element={<BaseIngredientEdit />} />
+          <Route path="base/ingredients/:id/edit" element={<BaseIngredientEdit />} />
+          <Route path="base/meat-ingredients" element={<BaseMeatIngredientList />} />
+          <Route path="base/meat-ingredients/new" element={<BaseMeatIngredientEdit />} />
+          <Route path="base/meat-ingredients/:id/edit" element={<BaseMeatIngredientEdit />} />
+          <Route path="base/recipes" element={<BaseRecipeList />} />
+          <Route path="base/recipes/add" element={<BaseRecipeEdit />} />
+          <Route path="base/recipes/:id/edit" element={<BaseRecipeEdit />} />
+          <Route path="base/statistics" element={<BaseStatistics />} />
+          <Route path="base/import" element={<BaseImport />} />
         </Route>
       </Routes>
-      </AuthGuard>
     </BrowserRouter>
   )
 }

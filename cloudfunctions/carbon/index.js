@@ -46,18 +46,36 @@ exports.main = async (event, context) => {
   const { action, data } = event
 
   try {
+    const db = cloud.database()
+    const { addAudit } = require('./audit')
     switch (action) {
       case 'calculateMealCarbon':
         // 计算餐食碳足迹
-        const carbonResult = calculateCarbonFootprint(data.ingredients, data.cookingMethod)
+        const carbonResult = await calculateCarbonFootprint(
+          data.ingredients, 
+          data.cookingMethod,
+          data.mealType,      // 餐食类型（可选）
+          data.region,        // 地区（可选）
+          data.energyType     // 用能方式（可选）
+        )
         
         // 计算经验值（基于碳减排量）
         const experience = Math.floor(carbonResult.reduction * 10)
-        
+        // 审计
+        await addAudit(db, {
+          module: 'carbon',
+          action: 'calculateMealCarbon',
+          resource: 'meal',
+          description: '计算餐食碳足迹',
+          status: 'success',
+          ip: context.requestIp || '',
+          userAgent: context.userAgent || '',
+        })
         return {
           code: 0,
           data: {
             carbonFootprint: carbonResult.footprint,
+            baselineCarbon: carbonResult.baseline,
             carbonReduction: carbonResult.reduction,
             experienceGained: experience,
             details: carbonResult.details
@@ -66,7 +84,6 @@ exports.main = async (event, context) => {
 
       case 'getUserStats':
         // 获取用户碳足迹统计
-        const db = cloud.database()
         const userCollection = db.collection('users')
         const mealCollection = db.collection('meals')
         
@@ -95,6 +112,15 @@ exports.main = async (event, context) => {
           monthlyReduction: mealsResult.data.reduce((sum, meal) => sum + meal.carbonReduction, 0)
         }
         
+        await addAudit(db, {
+          module: 'carbon',
+          action: 'getUserStats',
+          resource: 'user',
+          description: '获取用户碳足迹统计',
+          status: 'success',
+          ip: context.requestIp || '',
+          userAgent: context.userAgent || '',
+        })
         return {
           code: 0,
           data: stats
@@ -102,19 +128,59 @@ exports.main = async (event, context) => {
 
       case 'compareWithMeat':
         // 素食vs肉食对比计算
-        return await compareWithMeat(event)
+        {
+          const res = await compareWithMeat(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'compareWithMeat',
+            resource: 'meal',
+            description: '素食与肉食对比计算',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       case 'calculateMealAdvanced':
         // 高级多因子碳排放计算
-        return await calculateMealAdvanced(event)
+        {
+          const res = await calculateMealAdvanced(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'calculateMealAdvanced',
+            resource: 'meal',
+            description: '高级多因子碳排放计算',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       case 'getDetailedReport':
         // 获取详细分解报告
-        return await getDetailedReport(event)
+        {
+          const res = await getDetailedReport(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'getDetailedReport',
+            resource: 'report',
+            description: '获取碳排放详细报告',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       case 'calculateRecipe':
         // 计算菜谱碳足迹
-        return await calculateRecipeCarbon(event)
+        {
+          const res = await calculateRecipeCarbon(event)
+          await addAudit(db, {
+            module: 'carbon',
+            action: 'calculateRecipe',
+            resource: 'recipe',
+            description: '计算菜谱碳足迹',
+            status: res.code === 0 ? 'success' : 'failed',
+          })
+          return res
+        }
 
       default:
         return {
@@ -132,16 +198,48 @@ exports.main = async (event, context) => {
 }
 
 /**
+ * 查询基准值
+ * @param {string} mealType 餐食类型
+ * @param {string} region 地区
+ * @param {string} energyType 用能方式
+ * @returns {Promise<number>} 基准值（kg CO₂e），失败时返回默认值 2.5
+ */
+async function queryBaseline(mealType, region, energyType) {
+  try {
+    const baselineResult = await cloud.callFunction({
+      name: 'carbon-baseline-query',
+      data: {
+        mealType: mealType || 'meat_simple',
+        region: region || 'national_average',
+        energyType: energyType || 'electric'
+      }
+    })
+    
+    if (baselineResult.result && baselineResult.result.success) {
+      return baselineResult.result.data.carbonFootprint.value
+    }
+  } catch (error) {
+    console.error('基准值查询失败:', error.message)
+  }
+  
+  // 降级到默认值
+  return 2.5
+}
+
+/**
  * 计算餐食碳足迹
  * @param {Array} ingredients 食材列表
  * @param {string} cookingMethod 烹饪方式
+ * @param {string} mealType 餐食类型（可选）
+ * @param {string} region 地区（可选）
+ * @param {string} energyType 用能方式（可选）
  */
-function calculateCarbonFootprint(ingredients, cookingMethod) {
+async function calculateCarbonFootprint(ingredients, cookingMethod, mealType, region, energyType) {
   let totalFootprint = 0
   let details = []
   
-  // 计算基准碳足迹（假设非素食餐食的平均碳足迹）
-  const baselineCarbon = 2.5 // kg CO2e per meal
+  // 查询基准碳足迹
+  const baselineCarbon = await queryBaseline(mealType, region, energyType)
   
   ingredients.forEach(ingredient => {
     const { type, category, weight } = ingredient
@@ -167,6 +265,7 @@ function calculateCarbonFootprint(ingredients, cookingMethod) {
   
   return {
     footprint: totalFootprint,
+    baseline: baselineCarbon,
     reduction: Math.max(0, reduction), // 确保不为负数
     details: details
   }

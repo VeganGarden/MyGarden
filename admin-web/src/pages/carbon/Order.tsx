@@ -1,9 +1,12 @@
+import { carbonFootprintAPI } from '@/services/cloudbase'
+import { useAppSelector } from '@/store/hooks'
 import { Line } from '@ant-design/charts'
 import { DownloadOutlined } from '@ant-design/icons'
-import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table } from 'antd'
+import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
@@ -18,28 +21,114 @@ interface OrderCarbon {
 }
 
 const CarbonOrder: React.FC = () => {
-  const [dataSource] = useState<OrderCarbon[]>([])
+  const { t } = useTranslation()
+  const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
+  const [dataSource, setDataSource] = useState<OrderCarbon[]>([])
+  const [chartData, setChartData] = useState<Array<{ date: string; carbon: number }>>([])
+  const [statistics, setStatistics] = useState({
+    todayCarbon: 0,
+    todayReduction: 0,
+    totalReduction: 0,
+    totalOrders: 0,
+  })
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
+
+  useEffect(() => {
+    fetchOrderCarbonData()
+  }, [currentRestaurantId, dateRange])
+
+  const fetchOrderCarbonData = async () => {
+    try {
+      console.log('🔍 订单碳足迹 - currentRestaurantId:', currentRestaurantId)
+      if (!currentRestaurantId) {
+        console.log('⚠️ 订单碳足迹 - currentRestaurantId 为空')
+        setDataSource([])
+        setChartData([])
+        setStatistics({
+          todayCarbon: 0,
+          todayReduction: 0,
+          totalReduction: 0,
+          totalOrders: 0,
+        })
+        return
+      }
+      
+      const params = {
+        restaurantId: currentRestaurantId,
+        startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
+        endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
+      }
+      console.log('📤 订单碳足迹 - 请求参数:', params)
+      
+      const result = await carbonFootprintAPI.getOrderCarbonStats(params)
+      console.log('📥 订单碳足迹 - API 返回结果:', result)
+      
+      if (result && result.code === 0 && result.data) {
+        const data = result.data
+        
+        // 设置统计数据
+        if (data.statistics) {
+          setStatistics({
+            todayCarbon: data.statistics.todayCarbon || data.statistics.today_carbon || 0,
+            todayReduction: data.statistics.todayReduction || data.statistics.today_reduction || 0,
+            totalReduction: data.statistics.totalReduction || data.statistics.total_reduction || 0,
+            totalOrders: data.statistics.totalOrders || data.statistics.total_orders || 0,
+          })
+        }
+        
+        // 设置图表数据
+        if (data.chartData && Array.isArray(data.chartData)) {
+          setChartData(data.chartData.map((item: any) => ({
+            date: item.date || '',
+            carbon: item.carbon || item.totalCarbon || 0,
+          })))
+        }
+        
+        // 设置订单列表
+        if (data.orders && Array.isArray(data.orders)) {
+          setDataSource(data.orders.map((order: any) => ({
+            id: order.id || order._id || order.orderNo || '',
+            orderNo: order.orderNo || order.order_id || '',
+            orderDate: order.orderDate || order.createTime || order.createdAt || '',
+            totalCarbon: order.totalCarbon || order.total_carbon || 0,
+            carbonReduction: order.carbonReduction || order.carbon_reduction || 0,
+            orderAmount: order.orderAmount || order.totalAmount || order.total_amount || 0,
+            status: order.status || '',
+          })))
+        } else {
+          setDataSource([])
+        }
+      } else {
+        setDataSource([])
+        setChartData([])
+      }
+    } catch (error: any) {
+      console.error('获取订单碳足迹数据失败:', error)
+      message.error(error.message || '获取订单碳足迹数据失败，请稍后重试')
+      setDataSource([])
+      setChartData([])
+    }
+  }
 
   const columns: ColumnsType<OrderCarbon> = [
     {
-      title: '订单号',
+      title: t('pages.carbon.order.table.columns.orderNo'),
       dataIndex: 'orderNo',
       key: 'orderNo',
     },
     {
-      title: '订单日期',
+      title: t('pages.carbon.order.table.columns.orderDate'),
       dataIndex: 'orderDate',
       key: 'orderDate',
     },
     {
-      title: '订单碳足迹',
+      title: t('pages.carbon.order.table.columns.totalCarbon'),
       dataIndex: 'totalCarbon',
       key: 'totalCarbon',
       render: (value: number) => `${value.toFixed(2)} kg CO₂e`,
     },
     {
-      title: '碳减排量',
+      title: t('pages.carbon.order.table.columns.carbonReduction'),
       dataIndex: 'carbonReduction',
       key: 'carbonReduction',
       render: (value: number) => (
@@ -47,24 +136,16 @@ const CarbonOrder: React.FC = () => {
       ),
     },
     {
-      title: '订单金额',
+      title: t('pages.carbon.order.table.columns.orderAmount'),
       dataIndex: 'orderAmount',
       key: 'orderAmount',
       render: (value: number) => `¥${value.toFixed(2)}`,
     },
     {
-      title: '状态',
+      title: t('pages.carbon.order.table.columns.status'),
       dataIndex: 'status',
       key: 'status',
     },
-  ]
-
-  const chartData = [
-    { date: '2025-01-01', carbon: 120.5 },
-    { date: '2025-01-02', carbon: 135.2 },
-    { date: '2025-01-03', carbon: 98.6 },
-    { date: '2025-01-04', carbon: 145.8 },
-    { date: '2025-01-05', carbon: 112.3 },
   ]
 
   const chartConfig = {
@@ -89,37 +170,37 @@ const CarbonOrder: React.FC = () => {
 
   return (
     <div>
-      <Card title="订单碳足迹统计" style={{ marginBottom: 16 }}>
+      <Card title={t('pages.carbon.order.title')} style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="今日订单碳足迹"
-              value={0}
+              title={t('pages.carbon.order.statistics.todayCarbon')}
+              value={statistics.todayCarbon}
               suffix="kg CO₂e"
               valueStyle={{ color: '#3f8600' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="今日碳减排量"
-              value={0}
+              title={t('pages.carbon.order.statistics.todayReduction')}
+              value={statistics.todayReduction}
               suffix="kg CO₂e"
               valueStyle={{ color: '#cf1322' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="累计碳减排量"
-              value={0}
+              title={t('pages.carbon.order.statistics.totalReduction')}
+              value={statistics.totalReduction}
               suffix="kg CO₂e"
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="订单总数"
-              value={0}
-              suffix="单"
+              title={t('pages.carbon.order.statistics.totalOrders')}
+              value={statistics.totalOrders}
+              suffix={t('common.items')}
               valueStyle={{ color: '#722ed1' }}
             />
           </Col>
@@ -127,7 +208,7 @@ const CarbonOrder: React.FC = () => {
       </Card>
 
       <Card
-        title="订单碳足迹趋势"
+        title={t('pages.carbon.order.trend.title')}
         extra={
           <Space>
             <RangePicker
@@ -135,7 +216,7 @@ const CarbonOrder: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
             />
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出数据
+              {t('pages.carbon.order.buttons.export')}
             </Button>
           </Space>
         }
@@ -144,7 +225,7 @@ const CarbonOrder: React.FC = () => {
         <Line {...chartConfig} height={300} />
       </Card>
 
-      <Card title="订单列表">
+      <Card title={t('pages.carbon.order.table.title')}>
         <Table
           columns={columns}
           dataSource={dataSource}
@@ -152,7 +233,7 @@ const CarbonOrder: React.FC = () => {
           pagination={{
             total: dataSource.length,
             pageSize: 10,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
           }}
         />
       </Card>

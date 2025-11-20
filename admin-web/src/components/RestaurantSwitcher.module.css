@@ -1,0 +1,123 @@
+.restaurantSwitcher {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 32px; /* 统一高度，与搜索框对齐 */
+}
+
+/* 租户图标样式优化 */
+.restaurantSwitcher :global(.anticon) {
+  font-size: 18px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tenantInfo {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  line-height: 32px; /* 与输入框高度对齐 */
+  display: flex;
+  align-items: center;
+}
+
+/* 确保 Select 高度统一为 32px，与搜索框一致 */
+.selectWrapper {
+  min-width: 200px;
+  height: 32px !important;
+}
+
+.selectWrapper :global(.ant-select-selector) {
+  height: 32px !important;
+  line-height: 30px !important;
+  border-radius: var(--radius-md) !important;
+  border-color: var(--border-color-base) !important;
+  transition: all var(--transition-fast) var(--ease-out) !important;
+}
+
+.selectWrapper :global(.ant-select-selector:hover) {
+  border-color: var(--primary-hover) !important;
+}
+
+.selectWrapper :global(.ant-select-focused .ant-select-selector) {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 2px var(--bg-active) !important;
+}
+
+.selectWrapper :global(.ant-select-selection-item) {
+  line-height: 30px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.selectWrapper :global(.ant-select-selection-placeholder) {
+  line-height: 30px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* 优化下拉选项中的标签显示 */
+.selectWrapper :global(.ant-select-item-option-content) {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
+}
+
+.selectWrapper :global(.ant-select-item-option-content .ant-tag) {
+  margin: 0;
+  line-height: 1.2;
+  padding: 2px var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  border: none;
+  vertical-align: middle;
+}
+
+/* 确保标签完全在框线内 */
+.selectWrapper :global(.ant-select-selection-item) {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0;
+}
+
+.selectWrapper :global(.ant-select-selection-item .ant-tag) {
+  margin: 0;
+  line-height: 1.2;
+  padding: 2px var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  border: none;
+  vertical-align: middle;
+}
+
+/* 当前餐厅标签样式 - 使用更柔和的浅绿色，高度与下拉框和搜索框一致 */
+.currentTag {
+  background: rgba(34, 197, 94, 0.08) !important; /* 非常浅的绿色背景，透明度降低 */
+  border-color: rgba(34, 197, 94, 0.2) !important; /* 浅绿色边框 */
+  color: var(--brand-primary) !important; /* 使用品牌主色作为文字颜色 */
+  padding: 0 var(--spacing-md) !important; /* 左右内边距，与输入框一致 */
+  height: 32px !important; /* 与 Select 和 Search Input 的高度一致 */
+  line-height: 32px !important; /* 与高度完全匹配的行高 */
+  font-size: var(--font-size-sm) !important;
+  font-weight: var(--font-weight-normal) !important; /* 使用正常字重，不过于突出 */
+  border-radius: var(--radius-md) !important; /* 与输入框圆角一致 */
+  border-width: 1px !important;
+  border-style: solid !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  transition: all var(--transition-fast) var(--ease-out) !important;
+  white-space: nowrap !important; /* 防止文字换行 */
+}
+
+.currentTag:hover {
+  background: rgba(34, 197, 94, 0.12) !important; /* 悬停时稍微加深 */
+  border-color: rgba(34, 197, 94, 0.3) !important;
+}
+

@@ -1,4 +1,5 @@
 import { useAppSelector } from '@/store/hooks'
+import { reportAPI } from '@/services/cloudbase'
 import {
   BookOutlined,
   FireOutlined,
@@ -6,8 +7,9 @@ import {
   TeamOutlined,
   TrophyOutlined
 } from '@ant-design/icons'
-import { Alert, Card, Col, Row, Statistic, Tag } from 'antd'
+import { Alert, Card, Col, Row, Statistic, Tag, message } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface DashboardData {
   totalRecipes: number
@@ -19,6 +21,7 @@ interface DashboardData {
 }
 
 const Dashboard: React.FC = () => {
+  const { t } = useTranslation()
   const { currentTenant, currentRestaurantId, restaurants } = useAppSelector(
     (state: any) => state.tenant
   )
@@ -37,49 +40,46 @@ const Dashboard: React.FC = () => {
     : null
 
   useEffect(() => {
-    // TODO: 从API获取数据，根据currentRestaurantId筛选
     const fetchData = async () => {
       try {
-        // const result = await reportAPI.dashboard({
-        //   restaurantId: currentRestaurantId,
-        //   tenantId: currentTenant?.id,
-        // })
-        // setData(result)
+        setLoading(true)
+        const result = await reportAPI.dashboard({
+          restaurantId: currentRestaurantId,
+          tenantId: currentTenant?.id,
+        })
         
-        // 模拟数据 - 根据选中的餐厅返回不同数据
-        if (currentRestaurantId === 'restaurant_sukuaixin') {
-          // 素开心的数据
+        if (result && result.code === 0 && result.data) {
           setData({
-            totalRecipes: 85,
-            totalCarbonReduction: 2200,
-            certifiedRestaurants: 1,
-            activeUsers: 650,
-            todayOrders: 28,
-            todayRevenue: 1200,
-          })
-        } else if (currentRestaurantId === 'restaurant_suhuanle') {
-          // 素欢乐的数据
-          setData({
-            totalRecipes: 65,
-            totalCarbonReduction: 1450,
-            certifiedRestaurants: 1,
-            activeUsers: 420,
-            todayOrders: 17,
-            todayRevenue: 650,
+            totalRecipes: result.data.totalRecipes || 0,
+            totalCarbonReduction: result.data.totalCarbonReduction || 0,
+            certifiedRestaurants: result.data.certifiedRestaurants || 0,
+            activeUsers: result.data.activeUsers || 0,
+            todayOrders: result.data.todayOrders || 0,
+            todayRevenue: result.data.todayRevenue || 0,
           })
         } else {
-          // 所有餐厅的汇总数据
+          // 如果API返回错误，使用默认值
           setData({
-            totalRecipes: 150,
-            totalCarbonReduction: 3650,
-            certifiedRestaurants: 2,
-            activeUsers: 1070,
-            todayOrders: 45,
-            todayRevenue: 1850,
+            totalRecipes: 0,
+            totalCarbonReduction: 0,
+            certifiedRestaurants: 0,
+            activeUsers: 0,
+            todayOrders: 0,
+            todayRevenue: 0,
           })
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('获取数据失败:', error)
+        message.error(error.message || '获取数据失败，请稍后重试')
+        // 出错时使用默认值
+        setData({
+          totalRecipes: 0,
+          totalCarbonReduction: 0,
+          certifiedRestaurants: 0,
+          activeUsers: 0,
+          todayOrders: 0,
+          todayRevenue: 0,
+        })
       } finally {
         setLoading(false)
       }
@@ -90,15 +90,15 @@ const Dashboard: React.FC = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>气候餐厅管理数据看板</h1>
+        <h1 style={{ margin: 0 }}>{t('pages.dashboard.title')}</h1>
         {currentRestaurant && (
           <Tag color="blue" style={{ fontSize: 14, padding: '4px 12px' }}>
-            当前查看：{currentRestaurant.name}
+            {t('pages.dashboard.tags.currentView', { name: currentRestaurant.name })}
           </Tag>
         )}
         {!currentRestaurantId && currentTenant && (
           <Tag color="green" style={{ fontSize: 14, padding: '4px 12px' }}>
-            查看所有餐厅（共{restaurants.length}家）
+            {t('pages.dashboard.tags.viewAll', { count: restaurants.length })}
           </Tag>
         )}
       </div>
@@ -106,17 +106,17 @@ const Dashboard: React.FC = () => {
       <Alert
         message={
           currentRestaurant
-            ? `欢迎查看${currentRestaurant.name}的运营数据`
+            ? t('pages.dashboard.alerts.welcomeRestaurant', { name: currentRestaurant.name })
             : currentTenant
-            ? `欢迎查看${currentTenant.name}所有餐厅的运营数据`
-            : '欢迎使用气候餐厅管理系统'
+            ? t('pages.dashboard.alerts.welcomeTenant', { name: currentTenant.name })
+            : t('pages.dashboard.alerts.welcomeSystem')
         }
         description={
           currentRestaurant
-            ? `这里是${currentRestaurant.name}的详细运营数据，包括订单、收入、碳减排等关键指标。`
+            ? t('pages.dashboard.alerts.descriptionRestaurant', { name: currentRestaurant.name })
             : currentTenant
-            ? `这里是${currentTenant.name}旗下所有餐厅的汇总数据。您可以在右上角切换查看具体某家餐厅的数据。`
-            : '这里是系统概览，您可以查看关键业务指标和统计数据。'
+            ? t('pages.dashboard.alerts.descriptionTenant', { name: currentTenant.name })
+            : t('pages.dashboard.alerts.descriptionSystem')
         }
         type="info"
         showIcon
@@ -127,7 +127,7 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="菜谱总数"
+              title={t('pages.dashboard.statistics.totalRecipes')}
               value={data.totalRecipes}
               prefix={<BookOutlined />}
               valueStyle={{ color: '#3f8600' }}
@@ -138,7 +138,7 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="累计碳减排"
+              title={t('pages.dashboard.statistics.totalCarbonReduction')}
               value={data.totalCarbonReduction}
               suffix="kg CO₂e"
               prefix={<FireOutlined />}
@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="认证餐厅"
+              title={t('pages.dashboard.statistics.certifiedRestaurants')}
               value={data.certifiedRestaurants}
               prefix={<TrophyOutlined />}
               valueStyle={{ color: '#1890ff' }}
@@ -161,7 +161,7 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="活跃用户"
+              title={t('pages.dashboard.statistics.activeUsers')}
               value={data.activeUsers}
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#722ed1' }}
@@ -175,7 +175,7 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="今日订单"
+              title={t('pages.dashboard.statistics.todayOrders')}
               value={data.todayOrders}
               prefix={<ShoppingCartOutlined />}
               valueStyle={{ color: '#fa8c16' }}
@@ -186,7 +186,7 @@ const Dashboard: React.FC = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="今日收入"
+              title={t('pages.dashboard.statistics.todayRevenue')}
               value={data.todayRevenue}
               prefix="¥"
               valueStyle={{ color: '#52c41a' }}
@@ -196,14 +196,14 @@ const Dashboard: React.FC = () => {
         </Col>
         <Col span={12}>
           <Card>
-            <h3>快速入口</h3>
-            <p>系统包含以下核心功能模块：</p>
+            <h3>{t('pages.dashboard.quickAccess.title')}</h3>
+            <p>{t('pages.dashboard.quickAccess.description')}</p>
             <ul>
-              <li>气候餐厅认证 - 餐厅入驻、认证申请、审核流程、证书管理</li>
-              <li>碳足迹核算 - 菜单碳足迹计算、订单碳统计、碳标签生成与管理</li>
-              <li>供应链溯源 - 供应商管理、食材批次追踪、溯源链构建与展示</li>
-              <li>餐厅运营 - 订单管理、积分系统、运营台账、行为统计</li>
-              <li>报表与生态拓展 - 数据报表、ESG报告、对外接口、生态联动</li>
+              <li>{t('pages.dashboard.quickAccess.modules.certification')}</li>
+              <li>{t('pages.dashboard.quickAccess.modules.carbon')}</li>
+              <li>{t('pages.dashboard.quickAccess.modules.traceability')}</li>
+              <li>{t('pages.dashboard.quickAccess.modules.operation')}</li>
+              <li>{t('pages.dashboard.quickAccess.modules.report')}</li>
             </ul>
           </Card>
         </Col>

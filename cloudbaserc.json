@@ -102,6 +102,13 @@
       "memorySize": 256
     },
     {
+      "name": "meat-ingredient",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
       "name": "tenant",
       "timeout": 10,
       "envVariables": {},
@@ -160,6 +167,20 @@
     {
       "name": "carbon-baseline-init",
       "timeout": 60,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "restaurant-menu-carbon",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
+      "name": "admin-auth",
+      "timeout": 10,
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256

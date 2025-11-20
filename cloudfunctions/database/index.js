@@ -3,6 +3,17 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
+// 引入测试数据插入函数
+const { insertRestaurantTestData } = require('./insert-restaurant-test-data');
+const { main: insertCarbonTestData } = require('./insert-carbon-test-data');
+const { main: migrateCarbonCalculationV1 } = require('./migrate-carbon-calculation-v1');
+const { main: migrateRecalculateCarbonV1 } = require('./migrate-recalculate-carbon-v1');
+const { main: migrateRecipesAddIsBaseRecipe } = require('./migrate-recipes-add-isbaserecipe')
+const { main: migrateMeatProductsAddFields } = require('./migrate-meat-products-add-fields');
+const { main: migrateIngredientsAddCarbonCoefficient } = require('./migrate-ingredients-add-carbon-coefficient');
+const { main: migrateIngredientsForceAddCarbonCoefficient } = require('./migrate-ingredients-force-add-carbon-coefficient');
+const { main: migrateIngredientsResetAllCarbonCoefficient } = require('./migrate-ingredients-reset-all-carbon-coefficient');
+
 /**
  * 数据库管理云函数 - 统一入口
  * 
@@ -18,6 +29,18 @@ const _ = db.command;
  * - seed-v4-data: 导入 v4.0 示例数据 ✨
  * - test-upgrade: 测试升级结果
  * - get-status: 查看数据库状态
+ * - initAdminCollections: 初始化管理后台集合（admin_users, role_configs, permissions, audit_logs）
+ * - initAdminData: 初始化管理后台数据（角色和权限配置）
+ * - initMessageCollections: 初始化消息管理集合（messages, user_messages, message_event_rules）
+ * - insertRestaurantTestData: 为"素开心"和"素欢乐"餐厅插入测试数据（订单、评价、优惠券、行为统计）
+ * - insertCarbonTestData: 为指定租户的餐厅插入菜单碳足迹和订单碳足迹示例数据
+ * - migrate-carbon-calculation-v1: 迁移数据库结构（添加地区、餐食类型等字段）
+ * - migrate-recalculate-carbon-v1: 批量重新计算现有菜谱碳足迹
+ * - migrate-recipes-add-isbaserecipe: 为所有已有食谱添加 isBaseRecipe 字段（默认值：true）
+ * - migrate-meat-products-add-fields: 为 meat_products 集合补充系统字段（status, createdBy, createdAt, updatedAt, version）
+ * - migrate-ingredients-add-carbon-coefficient: 为所有食材添加初始碳系数（基于分类设置默认值）
+ * - migrate-ingredients-force-add-carbon-coefficient: 强制为所有食材补全碳系数（检查所有食材，补全缺失的）
+ * - migrate-ingredients-reset-all-carbon-coefficient: 强制重置所有食材的碳系数（即使已有值也重新设置）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -52,6 +75,33 @@ exports.main = async (event) => {
         return await getDatabaseStatus(event);
       case 'seed-sample-data':
         return await seedSampleData(event);
+      case 'initAdminCollections':
+        return await initAdminCollections(event);
+      case 'initAdminData':
+        return await initAdminData(event);
+      case 'initMessageCollections':
+        return await initMessageCollections(event);
+      case 'initMessageEventRules':
+        return await initMessageEventRules(event);
+      case 'insertRestaurantTestData':
+        return await insertRestaurantTestData(event);
+      case 'insertCarbonTestData':
+        return await insertCarbonTestData(event);
+      case 'migrate-carbon-calculation-v1':
+        return await migrateCarbonCalculationV1(event);
+      case 'migrate-recalculate-carbon-v1':
+        return await migrateRecalculateCarbonV1(event);
+      case 'migrate-recipes-add-isbaserecipe':
+        return await migrateRecipesAddIsBaseRecipe(event);
+
+      case 'migrate-meat-products-add-fields':
+        return await migrateMeatProductsAddFields(event);
+      case 'migrate-ingredients-add-carbon-coefficient':
+        return await migrateIngredientsAddCarbonCoefficient(event);
+      case 'migrate-ingredients-force-add-carbon-coefficient':
+        return await migrateIngredientsForceAddCarbonCoefficient(event);
+      case 'migrate-ingredients-reset-all-carbon-coefficient':
+        return await migrateIngredientsResetAllCarbonCoefficient(event);
       default:
         return await initCollectionsV1(event);
     }
@@ -301,6 +351,32 @@ async function migrateCollectionsV4(event) {
 async function seedV4Data(event) {
   const seed = require('./seed-sample-data-v4.js');
   return await seed.seedV4SampleData();
+}
+
+/**
+ * 初始化管理后台集合
+ */
+async function initAdminCollections(event) {
+  const initAdmin = require('./init-admin-collections.js');
+  return await initAdmin.main(event);
+}
+
+/**
+ * 初始化管理后台数据
+ */
+async function initAdminData(event) {
+  const initAdminData = require('./init-admin-data.js');
+  return await initAdminData.main(event);
+}
+
+async function initMessageCollections(event) {
+  const initMessageCollections = require('./init-message-collections.js');
+  return await initMessageCollections.main(event);
+}
+
+async function initMessageEventRules(event) {
+  const initMessageEventRules = require('./init-message-event-rules.js');
+  return await initMessageEventRules.main(event);
 }
 
 /**

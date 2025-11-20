@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, message, Tag, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import { Button, Card, Form, Input, Modal, Popconfirm, Space, Table, Tag, message } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface Category {
   _id?: string
@@ -11,17 +12,23 @@ interface Category {
 }
 
 const RecipeCategories: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([
-    { _id: '1', name: '热菜', code: 'hot', description: '热菜类', recipeCount: 0 },
-    { _id: '2', name: '凉菜', code: 'cold', description: '凉菜类', recipeCount: 0 },
-    { _id: '3', name: '汤品', code: 'soup', description: '汤品类', recipeCount: 0 },
-    { _id: '4', name: '主食', code: 'staple', description: '主食类', recipeCount: 0 },
-    { _id: '5', name: '甜品', code: 'dessert', description: '甜品类', recipeCount: 0 },
-    { _id: '6', name: '饮品', code: 'drink', description: '饮品类', recipeCount: 0 },
-  ])
+  const { t } = useTranslation()
+  const [categories, setCategories] = useState<Category[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [form] = Form.useForm()
+
+  // 初始化分类数据（使用翻译）
+  useEffect(() => {
+    setCategories([
+      { _id: '1', name: t('pages.recipe.list.filters.category.hot'), code: 'hot', description: t('pages.recipe.list.filters.category.hot'), recipeCount: 0 },
+      { _id: '2', name: t('pages.recipe.list.filters.category.cold'), code: 'cold', description: t('pages.recipe.list.filters.category.cold'), recipeCount: 0 },
+      { _id: '3', name: t('pages.recipe.list.filters.category.soup'), code: 'soup', description: t('pages.recipe.list.filters.category.soup'), recipeCount: 0 },
+      { _id: '4', name: t('pages.recipe.list.filters.category.staple'), code: 'staple', description: t('pages.recipe.list.filters.category.staple'), recipeCount: 0 },
+      { _id: '5', name: t('pages.recipe.list.filters.category.dessert'), code: 'dessert', description: t('pages.recipe.list.filters.category.dessert'), recipeCount: 0 },
+      { _id: '6', name: t('pages.recipe.list.filters.category.drink'), code: 'drink', description: t('pages.recipe.list.filters.category.drink'), recipeCount: 0 },
+    ])
+  }, [t])
 
   const handleAdd = () => {
     setEditingCategory(null)
@@ -37,7 +44,7 @@ const RecipeCategories: React.FC = () => {
 
   const handleDelete = (categoryId: string) => {
     setCategories(categories.filter(cat => cat._id !== categoryId))
-    message.success('删除成功')
+    message.success(t('pages.recipe.categories.messages.deleteSuccess'))
   }
 
   const handleSubmit = () => {
@@ -47,7 +54,7 @@ const RecipeCategories: React.FC = () => {
         setCategories(categories.map(cat => 
           cat._id === editingCategory._id ? { ...cat, ...values } : cat
         ))
-        message.success('更新成功')
+        message.success(t('pages.recipe.categories.messages.updateSuccess'))
       } else {
         // 新增
         const newCategory: Category = {
@@ -56,7 +63,7 @@ const RecipeCategories: React.FC = () => {
           recipeCount: 0,
         }
         setCategories([...categories, newCategory])
-        message.success('添加成功')
+        message.success(t('pages.recipe.categories.messages.addSuccess'))
       }
       setModalVisible(false)
       form.resetFields()
@@ -65,29 +72,29 @@ const RecipeCategories: React.FC = () => {
 
   const columns = [
     {
-      title: '分类名称',
+      title: t('pages.recipe.categories.table.columns.name'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: '分类代码',
+      title: t('pages.recipe.categories.table.columns.code'),
       dataIndex: 'code',
       key: 'code',
       render: (code: string) => <Tag>{code}</Tag>,
     },
     {
-      title: '描述',
+      title: t('pages.recipe.categories.table.columns.description'),
       dataIndex: 'description',
       key: 'description',
     },
     {
-      title: '菜谱数量',
+      title: t('pages.recipe.categories.table.columns.recipeCount'),
       dataIndex: 'recipeCount',
       key: 'recipeCount',
       render: (count: number) => count || 0,
     },
     {
-      title: '操作',
+      title: t('pages.recipe.categories.table.columns.actions'),
       key: 'action',
       render: (_: any, record: Category) => (
         <Space>
@@ -96,16 +103,16 @@ const RecipeCategories: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
-            编辑
+            {t('pages.recipe.categories.buttons.edit')}
           </Button>
           <Popconfirm
-            title="确定要删除这个分类吗？"
+            title={t('pages.recipe.categories.messages.confirmDelete')}
             onConfirm={() => handleDelete(record._id!)}
-            okText="确定"
-            cancelText="取消"
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
+              {t('pages.recipe.categories.buttons.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -116,10 +123,10 @@ const RecipeCategories: React.FC = () => {
   return (
     <div>
       <Card
-        title="菜谱分类管理"
+        title={t('pages.recipe.categories.title')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            添加分类
+            {t('pages.recipe.categories.buttons.add')}
           </Button>
         }
       >
@@ -132,33 +139,33 @@ const RecipeCategories: React.FC = () => {
       </Card>
 
       <Modal
-        title={editingCategory ? '编辑分类' : '添加分类'}
+        title={editingCategory ? t('pages.recipe.categories.modal.editTitle') : t('pages.recipe.categories.modal.addTitle')}
         open={modalVisible}
         onOk={handleSubmit}
         onCancel={() => {
           setModalVisible(false)
           form.resetFields()
         }}
-        okText="确定"
-        cancelText="取消"
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            label="分类名称"
+            label={t('pages.recipe.categories.modal.fields.name')}
             name="name"
-            rules={[{ required: true, message: '请输入分类名称' }]}
+            rules={[{ required: true, message: t('pages.recipe.categories.modal.messages.nameRequired') }]}
           >
-            <Input placeholder="请输入分类名称" />
+            <Input placeholder={t('pages.recipe.categories.modal.placeholders.name')} />
           </Form.Item>
           <Form.Item
-            label="分类代码"
+            label={t('pages.recipe.categories.modal.fields.code')}
             name="code"
-            rules={[{ required: true, message: '请输入分类代码' }]}
+            rules={[{ required: true, message: t('pages.recipe.categories.modal.messages.codeRequired') }]}
           >
-            <Input placeholder="请输入分类代码（英文）" />
+            <Input placeholder={t('pages.recipe.categories.modal.placeholders.code')} />
           </Form.Item>
-          <Form.Item label="描述" name="description">
-            <Input.TextArea rows={3} placeholder="请输入分类描述（可选）" />
+          <Form.Item label={t('pages.recipe.categories.modal.fields.description')} name="description">
+            <Input.TextArea rows={3} placeholder={t('pages.recipe.categories.modal.placeholders.description')} />
           </Form.Item>
         </Form>
       </Modal>

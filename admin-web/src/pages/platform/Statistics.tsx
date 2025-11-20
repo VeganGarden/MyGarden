@@ -1,3 +1,4 @@
+import { platformAPI } from '@/services/cloudbase'
 import {
     BarChartOutlined,
     DownloadOutlined,
@@ -10,6 +11,7 @@ import { Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Ta
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
@@ -35,6 +37,7 @@ interface TopRestaurant {
 }
 
 const Statistics: React.FC = () => {
+  const { t } = useTranslation()
   const [statistics, setStatistics] = useState<PlatformStatistics>({
     totalRestaurants: 0,
     activeRestaurants: 0,
@@ -60,81 +63,48 @@ const Statistics: React.FC = () => {
   const fetchStatistics = async () => {
     setLoading(true)
     try {
-      // TODO: 调用API获取平台统计数据
-      // const [statisticsResult, topRestaurantsResult] = await Promise.all([
-      //   platformAPI.statistics.getPlatformStatistics({
-      //     startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-      //     endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      //     period: period as any,
-      //   }),
-      //   platformAPI.statistics.getTopRestaurants({
-      //     limit: 10,
-      //     startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-      //     endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      //   }),
-      // ])
-      // setStatistics(statisticsResult)
-      // setTopRestaurants(topRestaurantsResult)
-      
-      // 模拟数据
-      setStatistics({
-        totalRestaurants: 25,
-        activeRestaurants: 20,
-        totalOrders: 12580,
-        totalRevenue: 1258000,
-        totalCarbonReduction: 36500,
-        totalUsers: 3500,
-        averageOrderValue: 100,
-        averageCarbonPerOrder: 2.9,
-      })
-
-      setTopRestaurants([
-        {
-          rank: 1,
-          restaurantName: '虹桥素坊',
-          tenantId: 'tenant_001',
-          orders: 1250,
-          revenue: 125000,
-          carbonReduction: 3650,
-          certificationLevel: 'gold',
-        },
-        {
-          rank: 2,
-          restaurantName: '绿色餐厅',
-          tenantId: 'tenant_002',
-          orders: 890,
-          revenue: 89000,
-          carbonReduction: 2100,
-          certificationLevel: 'silver',
-        },
-        {
-          rank: 3,
-          restaurantName: '素食天地',
-          tenantId: 'tenant_003',
-          orders: 650,
-          revenue: 65000,
-          carbonReduction: 1800,
-          certificationLevel: 'bronze',
-        },
-        {
-          rank: 4,
-          restaurantName: '健康素食',
-          tenantId: 'tenant_004',
-          orders: 520,
-          revenue: 52000,
-          carbonReduction: 1500,
-        },
-        {
-          rank: 5,
-          restaurantName: '环保餐厅',
-          tenantId: 'tenant_005',
-          orders: 480,
-          revenue: 48000,
-          carbonReduction: 1400,
-        },
+      const [statisticsResult, topRestaurantsResult] = await Promise.all([
+        platformAPI.statistics.getPlatformStatistics({
+          startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
+          endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
+          period: period as any,
+        }),
+        platformAPI.statistics.getTopRestaurants({
+          limit: 10,
+          startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
+          endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
+        }),
       ])
-    } catch (error) {
-      message.error('获取统计数据失败')
+      
+      if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
+        const stats = statisticsResult.data
+        setStatistics({
+          totalRestaurants: stats.totalRestaurants || stats.total_restaurants || 0,
+          activeRestaurants: stats.activeRestaurants || stats.active_restaurants || 0,
+          totalOrders: stats.totalOrders || stats.total_orders || 0,
+          totalRevenue: stats.totalRevenue || stats.total_revenue || 0,
+          totalCarbonReduction: stats.totalCarbonReduction || stats.total_carbon_reduction || 0,
+          totalUsers: stats.totalUsers || stats.total_users || 0,
+          averageOrderValue: stats.averageOrderValue || stats.average_order_value || 0,
+          averageCarbonPerOrder: stats.averageCarbonPerOrder || stats.average_carbon_per_order || 0,
+        })
+      }
+      
+      if (topRestaurantsResult && topRestaurantsResult.code === 0 && topRestaurantsResult.data) {
+        const restaurants = Array.isArray(topRestaurantsResult.data) ? topRestaurantsResult.data : []
+        setTopRestaurants(restaurants.map((restaurant: any, index: number) => ({
+          rank: index + 1,
+          restaurantName: restaurant.restaurantName || restaurant.name || restaurant.restaurant_name || '',
+          tenantId: restaurant.tenantId || restaurant.tenant_id || '',
+          orders: restaurant.orders || restaurant.order_count || 0,
+          revenue: restaurant.revenue || restaurant.total_revenue || 0,
+          carbonReduction: restaurant.carbonReduction || restaurant.carbon_reduction || 0,
+          certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
+        })))
+      }
+    } catch (error: any) {
+      console.error('获取统计数据失败:', error)
+      message.error(error.message || t('pages.platform.statistics.messages.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -142,7 +112,7 @@ const Statistics: React.FC = () => {
 
   const columns: ColumnsType<TopRestaurant> = [
     {
-      title: '排名',
+      title: t('pages.platform.statistics.table.columns.rank'),
       dataIndex: 'rank',
       key: 'rank',
       width: 80,
@@ -154,19 +124,19 @@ const Statistics: React.FC = () => {
       },
     },
     {
-      title: '餐厅名称',
+      title: t('pages.platform.statistics.table.columns.restaurantName'),
       dataIndex: 'restaurantName',
       key: 'restaurantName',
       width: 150,
     },
     {
-      title: '租户ID',
+      title: t('pages.platform.statistics.table.columns.tenantId'),
       dataIndex: 'tenantId',
       key: 'tenantId',
       width: 150,
     },
     {
-      title: '订单数',
+      title: t('pages.platform.statistics.table.columns.orders'),
       dataIndex: 'orders',
       key: 'orders',
       width: 120,
@@ -174,7 +144,7 @@ const Statistics: React.FC = () => {
       sorter: (a, b) => a.orders - b.orders,
     },
     {
-      title: '收入',
+      title: t('pages.platform.statistics.table.columns.revenue'),
       dataIndex: 'revenue',
       key: 'revenue',
       width: 120,
@@ -182,7 +152,7 @@ const Statistics: React.FC = () => {
       sorter: (a, b) => a.revenue - b.revenue,
     },
     {
-      title: '碳减排(kg)',
+      title: t('pages.platform.statistics.table.columns.carbonReduction'),
       dataIndex: 'carbonReduction',
       key: 'carbonReduction',
       width: 120,
@@ -190,17 +160,17 @@ const Statistics: React.FC = () => {
       sorter: (a, b) => a.carbonReduction - b.carbonReduction,
     },
     {
-      title: '认证等级',
+      title: t('pages.platform.statistics.table.columns.certificationLevel'),
       dataIndex: 'certificationLevel',
       key: 'certificationLevel',
       width: 120,
       render: (level?: string) => {
-        if (!level) return <Tag>未认证</Tag>
+        if (!level) return <Tag>{t('pages.platform.statistics.certificationLevels.notCertified')}</Tag>
         const config: Record<string, { color: string; text: string }> = {
-          bronze: { color: 'default', text: '铜牌' },
-          silver: { color: 'default', text: '银牌' },
-          gold: { color: 'gold', text: '金牌' },
-          platinum: { color: 'purple', text: '白金' },
+          bronze: { color: 'default', text: t('pages.platform.statistics.certificationLevels.bronze') },
+          silver: { color: 'default', text: t('pages.platform.statistics.certificationLevels.silver') },
+          gold: { color: 'gold', text: t('pages.platform.statistics.certificationLevels.gold') },
+          platinum: { color: 'purple', text: t('pages.platform.statistics.certificationLevels.platinum') },
         }
         const cfg = config[level] || config.bronze
         return <Tag color={cfg.color}>{cfg.text}</Tag>
@@ -216,16 +186,16 @@ const Statistics: React.FC = () => {
       //   startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
       //   endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
       // })
-      message.info('导出报表功能开发中')
+      message.info(t('pages.platform.statistics.messages.exportInProgress'))
     } catch (error) {
-      message.error('导出失败')
+      message.error(t('common.exportFailed'))
     }
   }
 
   return (
     <div>
       <Card
-        title="平台级统计报表"
+        title={t('pages.platform.statistics.title')}
         extra={
           <Space>
             <Select
@@ -233,10 +203,10 @@ const Statistics: React.FC = () => {
               onChange={setPeriod}
               style={{ width: 120 }}
             >
-              <Select.Option value="7days">近7天</Select.Option>
-              <Select.Option value="30days">近30天</Select.Option>
-              <Select.Option value="90days">近90天</Select.Option>
-              <Select.Option value="custom">自定义</Select.Option>
+              <Select.Option value="7days">{t('pages.platform.statistics.periods.last7Days')}</Select.Option>
+              <Select.Option value="30days">{t('pages.platform.statistics.periods.last30Days')}</Select.Option>
+              <Select.Option value="90days">{t('pages.platform.statistics.periods.last90Days')}</Select.Option>
+              <Select.Option value="custom">{t('pages.platform.statistics.periods.custom')}</Select.Option>
             </Select>
             {period === 'custom' && (
               <RangePicker
@@ -246,7 +216,7 @@ const Statistics: React.FC = () => {
               />
             )}
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出报表
+              {t('pages.platform.statistics.buttons.export')}
             </Button>
           </Space>
         }
@@ -255,35 +225,35 @@ const Statistics: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="餐厅总数"
+                title={t('pages.platform.statistics.statistics.totalRestaurants')}
                 value={statistics.totalRestaurants}
                 prefix={<TrophyOutlined />}
                 valueStyle={{ color: '#1890ff' }}
                 loading={loading}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-                活跃: {statistics.activeRestaurants}
+                {t('pages.platform.statistics.statistics.active')}: {statistics.activeRestaurants}
               </div>
             </Card>
           </Col>
           <Col span={6}>
             <Card>
               <Statistic
-                title="总订单数"
+                title={t('pages.platform.statistics.statistics.totalOrders')}
                 value={statistics.totalOrders}
                 prefix={<ShoppingCartOutlined />}
                 valueStyle={{ color: '#52c41a' }}
                 loading={loading}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-                平均订单额: ¥{statistics.averageOrderValue}
+                {t('pages.platform.statistics.statistics.avgOrderValue')}: ¥{statistics.averageOrderValue}
               </div>
             </Card>
           </Col>
           <Col span={6}>
             <Card>
               <Statistic
-                title="总收入"
+                title={t('pages.platform.statistics.statistics.totalRevenue')}
                 value={statistics.totalRevenue}
                 prefix="¥"
                 valueStyle={{ color: '#fa8c16' }}
@@ -294,7 +264,7 @@ const Statistics: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="总碳减排"
+                title={t('pages.platform.statistics.statistics.totalCarbonReduction')}
                 value={statistics.totalCarbonReduction}
                 suffix="kg CO₂e"
                 prefix={<FireOutlined />}
@@ -302,7 +272,7 @@ const Statistics: React.FC = () => {
                 loading={loading}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-                平均每单: {statistics.averageCarbonPerOrder} kg
+                {t('pages.platform.statistics.statistics.avgCarbonPerOrder')}: {statistics.averageCarbonPerOrder} kg
               </div>
             </Card>
           </Col>
@@ -312,7 +282,7 @@ const Statistics: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="总用户数"
+                title={t('pages.platform.statistics.statistics.totalUsers')}
                 value={statistics.totalUsers}
                 prefix={<TeamOutlined />}
                 valueStyle={{ color: '#722ed1' }}
@@ -323,7 +293,7 @@ const Statistics: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="活跃餐厅率"
+                title={t('pages.platform.statistics.statistics.activeRestaurantRate')}
                 value={((statistics.activeRestaurants / statistics.totalRestaurants) * 100).toFixed(1)}
                 suffix="%"
                 prefix={<BarChartOutlined />}
@@ -335,7 +305,7 @@ const Statistics: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="平均订单数"
+                title={t('pages.platform.statistics.statistics.avgOrders')}
                 value={(statistics.totalOrders / statistics.activeRestaurants).toFixed(0)}
                 prefix={<ShoppingCartOutlined />}
                 valueStyle={{ color: '#eb2f96' }}
@@ -346,7 +316,7 @@ const Statistics: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="平均收入"
+                title={t('pages.platform.statistics.statistics.avgRevenue')}
                 value={(statistics.totalRevenue / statistics.activeRestaurants).toFixed(0)}
                 prefix="¥"
                 valueStyle={{ color: '#52c41a' }}
@@ -356,7 +326,7 @@ const Statistics: React.FC = () => {
           </Col>
         </Row>
 
-        <Card title="餐厅排行榜" style={{ marginTop: 16 }}>
+        <Card title={t('pages.platform.statistics.ranking.title')} style={{ marginTop: 16 }}>
           <Table
             columns={columns}
             dataSource={topRestaurants}

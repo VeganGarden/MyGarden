@@ -3,6 +3,7 @@ import { Button, Card, DatePicker, Select, Space, Table, Tag, message } from 'an
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { RangePicker } = DatePicker
 
@@ -16,6 +17,7 @@ interface CrossTenantData {
 }
 
 const CrossTenant: React.FC = () => {
+  const { t } = useTranslation()
   const [dataSource, setDataSource] = useState<CrossTenantData[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedTenants, setSelectedTenants] = useState<string[]>([])
@@ -94,7 +96,7 @@ const CrossTenant: React.FC = () => {
       ]
       setDataSource(mockData)
     } catch (error) {
-      message.error('获取数据失败')
+      message.error(t('pages.platform.crossTenant.messages.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -102,49 +104,49 @@ const CrossTenant: React.FC = () => {
 
   const columns: ColumnsType<CrossTenantData> = [
     {
-      title: '租户ID',
+      title: t('pages.platform.crossTenant.table.columns.tenantId'),
       dataIndex: 'tenantId',
       key: 'tenantId',
       width: 150,
     },
     {
-      title: '餐厅名称',
+      title: t('pages.platform.crossTenant.table.columns.restaurantName'),
       dataIndex: 'restaurantName',
       key: 'restaurantName',
       width: 150,
     },
     {
-      title: '数据类型',
+      title: t('pages.platform.crossTenant.table.columns.dataType'),
       dataIndex: 'dataType',
       key: 'dataType',
       width: 120,
       render: (type: string) => {
         const config: Record<string, { color: string; text: string }> = {
-          order: { color: 'blue', text: '订单' },
-          carbon: { color: 'green', text: '碳减排' },
-          user: { color: 'purple', text: '用户' },
-          revenue: { color: 'gold', text: '收入' },
+          order: { color: 'blue', text: t('pages.platform.crossTenant.dataTypes.order') },
+          carbon: { color: 'green', text: t('pages.platform.crossTenant.dataTypes.carbon') },
+          user: { color: 'purple', text: t('pages.platform.crossTenant.dataTypes.user') },
+          revenue: { color: 'gold', text: t('pages.platform.crossTenant.dataTypes.revenue') },
         }
         const cfg = config[type] || { color: 'default', text: type }
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       },
     },
     {
-      title: '数量',
+      title: t('pages.platform.crossTenant.table.columns.count'),
       dataIndex: 'count',
       key: 'count',
       width: 120,
       render: (value: number) => value.toLocaleString(),
     },
     {
-      title: '金额',
+      title: t('pages.platform.crossTenant.table.columns.amount'),
       dataIndex: 'amount',
       key: 'amount',
       width: 120,
       render: (value?: number) => (value ? `¥${value.toLocaleString()}` : '-'),
     },
     {
-      title: '日期',
+      title: t('pages.platform.crossTenant.table.columns.date'),
       dataIndex: 'date',
       key: 'date',
       width: 120,
@@ -164,9 +166,9 @@ const CrossTenant: React.FC = () => {
       //   startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
       //   endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
       // })
-      message.info('导出功能开发中')
+      message.info(t('pages.platform.crossTenant.messages.exportInProgress'))
     } catch (error) {
-      message.error('导出失败')
+      message.error(t('common.exportFailed'))
     }
   }
 
@@ -180,11 +182,11 @@ const CrossTenant: React.FC = () => {
 
   return (
     <div>
-      <Card title="跨租户数据查看">
+      <Card title={t('pages.platform.crossTenant.title')}>
         <Space style={{ marginBottom: 16 }} wrap>
           <Select
             mode="multiple"
-            placeholder="选择租户（可多选）"
+            placeholder={t('pages.platform.crossTenant.filters.tenant')}
             style={{ width: 300 }}
             value={selectedTenants}
             onChange={setSelectedTenants}
@@ -192,17 +194,17 @@ const CrossTenant: React.FC = () => {
             allowClear
           />
           <Select
-            placeholder="数据类型"
+            placeholder={t('pages.platform.crossTenant.filters.dataType')}
             style={{ width: 150 }}
             value={dataType}
             onChange={setDataType}
             allowClear
           >
-            <Select.Option value="all">全部</Select.Option>
-            <Select.Option value="order">订单</Select.Option>
-            <Select.Option value="carbon">碳减排</Select.Option>
-            <Select.Option value="user">用户</Select.Option>
-            <Select.Option value="revenue">收入</Select.Option>
+            <Select.Option value="all">{t('common.all')}</Select.Option>
+            <Select.Option value="order">{t('pages.platform.crossTenant.dataTypes.order')}</Select.Option>
+            <Select.Option value="carbon">{t('pages.platform.crossTenant.dataTypes.carbon')}</Select.Option>
+            <Select.Option value="user">{t('pages.platform.crossTenant.dataTypes.user')}</Select.Option>
+            <Select.Option value="revenue">{t('pages.platform.crossTenant.dataTypes.revenue')}</Select.Option>
           </Select>
           <RangePicker
             value={dateRange}
@@ -210,10 +212,10 @@ const CrossTenant: React.FC = () => {
             format="YYYY-MM-DD"
           />
           <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-            查询
+            {t('common.search')}
           </Button>
           <Button icon={<DownloadOutlined />} onClick={handleExport}>
-            导出
+            {t('common.export')}
           </Button>
         </Space>
 
@@ -225,31 +227,31 @@ const CrossTenant: React.FC = () => {
           pagination={{
             total: dataSource.length,
             pageSize: 20,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             showSizeChanger: true,
             showQuickJumper: true,
           }}
         />
 
         <Card
-          title="数据汇总"
+          title={t('pages.platform.crossTenant.summary.title')}
           style={{ marginTop: 16 }}
           extra={
             <Space>
-              <span>总租户数: {new Set(dataSource.map((item) => item.tenantId)).size}</span>
-              <span>总订单数: {dataSource.filter((item) => item.dataType === 'order').reduce((sum, item) => sum + item.count, 0).toLocaleString()}</span>
+              <span>{t('pages.platform.crossTenant.summary.totalTenants')}: {new Set(dataSource.map((item) => item.tenantId)).size}</span>
+              <span>{t('pages.platform.crossTenant.summary.totalOrders')}: {dataSource.filter((item) => item.dataType === 'order').reduce((sum, item) => sum + item.count, 0).toLocaleString()}</span>
               <span>
-                总碳减排: {dataSource.filter((item) => item.dataType === 'carbon').reduce((sum, item) => sum + item.count, 0).toLocaleString()} kg
+                {t('pages.platform.crossTenant.summary.totalCarbonReduction')}: {dataSource.filter((item) => item.dataType === 'carbon').reduce((sum, item) => sum + item.count, 0).toLocaleString()} kg
               </span>
               <span>
-                总收入: ¥{dataSource.filter((item) => item.dataType === 'revenue' && item.amount).reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}
+                {t('pages.platform.crossTenant.summary.totalRevenue')}: ¥{dataSource.filter((item) => item.dataType === 'revenue' && item.amount).reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}
               </span>
             </Space>
           }
         >
           <div style={{ color: '#666', fontSize: 14 }}>
-            <p>说明：跨租户数据查看功能允许平台管理员查看所有租户的数据，用于平台级的数据分析和监控。</p>
-            <p>数据包括：订单数据、碳减排数据、用户数据、收入数据等。</p>
+            <p>{t('pages.platform.crossTenant.summary.description')}</p>
+            <p>{t('pages.platform.crossTenant.summary.dataIncludes')}</p>
           </div>
         </Card>
       </Card>

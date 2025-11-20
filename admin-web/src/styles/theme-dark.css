@@ -1,0 +1,66 @@
+/* 暗色主题 - CSS变量定义 */
+
+[data-theme='dark'] {
+  /* 品牌色系统 - 在暗色主题下保持品牌色 */
+  --brand-primary: #22c55e; /* 品牌主色：绿色 */
+  --brand-primary-hover: #34d399; /* 品牌主色悬停（暗色下更亮） */
+  --brand-primary-active: #16a34a; /* 品牌主色激活 */
+  --brand-secondary: #10b981; /* 品牌辅助色 */
+  --brand-accent: #4ade80; /* 品牌强调色（暗色下更亮） */
+  --brand-light: #86efac; /* 品牌浅色 */
+  --brand-dark: #166534; /* 品牌深色 */
+
+  /* 主色调 - 使用品牌色 */
+  --primary-color: var(--brand-primary);
+  --primary-hover: var(--brand-primary-hover);
+  --primary-active: var(--brand-primary-active);
+  --success-color: #52c41a; /* 成功：绿色 */
+  --warning-color: #faad14; /* 警告：橙色 */
+  --error-color: #ff4d4f; /* 错误：红色（暗色下稍亮） */
+
+  /* 中性色 - 暗色主题 */
+  --text-primary: rgba(255, 255, 255, 0.85); /* 主要文本 */
+  --text-secondary: rgba(255, 255, 255, 0.65); /* 次要文本 */
+  --text-tertiary: rgba(255, 255, 255, 0.45); /* 三级文本 */
+  --text-disabled: rgba(255, 255, 255, 0.25); /* 禁用文本 */
+  --text-inverse: rgba(0, 0, 0, 0.85); /* 反色文本（用于深色背景上的浅色文字） */
+
+  /* 背景色 - 暗色主题 */
+  --bg-body: #141414; /* 页面背景（深灰） */
+  --bg-container: #1f1f1f; /* 容器背景（稍浅） */
+  --bg-hover: rgba(255, 255, 255, 0.08); /* 悬停背景 */
+  --bg-active: rgba(34, 197, 94, 0.2); /* 激活背景（品牌绿色，暗色下更明显） */
+  --bg-sider: #0d1117; /* 侧边栏背景（更深的灰） */
+  --bg-sider-hover: rgba(255, 255, 255, 0.12); /* 侧边栏悬停（暗色下更明显） */
+
+  /* 边框色 - 暗色主题 */
+  --border-color: rgba(255, 255, 255, 0.2); /* 默认边框 */
+  --border-color-split: rgba(255, 255, 255, 0.1); /* 分割线 */
+  --border-color-light: rgba(255, 255, 255, 0.08); /* 浅色边框 */
+
+  /* 阴影系统 - 暗色主题（使用更深的阴影） */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* 暗色主题下的滚动条样式 */
+[data-theme='dark'] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: var(--bg-body);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+

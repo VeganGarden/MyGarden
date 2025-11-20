@@ -1,0 +1,107 @@
+/* 设计系统 - CSS变量定义 */
+
+:root {
+  /* 品牌色系统 - 绿色系（体现环保、健康、自然的品牌理念） */
+  --brand-primary: #22c55e; /* 品牌主色：绿色 */
+  --brand-primary-hover: #16a34a; /* 品牌主色悬停 */
+  --brand-primary-active: #15803d; /* 品牌主色激活 */
+  --brand-secondary: #10b981; /* 品牌辅助色 */
+  --brand-accent: #34d399; /* 品牌强调色 */
+  --brand-light: #86efac; /* 品牌浅色 */
+  --brand-dark: #166534; /* 品牌深色 */
+
+  /* 主色调 - 使用品牌色 */
+  --primary-color: var(--brand-primary); /* 主色：品牌绿色 */
+  --primary-hover: var(--brand-primary-hover); /* 主色悬停 */
+  --primary-active: var(--brand-primary-active); /* 主色激活 */
+  --success-color: #52c41a; /* 成功：绿色 */
+  --warning-color: #faad14; /* 警告：橙色 */
+  --error-color: #f5222d; /* 错误：红色 */
+
+  /* 中性色 */
+  --text-primary: rgba(0, 0, 0, 0.85); /* 主要文本 */
+  --text-secondary: rgba(0, 0, 0, 0.65); /* 次要文本 */
+  --text-tertiary: rgba(0, 0, 0, 0.45); /* 三级文本 */
+  --text-disabled: rgba(0, 0, 0, 0.25); /* 禁用文本 */
+  --text-inverse: rgba(255, 255, 255, 0.85); /* 反色文本 */
+
+  /* 背景色 */
+  --bg-body: #f0f2f5; /* 页面背景 */
+  --bg-container: #ffffff; /* 容器背景 */
+  --bg-hover: rgba(0, 0, 0, 0.06); /* 悬停背景 */
+  --bg-active: rgba(34, 197, 94, 0.1); /* 激活背景（品牌绿色） */
+  --bg-sider: #f0f9f4; /* 侧边栏背景（浅绿色，与品牌色匹配） */
+  --bg-sider-hover: rgba(34, 197, 94, 0.08); /* 侧边栏悬停（浅绿色） */
+
+  /* 边框色 */
+  --border-color: #d9d9d9; /* 默认边框 */
+  --border-color-split: #f0f0f0; /* 分割线 */
+  --border-color-light: #e8e8e8; /* 浅色边框 */
+
+  /* 间距系统 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* 圆角系统 */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-round: 50%;
+
+  /* 阴影系统 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  /* 布局尺寸 */
+  --header-height: 64px;
+  --sider-width: 200px;
+  --sider-width-en: 240px; /* 英文语言时的侧边栏宽度 */
+  --sider-collapsed-width: 80px;
+
+  /* 字体系统 */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-number: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+  --font-family-en: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Helvetica Neue', Arial, sans-serif;
+
+  /* 字体大小 */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 24px;
+  --font-size-title: 28px;
+  --font-size-heading: 32px;
+
+  /* 字重 */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 行高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* 动画时长 */
+  --transition-fast: 0.15s;
+  --transition-base: 0.3s;
+  --transition-slow: 0.5s;
+
+  /* 动画曲线 */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+

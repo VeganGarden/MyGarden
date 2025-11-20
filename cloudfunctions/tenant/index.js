@@ -5,13 +5,35 @@ cloud.init({
 })
 
 const db = cloud.database()
+const { checkPermission } = require('./permission')
 
+async function requireSystemAdmin(event, context) {
+  try {
+    const user = await checkPermission(event, context)
+    if (user && user.role === 'system_admin') {
+      return { ok: true, user }
+    }
+    return { ok: false, error: { code: 403, message: '仅系统管理员可操作' } }
+  } catch (err) {
+    return { ok: false, error: err }
+  }
+}
+
+async function requireAuth(event, context) {
+  try {
+    const user = await checkPermission(event, context)
+    return { ok: true, user }
+  } catch (err) {
+    return { ok: false, error: err }
+  }
+}
 /**
  * 租户和餐厅管理云函数
  */
 exports.main = async (event, context) => {
   const { action, data } = event
   const wxContext = cloud.getWXContext()
+  const { addAudit } = require('./audit')
 
   try {
     switch (action) {
@@ -39,15 +61,179 @@ exports.main = async (event, context) => {
         // 根据restaurantId获取餐厅相关数据（菜单、订单等）
         return await getRestaurantData(data)
 
+      case 'getBehaviorMetrics':
+        // 获取行为统计数据
+        return await getBehaviorMetrics(data)
+
+      // 优惠券管理
+      case 'listCoupons':
+        return await listCoupons(data)
+      case 'createCoupon':
+        return await createCoupon(data)
+      case 'updateCoupon':
+        return await updateCoupon(data.id, data.data)
+      case 'deleteCoupon':
+        return await deleteCoupon(data.id)
+
+      // 用户评价
+      case 'listReviews':
+        return await listReviews(data)
+      case 'replyReview':
+        return await replyReview(data.reviewId, data.reply)
+
+      // 订单管理
+      case 'listOrders':
+        return await listOrders(data)
+      case 'getOrder':
+        return await getOrder(data.orderId)
+      case 'updateOrderStatus':
+        return await updateOrderStatus(data.orderId, data.status)
+
+      // 订单碳统计
+      case 'getOrderCarbonStats':
+        return await getOrderCarbonStats(data)
+
+      // 碳报告
+      case 'generateCarbonReport':
+        return await generateCarbonReport(data)
+
+      // 菜单管理
+      case 'getMenuList':
+        return await getMenuList(data)
+
+      case 'getDashboard':
+        // 获取数据看板统计数据
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await getDashboard(data, gate.user)
+        }
+
       case 'init':
         // 初始化租户和餐厅数据
         const initScript = require('./init-tenant-data')
         return await initScript.main(event, context)
 
+      // 入驻申请：创建/列表/审批/驳回
+      case 'applyForOnboarding':
+        return await applyForOnboarding(data)
+      case 'listOnboardingApplications':
+        return await listOnboardingApplications(data || {})
+      case 'approveOnboardingApplication':
+        return await approveOnboardingApplication(data.applicationId, data)
+      case 'rejectOnboardingApplication':
+        return await rejectOnboardingApplication(data.applicationId, data.reason)
+
+      // 管理员账号管理（仅后台邀请/创建）
+      case 'createAdminUser':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await createAdminUser(data, context)
+        }
+      case 'listAdminUsers':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await listAdminUsers(data || {})
+        }
+      case 'updateAdminUserStatus':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateAdminUserStatus(data.userId, data.status, context)
+        }
+      case 'resetAdminUserPassword':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await resetAdminUserPassword(data.userId, context)
+        }
+      case 'softDeleteAdminUser':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await softDeleteAdminUser(data.userId, context)
+        }
+
+      // 迁移餐厅归属到指定租户
+      case 'transferRestaurants':
+        return await transferRestaurants(data)
+      case 'transferAllRestaurantData':
+        return await transferAllRestaurantData(data)
+      
+      // 系统域：角色、审计、监控、备份
+      case 'listRoleConfigs':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await listRoleConfigs(data || {})
+        }
+      case 'updateRoleStatus':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateRoleStatus(data.roleCode, data.status)
+        }
+      case 'createRoleConfig': {
+        const gate = await requireSystemAdmin(event, context)
+        if (!gate.ok) return gate.error
+        return await createRoleConfig(data || {})
+      }
+      case 'updateRolePermissions': {
+        const gate = await requireSystemAdmin(event, context)
+        if (!gate.ok) return gate.error
+        return await updateRolePermissions(data.roleCode, data.permissions || [], data.moduleAccess || {})
+      }
+      case 'listPermissions': {
+        const gate = await requireSystemAdmin(event, context)
+        if (!gate.ok) return gate.error
+        return await listPermissions()
+      }
+      case 'getAuditLogs':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await getAuditLogs(data || {})
+        }
+      case 'getSystemMetrics':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await getSystemMetrics()
+        }
+      case 'runBackupExport':
+        {
+          const gate = await requireSystemAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await runBackupExport(data || {})
+        }
+      // 个人资料（任何已登录用户）
+      case 'updateProfile': {
+        const gate = await requireAuth(event, context)
+        if (!gate.ok) return gate.error
+        return await updateProfile(gate.user, data || {}, context)
+      }
+      case 'updatePassword': {
+        const gate = await requireAuth(event, context)
+        if (!gate.ok) return gate.error
+        return await updatePassword(gate.user, data || {}, context)
+      }
+      case 'uploadAvatar': {
+        const gate = await requireAuth(event, context)
+        if (!gate.ok) return gate.error
+        return await uploadAvatar(gate.user, data || {}, context)
+      }
+
       case 'addXiaopingguo':
         // 添加"小苹果"租户
         const addScript = require('./add-xiaopingguo-tenant')
         return await addScript.main(event, context)
+
+      case 'migrateXiaopingguoToApple':
+        // 将"小苹果"租户的菜谱数据迁移到"apple"账号
+        const migrateScript = require('./migrate-xiaopingguo-to-apple')
+        return await migrateScript.main(event, context)
 
       default:
         return {
@@ -65,6 +251,851 @@ exports.main = async (event, context) => {
 }
 
 /**
+ * 创建入驻申请
+ */
+async function applyForOnboarding(data) {
+  const appData = {
+    desiredUsername: data.desiredUsername || '',
+    organizationName: data.organizationName,
+    contactName: data.contactName,
+    contactPhone: data.contactPhone,
+    contactEmail: data.contactEmail || '',
+    city: data.city || '',
+    restaurantCount: data.restaurantCount || 1,
+    note: data.note || '',
+    status: 'pending',
+    createdAt: db.serverDate(),
+    updatedAt: db.serverDate(),
+  }
+  const res = await db.collection('tenant_applications').add({ data: appData })
+  
+  // 触发租户认证申请消息通知
+  try {
+    await cloud.callFunction({
+      name: 'message-event',
+      data: {
+        action: 'handleTenantCertApply',
+        data: {
+          tenantId: res._id, // 使用申请ID作为tenantId
+          tenantName: data.organizationName,
+          applyTime: new Date(),
+        },
+      },
+    })
+  } catch (error) {
+    // 消息通知失败不影响申请提交，仅记录日志
+    console.error('触发租户认证申请消息失败:', error)
+  }
+  
+  return { code: 0, message: '申请已提交', data: { _id: res._id } }
+}
+
+/**
+ * 查询入驻申请列表
+ */
+async function listOnboardingApplications(params) {
+  try {
+    let query = db.collection('tenant_applications')
+    if (params.status) {
+      query = query.where({ status: params.status })
+    }
+    if (params.keyword) {
+      // 简单关键字匹配 organizationName 或 contactName
+      query = query.where({
+        organizationName: db.RegExp({ regexp: params.keyword, options: 'i' }),
+      })
+    }
+    const page = params.page || 1
+    const pageSize = params.pageSize || 20
+    const result = await query
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get()
+    return { code: 0, data: { list: result.data || [], page, pageSize } }
+  } catch (error) {
+    // 集合不存在时自动创建一次，返回空列表
+    if (error && (error.errCode === -502005 || String(error.errMsg || '').includes('not exist'))) {
+      try {
+        await db.createCollection('tenant_applications')
+      } catch (_) {}
+      return { code: 0, data: { list: [], page: 1, pageSize: 20 } }
+    }
+    throw error
+  }
+}
+
+/**
+ * 审批通过：可选创建账号与租户
+ */
+async function approveOnboardingApplication(applicationId, options = {}) {
+  if (!applicationId) return { code: 400, message: 'applicationId 不能为空' }
+
+  const appDoc = await db.collection('tenant_applications').doc(applicationId).get()
+  if (!appDoc.data) return { code: 404, message: '申请不存在' }
+  if (appDoc.data.status !== 'pending') return { code: 400, message: '该申请已处理' }
+
+  // 更新状态为已通过
+  await db.collection('tenant_applications').doc(applicationId).update({
+    data: { status: 'approved', updatedAt: db.serverDate() },
+  })
+
+  let created = {}
+  if (options.createAccount) {
+    // 1) 创建租户
+    const tenantRes = await db.collection('tenants').add({
+      data: {
+        name: appDoc.data.organizationName,
+        contactName: appDoc.data.contactName,
+        contactPhone: appDoc.data.contactPhone,
+        contactEmail: appDoc.data.contactEmail || '',
+        status: 'active',
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    // 2) 创建管理员账号（初始用户名/密码）
+    const crypto = require('crypto')
+    const hashPassword = (pwd) => crypto.createHash('sha256').update(pwd).digest('hex')
+    // 优先使用申请时的期望账户名（若未被占用且格式合法），否则回退默认
+    let username = appDoc.data.desiredUsername || ''
+    const usernameValid = /^[a-zA-Z][a-zA-Z0-9_\-]{3,20}$/.test(username)
+    if (username && usernameValid) {
+      const exists = await db.collection('admin_users').where({ username }).get()
+      if (exists.data && exists.data.length > 0) {
+        username = '' // 被占用，回退默认
+      }
+    } else {
+      username = ''
+    }
+    if (!username) {
+      username = `admin_${String(tenantRes._id).slice(0, 6)}`
+    }
+    const defaultPassword = 'admin123'
+    const adminRes = await db.collection('admin_users').add({
+      data: {
+        username,
+        password: hashPassword(defaultPassword),
+        name: appDoc.data.contactName,
+        email: appDoc.data.contactEmail || '',
+        phone: appDoc.data.contactPhone || '',
+        role: 'restaurant_admin',
+        tenantId: tenantRes._id,
+        restaurantIds: [],
+        permissions: [],
+        status: 'active',
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    created = {
+      tenantId: tenantRes._id,
+      adminUserId: adminRes._id,
+      username,
+      password: defaultPassword, // 前端提示尽快修改
+    }
+  }
+
+  return { code: 0, message: '审批通过', data: created }
+}
+
+/**
+ * 驳回入驻申请
+ */
+async function rejectOnboardingApplication(applicationId, reason = '') {
+  if (!applicationId) return { code: 400, message: 'applicationId 不能为空' }
+  const appDoc = await db.collection('tenant_applications').doc(applicationId).get()
+  if (!appDoc.data) return { code: 404, message: '申请不存在' }
+  if (appDoc.data.status !== 'pending') return { code: 400, message: '该申请已处理' }
+
+  await db.collection('tenant_applications').doc(applicationId).update({
+    data: { status: 'rejected', rejectReason: reason || '', updatedAt: db.serverDate() },
+  })
+  return { code: 0, message: '已驳回' }
+}
+
+/**
+ * 仅后台邀请/创建管理员账号
+ * 允许角色：system_admin / platform_operator / carbon_specialist
+ * 不允许：restaurant_admin（走入驻申请流程）
+ */
+const ALLOWED_ADMIN_ROLES = new Set(['system_admin', 'platform_operator', 'carbon_specialist'])
+async function createAdminUser(data, context) {
+  const { username, password, name, email, phone, role } = data || {}
+  if (!username || !password || !role) {
+    return { code: 400, message: 'username、password、role 为必填' }
+  }
+  if (!ALLOWED_ADMIN_ROLES.has(role)) {
+    return { code: 400, message: '该角色不支持自助创建，请选择受控角色' }
+  }
+  // 检查用户名是否存在
+  const exists = await db.collection('admin_users').where({ username }).get()
+  if (exists.data && exists.data.length > 0) {
+    return { code: 409, message: '用户名已存在' }
+  }
+  const crypto = require('crypto')
+  const hashPassword = (pwd) => crypto.createHash('sha256').update(pwd).digest('hex')
+  const doc = {
+    username,
+    password: hashPassword(password),
+    name: name || '',
+    email: email || '',
+    phone: phone || '',
+    role,
+    tenantId: null,
+    restaurantIds: [],
+    permissions: [],
+    status: 'active',
+    createdAt: db.serverDate(),
+    updatedAt: db.serverDate(),
+  }
+  const res = await db.collection('admin_users').add({ data: doc })
+  // 审计
+  try {
+    const { addAudit } = require('../common/audit')
+    await addAudit(db, {
+      module: 'platform',
+      action: 'createAdminUser',
+      resource: 'admin_users',
+      description: `创建业务账号: ${username} (${role})`,
+      status: 'success',
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+    })
+  } catch (_) {}
+  return { code: 0, message: '创建成功', data: { _id: res._id } }
+}
+
+/**
+ * 管理员账号列表（仅受控角色）
+ */
+async function listAdminUsers(params = {}) {
+  const { role, status, keyword, page = 1, pageSize = 20 } = params
+  const condition = {}
+  if (role) condition.role = role
+  if (status) condition.status = status
+  if (keyword) {
+    condition.username = db.RegExp({ regexp: keyword, options: 'i' })
+  }
+  const query = Object.keys(condition).length > 0
+    ? db.collection('admin_users').where(condition)
+    : db.collection('admin_users')
+  const res = await query
+    .orderBy('createdAt', 'desc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get()
+  const list = res.data || []
+  // 附加租户/餐厅数量信息（便于前端展示）
+  const withExtras = []
+  for (const u of list) {
+    let restaurantCount = 0
+    try {
+      if (u.tenantId) {
+        const c = await db.collection('restaurants').where({ tenantId: u.tenantId }).count()
+        restaurantCount = c.total || 0
+      }
+    } catch (_) {}
+    withExtras.push({ ...u, restaurantCount })
+  }
+  return { code: 0, data: { list: withExtras, page, pageSize } }
+}
+
+/**
+ * 更新管理员账号状态
+ */
+async function updateAdminUserStatus(userId, status, context) {
+  if (!userId || !status) return { code: 400, message: 'userId 与 status 不能为空' }
+  await db.collection('admin_users').doc(userId).update({
+    data: { status, updatedAt: db.serverDate() },
+  })
+  try {
+    const { addAudit } = require('../common/audit')
+    await addAudit(db, {
+      module: 'platform',
+      action: 'updateAdminUserStatus',
+      resource: 'admin_users',
+      description: `更新管理员状态: ${userId} -> ${status}`,
+      status: 'success',
+      ip: context.requestIp || '',
+    })
+  } catch (_) {}
+  return { code: 0, message: '更新成功' }
+}
+
+/**
+ * 重置管理员账号密码（返回新密码，前端提示尽快修改）
+ */
+async function resetAdminUserPassword(userId, context) {
+  if (!userId) return { code: 400, message: 'userId 不能为空' }
+  const crypto = require('crypto')
+  const newPwd = 'Adm' + Math.random().toString(36).slice(2, 8)
+  const hash = crypto.createHash('sha256').update(newPwd).digest('hex')
+  await db.collection('admin_users').doc(userId).update({
+    data: { password: hash, updatedAt: db.serverDate() },
+  })
+  try {
+    const { addAudit } = require('../common/audit')
+    await addAudit(db, {
+      module: 'platform',
+      action: 'resetAdminUserPassword',
+      resource: 'admin_users',
+      description: `重置管理员密码: ${userId}`,
+      status: 'success',
+      ip: context.requestIp || '',
+    })
+  } catch (_) {}
+  return { code: 0, message: '重置成功', data: { password: newPwd } }
+}
+
+/**
+ * 软删除管理员账号（置 status=deleted）
+ */
+async function softDeleteAdminUser(userId, context) {
+  if (!userId) return { code: 400, message: 'userId 不能为空' }
+  await db.collection('admin_users').doc(userId).update({
+    data: { status: 'deleted', updatedAt: db.serverDate() },
+  })
+  try {
+    const { addAudit } = require('./audit')
+    await addAudit(db, {
+      module: 'platform',
+      action: 'softDeleteAdminUser',
+      resource: 'admin_users',
+      description: `软删除管理员: ${userId}`,
+      status: 'success',
+      ip: context.requestIp || '',
+    })
+  } catch (_) {}
+  return { code: 0, message: '已删除（软删除）' }
+}
+
+/**
+ * 更新当前用户的个人资料
+ */
+async function updateProfile(currentUser, payload, context) {
+  const { name, email, phone, avatarUrl } = payload || {}
+  const updates = {}
+  if (name !== undefined) updates.name = name
+  if (email !== undefined) updates.email = email
+  if (phone !== undefined) updates.phone = phone
+  if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl
+  updates.updatedAt = db.serverDate()
+  await db.collection('admin_users').doc(currentUser._id).update({ data: updates })
+  try {
+    const { addAudit } = require('./audit')
+    await addAudit(db, {
+      module: 'system',
+      action: 'updateProfile',
+      resource: 'admin_users',
+      description: `更新个人资料`,
+      status: 'success',
+      ip: context.requestIp || '',
+    })
+  } catch (_) {}
+  return { code: 0, message: '资料已更新' }
+}
+
+/**
+ * 更新当前用户密码
+ */
+async function updatePassword(currentUser, payload, context) {
+  const { oldPassword, newPassword } = payload || {}
+  if (!oldPassword || !newPassword) return { code: 400, message: '缺少参数' }
+  const crypto = require('crypto')
+  const oldHash = crypto.createHash('sha256').update(oldPassword).digest('hex')
+  if (oldHash !== currentUser.password) {
+    return { code: 400, message: '原密码不正确' }
+  }
+  const newHash = crypto.createHash('sha256').update(newPassword).digest('hex')
+  await db.collection('admin_users').doc(currentUser._id).update({
+    data: { password: newHash, updatedAt: db.serverDate() },
+  })
+  try {
+    const { addAudit } = require('./audit')
+    await addAudit(db, {
+      module: 'system',
+      action: 'updatePassword',
+      resource: 'admin_users',
+      description: `更新密码`,
+      status: 'success',
+      ip: context.requestIp || '',
+    })
+  } catch (_) {}
+  return { code: 0, message: '密码已更新' }
+}
+
+/**
+ * 头像上传（前端传 base64，后端写云存储）
+ */
+async function uploadAvatar(currentUser, payload, context) {
+  const { base64, ext = 'jpg' } = payload || {}
+  if (!base64) return { code: 400, message: '缺少图片数据' }
+  // base64 可能带 data URL 头
+  const content = base64.includes(',') ? base64.split(',')[1] : base64
+  const buffer = Buffer.from(content, 'base64')
+  const cloudPath = `avatars/${currentUser._id || 'u'}/${Date.now()}.${ext.replace('.', '')}`
+  try {
+    const uploadRes = await cloud.uploadFile({
+      cloudPath,
+      fileContent: buffer,
+    })
+    const fileID = uploadRes.fileID
+    let tempUrl = fileID
+    try {
+      const urlRes = await cloud.getTempFileURL({ fileList: [fileID] })
+      tempUrl = urlRes?.fileList?.[0]?.tempFileURL || fileID
+    } catch (_) {}
+    return { code: 0, data: { fileID, url: tempUrl, cloudPath } }
+  } catch (e) {
+    return { code: 500, message: '上传失败', error: String(e && e.message ? e.message : e) }
+  }
+}
+/**
+ * 角色配置列表
+ */
+async function listRoleConfigs(params = {}) {
+  let query = db.collection('role_configs')
+  if (params.status) {
+    query = query.where({ status: params.status })
+  }
+  const page = params.page || 1
+  const pageSize = params.pageSize || 50
+  const result = await query
+    .orderBy('roleCode', 'asc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get()
+  return { code: 0, data: { list: result.data || [], page, pageSize } }
+}
+
+async function updateRoleStatus(roleCode, status) {
+  if (!roleCode || !status) return { code: 400, message: 'roleCode 与 status 不能为空' }
+  const res = await db.collection('role_configs').where({ roleCode }).get()
+  if (!res.data || res.data.length === 0) return { code: 404, message: '角色不存在' }
+  await db.collection('role_configs').doc(res.data[0]._id).update({
+    data: { status, updatedAt: db.serverDate() },
+  })
+  return { code: 0, message: '更新成功' }
+}
+
+async function createRoleConfig(payload) {
+  const { roleCode, roleName, description = '', permissions = [], moduleAccess = {}, status = 'active' } = payload || {}
+  if (!roleCode || !roleName) return { code: 400, message: 'roleCode 与 roleName 不能为空' }
+  // 唯一性
+  const exist = await db.collection('role_configs').where({ roleCode }).count()
+  if (exist.total > 0) return { code: 409, message: '角色代码已存在' }
+  const doc = {
+    roleCode,
+    roleName,
+    description,
+    permissions,
+    moduleAccess,
+    status,
+    isSystemRole: false,
+    createdAt: db.serverDate(),
+    updatedAt: db.serverDate(),
+  }
+  const res = await db.collection('role_configs').add({ data: doc })
+  return { code: 0, message: '创建成功', data: { _id: res._id } }
+}
+
+async function updateRolePermissions(roleCode, permissions = [], moduleAccess = {}) {
+  if (!roleCode) return { code: 400, message: 'roleCode 不能为空' }
+  const res = await db.collection('role_configs').where({ roleCode }).get()
+  if (!res.data || res.data.length === 0) return { code: 404, message: '角色不存在' }
+  await db.collection('role_configs').doc(res.data[0]._id).update({
+    data: { permissions, moduleAccess, updatedAt: db.serverDate() },
+  })
+  return { code: 0, message: '权限已更新' }
+}
+
+async function listPermissions() {
+  const res = await db.collection('permissions').orderBy('module', 'asc').orderBy('sort', 'asc').get()
+  const all = res.data || []
+  const grouped = {}
+  for (const p of all) {
+    if (!grouped[p.module]) grouped[p.module] = []
+    grouped[p.module].push({
+      key: p.permissionCode,
+      title: `${p.permissionName} (${p.permissionCode})`,
+      code: p.permissionCode,
+      name: p.permissionName,
+      resource: p.resource,
+      action: p.action,
+      category: p.category,
+    })
+  }
+  const tree = Object.keys(grouped).map((m) => ({
+    key: m,
+    title: m,
+    children: grouped[m],
+  }))
+  return { code: 0, data: { list: all, tree } }
+}
+/**
+ * 审计日志列表
+ */
+async function getAuditLogs(params = {}) {
+  const { page = 1, pageSize = 20, username, action, status, module, tenantId } = params
+  let query = db.collection('audit_logs')
+  if (username) query = query.where({ username })
+  if (action) query = query.where({ action })
+  if (status) query = query.where({ status })
+  if (module) query = query.where({ module })
+  if (tenantId) query = query.where({ tenantId })
+  const result = await query
+    .orderBy('createdAt', 'desc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get()
+  return { code: 0, data: { list: result.data || [], page, pageSize } }
+}
+
+/**
+ * 系统指标
+ */
+async function getSystemMetrics() {
+  const metrics = {}
+  const meta = {
+    // 系统与平台
+    admin_users: { domain: '系统与平台', description: '后台管理用户' },
+    role_configs: { domain: '系统与平台', description: '角色配置' },
+    permissions: { domain: '系统与平台', description: '权限定义' },
+    audit_logs: { domain: '系统与平台', description: '审计日志' },
+    platform_configs: { domain: '系统与平台', description: '平台配置' },
+    business_rules: { domain: '系统与平台', description: '业务规则库' },
+    sync_tasks: { domain: '系统与平台', description: '同步任务' },
+    tenant_applications: { domain: '系统与平台', description: '入驻申请' },
+    // 租户与组织
+    tenants: { domain: '租户与组织', description: '租户主档' },
+    staff_accounts: { domain: '租户与组织', description: '租户协作者账号' },
+    restaurant_profiles: { domain: '租户与组织', description: '餐厅档案版本' },
+    // 餐厅域
+    restaurants: { domain: '餐厅域', description: '餐厅基础信息' },
+    restaurant_menus: { domain: '餐厅域', description: '餐厅菜单配置' },
+    restaurant_menu_items: { domain: '餐厅域', description: '菜单菜品条目' },
+    restaurant_orders: { domain: '餐厅域', description: '餐厅订单' },
+    restaurant_reservations: { domain: '餐厅域', description: '餐厅预订' },
+    restaurant_members: { domain: '餐厅域', description: '餐厅会员' },
+    restaurant_campaigns: { domain: '餐厅域', description: '餐厅营销活动' },
+    restaurant_reviews: { domain: '餐厅域', description: '餐厅评价' },
+    restaurant_operation_ledgers: { domain: '运营监测', description: '运营与能源台账' },
+    restaurant_behavior_metrics: { domain: '运营监测', description: '行为指标快照' },
+    // 认证域
+    certification_applications: { domain: '认证域', description: '认证申请' },
+    certification_stages: { domain: '认证域', description: '认证阶段' },
+    assessment_items: { domain: '认证域', description: '评估项结果' },
+    certification_badges: { domain: '认证域', description: '认证证书' },
+    certification_documents: { domain: '认证域', description: '认证资料' },
+    // 菜单与碳核算
+    recipe_versions: { domain: '菜单与碳核算', description: '菜品配方版本' },
+    carbon_factors: { domain: '菜单与碳核算', description: '碳排系数主数据' },
+    carbon_assessments: { domain: '菜单与碳核算', description: '碳核算结果' },
+    // 供应链溯源
+    suppliers: { domain: '供应链溯源', description: '供应商主体' },
+    ingredient_lots: { domain: '供应链溯源', description: '食材批次' },
+    trace_chains: { domain: '供应链溯源', description: '溯源链主记录' },
+    trace_nodes: { domain: '供应链溯源', description: '溯源节点事件' },
+    // 用户行为
+    points_accounts: { domain: '用户行为', description: '多币种积分账户' },
+    behavior_records: { domain: '用户行为', description: '低碳行为流水' },
+    feedback_records: { domain: '用户行为', description: '用户评价记录' },
+    // 碳普惠
+    carbon_credits: { domain: '碳普惠', description: '碳积分账户' },
+    carbon_transactions: { domain: '碳普惠', description: '碳积分交易' },
+    carbon_exchange_records: { domain: '碳普惠', description: '碳交易所对接' },
+    carbon_milestones: { domain: '碳普惠', description: '碳减排里程碑' },
+    // 监管与合作
+    government_programs: { domain: '监管与合作', description: '政府激励项目' },
+    public_participation: { domain: '监管与合作', description: '公众参与记录' },
+    esg_reports: { domain: '监管与合作', description: 'ESG 报告归档' },
+    // 分析与报表
+    kpi_definitions: { domain: '分析与报表', description: '指标字典定义' },
+    data_snapshots: { domain: '分析与报表', description: '数据快照' },
+    report_templates: { domain: '分析与报表', description: '报表模板' },
+    regulatory_exports: { domain: '分析与报表', description: '对外报送记录' },
+    data_dashboard: { domain: '分析与报表', description: '数据看板' },
+    // 公共配置
+    dictionary_entries: { domain: '公共配置', description: '通用字典条目' },
+    strategy_rules: { domain: '公共配置', description: '策略与规则' },
+    task_schedules: { domain: '公共配置', description: '系统任务调度' },
+    // 用户与社区
+    users: { domain: '用户与社区', description: '用户基础档案' },
+    user_sessions: { domain: '用户与社区', description: '用户会话记录' },
+    friends: { domain: '用户与社区', description: '好友关系' },
+    posts: { domain: '用户与社区', description: '用户动态' },
+    user_profiles_extended: { domain: '用户与社区', description: '用户扩展档案' },
+    // 交易与饮食记录
+    orders: { domain: '交易', description: '平台订单' },
+    meals: { domain: '饮食记录', description: '餐食记录' },
+    daily_stats: { domain: '饮食记录', description: '每日统计' },
+    gardens: { domain: '饮食记录', description: '个人花园' },
+    // 基础数据
+    ingredients: { domain: '饮食记录', description: '食材基础库' },
+    recipes: { domain: '饮食记录', description: '食谱基础库' },
+    plant_templates: { domain: '饮食记录', description: '植物模板' },
+    meat_products: { domain: '饮食记录', description: '肉类碳足迹库' },
+    // 践行者与内容
+    practitioners: { domain: '践行者与内容', description: '践行者档案' },
+    practitioner_certifications: { domain: '践行者与内容', description: '践行者认证' },
+    tcm_wisdom: { domain: '践行者与内容', description: '中医智慧' },
+    wisdom_quotes: { domain: '践行者与内容', description: '语录' },
+    mentorship: { domain: '践行者与内容', description: '导师学员关系' },
+    knowledge_graph: { domain: '践行者与内容', description: '知识图谱' },
+    // 电商域
+    products: { domain: '电商', description: '商品主档' },
+    shopping_cart: { domain: '电商', description: '购物车条目' },
+    product_reviews: { domain: '电商', description: '商品评价' },
+    inventory: { domain: '电商', description: '库存记录' },
+    promotions: { domain: '电商', description: '营销活动' },
+    coupons: { domain: '电商', description: '优惠券定义' },
+    user_coupons: { domain: '电商', description: '用户优惠券' },
+  }
+  // 集合清单（来源：Docs/数据库集合总览.csv，结合项目新增集合）
+  const collections = [
+    // 系统与平台
+    'admin_users','role_configs','permissions','audit_logs','platform_configs','business_rules','sync_tasks','tenant_applications',
+    // 租户与组织
+    'tenants','staff_accounts','restaurant_profiles',
+    // 餐厅域
+    'restaurants','restaurant_menus','restaurant_menu_items','restaurant_orders','restaurant_reservations','restaurant_members','restaurant_campaigns','restaurant_reviews',
+    // 运营监测
+    'restaurant_operation_ledgers','restaurant_behavior_metrics',
+    // 认证域
+    'certification_applications','certification_stages','assessment_items','certification_badges','certification_documents',
+    // 菜单与碳核算
+    'recipe_versions','carbon_factors','carbon_assessments',
+    // 供应链溯源
+    'suppliers','ingredient_lots','trace_chains','trace_nodes',
+    // 用户行为
+    'points_accounts','behavior_records','feedback_records',
+    // 碳普惠
+    'carbon_credits','carbon_transactions','carbon_exchange_records','carbon_milestones',
+    // 监管与合作
+    'government_programs','public_participation','esg_reports',
+    // 分析与报表
+    'kpi_definitions','data_snapshots','report_templates','regulatory_exports','data_dashboard',
+    // 公共配置
+    'dictionary_entries','strategy_rules','task_schedules',
+    // 用户与社区
+    'users','user_sessions','friends','posts','user_profiles_extended',
+    // 交易与饮食记录
+    'orders','meals','daily_stats','gardens',
+    // 基础食材/菜谱等
+    'ingredients','recipes','plant_templates','meat_products',
+    // 践行者与内容
+    'practitioners','practitioner_certifications','tcm_wisdom','wisdom_quotes','mentorship','knowledge_graph',
+    // 电商域
+    'products','shopping_cart','product_reviews','inventory','promotions','coupons','user_coupons',
+  ]
+  for (const c of collections) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const count = await db.collection(c).count()
+      metrics[c] = count.total
+    } catch {
+      metrics[c] = 0
+    }
+  }
+  const list = collections.map((c) => ({
+    collection: c,
+    count: metrics[c] || 0,
+    domain: meta[c]?.domain || '未知',
+    description: meta[c]?.description || '',
+  }))
+  return { code: 0, data: { list, map: metrics } }
+}
+
+/**
+ * 备份导出占位：返回建议导出集合与下一步指引
+ */
+async function runBackupExport(params = {}) {
+  // 这里可后续接入导出到存储/CI流水线，目前返回指引
+  return {
+    code: 0,
+    message: '备份任务已受理（占位），请在控制台使用导出或扩展为存储导出',
+    data: {
+      recommendedCollections: [
+        'admin_users',
+        'role_configs',
+        'permissions',
+        'audit_logs',
+        'tenants',
+        'restaurants',
+        'recipes',
+        'orders',
+      ],
+    },
+  }
+}
+
+/**
+ * 将一组餐厅迁移到目标租户
+ * 入参：
+ *  - restaurantIds: string[] 必填
+ *  - toTenantId?: string 与 toTenantName 二选一
+ *  - toTenantName?: string
+ */
+async function transferRestaurants(params = {}) {
+  const { restaurantIds = [], toTenantId, toTenantName } = params
+  if (!Array.isArray(restaurantIds) || restaurantIds.length === 0) {
+    return { code: 400, message: 'restaurantIds 不能为空' }
+  }
+
+  // 获取目标租户ID
+  let targetTenantId = toTenantId || ''
+  if (!targetTenantId && toTenantName) {
+    const res = await db.collection('tenants').where({ name: toTenantName }).get()
+    if (res.data && res.data.length > 0) {
+      targetTenantId = res.data[0]._id
+    }
+  }
+  if (!targetTenantId) {
+    return { code: 404, message: '未找到目标租户，请提供 toTenantId 或正确的 toTenantName' }
+  }
+
+  // 校验租户存在
+  try {
+    const t = await db.collection('tenants').doc(targetTenantId).get()
+    if (!t.data) {
+      return { code: 404, message: '目标租户不存在' }
+    }
+  } catch {
+    return { code: 404, message: '目标租户不存在' }
+  }
+
+  const ok = []
+  const fail = []
+  for (const rid of restaurantIds) {
+    try {
+      await db.collection('restaurants').doc(rid).update({
+        data: { tenantId: targetTenantId, updatedAt: db.serverDate() },
+      })
+      ok.push(rid)
+    } catch (e) {
+      fail.push({ id: rid, error: e?.message || '更新失败' })
+    }
+  }
+
+  return { code: 0, message: '迁移完成', data: { toTenantId: targetTenantId, ok, fail } }
+}
+
+/**
+ * 迁移指定餐厅的全部关联数据到目标租户
+ * 入参：
+ *  - restaurantIds: string[] 必填
+ *  - toTenantId?: string 与 toTenantName 二选一
+ *  - toTenantName?: string
+ * 说明：
+ *  - 将以下集合中 restaurantId 属于列表的记录，其 tenantId 统一更新为目标租户
+ *  - 若集合不存在将跳过
+ */
+async function transferAllRestaurantData(params = {}) {
+  const { restaurantIds = [], toTenantId, toTenantName } = params
+  if (!Array.isArray(restaurantIds) || restaurantIds.length === 0) {
+    return { code: 400, message: 'restaurantIds 不能为空' }
+  }
+
+  // 获取目标租户ID
+  let targetTenantId = toTenantId || ''
+  if (!targetTenantId && toTenantName) {
+    const res = await db.collection('tenants').where({ name: toTenantName }).get()
+    if (res.data && res.data.length > 0) {
+      targetTenantId = res.data[0]._id
+    }
+  }
+  if (!targetTenantId) {
+    return { code: 404, message: '未找到目标租户，请提供 toTenantId 或正确的 toTenantName' }
+  }
+
+  // 确认租户存在
+  try {
+    const t = await db.collection('tenants').doc(targetTenantId).get()
+    if (!t.data) return { code: 404, message: '目标租户不存在' }
+  } catch {
+    return { code: 404, message: '目标租户不存在' }
+  }
+
+  // 需要迁移的集合（包含 restaurantId，且应带 tenantId 字段）
+  const collectionsWithRestaurantId = [
+    'menu_items',
+    'orders',
+    'recipes',
+    'carbon_footprints',
+    // v4 餐厅域
+    'restaurant_orders',
+    'restaurant_menu_items',
+    'restaurant_menus',
+    'restaurant_reservations',
+    'restaurant_members',
+    'restaurant_campaigns',
+    'restaurant_reviews',
+    // 运营与监测
+    'restaurant_operation_ledgers',
+    'restaurant_behavior_metrics',
+  ]
+
+  const summary = []
+
+  // 通用批处理更新：逐条读取以规避批量更新限制
+  const updateCollectionByRestaurantIds = async (col) => {
+    try {
+      const where = {
+        restaurantId: db.command.in(restaurantIds),
+      }
+      const pageSize = 100
+      let skip = 0
+      let totalUpdated = 0
+      // 计数
+      let hasMore = true
+      while (hasMore) {
+        const batch = await db.collection(col).where(where).skip(skip).limit(pageSize).get()
+        const list = batch.data || []
+        if (list.length === 0) {
+          hasMore = false
+          break
+        }
+        for (const doc of list) {
+          try {
+            await db.collection(col).doc(doc._id).update({
+              data: { tenantId: targetTenantId, updatedAt: db.serverDate() },
+            })
+            totalUpdated += 1
+          } catch (_) {}
+        }
+        skip += pageSize
+        hasMore = list.length === pageSize
+      }
+      summary.push({ collection: col, updated: totalUpdated })
+    } catch (error) {
+      // 集合不存在或查询失败，跳过
+      summary.push({ collection: col, updated: 0, skipped: true })
+    }
+  }
+
+  // 执行更新
+  for (const col of collectionsWithRestaurantId) {
+    // eslint-disable-next-line no-await-in-loop
+    await updateCollectionByRestaurantIds(col)
+  }
+
+  // 最后校验 restaurants 本身是否已迁移（冪等）
+  try {
+    for (const rid of restaurantIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await db.collection('restaurants').doc(rid).update({
+        data: { tenantId: targetTenantId, updatedAt: db.serverDate() },
+      })
+    }
+  } catch (_) {}
+
+  return { code: 0, message: '关联数据迁移完成', data: { toTenantId: targetTenantId, summary } }
+}
+
+/**
  * 获取租户信息
  */
 async function getTenant(tenantId) {
@@ -79,7 +1110,8 @@ async function getTenant(tenantId) {
       .get()
 
     return {
-      success: true,
+      code: 0,
+      message: '获取成功',
       data: {
         ...result.data,
         restaurants: restaurants.data || [],
@@ -87,8 +1119,8 @@ async function getTenant(tenantId) {
     }
   }
   return {
-    success: false,
-    error: '租户不存在',
+    code: 404,
+    message: '租户不存在',
   }
 }
 
@@ -96,6 +1128,14 @@ async function getTenant(tenantId) {
  * 获取餐厅列表
  */
 async function getRestaurants(tenantId, restaurantId) {
+  if (!tenantId) {
+    return {
+      code: 400,
+      message: 'tenantId不能为空',
+      data: [],
+    }
+  }
+
   let query = db.collection('restaurants').where({
     tenantId: tenantId,
   })
@@ -108,7 +1148,8 @@ async function getRestaurants(tenantId, restaurantId) {
 
   const result = await query.get()
   return {
-    success: true,
+    code: 0,
+    message: '获取成功',
     data: result.data || [],
   }
 }
@@ -174,6 +1215,10 @@ async function createRestaurant(data) {
  * 更新餐厅信息
  */
 async function updateRestaurant(restaurantId, data) {
+  // 获取更新前的餐厅信息，用于判断认证状态变化
+  const oldRestaurant = await db.collection('restaurants').doc(restaurantId).get()
+  const oldCertificationStatus = oldRestaurant.data?.certificationStatus || 'none'
+  
   const updateData = {
     ...data,
     updatedAt: db.serverDate(),
@@ -185,6 +1230,30 @@ async function updateRestaurant(restaurantId, data) {
   })
 
   const result = await db.collection('restaurants').doc(restaurantId).get()
+  const newRestaurant = result.data
+  
+  // 如果认证状态从非pending变为pending，触发餐厅认证申请消息
+  const newCertificationStatus = newRestaurant?.certificationStatus || 'none'
+  if (oldCertificationStatus !== 'pending' && newCertificationStatus === 'pending') {
+    try {
+      await cloud.callFunction({
+        name: 'message-event',
+        data: {
+          action: 'handleRestaurantCertApply',
+          data: {
+            restaurantId: restaurantId,
+            restaurantName: newRestaurant?.name || '',
+            tenantId: newRestaurant?.tenantId || '',
+            applyTime: new Date(),
+          },
+        },
+      })
+    } catch (error) {
+      // 消息通知失败不影响餐厅信息更新，仅记录日志
+      console.error('触发餐厅认证申请消息失败:', error)
+    }
+  }
+  
   return {
     success: true,
     data: result.data,
@@ -301,6 +1370,1209 @@ async function getRestaurantData(data) {
   return {
     success: true,
     data: result.data,
+  }
+}
+
+/**
+ * 获取行为统计数据
+ */
+async function getBehaviorMetrics(data) {
+  const { restaurantId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 构建查询条件
+    const query = db.collection('restaurant_behavior_metrics').where({
+      restaurantId: restaurantId,
+    })
+
+    // 添加日期筛选
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.date = db.command.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.date = db.command.lte(endDate)
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        query.where(dateCondition)
+      }
+    }
+
+    // 查询数据
+    const result = await query.orderBy('date', 'desc').get()
+    const metrics = result.data || []
+
+    // 计算统计数据
+    let totalLowCarbonRatio = 0
+    let totalCarbonReduction = 0
+    let totalLowCarbonChoices = 0
+    let totalChoices = 0
+
+    metrics.forEach((metric) => {
+      const lowCarbonRatio = metric.lowCarbonRatio || metric.low_carbon_ratio || 0
+      const carbonReduction = metric.carbonReduction || metric.carbon_reduction || 0
+      const lowCarbonChoices = metric.lowCarbonChoices || metric.low_carbon_choices || 0
+      const totalChoicesCount = metric.totalChoices || metric.total_choices || 0
+
+      totalLowCarbonRatio += lowCarbonRatio
+      totalCarbonReduction += carbonReduction
+      totalLowCarbonChoices += lowCarbonChoices
+      totalChoices += totalChoicesCount
+    })
+
+    // 计算平均值和总计
+    const avgLowCarbonRatio = metrics.length > 0 ? totalLowCarbonRatio / metrics.length : 0
+    const customerLowCarbonChoiceRate = totalChoices > 0 ? totalLowCarbonChoices / totalChoices : 0
+
+    // 格式化详细数据
+    const details = metrics.map((metric) => ({
+      id: metric._id || '',
+      date: metric.date || metric.createTime || '',
+      lowCarbonRatio: metric.lowCarbonRatio || metric.low_carbon_ratio || 0,
+      customerBehavior: metric.customerBehavior || metric.customer_behavior || '',
+      carbonReduction: metric.carbonReduction || metric.carbon_reduction || 0,
+    }))
+
+    // 生成图表数据（按日期分组）
+    const chartDataMap = new Map()
+    metrics.forEach((metric) => {
+      const date = metric.date || metric.createTime || ''
+      const month = date.substring(0, 7) // 提取年月 YYYY-MM
+      if (!chartDataMap.has(month)) {
+        chartDataMap.set(month, {
+          date: month,
+          ratio: 0,
+          count: 0,
+        })
+      }
+      const chartItem = chartDataMap.get(month)
+      chartItem.ratio += metric.lowCarbonRatio || metric.low_carbon_ratio || 0
+      chartItem.count += 1
+    })
+
+    const chartData = Array.from(chartDataMap.values())
+      .map((item) => ({
+        date: item.date,
+        ratio: item.count > 0 ? item.ratio / item.count : 0,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        statistics: {
+          lowCarbonRatio: avgLowCarbonRatio,
+          monthlyCarbonReduction: totalCarbonReduction,
+          customerLowCarbonChoiceRate: customerLowCarbonChoiceRate,
+          behaviorRecordCount: metrics.length,
+        },
+        chartData: chartData,
+        details: details,
+      },
+    }
+  } catch (error) {
+    console.error('获取行为统计数据失败:', error)
+    return {
+      code: 500,
+      message: '获取行为统计数据失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取优惠券列表
+ */
+async function listCoupons(data) {
+  const { restaurantId, page = 1, pageSize = 20 } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_campaigns').where({
+      restaurantId: restaurantId,
+    })
+
+    const result = await query
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .orderBy('createdAt', 'desc')
+      .get()
+
+    const coupons = result.data || []
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: coupons.map((coupon) => ({
+        id: coupon._id || '',
+        name: coupon.name || coupon.title || '',
+        type: coupon.type || 'discount',
+        value: coupon.value || coupon.discount || 0,
+        minAmount: coupon.minAmount || coupon.min_amount || 0,
+        totalCount: coupon.totalCount || coupon.total_count || 0,
+        usedCount: coupon.usedCount || coupon.used_count || 0,
+        validFrom: coupon.validFrom || coupon.valid_from || '',
+        validTo: coupon.validTo || coupon.valid_to || '',
+        status: coupon.status || 'active',
+      })),
+    }
+  } catch (error) {
+    console.error('获取优惠券列表失败:', error)
+    return {
+      code: 500,
+      message: '获取优惠券列表失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 创建优惠券
+ */
+async function createCoupon(data) {
+  const { restaurantId, ...couponData } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const coupon = {
+      restaurantId: restaurantId,
+      name: couponData.name || '',
+      type: couponData.type || 'discount',
+      value: couponData.value || 0,
+      minAmount: couponData.minAmount || 0,
+      totalCount: couponData.totalCount || 0,
+      usedCount: 0,
+      validFrom: couponData.validFrom || '',
+      validTo: couponData.validTo || '',
+      status: 'active',
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+    }
+
+    const result = await db.collection('restaurant_campaigns').add({
+      data: coupon,
+    })
+
+    return {
+      code: 0,
+      message: '创建成功',
+      data: {
+        id: result._id,
+        ...coupon,
+      },
+    }
+  } catch (error) {
+    console.error('创建优惠券失败:', error)
+    return {
+      code: 500,
+      message: '创建优惠券失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 更新优惠券
+ */
+async function updateCoupon(id, data) {
+  if (!id) {
+    return {
+      code: 400,
+      message: 'id 不能为空',
+    }
+  }
+
+  try {
+    const updateData = {
+      ...data,
+      updatedAt: db.serverDate(),
+    }
+
+    await db.collection('restaurant_campaigns').doc(id).update({
+      data: updateData,
+    })
+
+    return {
+      code: 0,
+      message: '更新成功',
+    }
+  } catch (error) {
+    console.error('更新优惠券失败:', error)
+    return {
+      code: 500,
+      message: '更新优惠券失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 删除优惠券
+ */
+async function deleteCoupon(id) {
+  if (!id) {
+    return {
+      code: 400,
+      message: 'id 不能为空',
+    }
+  }
+
+  try {
+    await db.collection('restaurant_campaigns').doc(id).remove()
+
+    return {
+      code: 0,
+      message: '删除成功',
+    }
+  } catch (error) {
+    console.error('删除优惠券失败:', error)
+    return {
+      code: 500,
+      message: '删除优惠券失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取评价列表
+ */
+async function listReviews(data) {
+  const { restaurantId, page = 1, pageSize = 20 } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_reviews').where({
+      restaurantId: restaurantId,
+    })
+
+    const result = await query
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .orderBy('reviewDate', 'desc')
+      .get()
+
+    const reviews = result.data || []
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: reviews.map((review) => ({
+        id: review._id || '',
+        orderNo: review.orderNo || review.order_id || '',
+        customerName: review.customerName || review.customer_name || '',
+        rating: review.rating || 0,
+        content: review.content || review.comment || '',
+        carbonSatisfaction: review.carbonSatisfaction || review.carbon_satisfaction || 0,
+        reviewDate: review.reviewDate || review.review_date || review.createdAt || '',
+        reply: review.reply || '',
+        replyDate: review.replyDate || review.reply_date || '',
+      })),
+    }
+  } catch (error) {
+    console.error('获取评价列表失败:', error)
+    return {
+      code: 500,
+      message: '获取评价列表失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 回复评价
+ */
+async function replyReview(reviewId, reply) {
+  if (!reviewId) {
+    return {
+      code: 400,
+      message: 'reviewId 不能为空',
+    }
+  }
+
+  if (!reply) {
+    return {
+      code: 400,
+      message: 'reply 不能为空',
+    }
+  }
+
+  try {
+    await db.collection('restaurant_reviews').doc(reviewId).update({
+      data: {
+        reply: reply,
+        replyDate: db.serverDate(),
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    return {
+      code: 0,
+      message: '回复成功',
+    }
+  } catch (error) {
+    console.error('回复评价失败:', error)
+    return {
+      code: 500,
+      message: '回复评价失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取订单列表
+ */
+async function listOrders(data) {
+  const { restaurantId, startDate, endDate, page = 1, pageSize = 20, status, keyword } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_orders').where({
+      restaurantId: restaurantId,
+    })
+
+    // 添加状态筛选
+    if (status) {
+      query.where({
+        status: status,
+      })
+    }
+
+    // 注意：日期筛选在内存中处理，因为需要兼容 orderDate 和 createdAt 字段
+
+    // 直接使用 createdAt 排序（订单数据中都有这个字段）
+    let result
+    try {
+      result = await query.orderBy('createdAt', 'desc').get()
+    } catch (error) {
+      // 如果 createdAt 排序失败，尝试不排序
+      try {
+        result = await query.get()
+        // 在内存中排序
+        result.data = (result.data || []).sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return dateB - dateA
+        })
+      } catch (err) {
+        console.error('查询订单失败:', err)
+        return {
+          code: 500,
+          message: '查询订单失败',
+          error: err.message,
+        }
+      }
+    }
+
+    let orders = result.data || []
+
+    // 添加日期筛选（在内存中过滤，兼容 orderDate 和 createdAt）
+    if (startDate || endDate) {
+      orders = orders.filter((order) => {
+        const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+        if (!orderDate) return false
+        
+        const dateStr = typeof orderDate === 'string' 
+          ? orderDate.substring(0, 10) 
+          : new Date(orderDate).toISOString().substring(0, 10)
+        
+        if (startDate && dateStr < startDate) return false
+        if (endDate && dateStr > endDate) return false
+        return true
+      })
+    }
+
+    // 添加关键词搜索（订单号或客户名称）- 在内存中过滤
+    if (keyword) {
+      const keywordLower = keyword.toLowerCase()
+      orders = orders.filter((order) => {
+        const orderNo = (order.orderNo || order.order_no || order.orderId || '').toLowerCase()
+        const customerName = (order.customerName || order.customer_name || order.userName || order.user_name || '').toLowerCase()
+        return orderNo.includes(keywordLower) || customerName.includes(keywordLower)
+      })
+    }
+
+    // 分页处理
+    const total = orders.length
+    orders = orders.slice((page - 1) * pageSize, page * pageSize)
+
+    // 格式化订单数据
+    const formattedOrders = orders.map((order) => ({
+      id: order._id || '',
+      orderNo: order.orderNo || order.order_no || order.orderId || '',
+      orderDate: order.orderDate || order.order_date || order.createdAt || '',
+      customerName: order.customerName || order.customer_name || order.userName || order.user_name || '',
+      amount: order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0,
+      carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0,
+      status: order.status || 'pending',
+    }))
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: formattedOrders,
+    }
+  } catch (error) {
+    console.error('获取订单列表失败:', error)
+    return {
+      code: 500,
+      message: '获取订单列表失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取订单详情
+ */
+async function getOrder(orderId) {
+  if (!orderId) {
+    return {
+      code: 400,
+      message: 'orderId 不能为空',
+    }
+  }
+
+  try {
+    const result = await db.collection('restaurant_orders').doc(orderId).get()
+
+    if (!result.data) {
+      return {
+        code: 404,
+        message: '订单不存在',
+      }
+    }
+
+    const order = result.data
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        id: order._id || '',
+        orderNo: order.orderNo || order.order_no || order.orderId || '',
+        orderDate: order.orderDate || order.order_date || order.createdAt || '',
+        customerName: order.customerName || order.customer_name || order.userName || order.user_name || '',
+        amount: order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0,
+        carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0,
+        status: order.status || 'pending',
+        items: order.items || [],
+      },
+    }
+  } catch (error) {
+    console.error('获取订单详情失败:', error)
+    return {
+      code: 500,
+      message: '获取订单详情失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 更新订单状态
+ */
+async function updateOrderStatus(orderId, status) {
+  if (!orderId) {
+    return {
+      code: 400,
+      message: 'orderId 不能为空',
+    }
+  }
+
+  if (!status) {
+    return {
+      code: 400,
+      message: 'status 不能为空',
+    }
+  }
+
+  try {
+    await db.collection('restaurant_orders').doc(orderId).update({
+      data: {
+        status: status,
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    return {
+      code: 0,
+      message: '更新成功',
+    }
+  } catch (error) {
+    console.error('更新订单状态失败:', error)
+    return {
+      code: 500,
+      message: '更新订单状态失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取订单碳统计
+ */
+async function getOrderCarbonStats(data) {
+  const { restaurantId, startDate, endDate } = data || {}
+  
+  console.log('🔍 getOrderCarbonStats - 接收参数:', { restaurantId, startDate, endDate })
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_orders').where({
+      restaurantId: restaurantId,
+    })
+    
+    console.log('📊 getOrderCarbonStats - 查询条件: restaurantId =', restaurantId)
+
+    // 添加日期筛选
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.orderDate = db.command.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.orderDate = db.command.lte(endDate)
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        query.where(dateCondition)
+      }
+    }
+
+    const result = await query.orderBy('orderDate', 'desc').get()
+    const orders = result.data || []
+    console.log('📊 getOrderCarbonStats - 查询到订单数量:', orders.length)
+    if (orders.length > 0) {
+      console.log('📊 getOrderCarbonStats - 第一条订单示例:', JSON.stringify(orders[0], null, 2))
+    }
+
+    // 计算统计数据
+    let todayCarbon = 0
+    let todayReduction = 0
+    let totalReduction = 0
+    const today = new Date().toISOString().split('T')[0]
+
+    const chartDataMap = new Map()
+
+    orders.forEach((order) => {
+      const carbon = order.totalCarbon || order.total_carbon || 0
+      const reduction = order.carbonReduction || order.carbon_reduction || 0
+      const orderDate = order.orderDate || order.order_date || ''
+
+      totalReduction += reduction
+
+      if (orderDate === today) {
+        todayCarbon += carbon
+        todayReduction += reduction
+      }
+
+      // 生成图表数据
+      const date = orderDate.substring(0, 10) // YYYY-MM-DD
+      if (!chartDataMap.has(date)) {
+        chartDataMap.set(date, {
+          date: date,
+          carbon: 0,
+        })
+      }
+      const chartItem = chartDataMap.get(date)
+      chartItem.carbon += carbon
+    })
+
+    const chartData = Array.from(chartDataMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+
+    // 格式化详细数据
+    const details = orders.map((order) => ({
+      id: order._id || '',
+      orderNo: order.orderNo || order.order_no || '',
+      orderDate: order.orderDate || order.order_date || '',
+      totalCarbon: order.totalCarbon || order.total_carbon || 0,
+      carbonReduction: order.carbonReduction || order.carbon_reduction || 0,
+      orderAmount: order.orderAmount || order.order_amount || 0,
+      status: order.status || '',
+    }))
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        statistics: {
+          todayCarbon: todayCarbon,
+          todayReduction: todayReduction,
+          totalReduction: totalReduction,
+          totalOrders: orders.length,
+        },
+        chartData: chartData,
+        orders: details, // 前端期望 orders 字段
+        details: details, // 保持兼容性
+      },
+    }
+  } catch (error) {
+    console.error('获取订单碳统计失败:', error)
+    return {
+      code: 500,
+      message: '获取订单碳统计失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 生成碳报告
+ */
+async function generateCarbonReport(data) {
+  const { restaurantId, type, period } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 解析日期范围
+    let startDate = ''
+    let endDate = ''
+    if (period) {
+      const [start, end] = period.split('_')
+      startDate = start
+      endDate = end
+    }
+
+    // 查询订单数据
+    const query = db.collection('restaurant_orders').where({
+      restaurantId: restaurantId,
+    })
+
+    if (startDate && endDate) {
+      query.where({
+        orderDate: db.command.gte(startDate).and(db.command.lte(endDate)),
+      })
+    }
+
+    const result = await query.get()
+    const orders = result.data || []
+
+    // 根据报告类型生成数据
+    if (type === 'monthly') {
+      const monthlyMap = new Map()
+      orders.forEach((order) => {
+        const orderDate = order.orderDate || order.order_date || ''
+        const month = orderDate.substring(0, 7) // YYYY-MM
+        if (!monthlyMap.has(month)) {
+          monthlyMap.set(month, {
+            month: month,
+            carbon: 0,
+            reduction: 0,
+          })
+        }
+        const item = monthlyMap.get(month)
+        item.carbon += order.totalCarbon || order.total_carbon || 0
+        item.reduction += order.carbonReduction || order.carbon_reduction || 0
+      })
+
+      const monthlyData = Array.from(monthlyMap.values())
+        .sort((a, b) => a.month.localeCompare(b.month))
+
+      return {
+        code: 0,
+        message: '生成成功',
+        data: {
+          type: 'monthly',
+          monthlyData: monthlyData,
+        },
+      }
+    } else if (type === 'yearly') {
+      const yearlyMap = new Map()
+      orders.forEach((order) => {
+        const orderDate = order.orderDate || order.order_date || ''
+        const year = orderDate.substring(0, 4) // YYYY
+        if (!yearlyMap.has(year)) {
+          yearlyMap.set(year, {
+            year: year,
+            carbon: 0,
+            reduction: 0,
+          })
+        }
+        const item = yearlyMap.get(year)
+        item.carbon += order.totalCarbon || order.total_carbon || 0
+        item.reduction += order.carbonReduction || order.carbon_reduction || 0
+      })
+
+      const yearlyData = Array.from(yearlyMap.values())
+        .sort((a, b) => a.year.localeCompare(b.year))
+
+      return {
+        code: 0,
+        message: '生成成功',
+        data: {
+          type: 'yearly',
+          yearlyData: yearlyData,
+        },
+      }
+    } else if (type === 'esg') {
+      // ESG报告数据
+      let totalCarbon = 0
+      let totalReduction = 0
+      let totalOrders = orders.length
+
+      orders.forEach((order) => {
+        totalCarbon += order.totalCarbon || order.total_carbon || 0
+        totalReduction += order.carbonReduction || order.carbon_reduction || 0
+      })
+
+      return {
+        code: 0,
+        message: '生成成功',
+        data: {
+          type: 'esg',
+          esgData: {
+            totalCarbon: totalCarbon,
+            totalReduction: totalReduction,
+            totalOrders: totalOrders,
+            reductionRate: totalCarbon > 0 ? (totalReduction / totalCarbon) * 100 : 0,
+          },
+        },
+      }
+    }
+
+    return {
+      code: 400,
+      message: '不支持的报告类型',
+    }
+  } catch (error) {
+    console.error('生成碳报告失败:', error)
+    return {
+      code: 500,
+      message: '生成碳报告失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取菜单列表
+ */
+async function getMenuList(data) {
+  const { restaurantId, page = 1, pageSize = 20 } = data || {}
+  
+  console.log('🔍 getMenuList - 接收参数:', { restaurantId, page, pageSize })
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 尝试从多个可能的集合中查询菜单数据
+    // 1. restaurant_menu_items - 餐厅菜单项
+    // 2. restaurant_menus - 餐厅菜单
+    // 3. menu_items - 菜单项（通用）
+    
+    let menus = []
+    
+    // 首先尝试 restaurant_menu_items
+    try {
+      console.log('📊 getMenuList - 查询 restaurant_menu_items, restaurantId =', restaurantId)
+      const menuItemsResult = await db.collection('restaurant_menu_items')
+        .where({
+          restaurantId: restaurantId,
+        })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .orderBy('createdAt', 'desc')
+        .get()
+      
+      console.log('📊 getMenuList - restaurant_menu_items 查询结果数量:', menuItemsResult.data?.length || 0)
+      if (menuItemsResult.data && menuItemsResult.data.length > 0) {
+        menus = menuItemsResult.data
+        console.log('✅ getMenuList - 从 restaurant_menu_items 获取到数据')
+      }
+    } catch (error) {
+      console.log('❌ restaurant_menu_items 集合查询失败，尝试其他集合:', error.message)
+    }
+    
+    // 如果 restaurant_menu_items 没有数据，尝试 restaurant_menus
+    if (menus.length === 0) {
+      try {
+        const menusResult = await db.collection('restaurant_menus')
+          .where({
+            restaurantId: restaurantId,
+          })
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .orderBy('createdAt', 'desc')
+          .get()
+        
+        if (menusResult.data && menusResult.data.length > 0) {
+          menus = menusResult.data
+        }
+      } catch (error) {
+        console.log('restaurant_menus 集合查询失败，尝试 menu_items')
+      }
+    }
+    
+    // 如果还是没有数据，尝试 menu_items
+    if (menus.length === 0) {
+      try {
+        const itemsResult = await db.collection('menu_items')
+          .where({
+            restaurantId: restaurantId,
+          })
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .orderBy('createdAt', 'desc')
+          .get()
+        
+        if (itemsResult.data && itemsResult.data.length > 0) {
+          menus = itemsResult.data
+        }
+      } catch (error) {
+        console.log('menu_items 集合查询失败')
+      }
+    }
+
+    // 格式化菜单数据
+    const formattedMenus = menus.map((menu) => ({
+      id: menu._id || '',
+      _id: menu._id,
+      name: menu.name || menu.dishName || menu.menuName || '',
+      carbonFootprint: menu.carbonFootprint || menu.carbon_footprint || menu.totalCarbonFootprint || 0,
+      carbonLevel: menu.carbonLevel || menu.carbon_level || 'medium',
+      carbonScore: menu.carbonScore || menu.carbon_score || 0,
+      ingredients: menu.ingredients || menu.ingredient_list || menu.ingredientList || '',
+      status: menu.status || 'draft',
+      restaurantId: menu.restaurantId || restaurantId,
+    }))
+    
+    console.log('📊 getMenuList - 格式化后的菜单数量:', formattedMenus.length)
+    if (formattedMenus.length > 0) {
+      console.log('📊 getMenuList - 第一条菜单示例:', JSON.stringify(formattedMenus[0], null, 2))
+    }
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: formattedMenus,
+    }
+  } catch (error) {
+    console.error('获取菜单列表失败:', error)
+    return {
+      code: 500,
+      message: '获取菜单列表失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取数据看板统计数据
+ * @param {Object} data - 查询参数 { restaurantId, tenantId }
+ * @param {Object} currentUser - 当前登录用户信息
+ */
+async function getDashboard(data, currentUser) {
+  const { restaurantId, tenantId } = data || {}
+  const userRole = currentUser?.role || ''
+
+  // 构建查询条件
+  const recipeQuery = {}
+  const orderQuery = {}
+  const restaurantQuery = {}
+
+  // 平台运营角色或系统管理员：查看所有数据，不区分租户
+  const isPlatformOperator = userRole === 'platform_operator' || userRole === 'system_admin'
+  
+  if (isPlatformOperator) {
+    // 平台运营角色：不应用任何过滤，返回全平台数据
+    // recipeQuery, orderQuery, restaurantQuery 保持为空对象
+  } else {
+    // 其他角色（如 restaurant_admin）：根据租户/餐厅过滤数据
+    
+    // 如果指定了餐厅ID，只查询该餐厅的数据
+    if (restaurantId) {
+      recipeQuery.restaurantId = restaurantId
+      orderQuery.restaurantId = restaurantId
+    }
+
+    // 如果指定了租户ID，查询该租户下的数据
+    // 如果没有指定租户ID，但用户有 tenantId，使用用户的 tenantId
+    const targetTenantId = tenantId || currentUser?.tenantId
+    
+    if (targetTenantId) {
+      restaurantQuery.tenantId = targetTenantId
+      // 租户下的餐厅ID列表（用于查询订单和菜谱）
+      const restaurantsRes = await db
+        .collection('restaurants')
+        .where({ tenantId: targetTenantId })
+        .field({ _id: 1 })
+        .get()
+      
+      const restaurantIds = restaurantsRes.data.map((r) => r._id)
+      
+      if (restaurantIds.length > 0) {
+        if (!restaurantId) {
+          // 如果没有指定具体餐厅，则查询租户下所有餐厅
+          // 菜谱可能使用 restaurantId 或 tenantId 字段，需要同时查询
+          // 使用 _.or() 构建复合查询条件
+          recipeQuery = _.or([
+            { restaurantId: _.in(restaurantIds) },
+            { tenantId: _.in(restaurantIds) },
+            { tenantId: targetTenantId } // 也支持直接使用租户ID
+          ])
+          orderQuery.restaurantId = _.in(restaurantIds)
+        }
+      } else {
+        // 租户下没有餐厅，返回空数据
+        return {
+          code: 0,
+          data: {
+            totalRecipes: 0,
+            totalCarbonReduction: 0,
+            certifiedRestaurants: 0,
+            activeUsers: 0,
+            todayOrders: 0,
+            todayRevenue: 0,
+          },
+        }
+      }
+    } else {
+      // 既没有指定租户ID，用户也没有 tenantId，返回空数据
+      return {
+        code: 0,
+        data: {
+          totalRecipes: 0,
+          totalCarbonReduction: 0,
+          certifiedRestaurants: 0,
+          activeUsers: 0,
+          todayOrders: 0,
+          todayRevenue: 0,
+        },
+      }
+    }
+  }
+
+  // 1. 统计总菜谱数
+  let totalRecipes = 0
+  try {
+    // 如果查询条件为空对象，查询所有数据
+    if (Object.keys(recipeQuery).length > 0) {
+      const recipesRes = await db.collection('recipes').where(recipeQuery).count()
+      totalRecipes = recipesRes.total || 0
+    } else {
+      // 平台运营角色：查询所有菜谱
+      const recipesRes = await db.collection('recipes').count()
+      totalRecipes = recipesRes.total || 0
+    }
+  } catch (error) {
+    console.error('统计菜谱数失败:', error)
+    // 如果查询失败，尝试更简单的查询方式
+    try {
+      if (Object.keys(recipeQuery).length > 0) {
+        // 如果使用复杂查询失败，尝试分别查询 restaurantId 和 tenantId
+        const allRecipes = await db.collection('recipes')
+          .where(_.or([
+            { restaurantId: recipeQuery.restaurantId || recipeQuery.tenantId },
+            { tenantId: recipeQuery.tenantId || recipeQuery.restaurantId }
+          ]))
+          .get()
+        totalRecipes = allRecipes.data.length
+      }
+    } catch (fallbackError) {
+      console.error('菜谱查询备用方法也失败:', fallbackError)
+    }
+  }
+
+  // 2. 统计总碳减排量（从 restaurant_orders 集合）
+  let totalCarbonReduction = 0
+  try {
+    // 如果查询条件为空对象，查询所有数据
+    const ordersQueryObj = Object.keys(orderQuery).length > 0
+      ? db.collection('restaurant_orders').where(orderQuery)
+      : db.collection('restaurant_orders')
+    const ordersRes = await ordersQueryObj
+      .field({
+        'carbonImpact.carbonSavingsVsMeat': 1,
+      })
+      .get()
+
+    totalCarbonReduction = ordersRes.data.reduce((sum, order) => {
+      const reduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+      return sum + reduction
+    }, 0)
+  } catch (error) {
+    console.error('统计碳减排量失败:', error)
+    // 如果 restaurant_orders 不存在，尝试从 meals 集合统计
+    try {
+      const mealsQuery = {}
+      if (restaurantId) {
+        mealsQuery['restaurant.restaurantId'] = restaurantId
+      }
+      const mealsRes = await db
+        .collection('meals')
+        .where(mealsQuery)
+        .field({
+          'comparedToMeat.reduction': 1,
+        })
+        .get()
+
+      totalCarbonReduction = mealsRes.data.reduce((sum, meal) => {
+        const reduction = meal.comparedToMeat?.reduction || 0
+        return sum + reduction
+      }, 0)
+    } catch (mealsError) {
+      console.error('从 meals 统计碳减排量失败:', mealsError)
+    }
+  }
+
+  // 3. 统计认证餐厅数
+  let certifiedRestaurants = 0
+  try {
+    // 构建查询条件：先查询所有符合条件的餐厅，然后在代码中过滤认证餐厅
+    // 这样可以避免复杂的 MongoDB 查询语法问题
+    let baseQuery = {}
+    if (Object.keys(restaurantQuery).length > 0) {
+      baseQuery = { ...restaurantQuery }
+    }
+    
+    // 查询所有餐厅（根据租户条件）
+    const allRestaurants = Object.keys(baseQuery).length > 0
+      ? await db.collection('restaurants').where(baseQuery).get()
+      : await db.collection('restaurants').get()
+    
+    // 在代码中过滤认证餐厅：certificationLevel 存在且不为空
+    certifiedRestaurants = allRestaurants.data.filter(r => 
+      r.certificationLevel && 
+      r.certificationLevel !== null && 
+      r.certificationLevel !== '' &&
+      r.certificationLevel !== undefined
+    ).length
+  } catch (error) {
+    console.error('统计认证餐厅数失败:', error)
+  }
+
+  // 4. 统计活跃用户数（最近30天有活动的用户）
+  let activeUsers = 0
+  try {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
+    // 如果指定了餐厅，查询该餐厅的订单用户
+    if (restaurantId && !isPlatformOperator) {
+      const activeUserIds = await db
+        .collection('restaurant_orders')
+        .where({
+          restaurantId,
+          createdAt: _.gte(thirtyDaysAgo),
+        })
+        .field({ userId: 1 })
+        .get()
+      
+      const uniqueUserIds = [...new Set(activeUserIds.data.map((o) => o.userId).filter(Boolean))]
+      activeUsers = uniqueUserIds.length
+    } else {
+      // 平台运营角色或未指定餐厅：查询所有最近30天有活动的用户
+      const activeUsersRes = await db
+        .collection('users')
+        .where({
+          lastLoginAt: _.gte(thirtyDaysAgo),
+        })
+        .count()
+      activeUsers = activeUsersRes.total || 0
+    }
+  } catch (error) {
+    console.error('统计活跃用户数失败:', error)
+  }
+
+  // 5. 统计今日订单数和营收
+  let todayOrders = 0
+  let todayRevenue = 0
+  
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const todayOrderQuery = {
+      ...orderQuery,
+      createdAt: _.gte(today).and(_.lt(tomorrow)),
+    }
+    
+    // 如果 orderQuery 为空，只使用日期条件
+    const todayQueryObj = Object.keys(orderQuery).length > 0
+      ? db.collection('restaurant_orders').where(todayOrderQuery)
+      : db.collection('restaurant_orders').where({
+          createdAt: _.gte(today).and(_.lt(tomorrow)),
+        })
+
+    const todayOrdersRes = await todayQueryObj
+      .field({
+        'pricing.total': 1,
+      })
+      .get()
+
+    todayOrders = todayOrdersRes.data.length
+    todayRevenue = todayOrdersRes.data.reduce((sum, order) => {
+      const total = order.pricing?.total || 0
+      return sum + total
+    }, 0)
+  } catch (error) {
+    console.error('统计今日订单失败:', error)
+  }
+
+  return {
+    code: 0,
+    data: {
+      totalRecipes,
+      totalCarbonReduction: Math.round(totalCarbonReduction * 100) / 100, // 保留2位小数
+      certifiedRestaurants,
+      activeUsers,
+      todayOrders,
+      todayRevenue: Math.round(todayRevenue * 100) / 100, // 保留2位小数
+    },
   }
 }
 

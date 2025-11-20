@@ -1,4 +1,4 @@
-import { getCloudbaseApp, getAuthInstance } from '@/utils/cloudbase-init'
+import { getAuthInstance, getCloudbaseApp } from '@/utils/cloudbase-init'
 
 /**
  * 调用云函数（使用腾讯云开发Web SDK）
@@ -19,35 +19,31 @@ export const callCloudFunction = async (
         const loginState = await auth.getLoginState()
         
         if (!loginState) {
-          console.warn('未登录状态，尝试匿名登录...')
           try {
             await auth.signInAnonymously()
-            console.log('匿名登录成功')
           } catch (signInError: any) {
-            if (signInError.code === 'ALREADY_SIGNED_IN') {
-              console.log('用户已登录（重复登录）')
-            } else {
-              console.error('匿名登录失败:', signInError.message || signInError)
+            // 忽略重复登录错误
+            if (signInError.code !== 'ALREADY_SIGNED_IN') {
+              // 静默处理登录错误，不阻止云函数调用
             }
           }
-        } else {
-          console.log('已登录，用户ID:', loginState.user.uid)
         }
       }
     } catch (authError: any) {
-      console.warn('登录检查失败，继续尝试调用云函数:', authError.message || authError)
-      // 不阻止云函数调用
+      // 静默处理认证错误，不阻止云函数调用
     }
     
-    console.log(`调用云函数: ${functionName}`, data)
-    
     // 使用云开发SDK调用云函数
+    // 透传后端鉴权所需的 token（用于函数内权限校验）
+    const token = (typeof window !== 'undefined' && localStorage.getItem('admin_token')) || ''
+    const payload = { ...(data || {}) }
+    if (token && !payload.token) {
+      payload.token = token
+    }
     const result = await app.callFunction({
       name: functionName,
-      data: data || {},
+      data: payload,
     })
-    
-    console.log(`云函数 ${functionName} 返回:`, result)
     
     // 检查返回结果
     // 云开发SDK返回格式: { result: {...}, requestId: '...' }
@@ -56,22 +52,21 @@ export const callCloudFunction = async (
       
       // 如果云函数返回的是 { code, message, data } 格式
       if (resultData.code !== undefined) {
-        console.log(`云函数返回格式: { code: ${resultData.code}, data: ... }`)
-        console.log(`返回数据详情:`, {
-          code: resultData.code,
-          message: resultData.message,
-          dataType: typeof resultData.data,
-          dataIsArray: Array.isArray(resultData.data),
-          dataKeys: resultData.data ? Object.keys(resultData.data) : null,
-          dataLength: Array.isArray(resultData.data) ? resultData.data.length : 
-                      (resultData.data?.data && Array.isArray(resultData.data.data)) ? resultData.data.data.length : null,
-        })
+        if (resultData.code === 401) {
+          try {
+            localStorage.removeItem('admin_token')
+            localStorage.removeItem('admin_user')
+            localStorage.removeItem('admin_permissions')
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login'
+            }
+          } catch {}
+        }
         return resultData
       }
       
       // 如果直接返回数据对象
       if (resultData.data !== undefined) {
-        console.log(`云函数返回格式: { data: {...} }`)
         return {
           code: 0,
           ...resultData,
@@ -79,7 +74,6 @@ export const callCloudFunction = async (
       }
       
       // 如果直接返回数据（数组或其他）
-      console.log(`云函数返回格式: 直接数据`)
       return {
         code: 0,
         data: resultData,
@@ -87,7 +81,6 @@ export const callCloudFunction = async (
     }
     
     // 如果没有 result 字段，返回原始结果
-    console.log(`云函数返回格式: 原始结果`)
     return {
       code: 0,
       data: result,
@@ -106,10 +99,9 @@ export const callCloudFunction = async (
           const auth = getAuthInstance()
           if (auth) {
             await auth.signInAnonymously()
-            console.log('重新登录成功，可以重试调用')
           }
         } catch (loginError) {
-          console.error('重新登录失败:', loginError)
+          // 静默处理登录错误
         }
       }
       
@@ -126,15 +118,15 @@ export const callCloudFunction = async (
  * 菜谱管理API
  */
 export const recipeAPI = {
-  // 创建菜谱
+  // 创建菜谱（租户隔离）
   create: (recipe: any) =>
     callCloudFunction('recipe', { action: 'create', recipe }),
 
-  // 更新菜谱
+  // 更新菜谱（租户隔离）
   update: (recipeId: string, recipe: any) =>
     callCloudFunction('recipe', { action: 'update', recipeId, recipe }),
 
-  // 删除菜谱
+  // 删除菜谱（租户隔离）
   delete: (recipeId: string) =>
     callCloudFunction('recipe', { action: 'delete', recipeId }),
 
@@ -149,6 +141,7 @@ export const recipeAPI = {
     status?: string
     category?: string
     carbonLabel?: string
+    isBaseRecipe?: boolean
     page?: number
     pageSize?: number
   }) =>
@@ -157,6 +150,19 @@ export const recipeAPI = {
   // 批量导入
   batchImport: (recipes: any[]) =>
     callCloudFunction('recipe', { action: 'batchImport', recipes }),
+
+  // ===== 基础食谱管理（仅平台运营者） =====
+  // 创建基础食谱
+  createBase: (data: any) =>
+    callCloudFunction('recipe', { action: 'createBaseRecipe', data }),
+
+  // 更新基础食谱
+  updateBase: (recipeId: string, data: any) =>
+    callCloudFunction('recipe', { action: 'updateBaseRecipe', recipeId, data }),
+
+  // 删除基础食谱
+  deleteBase: (recipeId: string) =>
+    callCloudFunction('recipe', { action: 'deleteBaseRecipe', recipeId }),
 }
 
 /**
@@ -183,6 +189,56 @@ export const ingredientAPI = {
       page,
       pageSize,
     }),
+
+  // ===== 基础食材管理（仅平台运营者） =====
+  // 创建基础食材
+  createBase: (data: any) =>
+    callCloudFunction('ingredient', { action: 'createBaseIngredient', data }),
+
+  // 更新基础食材
+  updateBase: (ingredientId: string, data: any) =>
+    callCloudFunction('ingredient', { action: 'updateBaseIngredient', ingredientId, data }),
+
+  // 删除基础食材
+  deleteBase: (ingredientId: string) =>
+    callCloudFunction('ingredient', { action: 'deleteBaseIngredient', ingredientId }),
+}
+
+/**
+ * 基础荤食食材API
+ */
+export const meatIngredientAPI = {
+  // 获取单个荤食食材
+  get: (ingredientId: string) =>
+    callCloudFunction('meat-ingredient', { action: 'get', ingredientId }),
+
+  // 获取荤食食材列表
+  list: (params?: { keyword?: string; category?: string; page?: number; pageSize?: number }) =>
+    callCloudFunction('meat-ingredient', {
+      action: 'list',
+      ...params,
+    }),
+
+  // 搜索荤食食材
+  search: (keyword: string, page?: number, pageSize?: number) =>
+    callCloudFunction('meat-ingredient', {
+      action: 'search',
+      keyword,
+      page,
+      pageSize,
+    }),
+
+  // 创建基础荤食食材
+  createBase: (data: any) =>
+    callCloudFunction('meat-ingredient', { action: 'createBaseMeatIngredient', data }),
+
+  // 更新基础荤食食材
+  updateBase: (ingredientId: string, data: any) =>
+    callCloudFunction('meat-ingredient', { action: 'updateBaseMeatIngredient', ingredientId, data }),
+
+  // 删除基础荤食食材
+  deleteBase: (ingredientId: string) =>
+    callCloudFunction('meat-ingredient', { action: 'deleteBaseMeatIngredient', ingredientId }),
 }
 
 /**
@@ -257,23 +313,48 @@ export const carbonFootprintAPI = {
 
   // 获取菜单列表（根据restaurantId）
   getMenuList: (params?: { restaurantId?: string; page?: number; pageSize?: number }) =>
-    callCloudFunction('restaurant-carbon-calculator', {
+    callCloudFunction('tenant', {
       action: 'getMenuList',
       ...params,
     }),
 
   // 获取订单碳足迹统计
-  getOrderCarbonStats: (params: { startDate?: string; endDate?: string }) =>
-    callCloudFunction('restaurant-carbon-calculator', {
+  getOrderCarbonStats: (params: { restaurantId?: string; startDate?: string; endDate?: string }) =>
+    callCloudFunction('tenant', {
       action: 'getOrderCarbonStats',
       ...params,
     }),
 
   // 生成碳报告
-  generateReport: (params: { type: 'monthly' | 'yearly' | 'esg'; period: string }) =>
-    callCloudFunction('restaurant-esg-report', {
-      action: 'generateReport',
+  generateReport: (params: { restaurantId?: string; type: 'monthly' | 'yearly' | 'esg'; period: string }) =>
+    callCloudFunction('tenant', {
+      action: 'generateCarbonReport',
       ...params,
+    }),
+
+  // 计算菜谱碳足迹（含基准值）
+  calculateMenuItemCarbon: (data: {
+    restaurantId: string
+    mealType: 'meat_simple' | 'meat_full'
+    energyType: 'electric' | 'gas' | 'mixed'
+    ingredients?: Array<{ ingredientId: string; weight: number; unit?: string }>
+    cookingMethod?: string
+    cookingTime?: number
+    packaging?: { type: string; weight?: number }
+  }) =>
+    callCloudFunction('restaurant-menu-carbon', {
+      action: 'calculateMenuItemCarbon',
+      data,
+    }),
+
+  // 批量重新计算菜谱碳足迹
+  recalculateMenuItems: (data: {
+    restaurantId: string
+    menuItemIds?: string[]
+  }) =>
+    callCloudFunction('restaurant-menu-carbon', {
+      action: 'recalculateMenuItems',
+      data,
     }),
 }
 
@@ -352,19 +433,19 @@ export const traceabilityAPI = {
 export const operationAPI = {
   // 订单管理
   order: {
-    list: (params?: { restaurantId?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }) =>
-      callCloudFunction('restaurant-order-sync', {
-        action: 'list',
-        ...params,
+    list: (params?: { restaurantId?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number; status?: string; keyword?: string }) =>
+      callCloudFunction('tenant', {
+        action: 'listOrders',
+        data: params,
       }),
     get: (orderId: string) =>
-      callCloudFunction('restaurant-order-sync', {
-        action: 'get',
+      callCloudFunction('tenant', {
+        action: 'getOrder',
         orderId,
       }),
     updateStatus: (orderId: string, status: string) =>
-      callCloudFunction('restaurant-order-sync', {
-        action: 'updateStatus',
+      callCloudFunction('tenant', {
+        action: 'updateOrderStatus',
         orderId,
         status,
       }),
@@ -398,49 +479,47 @@ export const operationAPI = {
   // 行为统计
   behavior: {
     getMetrics: (params?: any) =>
-      callCloudFunction('behavior-analytics', {
-        action: 'getMetrics',
-        ...params,
+      callCloudFunction('tenant', {
+        action: 'getBehaviorMetrics',
+        data: params,
       }),
   },
 
   // 优惠券管理
   coupon: {
     list: (params?: any) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'listCoupons',
-        ...params,
+        data: params,
       }),
     create: (data: any) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'createCoupon',
-        data,
+        data: data,
       }),
     update: (id: string, data: any) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'updateCoupon',
-        id,
-        data,
+        data: { id, data },
       }),
     delete: (id: string) =>
-      callCloudFunction('restaurant-campaigns', {
+      callCloudFunction('tenant', {
         action: 'deleteCoupon',
-        id,
+        data: { id },
       }),
   },
 
   // 用户评价
   review: {
     list: (params?: any) =>
-      callCloudFunction('restaurant-reviews', {
-        action: 'list',
-        ...params,
+      callCloudFunction('tenant', {
+        action: 'listReviews',
+        data: params,
       }),
     reply: (reviewId: string, reply: string) =>
-      callCloudFunction('restaurant-reviews', {
-        action: 'reply',
-        reviewId,
-        reply,
+      callCloudFunction('tenant', {
+        action: 'replyReview',
+        data: { reviewId, reply },
       }),
   },
 }
@@ -472,9 +551,9 @@ export const reportAPI = {
 
   // 数据看板
   dashboard: (params?: any) =>
-    callCloudFunction('restaurant-dashboard', {
+    callCloudFunction('tenant', {
       action: 'getDashboard',
-      ...params,
+      data: params,
     }),
 }
 
@@ -517,6 +596,20 @@ export const tenantAPI = {
       data: { restaurantId, ...data },
     }),
 
+  // 创建菜谱
+  createMenuItem: (data: any) =>
+    callCloudFunction('tenant', {
+      action: 'createMenuItem',
+      data,
+    }),
+
+  // 更新菜谱
+  updateMenuItem: (menuItemId: string, data: any) =>
+    callCloudFunction('tenant', {
+      action: 'updateMenuItem',
+      data: { menuItemId, ...data },
+    }),
+
   // 根据restaurantId获取餐厅相关数据
   getRestaurantData: (params: {
     restaurantId: string
@@ -529,6 +622,25 @@ export const tenantAPI = {
     callCloudFunction('tenant', {
       action: 'getRestaurantData',
       data: params,
+    }),
+}
+
+/**
+ * 管理后台认证API
+ */
+export const authAPI = {
+  // 登录
+  login: (username: string, password: string) =>
+    callCloudFunction('admin-auth', {
+      action: 'login',
+      data: { username, password },
+    }),
+
+  // 验证Token
+  verifyToken: (token: string) =>
+    callCloudFunction('admin-auth', {
+      action: 'verifyToken',
+      data: { token },
     }),
 }
 
@@ -701,10 +813,233 @@ export const platformAPI = {
   },
 }
 
+/**
+ * 入驻申请与账号审批 API
+ */
+export const onboardingAPI = {
+  // 提交入驻申请（餐厅管理员/租户自助）
+  apply: (data: {
+    organizationName: string
+    contactName: string
+    contactPhone: string
+    contactEmail?: string
+    restaurantCount?: number
+    city?: string
+    note?: string
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'applyForOnboarding',
+      data,
+    }),
+
+  // 平台侧：获取入驻申请列表
+  listApplications: (params?: {
+    status?: 'pending' | 'approved' | 'rejected'
+    keyword?: string
+    page?: number
+    pageSize?: number
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'listOnboardingApplications',
+      data: params || {},
+    }),
+
+  // 平台侧：审批通过（可选择自动创建账号与租户）
+  approve: (applicationId: string, options?: { createAccount?: boolean }) =>
+    callCloudFunction('tenant', {
+      action: 'approveOnboardingApplication',
+      data: { applicationId, ...(options || {}) },
+    }),
+
+  // 平台侧：驳回
+  reject: (applicationId: string, reason?: string) =>
+    callCloudFunction('tenant', {
+      action: 'rejectOnboardingApplication',
+      data: { applicationId, reason },
+    }),
+}
+
+/**
+ * 管理员账号（仅后台邀请/创建）
+ */
+export const adminUsersAPI = {
+  // 创建管理员账号（受控角色）
+  create: (data: {
+    username: string
+    password: string
+    name?: string
+    email?: string
+    phone?: string
+    role: 'system_admin' | 'platform_operator' | 'carbon_specialist'
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'createAdminUser',
+      data,
+    }),
+
+  // 列表
+  list: (params?: {
+    status?: 'active' | 'disabled'
+    role?: string
+    keyword?: string
+    page?: number
+    pageSize?: number
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'listAdminUsers',
+      data: params || {},
+    }),
+
+  // 更新状态
+  updateStatus: (userId: string, status: 'active' | 'disabled') =>
+    callCloudFunction('tenant', {
+      action: 'updateAdminUserStatus',
+      data: { userId, status },
+    }),
+
+  // 重置密码
+  resetPassword: (userId: string) =>
+    callCloudFunction('tenant', {
+      action: 'resetAdminUserPassword',
+      data: { userId },
+    }),
+
+  // 软删除
+  softDelete: (userId: string) =>
+    callCloudFunction('tenant', {
+      action: 'softDeleteAdminUser',
+      data: { userId },
+    }),
+}
+
+/**
+ * 消息管理 API
+ */
+export const messageAPI = {
+  // 获取用户消息列表
+  getUserMessages: (params?: {
+    userId?: string
+    status?: 'sent' | 'read'
+    page?: number
+    pageSize?: number
+  }) =>
+    callCloudFunction('message-manage', {
+      action: 'getUserMessages',
+      data: params || {},
+    }),
+
+  // 标记消息为已读
+  markAsRead: (data: { userMessageId?: string; messageId?: string; userId?: string }) =>
+    callCloudFunction('message-manage', {
+      action: 'markAsRead',
+      data,
+    }),
+
+  // 获取消息详情
+  getMessage: (messageId: string) =>
+    callCloudFunction('message-manage', {
+      action: 'getMessage',
+      data: { messageId },
+    }),
+
+  // 创建消息（管理员）
+  createMessage: (data: {
+    title: string
+    content: string
+    type?: 'business' | 'system'
+    priority?: 'urgent' | 'important' | 'normal'
+    sendType?: 'immediate' | 'scheduled'
+    scheduledTime?: Date
+    targetType?: 'all' | 'specific' | 'role'
+    targetUsers?: string[]
+    targetRoles?: string[]
+    link?: string
+  }) =>
+    callCloudFunction('message-manage', {
+      action: 'createMessage',
+      data,
+    }),
+
+  // 发送消息
+  sendMessage: (messageId: string) =>
+    callCloudFunction('message-manage', {
+      action: 'sendMessage',
+      data: { messageId },
+    }),
+}
+
+/**
+ * 系统域 API（仅系统管理员）
+ */
+export const systemAPI = {
+  // 角色配置
+  listRoleConfigs: (params?: { status?: 'active' | 'inactive'; page?: number; pageSize?: number }) =>
+    callCloudFunction('tenant', {
+      action: 'listRoleConfigs',
+      data: params || {},
+    }),
+  listPermissions: () =>
+    callCloudFunction('tenant', {
+      action: 'listPermissions',
+    }),
+  createRoleConfig: (data: { roleCode: string; roleName: string; description?: string; permissions?: string[]; status?: 'active' | 'inactive' }) =>
+    callCloudFunction('tenant', {
+      action: 'createRoleConfig',
+      data,
+    }),
+  updateRolePermissions: (roleCode: string, permissions: string[], moduleAccess?: any) =>
+    callCloudFunction('tenant', {
+      action: 'updateRolePermissions',
+      data: { roleCode, permissions, moduleAccess },
+    }),
+  updateRoleStatus: (roleCode: string, status: 'active' | 'inactive') =>
+    callCloudFunction('tenant', {
+      action: 'updateRoleStatus',
+      data: { roleCode, status },
+    }),
+
+  // 审计日志
+  getAuditLogs: (params?: { username?: string; action?: string; status?: string; page?: number; pageSize?: number }) =>
+    callCloudFunction('tenant', {
+      action: 'getAuditLogs',
+      data: params || {},
+    }),
+
+  // 系统监控
+  getSystemMetrics: () =>
+    callCloudFunction('tenant', {
+      action: 'getSystemMetrics',
+    }),
+
+  // 备份导出（占位）
+  runBackupExport: () =>
+    callCloudFunction('tenant', {
+      action: 'runBackupExport',
+    }),
+  // 个人资料
+  uploadAvatar: (data: { base64: string; ext?: string }) =>
+    callCloudFunction('tenant', {
+      action: 'uploadAvatar',
+      data,
+    }),
+  updateProfile: (data: { name?: string; email?: string; phone?: string; avatarUrl?: string }) =>
+    callCloudFunction('tenant', {
+      action: 'updateProfile',
+      data,
+    }),
+  updatePassword: (data: { oldPassword: string; newPassword: string }) =>
+    callCloudFunction('tenant', {
+      action: 'updatePassword',
+      data,
+    }),
+}
+
 export default {
   callCloudFunction,
+  authAPI,
   recipeAPI,
   ingredientAPI,
+  meatIngredientAPI,
   carbonAPI,
   certificationAPI,
   carbonFootprintAPI,
@@ -714,5 +1049,9 @@ export default {
   platformAPI,
   userAPI,
   tenantAPI,
+  adminUsersAPI,
+  onboardingAPI,
+  systemAPI,
+  messageAPI,
 }
 

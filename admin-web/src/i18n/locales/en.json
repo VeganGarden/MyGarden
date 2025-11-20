@@ -1,0 +1,2608 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "reset": "Reset",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "noData": "No Data",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "view": "View",
+    "import": "Import",
+    "export": "Export",
+    "refresh": "Refresh",
+    "archive": "Archive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "copy": "Copy",
+    "download": "Download",
+    "upload": "Upload",
+    "batchImport": "Batch Import",
+    "batchExport": "Batch Export",
+    "batchDelete": "Batch Delete",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "close": "Close",
+    "open": "Open",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear",
+    "apply": "Apply",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "none": "None",
+    "select": "Select",
+    "pleaseSelect": "Please select",
+    "pleaseInput": "Please input",
+    "required": "Required",
+    "optional": "Optional",
+    "actions": "Actions",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "archived": "Archived",
+    "draft": "Draft",
+    "published": "Published",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "createdBy": "Created By",
+    "updatedBy": "Updated By",
+    "description": "Description",
+    "remarks": "Remarks",
+    "name": "Name",
+    "title": "Title",
+    "type": "Type",
+    "category": "Category",
+    "tags": "Tags",
+    "image": "Image",
+    "attachment": "Attachment",
+    "link": "Link",
+    "url": "URL",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "date": "Date",
+    "time": "Time",
+    "datetime": "Date & Time",
+    "year": "Year",
+    "month": "Month",
+    "day": "Day",
+    "hour": "Hour",
+    "minute": "Minute",
+    "second": "Second",
+    "page": "Page",
+    "pageSize": "Page Size",
+    "total": "Total",
+    "items": "Items",
+    "rows": "Rows",
+    "columns": "Columns",
+    "noResults": "No Results",
+    "searchPlaceholder": "Enter keywords to search",
+    "filterPlaceholder": "Please select",
+    "datePlaceholder": "Select date",
+    "timePlaceholder": "Select time",
+    "datetimePlaceholder": "Select date and time",
+    "loadingData": "Loading data...",
+    "loadFailed": "Failed to load",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete",
+    "updateSuccess": "Updated successfully",
+    "updateFailed": "Failed to update",
+    "createSuccess": "Created successfully",
+    "createFailed": "Failed to create",
+    "operationSuccess": "Operation successful",
+    "operationFailed": "Operation failed",
+    "confirmDelete": "Confirm Delete",
+    "confirmDeleteMessage": "Are you sure you want to delete this record?",
+    "confirmArchive": "Confirm Archive",
+    "confirmArchiveMessage": "Are you sure you want to archive this record?",
+    "confirmActivate": "Confirm Activate",
+    "confirmActivateMessage": "Are you sure you want to activate this record?",
+    "noPermission": "No Permission",
+    "networkError": "Network Error",
+    "serverError": "Server Error",
+    "unknownError": "Unknown Error",
+        "retry": "Retry",
+        "reload": "Reload",
+        "to": "to"
+      },
+  "menu": {
+    "dashboard": "Dashboard",
+    "system": "System Management",
+    "systemUsers": "User Management",
+    "systemRoles": "Role & Permission",
+    "systemAudit": "Audit Log",
+    "systemMonitor": "System Monitor",
+    "systemBackup": "Data Backup",
+    "climateRestaurant": "Climate Restaurant",
+    "certificationApplication": "Certification Application",
+    "certificationProgress": "Certification Progress",
+    "certificationCertificate": "Certificate Management",
+    "carbonCalculator": "Carbon Calculator",
+    "carbonMenu": "Menu Carbon Footprint",
+    "carbonOrder": "Order Carbon Statistics",
+    "carbonReport": "Carbon Report",
+    "carbonBaseline": "Baseline Management",
+    "traceability": "Supply Chain Traceability",
+    "traceabilitySuppliers": "Supplier Management",
+    "traceabilityLots": "Ingredient Lots",
+    "traceabilityChains": "Traceability Chain",
+    "traceabilityCertificates": "Traceability Certificate",
+    "operation": "Restaurant Operation",
+    "operationOrder": "Order Management",
+    "operationLedger": "Operation Ledger",
+    "operationBehavior": "Behavior Statistics",
+    "operationCoupon": "Coupon Management",
+    "operationReview": "User Reviews",
+    "report": "Reports & Ecosystem",
+    "reportBusiness": "Business Report",
+    "reportCarbon": "Carbon Reduction Report",
+    "reportESG": "ESG Report",
+    "reportDashboard": "Data Dashboard",
+    "recipe": "Recipe Management",
+    "recipeList": "Recipe List",
+    "recipeCreate": "Create Recipe",
+    "recipeCategories": "Category Management",
+    "platform": "Platform Management",
+    "platformRestaurants": "Restaurant List",
+    "platformCrossTenant": "Cross-Tenant Data",
+    "platformStatistics": "Platform Statistics",
+    "platformAccountApprovals": "Account Approvals"
+  },
+  "header": {
+    "searchPlaceholder": "Search menus, features...",
+    "notifications": "Notifications",
+    "help": "Help",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "logo": {
+    "title": "Climate Restaurant",
+    "subtitle": "Climate Restaurant",
+    "goHome": "Go Home"
+  },
+  "notification": {
+    "title": "Notification Center",
+    "empty": "No notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "unread": "Unread"
+  },
+  "help": {
+    "title": "Help Center",
+    "documentation": "Documentation",
+    "shortcuts": "Keyboard Shortcuts",
+    "feedback": "Feedback",
+    "about": "About"
+  },
+  "language": {
+    "switch": "Switch Language",
+    "chinese": "中文",
+    "english": "English"
+  },
+  "theme": {
+    "switch": "Switch Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "auto": "Auto"
+  },
+  "empty": {
+    "default": "No data available, please try again later",
+    "search": "No results found",
+    "searchDesc": "Please try other keywords or adjust search conditions",
+    "data": "No data",
+    "dataDesc": "Data is loading or no relevant data available",
+    "error": "Loading failed",
+    "errorDesc": "Data loading failed, please refresh and try again"
+  },
+  "pages": {
+    "carbon": {
+      "baselineList": {
+        "title": "Carbon Footprint Baseline Management",
+        "buttons": {
+          "add": "Add Baseline",
+          "import": "Batch Import",
+          "refresh": "Refresh",
+          "checkDatabase": "Check Database Status"
+        },
+        "table": {
+          "columns": {
+            "baselineId": "Baseline ID",
+            "region": "Region",
+            "mealType": "Meal Type",
+            "energyType": "Energy Type",
+            "value": "Baseline Value",
+            "version": "Version",
+            "status": "Status",
+            "updatedAt": "Updated At",
+            "actions": "Actions"
+          },
+          "actions": {
+            "view": "View",
+            "edit": "Edit",
+            "archive": "Archive",
+            "activate": "Activate"
+          }
+        },
+        "filters": {
+          "search": "Search Baseline ID, Version, Organization Name",
+          "region": "Region",
+          "mealType": "Meal Type",
+          "energyType": "Energy Type",
+          "status": "Status"
+        },
+        "regions": {
+          "northChina": "North China",
+          "northeast": "Northeast",
+          "eastChina": "East China",
+          "centralChina": "Central China",
+          "northwest": "Northwest",
+          "southChina": "South China",
+          "nationalAverage": "National Average"
+        },
+        "mealTypes": {
+          "meatSimple": "Simple Meat Meal",
+          "meatFull": "Full Meat Meal"
+        },
+        "energyTypes": {
+          "electric": "All Electric",
+          "gas": "Gas",
+          "mixed": "Mixed"
+        },
+        "status": {
+          "active": "Active",
+          "archived": "Archived",
+          "draft": "Draft"
+        },
+        "messages": {
+          "loadFailed": "Failed to load list",
+          "archiveSuccess": "Archived successfully",
+          "archiveFailed": "Failed to archive",
+          "activateSuccess": "Activated successfully",
+          "activateFailed": "Failed to activate",
+          "confirmArchive": "Confirm Archive",
+          "confirmArchiveDescription": "Are you sure you want to archive this baseline? It will no longer be used for queries after archiving.",
+          "initLoading": "Initializing database...",
+          "initSuccess": "Database initialized, {{count}} records found",
+          "initIncomplete": "Database initialization incomplete, please call carbon-baseline-init cloud function",
+          "initCheckFailed": "Check failed",
+          "initFailed": "Initialization failed: {{error}}"
+        },
+        "empty": {
+          "noData": "No data available, please initialize database or add baseline first",
+          "noDataSimple": "No data"
+        },
+        "pagination": {
+          "total": "Total {{total}} records"
+        }
+      },
+      "baselineAdd": {
+        "title": "Add Baseline",
+        "buttons": {
+          "back": "Back to List",
+          "prev": "Previous",
+          "next": "Next",
+          "submit": "Submit"
+        },
+        "steps": {
+          "basicInfo": "Basic Information",
+          "baselineData": "Baseline Data",
+          "sourceVersion": "Source & Version"
+        },
+        "messages": {
+          "createSuccess": "Created successfully",
+          "createFailed": "Failed to create",
+          "breakdownMismatch": "Breakdown total ({{total}}) should match baseline value ({{value}})"
+        }
+      },
+      "baselineEdit": {
+        "title": "Edit Baseline",
+        "buttons": {
+          "back": "Back to Detail",
+          "cancel": "Cancel",
+          "save": "Save"
+        },
+        "version": {
+          "updateCurrent": "Update Current Version",
+          "createNew": "Create New Version",
+          "confirmTitle": "Confirm Create New Version",
+          "confirmMessage": "Are you sure you want to create a new version? The current version will be preserved, and the new version will use a new version number."
+        },
+        "messages": {
+          "getDetailFailed": "Failed to get detail",
+          "updateSuccess": "Updated successfully",
+          "updateFailed": "Failed to update",
+          "breakdownMismatch": "Breakdown total ({{total}}) should match baseline value ({{value}})"
+        }
+      },
+      "baselineDetail": {
+        "title": "Baseline Detail",
+        "buttons": {
+          "back": "Back to List",
+          "edit": "Edit"
+        },
+        "sections": {
+          "basicInfo": "Basic Information",
+          "baselineData": "Baseline Data",
+          "source": "Data Source",
+          "version": "Version Information",
+          "notes": "Notes"
+        },
+        "fields": {
+          "baselineId": "Baseline ID",
+          "status": "Status",
+          "region": "Region",
+          "mealType": "Meal Type",
+          "energyType": "Energy Type",
+          "city": "City",
+          "restaurantType": "Restaurant Type",
+          "baselineValue": "Baseline Value",
+          "uncertainty": "Uncertainty",
+          "confidenceLower": "Confidence Interval Lower",
+          "confidenceUpper": "Confidence Interval Upper",
+          "breakdown": "Breakdown",
+          "ingredients": "Ingredients",
+          "cookingEnergy": "Cooking Energy",
+          "packaging": "Packaging",
+          "other": "Other",
+          "sourceType": "Source Type",
+          "organization": "Organization",
+          "report": "Report Name",
+          "year": "Year",
+          "methodology": "Methodology",
+          "version": "Version",
+          "usageCount": "Usage Count",
+          "effectiveDate": "Effective Date",
+          "expiryDate": "Expiry Date",
+          "createdAt": "Created At",
+          "updatedAt": "Updated At",
+          "createdBy": "Created By",
+          "updatedBy": "Updated By",
+          "lastUsedAt": "Last Used At"
+        },
+        "messages": {
+          "getDetailFailed": "Failed to get detail"
+        }
+      },
+      "baselineImport": {
+        "title": "Batch Import Baseline",
+        "buttons": {
+          "back": "Back to List",
+          "selectFile": "Select File",
+          "downloadTemplate": "Download Template",
+          "reupload": "Re-upload",
+          "confirmImport": "Confirm Import",
+          "continueImport": "Continue Import",
+          "complete": "Complete"
+        },
+        "steps": {
+          "upload": "Upload File",
+          "preview": "Data Preview",
+          "result": "Import Result"
+        },
+        "upload": {
+          "formats": "Supported formats: Excel (.xlsx, .xls), CSV",
+          "requiredFields": "Please ensure the file contains the following fields:",
+          "requiredFieldsList": {
+            "category": "Meal Type, Region, Energy Type (Required)",
+            "carbon": "Baseline Value, Uncertainty (Required)",
+            "breakdown": "Breakdown: Ingredients, Cooking Energy, Packaging, Other (Required)",
+            "source": "Source: Source Type, Organization, Report Name, Year, Methodology (Required)",
+            "version": "Version, Effective Date, Expiry Date (Required)"
+          },
+          "templateDownloading": "Template download feature in development"
+        },
+        "preview": {
+          "totalData": "Total Data",
+          "fileName": "File Name",
+          "columns": {
+            "region": "Region",
+            "mealType": "Meal Type",
+            "energyType": "Energy Type",
+            "value": "Baseline Value",
+            "version": "Version"
+          }
+        },
+        "result": {
+          "success": "Success",
+          "failed": "Failed",
+          "skipped": "Skipped",
+          "total": "Total",
+          "errorDetails": "Error Details:"
+        },
+        "messages": {
+          "parseSuccess": "Successfully parsed {{count}} records",
+          "parseFailed": "File parsing failed: {{error}}",
+          "validationFailed": "{{count}} records failed validation, please correct and retry",
+          "noValidData": "No valid data to import",
+          "importSuccess": "Successfully imported {{count}} records",
+          "importPartial": "Import completed: {{success}} succeeded, {{failed}} failed",
+          "importFailed": "Import failed: {{error}}"
+        },
+        "validation": {
+          "mealTypeRequired": "Meal Type is required",
+          "regionRequired": "Region is required",
+          "energyTypeRequired": "Energy Type is required",
+          "valueRequired": "Baseline value must be greater than 0",
+          "organizationRequired": "Organization is required",
+          "versionRequired": "Version is required",
+          "effectiveDateRequired": "Effective Date is required",
+          "expiryDateRequired": "Expiry Date is required",
+          "expiryBeforeEffective": "Expiry Date must be later than Effective Date",
+          "breakdownMismatch": "Breakdown total ({{total}}) should match baseline value ({{value}})"
+        }
+      },
+      "menu": {
+        "title": "Menu Carbon Footprint Management",
+        "buttons": {
+          "batchImport": "Batch Import",
+          "addDish": "Add Dish",
+          "recalculate": "Recalculate",
+          "edit": "Edit",
+          "delete": "Delete",
+          "calculate": "Calculate Carbon Footprint"
+        },
+        "table": {
+          "columns": {
+            "name": "Dish Name",
+            "carbonFootprint": "Carbon Footprint",
+            "carbonLabel": "Carbon Label",
+            "carbonScore": "Carbon Score",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "filters": {
+          "search": "Search dish name",
+          "carbonLabel": "Filter by Carbon Label"
+        },
+        "modal": {
+          "title": "Dish Information",
+          "fields": {
+            "name": "Dish Name",
+            "ingredients": "Ingredients List",
+            "cookingMethod": "Cooking Method",
+            "portion": "Portion (g)"
+          },
+          "cookingMethods": {
+            "raw": "Raw/Cold Dish",
+            "steam": "Steam",
+            "boil": "Boil/Stew",
+            "fry": "Stir-fry/Pan-fry",
+            "bake": "Bake/Roast",
+            "deepFry": "Deep Fry"
+          },
+          "placeholders": {
+            "name": "Enter dish name",
+            "ingredients": "Enter ingredients and quantities, e.g., Spinach 200g, Carrot 150g",
+            "cookingMethod": "Select cooking method",
+            "portion": "Enter portion"
+          }
+        },
+        "messages": {
+          "selectRestaurant": "Tip: Please select a restaurant to manage first",
+          "calculateInProgress": "Carbon footprint calculation feature in development",
+          "importInProgress": "Batch import feature in development",
+          "deleteConfirm": "Confirm Delete",
+          "deleteMessage": "Are you sure you want to delete this dish?",
+          "deleteSuccess": "Deleted successfully",
+          "saveSuccess": "Saved successfully"
+        },
+        "pagination": {
+          "total": "Total {{total}} records"
+        }
+      },
+      "order": {
+        "title": "Order Carbon Footprint Statistics",
+        "buttons": {
+          "export": "Export Data"
+        },
+        "statistics": {
+          "todayCarbon": "Today's Order Carbon Footprint",
+          "todayReduction": "Today's Carbon Reduction",
+          "totalReduction": "Total Carbon Reduction",
+          "totalOrders": "Total Orders"
+        },
+        "trend": {
+          "title": "Order Carbon Footprint Trend"
+        },
+        "table": {
+          "title": "Order List",
+          "columns": {
+            "orderNo": "Order No",
+            "orderDate": "Order Date",
+            "totalCarbon": "Order Carbon Footprint",
+            "carbonReduction": "Carbon Reduction",
+            "orderAmount": "Order Amount",
+            "status": "Status"
+          }
+        }
+      },
+      "report": {
+        "title": "Carbon Report Management",
+        "buttons": {
+          "generate": "Generate Report",
+          "preview": "Preview",
+          "downloadPdf": "Download PDF",
+          "downloadExcel": "Download Excel",
+          "share": "Share"
+        },
+        "types": {
+          "monthly": "Monthly Report",
+          "yearly": "Yearly Report",
+          "esg": "ESG Report"
+        },
+        "tabs": {
+          "preview": "Report Preview",
+          "history": "History Reports"
+        },
+        "preview": {
+          "monthlyTitle": "Monthly Carbon Report",
+          "yearlyTitle": "Yearly Carbon Report",
+          "esgTitle": "ESG Carbon Report",
+          "monthlyData": "Monthly Carbon Reduction Data",
+          "yearlyTrend": "Yearly Carbon Reduction Trend",
+          "esgContent": "ESG Report Content",
+          "environmental": "Environmental Data (Environmental)",
+          "social": "Social Data (Social)",
+          "governance": "Governance Data (Governance)"
+        },
+        "history": {
+          "inProgress": "History report list feature in development"
+        },
+        "messages": {
+          "generateInProgress": "Report generation feature in development",
+          "downloadInProgress": "{{format}} format report download feature in development",
+          "shareInProgress": "Report sharing feature in development"
+        }
+      }
+    },
+    "recipe": {
+      "list": {
+        "title": "Recipe List",
+        "buttons": {
+          "search": "Search",
+          "create": "Create New Recipe"
+        },
+        "table": {
+          "columns": {
+            "name": "Recipe Name",
+            "category": "Category",
+            "ingredients": "Ingredients",
+            "carbonFootprint": "Carbon Footprint",
+            "carbonLabel": "Carbon Label",
+            "status": "Status",
+            "version": "Version",
+            "actions": "Actions"
+          },
+          "actions": {
+            "view": "View",
+            "edit": "Edit",
+            "copy": "Copy",
+            "delete": "Delete"
+          },
+          "ingredientsCount": "{{count}} items"
+        },
+        "filters": {
+          "search": "Search recipe name...",
+          "status": {
+            "all": "All Status",
+            "draft": "Draft",
+            "published": "Published",
+            "archived": "Archived"
+          },
+          "category": {
+            "all": "All Categories",
+            "hot": "Hot Dishes",
+            "cold": "Cold Dishes",
+            "soup": "Soup",
+            "staple": "Staple Food",
+            "dessert": "Dessert",
+            "drink": "Drinks"
+          },
+          "carbonLabel": {
+            "all": "All Carbon Labels",
+            "ultraLow": "Ultra Low",
+            "low": "Low",
+            "medium": "Medium",
+            "high": "High",
+            "notCalculated": "Not Calculated"
+          }
+        },
+        "status": {
+          "draft": "Draft",
+          "published": "Published",
+          "archived": "Archived",
+          "unknown": "Unknown"
+        },
+        "messages": {
+          "loadFailed": "Failed to load recipe list",
+          "deleteSuccess": "Deleted successfully",
+          "deleteFailed": "Failed to delete",
+          "confirmDelete": "Are you sure you want to delete this recipe?"
+        },
+        "tips": {
+          "viewAllRestaurants": "Tip: Currently viewing recipes from all restaurants, you can switch to view recipes from a specific restaurant in the top right corner"
+        },
+        "pagination": {
+          "total": "Total {{total}} items"
+        }
+      },
+      "create": {
+        "title": "Create Recipe",
+        "fields": {
+          "name": "Recipe Name",
+          "description": "Description",
+          "category": "Category",
+          "cookingMethod": "Cooking Method",
+          "ingredients": "Ingredients Configuration",
+          "carbonResult": "Carbon Footprint Result",
+          "channels": "Channel Configuration"
+        },
+        "buttons": {
+          "addIngredient": "Add Ingredient",
+          "calculateCarbon": "Calculate Carbon Footprint",
+          "saveDraft": "Save Draft",
+          "publish": "Publish",
+          "cancel": "Cancel"
+        },
+        "ingredientsTable": {
+          "columns": {
+            "name": "Ingredient Name",
+            "quantity": "Quantity",
+            "unit": "Unit",
+            "actions": "Actions"
+          },
+          "actions": {
+            "delete": "Delete"
+          }
+        },
+        "carbonResult": {
+          "footprint": "Carbon Footprint:",
+          "label": "Carbon Label:",
+          "score": "Carbon Score:"
+        },
+        "channels": {
+          "dineIn": "Dine-in",
+          "takeOut": "Take-out",
+          "promotion": "Promotion Materials"
+        },
+        "placeholders": {
+          "name": "Enter recipe name",
+          "description": "Enter recipe description (optional)",
+          "category": "Select category",
+          "cookingMethod": "Select cooking method"
+        },
+        "messages": {
+          "nameRequired": "Please enter recipe name",
+          "categoryRequired": "Please select category",
+          "cookingMethodRequired": "Please select cooking method",
+          "addIngredientFirst": "Please add ingredients first",
+          "setQuantity": "Please set quantity for all ingredients",
+          "selectCookingMethod": "Please select cooking method first",
+          "addAtLeastOne": "Please add at least one ingredient",
+          "calculateSuccess": "Carbon footprint calculated successfully",
+          "calculateFailed": "Calculation failed",
+          "publishSuccess": "Published successfully",
+          "updateSuccess": "Updated successfully",
+          "saveSuccess": "Saved successfully",
+          "saveFailed": "Failed to save",
+          "loadFailed": "Failed to load recipe"
+        },
+        "copy": {
+          "suffix": " (Copy)"
+        }
+      },
+      "edit": {
+        "loading": "Loading..."
+      },
+      "detail": {
+        "title": "Recipe Detail",
+        "buttons": {
+          "back": "Back",
+          "edit": "Edit",
+          "copy": "Copy",
+          "delete": "Delete"
+        },
+        "sections": {
+          "basicInfo": "Basic Information",
+          "ingredients": "Ingredients List",
+          "carbon": "Carbon Footprint Information",
+          "channels": "Channel Configuration"
+        },
+        "fields": {
+          "name": "Recipe Name",
+          "description": "Description",
+          "category": "Category",
+          "cookingMethod": "Cooking Method",
+          "status": "Status",
+          "version": "Version",
+          "carbonFootprint": "Carbon Footprint",
+          "carbonLabel": "Carbon Label",
+          "carbonScore": "Carbon Score",
+          "createdAt": "Created At",
+          "updatedAt": "Updated At"
+        },
+        "ingredientsTable": {
+          "columns": {
+            "name": "Ingredient Name",
+            "quantity": "Quantity",
+            "unit": "Unit",
+            "carbonCoefficient": "Carbon Coefficient"
+          }
+        },
+        "messages": {
+          "loadFailed": "Failed to load recipe",
+          "deleteSuccess": "Deleted successfully",
+          "deleteFailed": "Failed to delete",
+          "confirmDelete": "Are you sure you want to delete this recipe?"
+        }
+      },
+      "categories": {
+        "title": "Recipe Category Management",
+        "buttons": {
+          "add": "Add Category",
+          "edit": "Edit",
+          "delete": "Delete"
+        },
+        "table": {
+          "columns": {
+            "name": "Category Name",
+            "code": "Category Code",
+            "description": "Description",
+            "recipeCount": "Recipe Count",
+            "actions": "Actions"
+          }
+        },
+        "modal": {
+          "addTitle": "Add Category",
+          "editTitle": "Edit Category",
+          "fields": {
+            "name": "Category Name",
+            "code": "Category Code",
+            "description": "Description"
+          },
+          "placeholders": {
+            "name": "Enter category name",
+            "code": "Enter category code (English)",
+            "description": "Enter category description (optional)"
+          },
+          "messages": {
+            "nameRequired": "Please enter category name",
+            "codeRequired": "Please enter category code"
+          }
+        },
+        "messages": {
+          "addSuccess": "Added successfully",
+          "updateSuccess": "Updated successfully",
+          "deleteSuccess": "Deleted successfully",
+          "confirmDelete": "Are you sure you want to delete this category?"
+        }
+      }
+    },
+    "traceability": {
+      "supplier": {
+        "title": "Supplier Management",
+        "buttons": {
+          "add": "Add Supplier",
+          "view": "View",
+          "edit": "Edit",
+          "delete": "Delete"
+        },
+        "table": {
+          "columns": {
+            "name": "Supplier Name",
+            "supplierId": "Supplier ID",
+            "type": "Type",
+            "riskLevel": "Risk Level",
+            "auditStatus": "Audit Status",
+            "actions": "Actions"
+          }
+        },
+        "filters": {
+          "search": "Search supplier name, registration number",
+          "type": "Supplier Type",
+          "auditStatus": "Audit Status",
+          "riskLevel": "Risk Level"
+        },
+        "types": {
+          "farm": "Farm",
+          "processor": "Processor",
+          "distributor": "Distributor",
+          "other": "Other"
+        },
+        "riskLevels": {
+          "low": "Low Risk",
+          "medium": "Medium Risk",
+          "high": "High Risk"
+        },
+        "auditStatus": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "deleteConfirm": "Confirm Delete",
+          "deleteMessage": "Are you sure you want to delete supplier \"{{name}}\"?",
+          "deleteSuccess": "Deleted successfully",
+          "deleteFailed": "Failed to delete"
+        }
+      },
+      "supplierAdd": {
+        "title": "Add Supplier",
+        "buttons": {
+          "back": "Back",
+          "submit": "Submit",
+          "cancel": "Cancel"
+        },
+        "fields": {
+          "name": "Supplier Name",
+          "type": "Supplier Type",
+          "legalName": "Legal Name",
+          "registrationNumber": "Registration Number/Unified Social Credit Code",
+          "riskLevel": "Risk Level",
+          "phone": "Phone",
+          "email": "Email",
+          "province": "Province",
+          "city": "City",
+          "district": "District",
+          "detail": "Detail Address",
+          "businessScope": "Business Scope",
+          "annualCapacity": "Annual Capacity (tons)",
+          "mainProducts": "Main Products (comma separated)"
+        },
+        "sections": {
+          "contact": "Contact Information",
+          "address": "Address Information"
+        },
+        "placeholders": {
+          "name": "Enter supplier name",
+          "type": "Select supplier type",
+          "legalName": "Enter legal name",
+          "registrationNumber": "Enter registration number",
+          "phone": "Enter phone number",
+          "email": "Enter email",
+          "province": "Enter province",
+          "city": "Enter city",
+          "district": "Enter district",
+          "detail": "Enter detail address",
+          "businessScope": "Enter business scope",
+          "annualCapacity": "Enter annual capacity",
+          "mainProducts": "e.g., Rice, Wheat, Corn"
+        },
+        "messages": {
+          "nameRequired": "Please enter supplier name",
+          "typeRequired": "Please select supplier type",
+          "createSuccess": "Created successfully",
+          "createFailed": "Failed to create"
+        }
+      },
+      "supplierEdit": {
+        "title": "Edit Supplier",
+        "messages": {
+          "loadFailed": "Failed to load",
+          "updateSuccess": "Updated successfully",
+          "updateFailed": "Failed to update"
+        }
+      },
+      "supplierDetail": {
+        "title": "Supplier Detail",
+        "tabs": {
+          "basic": "Basic Information",
+          "certifications": "Certifications",
+          "cooperation": "Cooperation Records",
+          "audit": "Audit History"
+        },
+        "fields": {
+          "supplierId": "Supplier ID",
+          "name": "Supplier Name",
+          "type": "Supplier Type",
+          "legalName": "Legal Name",
+          "registrationNumber": "Registration Number",
+          "riskLevel": "Risk Level",
+          "auditStatus": "Audit Status",
+          "cooperationStatus": "Cooperation Status",
+          "phone": "Phone",
+          "email": "Email",
+          "address": "Address"
+        },
+        "cooperationStatus": {
+          "pending": "Pending",
+          "active": "Active",
+          "suspended": "Suspended",
+          "terminated": "Terminated"
+        },
+        "certifications": {
+          "columns": {
+            "type": "Certification Type",
+            "name": "Certification Name",
+            "certificateNumber": "Certificate Number",
+            "issuer": "Issuer",
+            "issueDate": "Issue Date",
+            "expiryDate": "Expiry Date",
+            "status": "Status"
+          },
+          "status": {
+            "valid": "Valid",
+            "expired": "Expired",
+            "revoked": "Revoked"
+          }
+        },
+        "cooperation": {
+          "fields": {
+            "startDate": "Cooperation Start Date",
+            "lastOrderDate": "Last Order Date",
+            "totalOrders": "Total Orders",
+            "totalAmount": "Total Amount"
+          }
+        },
+        "audit": {
+          "fields": {
+            "submittedAt": "Submitted At",
+            "reviewedAt": "Reviewed At",
+            "reviewedBy": "Reviewed By",
+            "version": "Version",
+            "reviewComments": "Review Comments"
+          }
+        },
+        "messages": {
+          "loadFailed": "Failed to load"
+        }
+      },
+      "ingredientLotList": {
+        "title": "Ingredient Lot Management",
+        "buttons": {
+          "add": "Add Lot",
+          "view": "View",
+          "edit": "Edit"
+        },
+        "table": {
+          "columns": {
+            "batchNumber": "Batch Number",
+            "ingredientName": "Ingredient Name",
+            "supplierName": "Supplier",
+            "harvestDate": "Harvest Date",
+            "quantity": "Quantity",
+            "inventory": "Inventory",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "filters": {
+          "search": "Search ingredient name",
+          "supplier": "Supplier",
+          "status": "Inventory Status",
+          "harvestDateStart": "Harvest Date Start",
+          "harvestDateEnd": "Harvest Date End"
+        },
+        "status": {
+          "inStock": "In Stock",
+          "lowStock": "Low Stock",
+          "outOfStock": "Out of Stock",
+          "expired": "Expired"
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "deleteNotImplemented": "Delete feature not implemented"
+        }
+      },
+      "ingredientLotAdd": {
+        "title": "Add Ingredient Lot",
+        "fields": {
+          "ingredientId": "Ingredient ID",
+          "supplierId": "Supplier ID",
+          "batchNumber": "Batch Number",
+          "harvestDate": "Harvest Date",
+          "productionDate": "Production Date",
+          "expiryDate": "Expiry Date",
+          "quantity": "Quantity",
+          "unit": "Unit",
+          "province": "Province",
+          "city": "City",
+          "district": "District",
+          "farmName": "Farm Name",
+          "restaurantId": "Restaurant ID"
+        },
+        "sections": {
+          "origin": "Origin Information"
+        },
+        "placeholders": {
+          "ingredientId": "Enter ingredient ID",
+          "supplierId": "Enter supplier ID",
+          "batchNumber": "Enter batch number",
+          "quantity": "Enter quantity",
+          "province": "Enter province",
+          "city": "Enter city",
+          "district": "Enter district",
+          "farmName": "Enter farm name",
+          "restaurantId": "Enter restaurant ID (optional)"
+        },
+        "units": {
+          "ton": "Ton",
+          "piece": "Piece"
+        },
+        "messages": {
+          "ingredientIdRequired": "Please enter ingredient ID",
+          "supplierIdRequired": "Please enter supplier ID",
+          "batchNumberRequired": "Please enter batch number",
+          "harvestDateRequired": "Please select harvest date",
+          "quantityRequired": "Please enter quantity",
+          "unitRequired": "Please select unit",
+          "createSuccess": "Created successfully",
+          "createFailed": "Failed to create"
+        }
+      },
+      "ingredientLotEdit": {
+        "title": "Edit Ingredient Lot",
+        "messages": {
+          "loadFailed": "Failed to load",
+          "updateSuccess": "Updated successfully",
+          "updateFailed": "Failed to update"
+        }
+      },
+      "ingredientLotDetail": {
+        "title": "Ingredient Lot Detail",
+        "tabs": {
+          "basic": "Basic Information",
+          "quality": "Quality Inspection",
+          "logistics": "Logistics Information",
+          "inventory": "Inventory Information",
+          "usage": "Usage Records"
+        },
+        "fields": {
+          "lotId": "Lot ID",
+          "batchNumber": "Batch Number",
+          "ingredientName": "Ingredient Name",
+          "supplierName": "Supplier",
+          "harvestDate": "Harvest Date",
+          "productionDate": "Production Date",
+          "expiryDate": "Expiry Date",
+          "quantity": "Quantity",
+          "originProvince": "Origin Province",
+          "originCity": "Origin City",
+          "farmName": "Farm Name",
+          "inspectionDate": "Inspection Date",
+          "inspector": "Inspector",
+          "inspectionResult": "Inspection Result",
+          "testItems": "Test Items",
+          "transportMode": "Transport Mode",
+          "transportCompany": "Transport Company",
+          "departureDate": "Departure Date",
+          "arrivalDate": "Arrival Date",
+          "departureLocation": "Departure Location",
+          "arrivalLocation": "Arrival Location",
+          "transportCarbonFootprint": "Transport Carbon Footprint",
+          "currentStock": "Current Stock",
+          "inventoryStatus": "Inventory Status",
+          "location": "Location",
+          "lastUsedDate": "Last Used Date"
+        },
+        "qualityResult": {
+          "pass": "Pass",
+          "fail": "Fail",
+          "pending": "Pending"
+        },
+        "qualityTable": {
+          "columns": {
+            "item": "Test Item",
+            "standard": "Standard Value",
+            "actual": "Actual Value",
+            "result": "Result"
+          }
+        },
+        "usageTable": {
+          "columns": {
+            "menuItemName": "Menu Item Name",
+            "quantity": "Quantity Used",
+            "usedDate": "Used Date",
+            "orderId": "Order ID"
+          }
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "noQualityInfo": "No quality inspection information",
+          "noLogisticsInfo": "No logistics information",
+          "noUsageRecords": "No usage records"
+        }
+      },
+      "traceChainList": {
+        "title": "Trace Chain Management",
+        "buttons": {
+          "build": "Build Trace Chain",
+          "view": "View"
+        },
+        "table": {
+          "columns": {
+            "traceId": "Trace Chain ID",
+            "menuItemName": "Menu Item Name",
+            "nodeCount": "Node Count",
+            "trustScore": "Trust Score",
+            "scoreUnit": "",
+            "status": "Status",
+            "verificationStatus": "Verification Status",
+            "actions": "Actions"
+          }
+        },
+        "filters": {
+          "search": "Search menu item name or trace chain ID",
+          "status": "Status",
+          "verificationStatus": "Verification Status"
+        },
+        "status": {
+          "draft": "Draft",
+          "active": "Active",
+          "archived": "Archived",
+          "expired": "Expired"
+        },
+        "verificationStatus": {
+          "pending": "Pending",
+          "verified": "Verified",
+          "rejected": "Rejected"
+        },
+        "messages": {
+          "loadFailed": "Failed to load"
+        }
+      },
+      "traceChainBuild": {
+        "title": "Build Trace Chain",
+        "steps": {
+          "selectMenuItem": "Select Menu Item and Lot",
+          "addNodes": "Add Trace Nodes",
+          "verifyAndSubmit": "Verify and Submit"
+        },
+        "fields": {
+          "menuItemId": "Menu Item ID",
+          "lotId": "Ingredient Lot ID",
+          "restaurantId": "Restaurant ID",
+          "chainType": "Trace Chain Type"
+        },
+        "placeholders": {
+          "menuItemId": "Enter menu item ID",
+          "lotId": "Enter lot ID",
+          "restaurantId": "Enter restaurant ID (optional)",
+          "nodeName": "Node Name"
+        },
+        "chainTypes": {
+          "full": "Full",
+          "partial": "Partial",
+          "simplified": "Simplified"
+        },
+        "nodeTypes": {
+          "supplier": "Supplier",
+          "processor": "Processor",
+          "transport": "Transport",
+          "restaurant": "Restaurant",
+          "other": "Other"
+        },
+        "nodeLabel": "Node {{order}}",
+        "buttons": {
+          "addNode": "Add Node"
+        },
+        "verify": {
+          "nodeCount": "Node Count: {{count}}",
+          "confirmMessage": "Please confirm the information is correct before submitting"
+        },
+        "messages": {
+          "addNodeRequired": "Please add at least one node",
+          "menuItemIdRequired": "Please enter menu item ID",
+          "lotIdRequired": "Please enter lot ID",
+          "buildSuccess": "Build successful",
+          "buildFailed": "Build failed"
+        }
+      },
+      "traceChainView": {
+        "title": "Trace Chain Detail",
+        "buttons": {
+          "generateQRCode": "Generate QR Code",
+          "share": "Share"
+        },
+        "fields": {
+          "menuItemName": "Menu Item Name",
+          "traceId": "Trace Chain ID",
+          "nodeCount": "Node Count",
+          "totalCarbonFootprint": "Total Carbon Footprint"
+        },
+        "cards": {
+          "flowChart": "Trace Flow Chart",
+          "timeline": "Trace Timeline",
+          "carbonBreakdown": "Carbon Footprint Breakdown"
+        },
+        "carbonBreakdown": {
+          "production": "Production",
+          "transport": "Transport",
+          "processing": "Processing",
+          "storage": "Storage",
+          "other": "Other"
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "shareLinkGenerated": "Share link generated",
+          "generateFailed": "Generate failed"
+        }
+      },
+      "certificateList": {
+        "title": "Trace Certificates",
+        "buttons": {
+          "view": "View"
+        },
+        "table": {
+          "columns": {
+            "certificateNumber": "Certificate Number",
+            "menuItemName": "Menu Item Name",
+            "traceId": "Trace Chain ID",
+            "status": "Status",
+            "createdAt": "Created At",
+            "actions": "Actions"
+          }
+        },
+        "status": {
+          "active": "Active",
+          "expired": "Expired",
+          "revoked": "Revoked"
+        },
+        "messages": {
+          "loadFailed": "Failed to load"
+        }
+      },
+      "certificateView": {
+        "title": "Trace Certificate",
+        "buttons": {
+          "download": "Download Certificate",
+          "share": "Share",
+          "downloadAndView": "Download and View"
+        },
+        "pdfTitle": "Certificate PDF",
+        "imageAlt": "Certificate Image",
+        "qrCodeAlt": "Certificate QR Code",
+        "certificateInfo": {
+          "title": "Certificate Information",
+          "fields": {
+            "certificateNumber": "Certificate Number",
+            "createdAt": "Created At",
+            "status": "Status"
+          },
+          "status": {
+            "active": "Active",
+            "inactive": "Inactive"
+          }
+        },
+        "pdfControls": {
+          "previousPage": "Previous Page",
+          "nextPage": "Next Page",
+          "pageInfo": "Page {{current}} / {{total}}",
+          "switchingPage": "Switching page...",
+          "loadingPDF": "Loading PDF...",
+          "loadingPage": "Loading page {{page}}..."
+        },
+        "pdfErrors": {
+          "loadFailed": "PDF file loading failed",
+          "corsError": "PDF file loading failed: Cross-origin access blocked (CORS restriction)",
+          "fetchError": "PDF file loading failed: Unable to fetch file, may be CORS restriction or network issue",
+          "loadFailedWithDetail": "PDF file loading failed: {{detail}}",
+          "downloadAndView": "Unable to load PDF file, please download and view",
+          "previewFailed": "PDF preview loading failed",
+          "cannotDisplayInBrowser": "PDF cannot be displayed in this browser",
+          "corsRestriction": "May be CORS restriction, please download and view"
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "certificateFileNotExists": "Certificate file does not exist",
+          "imageLoadFailed": "Certificate image loading failed",
+          "certificateNotGenerated": "Certificate PDF file has not been generated",
+          "contactAdmin": "Please contact administrator to generate certificate"
+        }
+      }
+    },
+    "certification": {
+      "apply": {
+        "steps": {
+          "basicInfo": "Basic Information",
+          "basicInfoDesc": "Fill in restaurant basic information",
+          "menuInfo": "Menu Information",
+          "menuInfoDesc": "Upload menu and dish information",
+          "supplyChain": "Supply Chain Information",
+          "supplyChainDesc": "Fill in supplier and ingredient sources",
+          "operationData": "Operation Data",
+          "operationDataDesc": "Fill in energy usage and waste management data",
+          "documents": "Document Upload",
+          "documentsDesc": "Upload relevant supporting documents",
+          "preview": "Preview & Confirm",
+          "previewDesc": "Confirm and submit application"
+        },
+        "fields": {
+          "restaurantName": "Restaurant Name",
+          "legalPerson": "Legal Representative",
+          "contactPhone": "Contact Phone",
+          "contactEmail": "Contact Email",
+          "address": "Restaurant Address",
+          "supplierInfo": "Supplier Information",
+          "ingredientSource": "Ingredient Source",
+          "localIngredientRatio": "Local Ingredient Ratio",
+          "energyUsage": "Energy Usage",
+          "wasteReduction": "Food Waste Management",
+          "socialInitiatives": "Social Communication & Education"
+        },
+        "placeholders": {
+          "restaurantName": "Enter restaurant name",
+          "legalPerson": "Enter legal representative",
+          "contactPhone": "Enter contact phone",
+          "contactEmail": "Enter contact email",
+          "address": "Enter detailed address",
+          "selectRestaurant": "Select Restaurant",
+          "supplierInfo": "Fill in main supplier names, contact information, certification information, etc.",
+          "ingredientSource": "Fill in ingredient origin, transportation methods, traceability information, etc.",
+          "percentage": "Enter percentage",
+          "energyUsage": "Fill in annual energy consumption data, energy types, energy-saving measures, etc.",
+          "wasteReduction": "Fill in monthly waste reduction targets, monitoring processes, data records, etc.",
+          "socialInitiatives": "Fill in at least 3 low-carbon advocacy initiatives (e.g., customer education, staff training, public activities, etc.)"
+        },
+        "buttons": {
+          "batchImportMenu": "Batch Import Menu",
+          "addDish": "Add Dish",
+          "saveDraft": "Save Draft",
+          "submit": "Submit Application"
+        },
+        "menuTable": {
+          "columns": {
+            "name": "Dish Name",
+            "ingredients": "Ingredients",
+            "quantity": "Quantity",
+            "unit": "Unit",
+            "actions": "Actions"
+          }
+        },
+        "documents": {
+          "businessLicense": "Business License",
+          "foodLicense": "Food Business License",
+          "supplierCert": "Supplier Certification",
+          "otherDocuments": "Other Supporting Documents"
+        },
+        "preview": {
+          "confirmMessage": "Please confirm the information is correct before submitting the application",
+          "contactInfo": "Contact Information"
+        },
+        "certificationLevels": {
+          "gold": "Gold",
+          "silver": "Silver",
+          "bronze": "Bronze",
+          "platinum": "Platinum"
+        },
+        "status": {
+          "certified": "Certified"
+        },
+        "alerts": {
+          "selectRestaurant": "Please select the restaurant to apply for certification",
+          "restaurantCertified": "{{name}} has been certified",
+          "currentLevel": "Current certification level: {{level}}"
+        },
+        "messages": {
+          "draftSaved": "Draft saved",
+          "selectRestaurantRequired": "Please select the restaurant to apply for certification first",
+          "submitSuccess": "Certification application submitted, awaiting review",
+          "menuImportInProgress": "Menu batch import feature in development",
+          "restaurantNameRequired": "Please enter restaurant name",
+          "legalPersonRequired": "Please enter legal representative",
+          "contactPhoneRequired": "Please enter contact phone",
+          "contactEmailRequired": "Please enter contact email",
+          "emailInvalid": "Please enter a valid email address",
+          "addressRequired": "Please enter restaurant address",
+          "supplierInfoRequired": "Please enter supplier information",
+          "ingredientSourceRequired": "Please enter ingredient source",
+          "localIngredientRatioRequired": "Please enter local ingredient ratio",
+          "energyUsageRequired": "Please fill in energy usage",
+          "wasteReductionRequired": "Please fill in food waste management",
+          "socialInitiativesRequired": "Please fill in social communication and education initiatives"
+        }
+      },
+      "status": {
+        "title": "Certification Progress",
+        "fields": {
+          "currentStatus": "Current Status",
+          "applyTime": "Application Time",
+          "estimatedCompletion": "Estimated Completion",
+          "certificationLevel": "Certification Level"
+        },
+        "overallStatus": {
+          "pending": "Pending",
+          "reviewing": "Under Review",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        },
+        "auditStatus": {
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "pending": "Pending"
+        },
+        "stages": {
+          "documentReview": "Document Review",
+          "onSiteInspection": "On-site Inspection",
+          "review": "Review"
+        },
+        "comments": {
+          "documentComplete": "Documents complete, meet requirements"
+        },
+        "reviewer": "Reviewer {{name}}",
+        "pendingEvaluation": "Pending Evaluation",
+        "auditHistory": {
+          "title": "Audit History",
+          "comment": "Review Comment",
+          "reviewer": "Reviewer"
+        },
+        "rejection": {
+          "title": "Rejection Reasons",
+          "message": "Your certification application was not approved. Reasons are as follows:",
+          "reasons": {
+            "menuIncomplete": "Menu information is incomplete, missing ingredient lists for some dishes",
+            "supplierCertMissing": "Supply chain information needs to be supplemented with supplier certification certificates"
+          },
+          "buttons": {
+            "modifyAndResubmit": "Modify and Resubmit"
+          }
+        }
+      },
+      "certificate": {
+        "title": "Certification Certificate",
+        "buttons": {
+          "preview": "Preview",
+          "downloadPdf": "Download PDF",
+          "share": "Share"
+        },
+        "fields": {
+          "certificateNo": "Certificate Number",
+          "restaurantName": "Restaurant Name",
+          "certificationLevel": "Certification Level",
+          "status": "Certificate Status",
+          "issueDate": "Issue Date",
+          "expiryDate": "Expiry Date"
+        },
+        "status": {
+          "valid": "Valid",
+          "expired": "Expired"
+        },
+        "certificateDisplay": {
+          "certificateNo": "Certificate Number",
+          "validity": "Validity"
+        },
+        "renewal": {
+          "title": "Renewal Reminder",
+          "message": "Your certificate will expire on {{date}}. Please renew 30 days in advance.",
+          "buttons": {
+            "apply": "Apply for Renewal"
+          }
+        },
+        "upgrade": {
+          "title": "Certificate Upgrade",
+          "message": "Complete growth incentive tasks to unlock badges, exposure positions and other benefits.",
+          "buttons": {
+            "viewTasks": "View Growth Tasks"
+          }
+        },
+        "messages": {
+          "downloadInProgress": "Certificate download feature in development",
+          "shareInProgress": "Certificate sharing feature in development",
+          "previewInProgress": "Certificate preview feature in development"
+        }
+      }
+    },
+    "operation": {
+      "order": {
+        "title": "Order Management",
+        "statistics": {
+          "title": "Order Statistics",
+          "todayOrders": "Today's Orders",
+          "todayRevenue": "Today's Revenue",
+          "todayCarbonReduction": "Today's Carbon Reduction",
+          "avgOrderValue": "Average Order Value",
+          "unit": "orders"
+        },
+        "table": {
+          "columns": {
+            "orderNo": "Order No",
+            "orderDate": "Order Date",
+            "customerName": "Customer Name",
+            "amount": "Order Amount",
+            "carbonFootprint": "Carbon Footprint",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "status": {
+          "pending": "Pending",
+          "processing": "Processing",
+          "completed": "Completed",
+          "cancelled": "Cancelled"
+        },
+        "filters": {
+          "search": "Search order no or customer name",
+          "status": "Filter by status"
+        },
+        "buttons": {
+          "export": "Export Data",
+          "viewDetail": "View Detail"
+        }
+      },
+      "ledger": {
+        "title": "Operation Ledger",
+        "buttons": {
+          "addRecord": "Add Record"
+        },
+        "table": {
+          "columns": {
+            "date": "Date",
+            "type": "Type",
+            "description": "Description",
+            "value": "Value",
+            "actions": "Actions"
+          }
+        },
+        "types": {
+          "energy": "Energy Usage",
+          "waste": "Food Waste",
+          "training": "Training Activity",
+          "other": "Other"
+        },
+        "filters": {
+          "search": "Search description"
+        },
+        "modal": {
+          "title": "Operation Ledger Record"
+        },
+        "form": {
+          "fields": {
+            "date": "Date",
+            "type": "Type",
+            "description": "Description",
+            "value": "Value",
+            "unit": "Unit"
+          },
+          "placeholders": {
+            "type": "Energy Usage/Food Waste/Training Activity/Other",
+            "description": "Enter detailed description",
+            "value": "Enter value",
+            "unit": "Enter unit"
+          }
+        },
+        "messages": {
+          "batchImportInProgress": "Batch import feature in development"
+        }
+      },
+      "behavior": {
+        "overview": {
+          "title": "Behavior Statistics Overview",
+          "lowCarbonRatio": "Low Carbon Dish Ratio",
+          "monthlyCarbonReduction": "Monthly Carbon Reduction",
+          "customerLowCarbonChoiceRate": "Customer Low Carbon Choice Rate",
+          "behaviorRecordCount": "Behavior Record Count",
+          "unit": "records"
+        },
+        "trend": {
+          "title": "Low Carbon Dish Ratio Trend"
+        },
+        "detail": {
+          "title": "Behavior Metrics Detail"
+        },
+        "table": {
+          "columns": {
+            "date": "Date",
+            "lowCarbonRatio": "Low Carbon Dish Ratio",
+            "customerBehavior": "Customer Behavior",
+            "carbonReduction": "Carbon Reduction"
+          }
+        }
+      },
+      "coupon": {
+        "title": "Coupon Management",
+        "buttons": {
+          "create": "Create Coupon",
+          "distribute": "Distribute"
+        },
+        "table": {
+          "columns": {
+            "name": "Coupon Name",
+            "type": "Type",
+            "value": "Value",
+            "usage": "Usage",
+            "validity": "Validity",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "types": {
+          "discount": "Discount Coupon",
+          "cash": "Cash Coupon",
+          "fullReduction": "Full Reduction Coupon"
+        },
+        "status": {
+          "active": "Active",
+          "expired": "Expired",
+          "disabled": "Disabled"
+        },
+        "discountUnit": "off",
+        "filters": {
+          "search": "Search coupon name"
+        },
+        "modal": {
+          "title": "Create Coupon"
+        },
+        "form": {
+          "fields": {
+            "name": "Coupon Name",
+            "type": "Type",
+            "value": "Value",
+            "minAmount": "Minimum Amount",
+            "totalCount": "Total Count",
+            "validity": "Validity"
+          },
+          "placeholders": {
+            "name": "Enter coupon name",
+            "type": "Select type",
+            "value": "Enter value",
+            "minAmount": "Enter minimum amount",
+            "totalCount": "Enter total count"
+          }
+        }
+      },
+      "review": {
+        "title": "User Review Management",
+        "buttons": {
+          "viewDetail": "View Detail",
+          "reply": "Reply"
+        },
+        "table": {
+          "columns": {
+            "orderNo": "Order No",
+            "customerName": "Customer Name",
+            "rating": "Rating",
+            "content": "Review Content",
+            "carbonSatisfaction": "Carbon Reduction Satisfaction",
+            "reviewDate": "Review Date",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "status": {
+          "replied": "Replied",
+          "pending": "Pending"
+        },
+        "filters": {
+          "search": "Search order no or customer name"
+        },
+        "modal": {
+          "title": "Reply Review",
+          "customerReview": "Customer Review",
+          "rating": "Rating",
+          "fields": {
+            "reply": "Reply Content"
+          },
+          "placeholders": {
+            "reply": "Enter reply content"
+          },
+          "messages": {
+            "replyRequired": "Please enter reply content"
+          }
+        }
+      }
+    },
+    "report": {
+      "dashboard": {
+        "title": "Data Dashboard",
+        "buttons": {
+          "customize": "Customize"
+        },
+        "statistics": {
+          "totalRevenue": "Total Revenue",
+          "totalOrders": "Total Orders",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "targetCompletionRate": "Target Completion Rate"
+        },
+        "charts": {
+          "revenueTrend": "Revenue Trend",
+          "carbonReductionTrend": "Carbon Reduction Trend",
+          "categoryRatio": "Category Ratio",
+          "keyMetrics": "Key Metrics"
+        },
+        "metrics": {
+          "avgOrderValue": "Average Order Value",
+          "repurchaseRate": "Repurchase Rate",
+          "lowCarbonRatio": "Low Carbon Dish Ratio",
+          "userSatisfaction": "User Satisfaction"
+        }
+      },
+      "business": {
+        "overview": {
+          "title": "Business Data Overview",
+          "totalRevenue": "Total Revenue",
+          "totalOrders": "Total Orders",
+          "avgOrderValue": "Average Order Value",
+          "repurchaseRate": "Repurchase Rate"
+        },
+        "revenueTrend": {
+          "title": "Revenue Trend"
+        },
+        "orderStatistics": {
+          "title": "Order Statistics"
+        },
+        "costAnalysis": {
+          "title": "Cost Analysis",
+          "ingredientCost": "Ingredient Cost",
+          "operationCost": "Operation Cost",
+          "profitMargin": "Profit Margin"
+        },
+        "buttons": {
+          "export": "Export Data"
+        }
+      },
+      "carbon": {
+        "overview": {
+          "title": "Carbon Reduction Data Overview",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "monthlyCarbonReduction": "Monthly Carbon Reduction",
+          "targetCompletionRate": "Target Completion Rate",
+          "annualTarget": "Annual Target"
+        },
+        "trend": {
+          "title": "Carbon Reduction Trend"
+        },
+        "targetCompletion": {
+          "title": "Target Completion"
+        },
+        "analysis": {
+          "title": "Multi-dimensional Analysis",
+          "byDish": {
+            "title": "By Dish",
+            "lowCarbon": "Low Carbon Contribution",
+            "mediumCarbon": "Medium Carbon Contribution",
+            "highCarbon": "High Carbon Contribution"
+          },
+          "byTime": {
+            "title": "By Time",
+            "breakfast": "Breakfast",
+            "lunch": "Lunch",
+            "dinner": "Dinner"
+          },
+          "byUser": {
+            "title": "By User",
+            "newUser": "New User",
+            "oldUser": "Old User"
+          }
+        },
+        "buttons": {
+          "export": "Export Data"
+        }
+      },
+      "esg": {
+        "title": "ESG Report Management",
+        "types": {
+          "monthly": "Monthly Report",
+          "yearly": "Yearly Report"
+        },
+        "buttons": {
+          "generate": "Generate Report"
+        },
+        "tabs": {
+          "environmental": "Environmental Data (Environmental)",
+          "social": "Social Data (Social)",
+          "governance": "Governance Data (Governance)",
+          "actions": "Report Actions"
+        },
+        "environmental": {
+          "title": "Environmental Data",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "energyConsumption": "Energy Consumption",
+          "optimizedReduction": "Optimized reduction of",
+          "wasteManagement": "Waste Management",
+          "zeroWaste": "Achieved zero waste target",
+          "waterUsage": "Water Usage",
+          "reduced": "Reduced",
+          "packaging": "Packaging Materials",
+          "recyclable": "recyclable"
+        },
+        "social": {
+          "title": "Social Data",
+          "employment": "Employment",
+          "people": "people",
+          "communityContribution": "Community Contribution",
+          "participated": "Participated in",
+          "publicActivities": "public activities",
+          "userSatisfaction": "User Satisfaction",
+          "staffTraining": "Staff Training",
+          "monthly": "Monthly",
+          "lowCarbonTraining": "low-carbon training sessions",
+          "customerEducation": "Customer Education",
+          "lowCarbonAdvocacy": "Low-carbon consumption advocacy activities"
+        },
+        "governance": {
+          "title": "Governance Data",
+          "compliance": "Compliance",
+          "certificationStandard": "meet certification standards",
+          "transparency": "Transparency",
+          "dataTransparent": "Data is open and transparent",
+          "responsibilityManagement": "Responsibility Management",
+          "managementSystem": "Established comprehensive management system",
+          "auditRecords": "Audit Records",
+          "completeAuditLog": "Complete audit log",
+          "riskControl": "Risk Control",
+          "riskWarning": "Established risk warning mechanism"
+        },
+        "actions": {
+          "title": "Report Actions",
+          "description": "ESG report contains complete data from three dimensions: environmental, social, and governance, can be used for:",
+          "buttons": {
+            "preview": "Preview",
+            "downloadPdf": "Download PDF",
+            "downloadExcel": "Download Excel",
+            "share": "Share"
+          },
+          "uses": {
+            "sustainability": "Corporate sustainability reporting",
+            "government": "Government regulatory reporting",
+            "partners": "Partner presentation",
+            "investors": "Investor disclosure"
+          }
+        },
+        "messages": {
+          "generateInProgress": "ESG report generation feature in development",
+          "downloadInProgress": "{{format}} format report download feature in development",
+          "shareInProgress": "Report sharing feature in development"
+        }
+      }
+    },
+    "system": {
+      "users": {
+        "title": "User Management",
+        "buttons": {
+          "create": "Create User",
+          "disable": "Disable",
+          "enable": "Enable",
+          "resetPassword": "Reset Password"
+        },
+        "filters": {
+          "role": "Role",
+          "status": "Status",
+          "keyword": "Keyword (Username)",
+          "roles": {
+            "all": "All",
+            "systemAdmin": "System Administrator",
+            "platformOperator": "Platform Operator",
+            "carbonSpecialist": "Carbon Specialist",
+            "governmentPartner": "Government/External Partner",
+            "restaurantAdmin": "Restaurant Administrator"
+          }
+        },
+        "table": {
+          "columns": {
+            "username": "Username",
+            "name": "Name",
+            "role": "Role",
+            "tenantId": "Tenant ID",
+            "restaurantCount": "Restaurant Count",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "modal": {
+          "title": "Create User"
+        },
+        "form": {
+          "fields": {
+            "username": "Username",
+            "password": "Initial Password",
+            "name": "Name",
+            "email": "Email",
+            "phone": "Phone",
+            "role": "Role"
+          },
+          "placeholders": {
+            "username": "Example: ops_admin01",
+            "password": "At least 6 characters"
+          },
+          "roles": {
+            "platformOperator": "Platform Operator (platform_operator)",
+            "carbonSpecialist": "Carbon Specialist (carbon_specialist)",
+            "governmentPartner": "Government/External Partner (government_partner)"
+          },
+          "messages": {
+            "usernameRequired": "Please enter username",
+            "usernamePattern": "Must start with a letter, 4-21 characters, only letters, numbers, underscores and hyphens",
+            "passwordRequired": "Please enter initial password",
+            "passwordMin": "At least 6 characters",
+            "emailInvalid": "Invalid email format",
+            "roleRequired": "Please select role"
+          }
+        },
+        "messages": {
+          "statusUpdated": "Status updated",
+          "passwordReset": "Password reset: {{password}}"
+        }
+      },
+      "roles": {
+        "title": "Role & Permission Configuration",
+        "buttons": {
+          "create": "Create Role",
+          "editPermissions": "Edit Permissions",
+          "disable": "Disable",
+          "enable": "Enable"
+        },
+        "table": {
+          "columns": {
+            "roleCode": "Role Code",
+            "roleName": "Role Name",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "modal": {
+          "create": {
+            "title": "Create Role"
+          },
+          "editPermissions": {
+            "title": "Edit Permissions - {{roleCode}}"
+          }
+        },
+        "form": {
+          "fields": {
+            "roleCode": "Role Code",
+            "roleName": "Role Name",
+            "description": "Description",
+            "permissions": "Initial Permissions (comma-separated)"
+          },
+          "placeholders": {
+            "roleCode": "Example: custom_role",
+            "roleName": "Role Chinese Name",
+            "permissions": "Example: system:user:manage,system:role:manage"
+          },
+          "messages": {
+            "roleCodeRequired": "Please enter role code",
+            "roleNameRequired": "Please enter role name"
+          }
+        },
+        "messages": {
+          "permissionsUpdated": "Permissions updated",
+          "statusUpdated": "Status updated"
+        }
+      },
+      "audit": {
+        "title": "Audit Log",
+        "filters": {
+          "username": "Username",
+          "action": "Action",
+          "status": "Status",
+          "module": "Module",
+          "tenantId": "Tenant ID"
+        },
+        "table": {
+          "columns": {
+            "time": "Time",
+            "username": "User",
+            "role": "Role",
+            "action": "Action",
+            "resource": "Resource",
+            "module": "Module",
+            "status": "Status",
+            "ip": "IP"
+          }
+        }
+      },
+      "monitor": {
+        "title": "System Monitor",
+        "filters": {
+          "domain": "Filter by Domain"
+        },
+        "table": {
+          "columns": {
+            "collection": "Collection",
+            "domain": "Domain",
+            "description": "Description",
+            "count": "Document Count"
+          }
+        },
+        "storage": {
+          "label": "Storage Usage (Simulated)"
+        }
+      },
+      "backup": {
+        "title": "Data Backup",
+        "alert": {
+          "title": "Description",
+          "description": "This will provide database collection export, backup plan management and one-click restore capabilities. Currently a placeholder page, will be connected to cloud functions later."
+        },
+        "buttons": {
+          "backupNow": "Backup Now",
+          "exportCollections": "Export Collections",
+          "restoreFromBackup": "Restore from Backup"
+        },
+        "messages": {
+          "backupTriggered": "Backup triggered",
+          "triggerFailed": "Trigger failed"
+        }
+      }
+    },
+    "platform": {
+      "restaurantList": {
+        "title": "Restaurant List Management",
+        "buttons": {
+          "add": "Add Restaurant",
+          "detail": "Detail",
+          "suspend": "Suspend",
+          "activate": "Activate"
+        },
+        "filters": {
+          "search": "Search restaurant name, owner",
+          "status": "Status",
+          "certificationLevel": "Certification Level"
+        },
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive",
+          "pending": "Pending",
+          "suspended": "Suspended"
+        },
+        "certificationLevels": {
+          "bronze": "Bronze",
+          "silver": "Silver",
+          "gold": "Gold",
+          "platinum": "Platinum",
+          "notCertified": "Not Certified"
+        },
+        "table": {
+          "columns": {
+            "name": "Restaurant Name",
+            "owner": "Owner",
+            "phone": "Phone",
+            "status": "Status",
+            "certificationLevel": "Certification Level",
+            "totalOrders": "Total Orders",
+            "totalRevenue": "Total Revenue",
+            "carbonReduction": "Carbon Reduction",
+            "actions": "Actions"
+          }
+        },
+        "modal": {
+          "detail": {
+            "title": "Restaurant Details"
+          },
+          "add": {
+            "title": "Add Restaurant"
+          },
+          "edit": {
+            "title": "Edit Restaurant"
+          },
+          "suspend": {
+            "title": "Confirm Suspend",
+            "content": "Are you sure you want to suspend this restaurant? The restaurant will not be able to function normally after suspension."
+          },
+          "activate": {
+            "title": "Confirm Activate",
+            "content": "Are you sure you want to activate this restaurant?"
+          }
+        },
+        "detail": {
+          "fields": {
+            "name": "Restaurant Name",
+            "owner": "Owner",
+            "phone": "Phone",
+            "email": "Email",
+            "address": "Address",
+            "status": "Status",
+            "certificationLevel": "Certification Level",
+            "tenantId": "Tenant ID",
+            "createdAt": "Created At",
+            "totalOrders": "Total Orders",
+            "totalRevenue": "Total Revenue",
+            "carbonReduction": "Carbon Reduction"
+          }
+        },
+        "form": {
+          "fields": {
+            "name": "Restaurant Name",
+            "owner": "Owner",
+            "phone": "Phone",
+            "email": "Email",
+            "address": "Address",
+            "status": "Status"
+          },
+          "placeholders": {
+            "name": "Please enter restaurant name",
+            "owner": "Please enter owner name",
+            "phone": "Please enter phone number",
+            "email": "Please enter email address",
+            "address": "Please enter detailed address",
+            "status": "Please select status"
+          },
+          "messages": {
+            "nameRequired": "Please enter restaurant name",
+            "ownerRequired": "Please enter owner",
+            "phoneRequired": "Please enter phone",
+            "phoneInvalid": "Please enter a valid phone number",
+            "emailRequired": "Please enter email",
+            "emailInvalid": "Please enter a valid email address",
+            "addressRequired": "Please enter address"
+          }
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "suspended": "Suspended",
+          "activated": "Activated"
+        }
+      },
+      "adminUsers": {
+        "title": "Admin Account Management (Invite/Create Only, No Public Registration)",
+        "buttons": {
+          "create": "Invite/Create Admin",
+          "disable": "Disable",
+          "enable": "Enable",
+          "resetPassword": "Reset Password"
+        },
+        "roles": {
+          "systemAdmin": "System Administrator",
+          "platformOperator": "Platform Operator",
+          "carbonSpecialist": "Carbon Specialist"
+        },
+        "status": {
+          "active": "Active",
+          "disabled": "Disabled"
+        },
+        "table": {
+          "columns": {
+            "username": "Username",
+            "name": "Name",
+            "email": "Email",
+            "phone": "Phone",
+            "role": "Role",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "modal": {
+          "title": "Invite/Create Admin",
+          "passwordReset": {
+            "title": "Password Reset",
+            "content": "New password: {{password}} (Please notify the user as soon as possible and request password change)"
+          }
+        },
+        "form": {
+          "fields": {
+            "username": "Username",
+            "password": "Initial Password",
+            "name": "Name",
+            "email": "Email",
+            "phone": "Phone",
+            "role": "Role"
+          },
+          "messages": {
+            "usernameRequired": "Please enter username",
+            "passwordRequired": "Please enter initial password",
+            "passwordMin": "At least 6 characters",
+            "emailInvalid": "Invalid email format",
+            "roleRequired": "Please select role"
+          }
+        },
+        "messages": {
+          "statusUpdated": "Status updated",
+          "resetFailed": "Reset failed"
+        }
+      },
+      "accountApprovals": {
+        "title": "Onboarding Application Approval",
+        "buttons": {
+          "approve": "Approve and Create Account",
+          "reject": "Reject"
+        },
+        "status": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        },
+        "table": {
+          "columns": {
+            "organizationName": "Organization/Restaurant",
+            "desiredUsername": "Desired Username",
+            "contactName": "Contact Name",
+            "contactPhone": "Contact Phone",
+            "contactEmail": "Contact Email",
+            "city": "City",
+            "restaurantCount": "Restaurant Count",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "modal": {
+          "reject": {
+            "title": "Reject Application",
+            "placeholder": "Please enter rejection reason (optional)"
+          }
+        },
+        "messages": {
+          "approved": "Approved",
+          "rejected": "Rejected"
+        }
+      },
+      "crossTenant": {
+        "title": "Cross-Tenant Data View",
+        "filters": {
+          "tenant": "Select Tenants (Multiple)",
+          "dataType": "Data Type"
+        },
+        "dataTypes": {
+          "order": "Order",
+          "carbon": "Carbon Reduction",
+          "user": "User",
+          "revenue": "Revenue"
+        },
+        "table": {
+          "columns": {
+            "tenantId": "Tenant ID",
+            "restaurantName": "Restaurant Name",
+            "dataType": "Data Type",
+            "count": "Count",
+            "amount": "Amount",
+            "date": "Date"
+          }
+        },
+        "summary": {
+          "title": "Data Summary",
+          "totalTenants": "Total Tenants",
+          "totalOrders": "Total Orders",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "totalRevenue": "Total Revenue",
+          "description": "Description: Cross-tenant data view allows platform administrators to view data from all tenants for platform-level data analysis and monitoring.",
+          "dataIncludes": "Data includes: order data, carbon reduction data, user data, revenue data, etc."
+        },
+        "messages": {
+          "loadFailed": "Failed to fetch data",
+          "exportInProgress": "Export feature in development"
+        }
+      },
+      "statistics": {
+        "title": "Platform-Level Statistics Report",
+        "buttons": {
+          "export": "Export Report"
+        },
+        "periods": {
+          "last7Days": "Last 7 Days",
+          "last30Days": "Last 30 Days",
+          "last90Days": "Last 90 Days",
+          "custom": "Custom"
+        },
+        "statistics": {
+          "totalRestaurants": "Total Restaurants",
+          "active": "Active",
+          "totalOrders": "Total Orders",
+          "avgOrderValue": "Average Order Value",
+          "totalRevenue": "Total Revenue",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "avgCarbonPerOrder": "Average per Order",
+          "totalUsers": "Total Users",
+          "activeRestaurantRate": "Active Restaurant Rate",
+          "avgOrders": "Average Orders",
+          "avgRevenue": "Average Revenue"
+        },
+        "ranking": {
+          "title": "Restaurant Rankings"
+        },
+        "table": {
+          "columns": {
+            "rank": "Rank",
+            "restaurantName": "Restaurant Name",
+            "tenantId": "Tenant ID",
+            "orders": "Orders",
+            "revenue": "Revenue",
+            "carbonReduction": "Carbon Reduction (kg)",
+            "certificationLevel": "Certification Level"
+          }
+        },
+        "certificationLevels": {
+          "bronze": "Bronze",
+          "silver": "Silver",
+          "gold": "Gold",
+          "platinum": "Platinum",
+          "notCertified": "Not Certified"
+        },
+        "messages": {
+          "loadFailed": "Failed to fetch statistics",
+          "exportInProgress": "Export report feature in development"
+        }
+      }
+    },
+    "profile": {
+      "title": "Profile",
+      "roles": {
+        "systemAdmin": "System Administrator",
+        "platformOperator": "Platform Operator",
+        "carbonSpecialist": "Carbon Specialist",
+        "governmentPartner": "Government/External Partner",
+        "restaurantAdmin": "Restaurant Administrator",
+        "admin": "Administrator"
+      },
+      "certificationLevels": {
+        "bronze": "Bronze",
+        "silver": "Silver",
+        "gold": "Gold",
+        "platinum": "Platinum"
+      },
+      "form": {
+        "fields": {
+          "name": "Name",
+          "email": "Email",
+          "phone": "Phone"
+        },
+        "placeholders": {
+          "name": "Please enter name",
+          "email": "Please enter email",
+          "phone": "Please enter phone number"
+        },
+        "messages": {
+          "nameRequired": "Please enter name",
+          "emailInvalid": "Please enter a valid email address",
+          "phoneInvalid": "Please enter a valid phone number"
+        }
+      },
+      "detail": {
+        "fields": {
+          "userId": "User ID",
+          "name": "Name",
+          "email": "Email",
+          "phone": "Phone",
+          "role": "Role",
+          "tenantId": "Tenant ID"
+        },
+        "notSet": "Not Set",
+        "none": "None"
+      },
+      "tenant": {
+        "title": "Tenant Information",
+        "fields": {
+          "name": "Tenant Name",
+          "id": "Tenant ID",
+          "restaurantCount": "Restaurant Count"
+        },
+        "restaurantCount": "{{count}} restaurants",
+        "myRestaurants": "My Restaurants"
+      },
+      "restaurant": {
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive"
+        }
+      },
+      "upload": {
+        "uploadAvatar": "Upload Avatar",
+        "convertingHeic": "Converting HEIC image to JPG...",
+        "convertedToJpg": "Converted to JPG",
+        "unsupportedFormat": "Only JPG/PNG/HEIC (auto-convert to JPG) formats are supported",
+        "fileTooLarge": "Image size should be less than 2MB",
+        "uploadSuccess": "Avatar uploaded",
+        "uploadFailed": "Upload failed"
+      },
+      "messages": {
+        "updateSuccess": "Profile updated successfully"
+      },
+      "settings": {
+        "password": {
+          "title": "Change Password",
+          "alert": {
+            "title": "Password Security Tips",
+            "description": "Please use a strong password of at least 8 characters, containing letters, numbers and special characters."
+          },
+          "form": {
+            "fields": {
+              "oldPassword": "Current Password",
+              "newPassword": "New Password",
+              "confirmPassword": "Confirm New Password"
+            },
+            "placeholders": {
+              "oldPassword": "Please enter current password",
+              "newPassword": "Please enter new password",
+              "confirmPassword": "Please enter new password again"
+            },
+            "messages": {
+              "oldPasswordRequired": "Please enter current password",
+              "newPasswordRequired": "Please enter new password",
+              "passwordMin": "Password must be at least 8 characters",
+              "passwordPattern": "Password must contain uppercase and lowercase letters, numbers and special characters",
+              "confirmPasswordRequired": "Please confirm new password",
+              "passwordMismatch": "The two passwords do not match"
+            }
+          },
+          "buttons": {
+            "change": "Change Password"
+          },
+          "messages": {
+            "passwordMismatch": "The two passwords do not match",
+            "changeSuccess": "Password changed successfully"
+          }
+        },
+        "notification": {
+          "title": "Notification Settings",
+          "items": {
+            "email": {
+              "title": "Email Notification",
+              "description": "Receive important system notification emails"
+            },
+            "sms": {
+              "title": "SMS Notification",
+              "description": "Receive SMS reminders for important operations"
+            },
+            "order": {
+              "title": "Order Notification",
+              "description": "Receive notifications for new orders and order status changes"
+            },
+            "certification": {
+              "title": "Certification Notification",
+              "description": "Receive notifications for certification application progress and results"
+            }
+          },
+          "messages": {
+            "updateSuccess": "Notification settings updated",
+            "updateFailed": "Failed to update notification settings"
+          }
+        },
+        "security": {
+          "title": "Security Settings",
+          "items": {
+            "loginProtection": {
+              "title": "Login Protection",
+              "description": "When enabled, verification code is required for login"
+            },
+            "operationLog": {
+              "title": "Operation Log",
+              "description": "Record all important operations for auditing"
+            }
+          }
+        }
+      },
+      "activity": {
+        "title": "Activity Log",
+        "filters": {
+          "module": "Filter by Module"
+        },
+        "status": {
+          "success": "Success",
+          "pending": "In Progress",
+          "failed": "Failed"
+        },
+        "empty": "No activity records",
+        "loadMore": "Load More ({{loaded}} / {{total}} loaded)"
+      }
+    },
+    "login": {
+      "title": "Climate Restaurant Management System",
+      "form": {
+        "placeholders": {
+          "username": "Username",
+          "password": "Password"
+        },
+        "messages": {
+          "usernameRequired": "Please enter username",
+          "passwordRequired": "Please enter password"
+        }
+      },
+      "buttons": {
+        "login": "Login"
+      },
+      "footer": {
+        "noAccount": "Don't have an account?",
+        "apply": "Apply for Access / Onboarding",
+        "forgotPassword": "Forgot Password"
+      },
+      "messages": {
+        "loginSuccess": "Login successful",
+        "loginFailed": "Login failed, please check username and password",
+        "accountDisabled": "This account has been disabled, please contact system administrator",
+        "networkError": "Login failed, please check network connection"
+      }
+    },
+    "onboarding": {
+      "apply": {
+        "title": "Climate Restaurant Platform - Onboarding Application",
+        "form": {
+          "fields": {
+            "desiredUsername": "Desired Username (for backend login)",
+            "organizationName": "Organization/Restaurant Name",
+            "contactName": "Contact Name",
+            "contactPhone": "Contact Phone",
+            "contactEmail": "Contact Email",
+            "restaurantCount": "Restaurant Count",
+            "city": "City",
+            "note": "Notes"
+          },
+          "placeholders": {
+            "desiredUsername": "Example: green_vegan_admin",
+            "organizationName": "Example: Green Vegan Restaurant Management Co., Ltd. / Green Vegan (Hongqiao Branch)",
+            "contactName": "Please enter contact name",
+            "contactPhone": "Please enter contact phone",
+            "restaurantCount": "Optional, e.g. 1",
+            "city": "Optional, e.g. Shanghai",
+            "note": "Optional, additional information about requirements and background"
+          },
+          "tooltips": {
+            "desiredUsername": "Must start with a letter, 4-21 characters; if already taken, the platform will help adjust or notify for confirmation"
+          },
+          "messages": {
+            "desiredUsernameRequired": "Please enter desired username",
+            "desiredUsernamePattern": "Must start with a letter, 4-21 characters, only letters, numbers, underscores and hyphens",
+            "organizationNameRequired": "Please enter organization/restaurant name",
+            "contactNameRequired": "Please enter contact name",
+            "contactPhoneRequired": "Please enter contact phone",
+            "contactPhoneInvalid": "Please enter a valid phone number",
+            "contactEmailInvalid": "Invalid email format"
+          }
+        },
+        "buttons": {
+          "submit": "Submit Application"
+        },
+        "footer": {
+          "hasAccount": "Already have an account?",
+          "backToLogin": "Back to Login"
+        },
+        "messages": {
+          "submitSuccess": "Application submitted, the platform will contact you after approval",
+          "submitFailed": "Submission failed, please try again later",
+          "networkError": "Submission failed, please check network"
+        }
+      }
+    },
+    "dashboard": {
+      "title": "Climate Restaurant Management Dashboard",
+      "tags": {
+        "currentView": "Current View: {{name}}",
+        "viewAll": "View All Restaurants ({{count}} total)"
+      },
+      "alerts": {
+        "welcomeRestaurant": "Welcome to view {{name}}'s operational data",
+        "welcomeTenant": "Welcome to view operational data for all restaurants under {{name}}",
+        "welcomeSystem": "Welcome to Climate Restaurant Management System",
+        "descriptionRestaurant": "Here is the detailed operational data for {{name}}, including orders, revenue, carbon reduction and other key indicators.",
+        "descriptionTenant": "Here is the aggregated data for all restaurants under {{name}}. You can switch to view data for a specific restaurant in the top right corner.",
+        "descriptionSystem": "Here is the system overview, where you can view key business indicators and statistics."
+      },
+      "statistics": {
+        "totalRecipes": "Total Recipes",
+        "totalCarbonReduction": "Total Carbon Reduction",
+        "certifiedRestaurants": "Certified Restaurants",
+        "activeUsers": "Active Users",
+        "todayOrders": "Today's Orders",
+        "todayRevenue": "Today's Revenue"
+      },
+      "quickAccess": {
+        "title": "Quick Access",
+        "description": "The system includes the following core functional modules:",
+        "modules": {
+          "certification": "Climate Restaurant Certification - Restaurant onboarding, certification application, review process, certificate management",
+          "carbon": "Carbon Footprint Calculation - Menu carbon footprint calculation, order carbon statistics, carbon label generation and management",
+          "traceability": "Supply Chain Traceability - Supplier management, ingredient batch tracking, traceability chain construction and display",
+          "operation": "Restaurant Operations - Order management, points system, operation ledger, behavior statistics",
+          "report": "Reports & Ecosystem Expansion - Data reports, ESG reports, external interfaces, ecosystem integration"
+        }
+      }
+    }
+  }
+}
