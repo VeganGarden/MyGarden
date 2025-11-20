@@ -118,15 +118,15 @@ export const callCloudFunction = async (
  * 菜谱管理API
  */
 export const recipeAPI = {
-  // 创建菜谱
+  // 创建菜谱（租户隔离）
   create: (recipe: any) =>
     callCloudFunction('recipe', { action: 'create', recipe }),
 
-  // 更新菜谱
+  // 更新菜谱（租户隔离）
   update: (recipeId: string, recipe: any) =>
     callCloudFunction('recipe', { action: 'update', recipeId, recipe }),
 
-  // 删除菜谱
+  // 删除菜谱（租户隔离）
   delete: (recipeId: string) =>
     callCloudFunction('recipe', { action: 'delete', recipeId }),
 
@@ -141,6 +141,7 @@ export const recipeAPI = {
     status?: string
     category?: string
     carbonLabel?: string
+    isBaseRecipe?: boolean
     page?: number
     pageSize?: number
   }) =>
@@ -149,6 +150,19 @@ export const recipeAPI = {
   // 批量导入
   batchImport: (recipes: any[]) =>
     callCloudFunction('recipe', { action: 'batchImport', recipes }),
+
+  // ===== 基础食谱管理（仅平台运营者） =====
+  // 创建基础食谱
+  createBase: (data: any) =>
+    callCloudFunction('recipe', { action: 'createBaseRecipe', data }),
+
+  // 更新基础食谱
+  updateBase: (recipeId: string, data: any) =>
+    callCloudFunction('recipe', { action: 'updateBaseRecipe', recipeId, data }),
+
+  // 删除基础食谱
+  deleteBase: (recipeId: string) =>
+    callCloudFunction('recipe', { action: 'deleteBaseRecipe', recipeId }),
 }
 
 /**
@@ -175,6 +189,56 @@ export const ingredientAPI = {
       page,
       pageSize,
     }),
+
+  // ===== 基础食材管理（仅平台运营者） =====
+  // 创建基础食材
+  createBase: (data: any) =>
+    callCloudFunction('ingredient', { action: 'createBaseIngredient', data }),
+
+  // 更新基础食材
+  updateBase: (ingredientId: string, data: any) =>
+    callCloudFunction('ingredient', { action: 'updateBaseIngredient', ingredientId, data }),
+
+  // 删除基础食材
+  deleteBase: (ingredientId: string) =>
+    callCloudFunction('ingredient', { action: 'deleteBaseIngredient', ingredientId }),
+}
+
+/**
+ * 基础荤食食材API
+ */
+export const meatIngredientAPI = {
+  // 获取单个荤食食材
+  get: (ingredientId: string) =>
+    callCloudFunction('meat-ingredient', { action: 'get', ingredientId }),
+
+  // 获取荤食食材列表
+  list: (params?: { keyword?: string; category?: string; page?: number; pageSize?: number }) =>
+    callCloudFunction('meat-ingredient', {
+      action: 'list',
+      ...params,
+    }),
+
+  // 搜索荤食食材
+  search: (keyword: string, page?: number, pageSize?: number) =>
+    callCloudFunction('meat-ingredient', {
+      action: 'search',
+      keyword,
+      page,
+      pageSize,
+    }),
+
+  // 创建基础荤食食材
+  createBase: (data: any) =>
+    callCloudFunction('meat-ingredient', { action: 'createBaseMeatIngredient', data }),
+
+  // 更新基础荤食食材
+  updateBase: (ingredientId: string, data: any) =>
+    callCloudFunction('meat-ingredient', { action: 'updateBaseMeatIngredient', ingredientId, data }),
+
+  // 删除基础荤食食材
+  deleteBase: (ingredientId: string) =>
+    callCloudFunction('meat-ingredient', { action: 'deleteBaseMeatIngredient', ingredientId }),
 }
 
 /**
@@ -266,6 +330,31 @@ export const carbonFootprintAPI = {
     callCloudFunction('tenant', {
       action: 'generateCarbonReport',
       ...params,
+    }),
+
+  // 计算菜谱碳足迹（含基准值）
+  calculateMenuItemCarbon: (data: {
+    restaurantId: string
+    mealType: 'meat_simple' | 'meat_full'
+    energyType: 'electric' | 'gas' | 'mixed'
+    ingredients?: Array<{ ingredientId: string; weight: number; unit?: string }>
+    cookingMethod?: string
+    cookingTime?: number
+    packaging?: { type: string; weight?: number }
+  }) =>
+    callCloudFunction('restaurant-menu-carbon', {
+      action: 'calculateMenuItemCarbon',
+      data,
+    }),
+
+  // 批量重新计算菜谱碳足迹
+  recalculateMenuItems: (data: {
+    restaurantId: string
+    menuItemIds?: string[]
+  }) =>
+    callCloudFunction('restaurant-menu-carbon', {
+      action: 'recalculateMenuItems',
+      data,
     }),
 }
 
@@ -505,6 +594,20 @@ export const tenantAPI = {
     callCloudFunction('tenant', {
       action: 'updateRestaurant',
       data: { restaurantId, ...data },
+    }),
+
+  // 创建菜谱
+  createMenuItem: (data: any) =>
+    callCloudFunction('tenant', {
+      action: 'createMenuItem',
+      data,
+    }),
+
+  // 更新菜谱
+  updateMenuItem: (menuItemId: string, data: any) =>
+    callCloudFunction('tenant', {
+      action: 'updateMenuItem',
+      data: { menuItemId, ...data },
     }),
 
   // 根据restaurantId获取餐厅相关数据
@@ -936,6 +1039,7 @@ export default {
   authAPI,
   recipeAPI,
   ingredientAPI,
+  meatIngredientAPI,
   carbonAPI,
   certificationAPI,
   carbonFootprintAPI,

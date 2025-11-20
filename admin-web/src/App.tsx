@@ -76,6 +76,16 @@ import SystemUsers from './pages/system/Users'
 import MessageDetail from './pages/messages/Detail'
 import MessageList from './pages/messages/List'
 
+// 基础数据管理（仅平台运营者）
+import BaseImport from './pages/base/Import'
+import BaseIngredientEdit from './pages/base/IngredientEdit'
+import BaseIngredientList from './pages/base/IngredientList'
+import BaseMeatIngredientEdit from './pages/base/MeatIngredientEdit'
+import BaseMeatIngredientList from './pages/base/MeatIngredientList'
+import BaseRecipeEdit from './pages/base/RecipeEdit'
+import BaseRecipeList from './pages/base/RecipeList'
+import BaseStatistics from './pages/base/Statistics'
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -175,6 +185,19 @@ const App: React.FC = () => {
           {/* 消息管理 */}
           <Route path="messages" element={<MessageList />} />
           <Route path="messages/:messageId" element={<MessageDetail />} />
+
+          {/* 基础数据管理（仅平台运营者） */}
+          <Route path="base/ingredients" element={<BaseIngredientList />} />
+          <Route path="base/ingredients/add" element={<BaseIngredientEdit />} />
+          <Route path="base/ingredients/:id/edit" element={<BaseIngredientEdit />} />
+          <Route path="base/meat-ingredients" element={<BaseMeatIngredientList />} />
+          <Route path="base/meat-ingredients/new" element={<BaseMeatIngredientEdit />} />
+          <Route path="base/meat-ingredients/:id/edit" element={<BaseMeatIngredientEdit />} />
+          <Route path="base/recipes" element={<BaseRecipeList />} />
+          <Route path="base/recipes/add" element={<BaseRecipeEdit />} />
+          <Route path="base/recipes/:id/edit" element={<BaseRecipeEdit />} />
+          <Route path="base/statistics" element={<BaseStatistics />} />
+          <Route path="base/import" element={<BaseImport />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -10,42 +10,43 @@ const _ = db.command
 const { checkPermission } = require('./permission')
 
 /**
- * 食材管理云函数
- * 支持食材的查询、列表等操作（基础功能，所有用户可访问）
- * 支持基础食材的创建、更新、删除（仅平台运营者）
+ * 基础荤食食材管理云函数
+ * 支持荤食食材的查询、列表等操作（基础功能，所有用户可访问）
+ * 支持基础荤食食材的创建、更新、删除（仅平台运营者）
+ * 集合：meat_products
  */
 exports.main = async (event, context) => {
   const { action, ingredientId, keyword, category, page = 1, pageSize = 100, data } = event
-  const ingredientCollection = db.collection('ingredients')
+  const meatCollection = db.collection('meat_products')
 
   try {
     switch (action) {
       case 'get':
-        // 获取单个食材详情（所有用户可访问）
-        return await getIngredient(ingredientCollection, ingredientId)
+        // 获取单个荤食食材详情（所有用户可访问）
+        return await getMeatIngredient(meatCollection, ingredientId)
 
       case 'list':
-        // 获取食材列表（所有用户可访问）
-        return await listIngredients(ingredientCollection, keyword, category, page, pageSize)
+        // 获取荤食食材列表（所有用户可访问）
+        return await listMeatIngredients(meatCollection, keyword, category, page, pageSize)
 
       case 'search':
-        // 搜索食材（所有用户可访问）
-        return await searchIngredients(ingredientCollection, keyword, page, pageSize)
+        // 搜索荤食食材（所有用户可访问）
+        return await searchMeatIngredients(meatCollection, keyword, page, pageSize)
 
-      case 'createBaseIngredient':
-        // 创建基础食材（仅平台运营者）
+      case 'createBaseMeatIngredient':
+        // 创建基础荤食食材（仅平台运营者）
         const user1 = await checkPermission(event, context, 'base_data:manage')
-        return await createBaseIngredient(ingredientCollection, data, user1)
+        return await createBaseMeatIngredient(meatCollection, data, user1)
 
-      case 'updateBaseIngredient':
-        // 更新基础食材（仅平台运营者）
+      case 'updateBaseMeatIngredient':
+        // 更新基础荤食食材（仅平台运营者）
         const user2 = await checkPermission(event, context, 'base_data:manage')
-        return await updateBaseIngredient(ingredientCollection, ingredientId, data, user2)
+        return await updateBaseMeatIngredient(meatCollection, ingredientId, data, user2)
 
-      case 'deleteBaseIngredient':
-        // 删除基础食材（仅平台运营者）
+      case 'deleteBaseMeatIngredient':
+        // 删除基础荤食食材（仅平台运营者）
         const user3 = await checkPermission(event, context, 'base_data:manage')
-        return await deleteBaseIngredient(ingredientCollection, ingredientId, user3)
+        return await deleteBaseMeatIngredient(meatCollection, ingredientId, user3)
 
       default:
         return {
@@ -62,7 +63,7 @@ exports.main = async (event, context) => {
       }
     }
 
-    console.error('食材操作失败:', error)
+    console.error('荤食食材操作失败:', error)
     return {
       code: 500,
       message: '操作失败，请重试',
@@ -72,22 +73,22 @@ exports.main = async (event, context) => {
 }
 
 /**
- * 获取单个食材详情
+ * 获取单个荤食食材详情
  */
-async function getIngredient(ingredientCollection, ingredientId) {
+async function getMeatIngredient(meatCollection, ingredientId) {
   if (!ingredientId) {
     return {
       code: 400,
-      message: '食材ID不能为空'
+      message: '荤食食材ID不能为空'
     }
   }
 
   try {
-    const result = await ingredientCollection.doc(ingredientId).get()
+    const result = await meatCollection.doc(ingredientId).get()
     if (!result.data) {
       return {
         code: 404,
-        message: '食材不存在'
+        message: '荤食食材不存在'
       }
     }
 
@@ -96,22 +97,22 @@ async function getIngredient(ingredientCollection, ingredientId) {
       data: result.data
     }
   } catch (error) {
-    console.error('获取食材失败:', error)
+    console.error('获取荤食食材失败:', error)
     return {
       code: 500,
-      message: '获取食材失败',
+      message: '获取荤食食材失败',
       error: error.message
     }
   }
 }
 
 /**
- * 获取食材列表
+ * 获取荤食食材列表
  */
-async function listIngredients(ingredientCollection, keyword, category, page, pageSize) {
+async function listMeatIngredients(meatCollection, keyword, category, page, pageSize) {
   try {
     // 构建查询条件
-    let query = ingredientCollection
+    let query = meatCollection
 
     // 如果有关键词，添加搜索条件
     if (keyword && keyword.trim()) {
@@ -154,19 +155,19 @@ async function listIngredients(ingredientCollection, keyword, category, page, pa
       }
     }
   } catch (error) {
-    console.error('获取食材列表失败:', error)
+    console.error('获取荤食食材列表失败:', error)
     return {
       code: 500,
-      message: '获取食材列表失败',
+      message: '获取荤食食材列表失败',
       error: error.message
     }
   }
 }
 
 /**
- * 搜索食材
+ * 搜索荤食食材
  */
-async function searchIngredients(ingredientCollection, keyword, page, pageSize) {
+async function searchMeatIngredients(meatCollection, keyword, page, pageSize) {
   if (!keyword || !keyword.trim()) {
     return {
       code: 400,
@@ -176,7 +177,7 @@ async function searchIngredients(ingredientCollection, keyword, page, pageSize) 
 
   try {
     // 构建搜索条件（支持名称和英文名称搜索）
-    const query = ingredientCollection.where(
+    const query = meatCollection.where(
       _.or([
         {
           name: db.RegExp({
@@ -217,32 +218,32 @@ async function searchIngredients(ingredientCollection, keyword, page, pageSize) 
       }
     }
   } catch (error) {
-    console.error('搜索食材失败:', error)
+    console.error('搜索荤食食材失败:', error)
     return {
       code: 500,
-      message: '搜索食材失败',
+      message: '搜索荤食食材失败',
       error: error.message
     }
   }
 }
 
 /**
- * 创建基础食材（仅平台运营者）
- * @param {Object} ingredientCollection - 食材集合
- * @param {Object} data - 食材数据
+ * 创建基础荤食食材（仅平台运营者）
+ * @param {Object} meatCollection - 荤食食材集合
+ * @param {Object} data - 荤食食材数据
  * @param {Object} user - 用户信息（已通过权限验证）
  */
-async function createBaseIngredient(ingredientCollection, data, user) {
+async function createBaseMeatIngredient(meatCollection, data, user) {
   // 验证必填字段
-  if (!data || !data.name || !data.category) {
+  if (!data || !data.name || !data.category || data.carbonFootprint === undefined) {
     return {
       code: 400,
-      message: '食材名称和分类为必填项'
+      message: '荤食食材名称、分类和碳足迹为必填项'
     }
   }
 
   // 检查名称是否已存在
-  const existingResult = await ingredientCollection
+  const existingResult = await meatCollection
     .where({
       name: data.name
     })
@@ -251,44 +252,50 @@ async function createBaseIngredient(ingredientCollection, data, user) {
   if (existingResult.data.length > 0) {
     return {
       code: 409,
-      message: '食材名称已存在'
+      message: '荤食食材名称已存在'
     }
   }
 
   try {
-    // 准备食材数据
-    const ingredientData = {
+    // 准备荤食食材数据
+    const meatData = {
       name: data.name,
       nameEn: data.nameEn || '',
-      category: data.category,
+      category: data.category, // red_meat, poultry, seafood, processed_meat
+      subcategory: data.subcategory || '',
       description: data.description || '',
       
-      // 碳足迹信息
-      carbonFootprint: data.carbonFootprint || null,
+      // 碳足迹信息（必填）
+      carbonFootprint: data.carbonFootprint,
+      carbonFootprintSource: data.carbonFootprintSource || null,
+      verifiedAt: data.verifiedAt ? new Date(data.verifiedAt) : null,
       
       // 营养信息
       nutrition: data.nutrition || null,
       
-      // 扩展字段（可选）
-      tcmProperties: data.tcmProperties || null,
-      bodyTypeSuitability: data.bodyTypeSuitability || null,
-      solarTermRecommendations: data.solarTermRecommendations || null,
-      practitionerCertifications: data.practitionerCertifications || [],
-      certificationCount: (data.practitionerCertifications || []).length,
-      practiceWisdom: data.practiceWisdom || null,
-      socialAttributes: data.socialAttributes || null,
-      usageStats: data.usageStats || null,
+      // 生产方式
+      productionMethod: data.productionMethod || null,
+      
+      // 产地信息
+      region: data.region || null,
+      
+      // 素食替代品（关联 ingredients 集合）
+      veganAlternatives: data.veganAlternatives || [],
+      
+      // 对比组
+      comparisonGroup: data.comparisonGroup || null,
       
       // 系统字段
       status: data.status || 'draft', // draft, published, archived
       createdBy: user._id || user.id,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      version: 1
     }
 
-    // 创建食材
-    const result = await ingredientCollection.add({
-      data: ingredientData
+    // 创建荤食食材
+    const result = await meatCollection.add({
+      data: meatData
     })
 
     // 记录操作日志
@@ -298,9 +305,9 @@ async function createBaseIngredient(ingredientCollection, data, user) {
         username: user.username,
         role: user.role,
         action: 'create',
-        resource: 'base_ingredient',
+        resource: 'base_meat_ingredient',
         resourceId: result._id,
-        description: `创建基础食材: ${data.name}`,
+        description: `创建基础荤食食材: ${data.name}`,
         tenantId: user.tenantId || null,
         status: 'success',
         createdAt: new Date()
@@ -312,49 +319,49 @@ async function createBaseIngredient(ingredientCollection, data, user) {
       message: '创建成功',
       data: {
         _id: result._id,
-        ...ingredientData
+        ...meatData
       }
     }
   } catch (error) {
-    console.error('创建食材失败:', error)
+    console.error('创建荤食食材失败:', error)
     return {
       code: 500,
-      message: '创建食材失败',
+      message: '创建荤食食材失败',
       error: error.message
     }
   }
 }
 
 /**
- * 更新基础食材（仅平台运营者）
- * @param {Object} ingredientCollection - 食材集合
- * @param {string} ingredientId - 食材ID
+ * 更新基础荤食食材（仅平台运营者）
+ * @param {Object} meatCollection - 荤食食材集合
+ * @param {string} ingredientId - 荤食食材ID
  * @param {Object} data - 更新数据
  * @param {Object} user - 用户信息（已通过权限验证）
  */
-async function updateBaseIngredient(ingredientCollection, ingredientId, data, user) {
+async function updateBaseMeatIngredient(meatCollection, ingredientId, data, user) {
   if (!ingredientId) {
     return {
       code: 400,
-      message: '食材ID不能为空'
+      message: '荤食食材ID不能为空'
     }
   }
 
   try {
-    // 检查食材是否存在
-    const existingResult = await ingredientCollection.doc(ingredientId).get()
+    // 检查荤食食材是否存在
+    const existingResult = await meatCollection.doc(ingredientId).get()
     if (!existingResult.data) {
       return {
         code: 404,
-        message: '食材不存在'
+        message: '荤食食材不存在'
       }
     }
 
-    const existingIngredient = existingResult.data
+    const existingMeat = existingResult.data
 
-    // 如果更新名称，检查是否与其他食材重复
-    if (data.name && data.name !== existingIngredient.name) {
-      const duplicateResult = await ingredientCollection
+    // 如果更新名称，检查是否与其他荤食食材重复
+    if (data.name && data.name !== existingMeat.name) {
+      const duplicateResult = await meatCollection
         .where({
           name: data.name,
           _id: _.neq(ingredientId)
@@ -364,7 +371,7 @@ async function updateBaseIngredient(ingredientCollection, ingredientId, data, us
       if (duplicateResult.data.length > 0) {
         return {
           code: 409,
-          message: '食材名称已存在'
+          message: '荤食食材名称已存在'
         }
       }
     }
@@ -379,25 +386,39 @@ async function updateBaseIngredient(ingredientCollection, ingredientId, data, us
     if (data.name !== undefined) updateData.name = data.name
     if (data.nameEn !== undefined) updateData.nameEn = data.nameEn
     if (data.category !== undefined) updateData.category = data.category
+    if (data.subcategory !== undefined) updateData.subcategory = data.subcategory
     if (data.description !== undefined) updateData.description = data.description
     if (data.status !== undefined) updateData.status = data.status
 
-    // 扩展字段
+    // 碳足迹信息
     if (data.carbonFootprint !== undefined) updateData.carbonFootprint = data.carbonFootprint
-    if (data.nutrition !== undefined) updateData.nutrition = data.nutrition
-    if (data.tcmProperties !== undefined) updateData.tcmProperties = data.tcmProperties
-    if (data.bodyTypeSuitability !== undefined) updateData.bodyTypeSuitability = data.bodyTypeSuitability
-    if (data.solarTermRecommendations !== undefined) updateData.solarTermRecommendations = data.solarTermRecommendations
-    if (data.practitionerCertifications !== undefined) {
-      updateData.practitionerCertifications = data.practitionerCertifications
-      updateData.certificationCount = data.practitionerCertifications.length
-    }
-    if (data.practiceWisdom !== undefined) updateData.practiceWisdom = data.practiceWisdom
-    if (data.socialAttributes !== undefined) updateData.socialAttributes = data.socialAttributes
-    if (data.usageStats !== undefined) updateData.usageStats = data.usageStats
+    if (data.carbonFootprintSource !== undefined) updateData.carbonFootprintSource = data.carbonFootprintSource
+    if (data.verifiedAt !== undefined) updateData.verifiedAt = data.verifiedAt ? new Date(data.verifiedAt) : null
 
-    // 更新食材
-    await ingredientCollection.doc(ingredientId).update({
+    // 营养信息
+    if (data.nutrition !== undefined) updateData.nutrition = data.nutrition
+
+    // 生产方式
+    if (data.productionMethod !== undefined) updateData.productionMethod = data.productionMethod
+
+    // 产地信息
+    if (data.region !== undefined) updateData.region = data.region
+
+    // 素食替代品
+    if (data.veganAlternatives !== undefined) updateData.veganAlternatives = data.veganAlternatives
+
+    // 对比组
+    if (data.comparisonGroup !== undefined) updateData.comparisonGroup = data.comparisonGroup
+
+    // 版本号递增
+    if (existingMeat.version) {
+      updateData.version = existingMeat.version + 1
+    } else {
+      updateData.version = 1
+    }
+
+    // 更新荤食食材
+    await meatCollection.doc(ingredientId).update({
       data: updateData
     })
 
@@ -408,9 +429,9 @@ async function updateBaseIngredient(ingredientCollection, ingredientId, data, us
         username: user.username,
         role: user.role,
         action: 'update',
-        resource: 'base_ingredient',
+        resource: 'base_meat_ingredient',
         resourceId: ingredientId,
-        description: `更新基础食材: ${existingIngredient.name}`,
+        description: `更新基础荤食食材: ${existingMeat.name}`,
         tenantId: user.tenantId || null,
         status: 'success',
         createdAt: new Date()
@@ -418,7 +439,7 @@ async function updateBaseIngredient(ingredientCollection, ingredientId, data, us
     })
 
     // 获取更新后的数据
-    const updatedResult = await ingredientCollection.doc(ingredientId).get()
+    const updatedResult = await meatCollection.doc(ingredientId).get()
 
     return {
       code: 0,
@@ -426,77 +447,43 @@ async function updateBaseIngredient(ingredientCollection, ingredientId, data, us
       data: updatedResult.data
     }
   } catch (error) {
-    console.error('更新食材失败:', error)
+    console.error('更新荤食食材失败:', error)
     return {
       code: 500,
-      message: '更新食材失败',
+      message: '更新荤食食材失败',
       error: error.message
     }
   }
 }
 
 /**
- * 删除基础食材（仅平台运营者）
- * @param {Object} ingredientCollection - 食材集合
- * @param {string} ingredientId - 食材ID
+ * 删除基础荤食食材（仅平台运营者）
+ * @param {Object} meatCollection - 荤食食材集合
+ * @param {string} ingredientId - 荤食食材ID
  * @param {Object} user - 用户信息（已通过权限验证）
  */
-async function deleteBaseIngredient(ingredientCollection, ingredientId, user) {
+async function deleteBaseMeatIngredient(meatCollection, ingredientId, user) {
   if (!ingredientId) {
     return {
       code: 400,
-      message: '食材ID不能为空'
+      message: '荤食食材ID不能为空'
     }
   }
 
   try {
-    // 检查食材是否存在
-    const existingResult = await ingredientCollection.doc(ingredientId).get()
+    // 检查荤食食材是否存在
+    const existingResult = await meatCollection.doc(ingredientId).get()
     if (!existingResult.data) {
       return {
         code: 404,
-        message: '食材不存在'
+        message: '荤食食材不存在'
       }
     }
 
-    const ingredient = existingResult.data
+    const meat = existingResult.data
 
-    // 检查是否有依赖关系（被食谱使用）
-    const recipesUsingIngredient = await db.collection('recipes')
-      .where({
-        'ingredients.ingredientId': ingredientId
-      })
-      .count()
-
-    if (recipesUsingIngredient.total > 0) {
-      return {
-        code: 409,
-        message: `无法删除：该食材被 ${recipesUsingIngredient.total} 个食谱使用`,
-        data: {
-          dependencyCount: recipesUsingIngredient.total
-        }
-      }
-    }
-
-    // 检查是否被餐厅菜单使用（通过restaurant_menu_items）
-    const menuItemsUsingIngredient = await db.collection('restaurant_menu_items')
-      .where({
-        'ingredients.ingredientId': ingredientId
-      })
-      .count()
-
-    if (menuItemsUsingIngredient.total > 0) {
-      return {
-        code: 409,
-        message: `无法删除：该食材被 ${menuItemsUsingIngredient.total} 个餐厅菜单项使用`,
-        data: {
-          dependencyCount: menuItemsUsingIngredient.total
-        }
-      }
-    }
-
-    // 删除食材（软删除：修改状态为archived）
-    await ingredientCollection.doc(ingredientId).update({
+    // 删除荤食食材（软删除：修改状态为archived）
+    await meatCollection.doc(ingredientId).update({
       data: {
         status: 'archived',
         updatedBy: user._id || user.id,
@@ -511,9 +498,9 @@ async function deleteBaseIngredient(ingredientCollection, ingredientId, user) {
         username: user.username,
         role: user.role,
         action: 'delete',
-        resource: 'base_ingredient',
+        resource: 'base_meat_ingredient',
         resourceId: ingredientId,
-        description: `删除基础食材: ${ingredient.name}`,
+        description: `删除基础荤食食材: ${meat.name}`,
         tenantId: user.tenantId || null,
         status: 'success',
         createdAt: new Date()
@@ -525,10 +512,10 @@ async function deleteBaseIngredient(ingredientCollection, ingredientId, user) {
       message: '删除成功'
     }
   } catch (error) {
-    console.error('删除食材失败:', error)
+    console.error('删除荤食食材失败:', error)
     return {
       code: 500,
-      message: '删除食材失败',
+      message: '删除荤食食材失败',
       error: error.message
     }
   }
