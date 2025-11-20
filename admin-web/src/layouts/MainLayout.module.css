@@ -268,7 +268,7 @@
   margin-right: 0 !important;
 }
 
-/* 确保图标在左侧 - 统一所有菜单项的图标间距 */
+/* 确保图标在左侧 - 统一所有菜单项的图标间距为 2px */
 /* 使用最高优先级的选择器，直接设置 margin-right 为 2px */
 :global(.ant-layout-sider .ant-menu-submenu-title .anticon),
 :global(.ant-layout-sider .ant-menu-submenu .ant-menu-submenu-title .anticon),
@@ -278,8 +278,10 @@
 :global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon .anticon),
 :global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon .anticon),
 :global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon),
-:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon) {
-  margin-right: 2px !important; /* 直接设置图标和文字之间的间距为 2px */
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon),
+:global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon > *),
+:global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon > *) {
+  margin-right: 2px !important; /* 统一图标和文字之间的间距为 2px */
   margin-left: 0 !important; /* 确保左边距为0 */
   flex-shrink: 0 !important; /* 图标不收缩 */
   order: 0 !important; /* 图标在最前面 */
@@ -298,7 +300,7 @@
 :global(.ant-layout-sider .ant-menu-item-icon),
 :global(.ant-layout-sider .ant-menu-submenu-title .ant-menu-item-icon),
 :global(.ant-layout-sider .ant-menu-item .ant-menu-item-icon) {
-  margin-right: 0 !important; /* 图标容器本身没有 margin */
+  margin-right: 2px !important; /* 图标容器和文字之间的间距统一为 2px */
   margin-left: 0 !important;
   padding: 0 !important; /* 移除所有 padding */
   width: auto !important;

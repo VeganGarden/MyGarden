@@ -6,29 +6,21 @@ cloud.init({
 const db = cloud.database()
 const _ = db.command
 
+// 引入权限验证模块（本地文件）
+const { checkPermission } = require('./permission')
+
 /**
  * 菜谱管理云函数
  * 支持菜谱的创建、查询、更新、删除等操作
  * 支持多租户隔离（通过tenantId，即餐厅ID）
+ * 支持基础食谱的创建、更新、删除（仅平台运营者）
  */
 exports.main = async (event, context) => {
-  const { action, recipeId, recipe, keyword, page = 1, pageSize = 20, restaurantId } = event
+  const { action, recipeId, recipe, keyword, page = 1, pageSize = 20, restaurantId, data } = event
   const recipeCollection = db.collection('recipes')
 
   try {
-    // 获取用户openid（用于权限控制）
-    // 注意：Web端调用时可能没有openid，需要处理这种情况
-    let openid = null
-    try {
-      const wxContext = cloud.getWXContext()
-      openid = wxContext.OPENID
-    } catch (error) {
-      console.warn('无法获取openid（可能是Web端调用）:', error)
-      // Web端调用时，openid可能为空，使用默认值
-      openid = event.openid || 'web_user'
-    }
-
-    // 特殊 action 不需要租户ID，直接处理
+    // 特殊 action 不需要租户ID和权限验证，直接处理
     if (action === 'checkRecipes' || action === 'importSukuaixinRecipes') {
       switch (action) {
         case 'checkRecipes':
@@ -41,6 +33,42 @@ exports.main = async (event, context) => {
           const importScript = require('./import-sukuaixin-recipes')
           return await importScript.main(event, context)
       }
+    }
+
+    // 基础食谱管理（仅平台运营者）
+    if (action === 'createBaseRecipe' || action === 'updateBaseRecipe' || action === 'deleteBaseRecipe') {
+      try {
+        const user = await checkPermission(event, context, 'base_data:manage')
+        switch (action) {
+          case 'createBaseRecipe':
+            return await createBaseRecipe(recipeCollection, data, user)
+          case 'updateBaseRecipe':
+            return await updateBaseRecipe(recipeCollection, recipeId, data, user)
+          case 'deleteBaseRecipe':
+            return await deleteBaseRecipe(recipeCollection, recipeId, user)
+        }
+      } catch (error) {
+        // 权限错误单独处理
+        if (error.code === 401 || error.code === 403) {
+          return {
+            code: error.code,
+            message: error.message
+          }
+        }
+        throw error
+      }
+    }
+
+    // 获取用户openid（用于权限控制）
+    // 注意：Web端调用时可能没有openid，需要处理这种情况
+    let openid = null
+    try {
+      const wxContext = cloud.getWXContext()
+      openid = wxContext.OPENID
+    } catch (error) {
+      console.warn('无法获取openid（可能是Web端调用）:', error)
+      // Web端调用时，openid可能为空，使用默认值
+      openid = event.openid || 'web_user'
     }
 
     // 获取餐厅ID（租户ID）
@@ -56,15 +84,15 @@ exports.main = async (event, context) => {
 
     switch (action) {
       case 'create':
-        // 创建菜谱
+        // 创建菜谱（租户隔离）
         return await createRecipe(recipeCollection, recipe, openid, tenantId)
 
       case 'update':
-        // 更新菜谱
+        // 更新菜谱（租户隔离）
         return await updateRecipe(recipeCollection, recipeId, recipe, openid, tenantId)
 
       case 'delete':
-        // 删除菜谱
+        // 删除菜谱（租户隔离）
         return await deleteRecipe(recipeCollection, recipeId, openid, tenantId)
 
       case 'get':
@@ -74,13 +102,14 @@ exports.main = async (event, context) => {
       case 'list':
         // 获取菜谱列表
         // 支持更多筛选参数
-        const { status, category, carbonLabel } = event
+        const { status, category, carbonLabel, isBaseRecipe } = event
         // 如果提供了 restaurantId，优先使用它（因为数据迁移后，restaurantId 更准确）
         const queryRestaurantId = event.restaurantId || tenantId
         return await listRecipes(recipeCollection, keyword, page, pageSize, queryRestaurantId, {
           status,
           category,
           carbonLabel,
+          isBaseRecipe, // 新增：是否为基础食谱
         })
 
       case 'batchImport':
@@ -425,11 +454,66 @@ async function getRecipe(recipeCollection, recipeId, tenantId) {
  * @param {number} page - 页码
  * @param {number} pageSize - 每页数量
  * @param {string} tenantId - 租户ID（可能是餐厅ID或租户ID），用于多租户数据隔离
- * @param {Object} filters - 筛选条件 { status, category, carbonLabel }
+ * @param {Object} filters - 筛选条件 { status, category, carbonLabel, isBaseRecipe }
  */
 async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, filters = {}) {
   try {
-    console.log('查询菜谱列表，参数:', { keyword, page, pageSize, tenantId, filters })
+    // 如果指定了 isBaseRecipe，则只查询基础食谱（不进行租户隔离）
+    if (filters.isBaseRecipe === true) {
+      // 构建基础食谱查询条件
+      let query = recipeCollection.where({
+        isBaseRecipe: true, // 只查询基础食谱
+        status: _.neq('archived') // 排除已归档的菜谱
+      })
+
+      // 添加状态筛选
+      if (filters.status && filters.status !== 'all') {
+        query = query.where({
+          status: filters.status
+        })
+      }
+
+      // 添加分类筛选
+      if (filters.category && filters.category !== 'all') {
+        query = query.where({
+          category: filters.category
+        })
+      }
+
+      // 如果有关键词，添加搜索条件
+      if (keyword && keyword.trim()) {
+        query = query.where({
+          name: db.RegExp({
+            regexp: keyword.trim(),
+            options: 'i'
+          })
+        })
+      }
+
+      // 获取总数
+      const countResult = await query.count()
+      const total = countResult.total
+
+      // 分页查询
+      const result = await query
+        .orderBy('createdAt', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get()
+
+      return {
+        code: 0,
+        data: {
+          data: result.data || [],
+          pagination: {
+            page,
+            pageSize,
+            total,
+            totalPages: Math.ceil(total / pageSize)
+          }
+        }
+      }
+    }
     
     // 如果提供了 tenantId，先尝试获取餐厅信息，确定实际的 tenantId
     let actualTenantId = tenantId
@@ -442,10 +526,9 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
         if (restaurantResult.data && restaurantResult.data.tenantId) {
           actualTenantId = restaurantResult.data.tenantId
           restaurantId = tenantId
-          console.log(`通过餐厅ID ${tenantId} 获取到租户ID: ${actualTenantId}`)
         }
       } catch (error) {
-        console.warn('查询餐厅信息失败，使用原值:', error.message)
+        // 静默处理错误，使用原值
       }
     }
     
@@ -508,7 +591,6 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
     // 获取总数
     const countResult = await query.count()
     const total = countResult.total
-    console.log('查询结果总数:', total)
 
     // 分页查询
     const result = await query
@@ -516,8 +598,6 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .get()
-
-    console.log('查询到的菜谱数量:', result.data ? result.data.length : 0)
 
     return {
       code: 0,
@@ -640,6 +720,336 @@ async function batchImportRecipes(recipeCollection, recipes, openid, tenantId) {
     return {
       code: 500,
       message: '批量导入菜谱失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 创建基础食谱（仅平台运营者）
+ * @param {Object} recipeCollection - 食谱集合
+ * @param {Object} data - 食谱数据
+ * @param {Object} user - 用户信息（已通过权限验证）
+ */
+async function createBaseRecipe(recipeCollection, data, user) {
+  // 验证必填字段
+  if (!data || !data.name || !data.category) {
+    return {
+      code: 400,
+      message: '食谱名称和分类为必填项'
+    }
+  }
+
+  // 检查名称是否已存在（基础食谱无租户限制，检查全局）
+  const existingResult = await recipeCollection
+    .where({
+      name: data.name,
+      isBaseRecipe: true // 只检查基础食谱
+    })
+    .get()
+
+  if (existingResult.data.length > 0) {
+    return {
+      code: 409,
+      message: '食谱名称已存在'
+    }
+  }
+
+  try {
+    // 准备食谱数据（基础食谱结构）
+    const recipeData = {
+      name: data.name,
+      nameEn: data.nameEn || '',
+      category: data.category,
+      description: data.description || '',
+      
+      // 基础字段
+      ingredients: data.ingredients || [],
+      cookingMethod: data.cookingMethod || '',
+      cookingTime: data.cookingTime || null,
+      servings: data.servings || null,
+      
+      // 碳足迹信息
+      carbonFootprint: data.carbonFootprint || null,
+      carbonLabel: data.carbonLabel || null,
+      carbonScore: data.carbonScore || null,
+      
+      // 扩展字段（服务于C端）
+      practitionerCertifications: data.practitionerCertifications || [],
+      certificationCount: (data.practitionerCertifications || []).length,
+      practiceData: data.practiceData || null,
+      suitableScenarios: data.suitableScenarios || null,
+      culturalStory: data.culturalStory || null,
+      evolutionHistory: data.evolutionHistory || null,
+      videoTutorial: data.videoTutorial || null,
+      
+      // 系统字段
+      isBaseRecipe: true, // 标记为基础食谱
+      status: data.status || 'draft', // draft, published, archived
+      version: 1,
+      tenantId: null, // 基础食谱无租户
+      restaurantId: null, // 基础食谱无餐厅
+      createdBy: user._id || user.id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    // 创建食谱
+    const result = await recipeCollection.add({
+      data: recipeData
+    })
+
+    // 记录操作日志
+    await db.collection('audit_logs').add({
+      data: {
+        userId: user._id || user.id,
+        username: user.username,
+        role: user.role,
+        action: 'create',
+        resource: 'base_recipe',
+        resourceId: result._id,
+        description: `创建基础食谱: ${data.name}`,
+        tenantId: user.tenantId || null,
+        status: 'success',
+        createdAt: new Date()
+      }
+    })
+
+    return {
+      code: 0,
+      message: '创建成功',
+      data: {
+        _id: result._id,
+        ...recipeData
+      }
+    }
+  } catch (error) {
+    console.error('创建基础食谱失败:', error)
+    return {
+      code: 500,
+      message: '创建基础食谱失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 更新基础食谱（仅平台运营者）
+ * @param {Object} recipeCollection - 食谱集合
+ * @param {string} recipeId - 食谱ID
+ * @param {Object} data - 更新数据
+ * @param {Object} user - 用户信息（已通过权限验证）
+ */
+async function updateBaseRecipe(recipeCollection, recipeId, data, user) {
+  if (!recipeId) {
+    return {
+      code: 400,
+      message: '食谱ID不能为空'
+    }
+  }
+
+  try {
+    // 检查食谱是否存在且为基础食谱
+    const existingResult = await recipeCollection.doc(recipeId).get()
+    if (!existingResult.data) {
+      return {
+        code: 404,
+        message: '食谱不存在'
+      }
+    }
+
+    const existingRecipe = existingResult.data
+
+    // 检查是否为基础食谱
+    if (!existingRecipe.isBaseRecipe) {
+      return {
+        code: 403,
+        message: '只能更新基础食谱'
+      }
+    }
+
+    // 如果更新名称，检查是否与其他基础食谱重复
+    if (data.name && data.name !== existingRecipe.name) {
+      const duplicateResult = await recipeCollection
+        .where({
+          name: data.name,
+          isBaseRecipe: true,
+          _id: _.neq(recipeId)
+        })
+        .get()
+
+      if (duplicateResult.data.length > 0) {
+        return {
+          code: 409,
+          message: '食谱名称已存在'
+        }
+      }
+    }
+
+    // 准备更新数据（只更新提供的字段）
+    const updateData = {
+      updatedBy: user._id || user.id,
+      updatedAt: new Date()
+    }
+
+    // 基础字段
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.nameEn !== undefined) updateData.nameEn = data.nameEn
+    if (data.category !== undefined) updateData.category = data.category
+    if (data.description !== undefined) updateData.description = data.description
+    if (data.cookingMethod !== undefined) updateData.cookingMethod = data.cookingMethod
+    if (data.cookingTime !== undefined) updateData.cookingTime = data.cookingTime
+    if (data.servings !== undefined) updateData.servings = data.servings
+    if (data.status !== undefined) updateData.status = data.status
+
+    // 食材和扩展字段
+    if (data.ingredients !== undefined) updateData.ingredients = data.ingredients
+    if (data.carbonFootprint !== undefined) updateData.carbonFootprint = data.carbonFootprint
+    if (data.carbonLabel !== undefined) updateData.carbonLabel = data.carbonLabel
+    if (data.carbonScore !== undefined) updateData.carbonScore = data.carbonScore
+    
+    // 扩展字段
+    if (data.practitionerCertifications !== undefined) {
+      updateData.practitionerCertifications = data.practitionerCertifications
+      updateData.certificationCount = data.practitionerCertifications.length
+    }
+    if (data.practiceData !== undefined) updateData.practiceData = data.practiceData
+    if (data.suitableScenarios !== undefined) updateData.suitableScenarios = data.suitableScenarios
+    if (data.culturalStory !== undefined) updateData.culturalStory = data.culturalStory
+    if (data.evolutionHistory !== undefined) updateData.evolutionHistory = data.evolutionHistory
+    if (data.videoTutorial !== undefined) updateData.videoTutorial = data.videoTutorial
+
+    // 版本号自增
+    if (existingRecipe.version) {
+      updateData.version = existingRecipe.version + 1
+    } else {
+      updateData.version = 1
+    }
+
+    // 更新食谱
+    await recipeCollection.doc(recipeId).update({
+      data: updateData
+    })
+
+    // 记录操作日志
+    await db.collection('audit_logs').add({
+      data: {
+        userId: user._id || user.id,
+        username: user.username,
+        role: user.role,
+        action: 'update',
+        resource: 'base_recipe',
+        resourceId: recipeId,
+        description: `更新基础食谱: ${existingRecipe.name}`,
+        tenantId: user.tenantId || null,
+        status: 'success',
+        createdAt: new Date()
+      }
+    })
+
+    // 获取更新后的数据
+    const updatedResult = await recipeCollection.doc(recipeId).get()
+
+    return {
+      code: 0,
+      message: '更新成功',
+      data: updatedResult.data
+    }
+  } catch (error) {
+    console.error('更新基础食谱失败:', error)
+    return {
+      code: 500,
+      message: '更新基础食谱失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 删除基础食谱（仅平台运营者）
+ * @param {Object} recipeCollection - 食谱集合
+ * @param {string} recipeId - 食谱ID
+ * @param {Object} user - 用户信息（已通过权限验证）
+ */
+async function deleteBaseRecipe(recipeCollection, recipeId, user) {
+  if (!recipeId) {
+    return {
+      code: 400,
+      message: '食谱ID不能为空'
+    }
+  }
+
+  try {
+    // 检查食谱是否存在且为基础食谱
+    const existingResult = await recipeCollection.doc(recipeId).get()
+    if (!existingResult.data) {
+      return {
+        code: 404,
+        message: '食谱不存在'
+      }
+    }
+
+    const recipe = existingResult.data
+
+    // 检查是否为基础食谱
+    if (!recipe.isBaseRecipe) {
+      return {
+        code: 403,
+        message: '只能删除基础食谱'
+      }
+    }
+
+    // 检查是否有依赖关系（被餐厅菜单使用）
+    const menuItemsUsingRecipe = await db.collection('restaurant_menu_items')
+      .where({
+        'baseRecipeId': recipeId
+      })
+      .count()
+
+    if (menuItemsUsingRecipe.total > 0) {
+      return {
+        code: 409,
+        message: `无法删除：该食谱被 ${menuItemsUsingRecipe.total} 个餐厅菜单项使用`,
+        data: {
+          dependencyCount: menuItemsUsingRecipe.total
+        }
+      }
+    }
+
+    // 删除食谱（软删除：修改状态为archived）
+    await recipeCollection.doc(recipeId).update({
+      data: {
+        status: 'archived',
+        updatedBy: user._id || user.id,
+        updatedAt: new Date()
+      }
+    })
+
+    // 记录操作日志
+    await db.collection('audit_logs').add({
+      data: {
+        userId: user._id || user.id,
+        username: user.username,
+        role: user.role,
+        action: 'delete',
+        resource: 'base_recipe',
+        resourceId: recipeId,
+        description: `删除基础食谱: ${recipe.name}`,
+        tenantId: user.tenantId || null,
+        status: 'success',
+        createdAt: new Date()
+      }
+    })
+
+    return {
+      code: 0,
+      message: '删除成功'
+    }
+  } catch (error) {
+    console.error('删除基础食谱失败:', error)
+    return {
+      code: 500,
+      message: '删除基础食谱失败',
       error: error.message
     }
   }

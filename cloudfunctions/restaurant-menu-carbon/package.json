@@ -1,0 +1,10 @@
+{
+  "name": "restaurant-menu-carbon",
+  "version": "1.0.0",
+  "description": "餐厅菜谱碳足迹计算云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

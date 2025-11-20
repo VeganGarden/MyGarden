@@ -15,6 +15,7 @@ import {
   BookOutlined,
   CalculatorOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -266,6 +267,34 @@ const MainLayout: React.FC = () => {
               {
                 key: '/restaurant/manage',
                 label: '我的餐厅',
+              },
+            ],
+          },
+        ]
+      : []),
+    // 基础数据管理（仅平台运营可见）
+    ...(isPlatformAdmin
+      ? [
+          {
+            key: '/base',
+            icon: <DatabaseOutlined />,
+            label: '基础数据管理',
+            children: [
+              {
+                key: '/base/ingredients',
+                label: '基础素食食材',
+              },
+              {
+                key: '/base/meat-ingredients',
+                label: '基础荤食食材',
+              },
+              {
+                key: '/base/recipes',
+                label: '基础食谱',
+              },
+              {
+                key: '/base/statistics',
+                label: '数据统计',
               },
             ],
           },
