@@ -1203,8 +1203,8 @@ const Dashboard: React.FC = () => {
               pagination={false}
               size="small"
             />
-          </Card>
-        )}
+          )}
+        </Card>
 
         {/* 快速操作区域 */}
         <Card title={t('pages.dashboard.quickAccess.title')}>
