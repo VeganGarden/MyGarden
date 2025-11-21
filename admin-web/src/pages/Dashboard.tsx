@@ -355,29 +355,52 @@ const Dashboard: React.FC = () => {
       // - restaurantId: 如果为null，则统计当前租户下所有餐厅的菜谱；如果指定，则只统计该餐厅的菜谱
       // - tenantId: 当前租户ID，用于数据隔离
       // - includeTopRecipes: 标识需要返回热门菜谱数据
-      const result = await reportAPI.dashboard({
+      const params = {
         restaurantId: currentRestaurantId,
         tenantId: currentTenant?.id,
         startDate,
         endDate,
         includeTopRecipes: true,
-      })
+      }
       
-      if (result && result.code === 0 && result.data && result.data.topRecipes) {
-        const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
-        setTopRecipes(recipes.map((recipe: any, index: number) => ({
-          rank: index + 1,
-          recipeId: recipe.recipeId || recipe.recipe_id || recipe.id || '',
-          recipeName: recipe.recipeName || recipe.name || recipe.recipe_name || '',
-          orders: recipe.orders || recipe.order_count || 0,
-          revenue: recipe.revenue || recipe.total_revenue || 0,
-          carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
-        })))
+      console.log('[热门菜谱] 请求参数:', params)
+      const result = await reportAPI.dashboard(params)
+      console.log('[热门菜谱] API返回结果:', result)
+      
+      if (result && result.code === 0 && result.data) {
+        console.log('[热门菜谱] API返回的data:', result.data)
+        console.log('[热门菜谱] topRecipes字段:', result.data.topRecipes)
+        
+        // 检查是否有topRecipes字段
+        if (result.data.topRecipes) {
+          const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
+          console.log('[热门菜谱] 解析后的recipes数组:', recipes)
+          
+          if (recipes.length > 0) {
+            const mappedRecipes = recipes.map((recipe: any, index: number) => ({
+              rank: index + 1,
+              recipeId: recipe.recipeId || recipe.recipe_id || recipe.id || '',
+              recipeName: recipe.recipeName || recipe.name || recipe.recipe_name || '',
+              orders: recipe.orders || recipe.order_count || 0,
+              revenue: recipe.revenue || recipe.total_revenue || 0,
+              carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
+            }))
+            console.log('[热门菜谱] 映射后的数据:', mappedRecipes)
+            setTopRecipes(mappedRecipes)
+          } else {
+            console.warn('[热门菜谱] topRecipes数组为空')
+            setTopRecipes([])
+          }
+        } else {
+          console.warn('[热门菜谱] API返回的data中没有topRecipes字段，data结构:', Object.keys(result.data))
+          setTopRecipes([])
+        }
       } else {
-        // 如果没有数据，使用空数组
+        console.warn('[热门菜谱] API返回失败或格式不正确:', result)
         setTopRecipes([])
       }
     } catch (error: any) {
+      console.error('[热门菜谱] 获取数据失败:', error)
       // 静默处理错误，不影响其他数据加载
       setTopRecipes([])
     }
