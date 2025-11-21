@@ -2391,16 +2391,18 @@ const Dashboard: React.FC = () => {
           ? ordersData.map((item) => dayjs(item.date).format('MM-DD'))
           : [],
         axisLabel: {
-          rotate: 45, // 旋转45度，避免重叠
+          rotate: ordersData.length > 15 ? 45 : 0, // 如果数据点超过15个，旋转45度避免重叠
           interval: ordersData.length > 30 ? 'auto' : 0, // 如果数据点超过30个，自动调整间隔
           formatter: (value: string) => {
             // 如果日期标签太长，可以进一步优化
             return value
           },
+          margin: 8, // 增加标签与轴线的距离
         },
         axisTick: {
           alignWithLabel: true, // 刻度线与标签对齐
         },
+        boundaryGap: false, // 数据点对齐到刻度线
       },
       yAxis: [
         {
