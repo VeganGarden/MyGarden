@@ -127,6 +127,7 @@ const MainLayout: React.FC = () => {
       icon: <SafetyCertificateOutlined />,
       label: t('menu.climateRestaurant'),
       children: [
+        // 餐厅管理员可见的菜单
         {
           key: '/certification/apply',
           label: t('menu.certificationApplication'),
@@ -139,6 +140,27 @@ const MainLayout: React.FC = () => {
           key: '/certification/certificate',
           label: t('menu.certificationCertificate'),
         },
+        {
+          key: '/certification/materials',
+          label: t('menu.certificationMaterials'),
+        },
+        {
+          key: '/certification/export',
+          label: t('menu.certificationExport'),
+        },
+        // 平台运营可见的菜单
+        ...(isPlatformAdmin
+          ? [
+              {
+                key: '/certification/review',
+                label: t('menu.certificationReview'),
+              },
+              {
+                key: '/certification/inspection',
+                label: t('menu.certificationInspection'),
+              },
+            ]
+          : []),
       ],
     },
     {

@@ -1,27 +1,29 @@
+import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
-    CheckOutlined,
-    SaveOutlined,
-    UploadOutlined,
+  CheckOutlined,
+  SaveOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
 import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    Form,
-    Input,
-    Row,
-    Select,
-    Space,
-    Steps,
-    Table,
-    Upload,
-    message,
+  Alert,
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  Row,
+  Select,
+  Space,
+  Steps,
+  Table,
+  Upload,
+  message,
 } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const { Step } = Steps
 const { TextArea } = Input
@@ -33,16 +35,31 @@ interface MenuItem {
   ingredients: string
   quantity: number
   unit: string
+  cookingMethod?: string
 }
 
 const CertificationApply: React.FC = () => {
   const { t } = useTranslation()
-  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  const navigate = useNavigate()
+  const { currentRestaurantId, restaurants, currentTenantId } = useAppSelector((state: any) => state.tenant)
   const [currentStep, setCurrentStep] = useState(0)
   const [form] = Form.useForm()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(currentRestaurantId)
+  const [loading, setLoading] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({}) // 存储上传后的文件ID
+  const [searchParams] = useSearchParams()
+  const [isRenewal, setIsRenewal] = useState(false) // 是否为续期申请
+
+  useEffect(() => {
+    // 检查URL参数，判断是否为续期申请
+    const type = searchParams.get('type')
+    if (type === 'renewal') {
+      setIsRenewal(true)
+      // 可以预填充一些续期申请的数据
+    }
+  }, [searchParams])
 
   const currentRestaurant = selectedRestaurantId
     ? restaurants.find((r: any) => r.id === selectedRestaurantId)
@@ -98,26 +115,210 @@ const CertificationApply: React.FC = () => {
     setCurrentStep(currentStep - 1)
   }
 
-  const handleSaveDraft = () => {
-    message.success(t('pages.certification.apply.messages.draftSaved'))
-  }
-
-  const handleSubmit = () => {
+  const handleSaveDraft = async () => {
     if (!selectedRestaurantId && restaurants.length > 1) {
       message.warning(t('pages.certification.apply.messages.selectRestaurantRequired'))
       return
     }
-    form.validateFields().then((values) => {
+
+    try {
+      setLoading(true)
+      const values = form.getFieldsValue()
       const restaurantId = selectedRestaurantId || currentRestaurantId
-      console.log('提交数据:', { ...values, restaurantId })
-      message.success(t('pages.certification.apply.messages.submitSuccess'))
-    })
+      const tenantId = currentTenantId
+
+      if (!restaurantId || !tenantId) {
+        message.error('餐厅ID或租户ID缺失')
+        return
+      }
+
+      const draftData = {
+        basicInfo: {
+          restaurantName: values.restaurantName,
+          address: values.address,
+          contactPhone: values.contactPhone,
+          contactEmail: values.contactEmail,
+          legalPerson: values.legalPerson,
+          businessLicense: uploadedFiles.businessLicense
+        },
+        menuInfo: {
+          menuItems: menuItems.map(item => ({
+            name: item.name,
+            ingredients: item.ingredients.split(',').map(i => i.trim()),
+            quantity: item.quantity,
+            unit: item.unit,
+            cookingMethod: item.cookingMethod || 'steamed'
+          }))
+        },
+        supplyChainInfo: {
+          suppliers: values.supplierInfo ? [{ name: values.supplierInfo }] : [],
+          localIngredientRatio: parseFloat(values.localIngredientRatio) || 0,
+          traceabilityInfo: values.ingredientSource || ''
+        },
+        operationData: {
+          energyUsage: values.energyUsage || '',
+          wasteReduction: values.wasteReduction || '',
+          socialInitiatives: values.socialInitiatives ? values.socialInitiatives.split('\n') : []
+        },
+        documents: Object.keys(uploadedFiles).map(type => ({
+          type,
+          fileId: uploadedFiles[type],
+          fileName: fileList.find(f => f.uid === uploadedFiles[type])?.name || ''
+        }))
+      }
+
+      const result = await certificationAPI.saveDraft({
+        restaurantId,
+        tenantId,
+        draftData,
+        draftName: `草稿-${new Date().toLocaleString()}`
+      })
+
+      if (result.code === 0) {
+        message.success(t('pages.certification.apply.messages.draftSaved'))
+      } else {
+        message.error(result.message || '保存失败')
+      }
+    } catch (error: any) {
+      console.error('保存草稿失败:', error)
+      message.error(error.message || '保存失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!selectedRestaurantId && restaurants.length > 1) {
+      message.warning(t('pages.certification.apply.messages.selectRestaurantRequired'))
+      return
+    }
+
+    try {
+      await form.validateFields()
+      setLoading(true)
+      const values = form.getFieldsValue()
+      const restaurantId = selectedRestaurantId || currentRestaurantId
+      const tenantId = currentTenantId
+
+      if (!restaurantId || !tenantId) {
+        message.error('餐厅ID或租户ID缺失')
+        return
+      }
+
+      const applicationData = {
+        restaurantId,
+        tenantId,
+        basicInfo: {
+          restaurantName: values.restaurantName,
+          address: values.address,
+          contactPhone: values.contactPhone,
+          contactEmail: values.contactEmail,
+          legalPerson: values.legalPerson,
+          businessLicense: uploadedFiles.businessLicense
+        },
+        menuInfo: {
+          menuItems: menuItems.map(item => ({
+            name: item.name,
+            ingredients: item.ingredients.split(',').map(i => i.trim()),
+            quantity: item.quantity,
+            unit: item.unit,
+            cookingMethod: item.cookingMethod || 'steamed'
+          }))
+        },
+        supplyChainInfo: {
+          suppliers: values.supplierInfo ? [{ name: values.supplierInfo }] : [],
+          localIngredientRatio: parseFloat(values.localIngredientRatio) || 0,
+          traceabilityInfo: values.ingredientSource || ''
+        },
+        operationData: {
+          energyUsage: values.energyUsage || '',
+          wasteReduction: values.wasteReduction || '',
+          socialInitiatives: values.socialInitiatives ? values.socialInitiatives.split('\n') : []
+        },
+        documents: Object.keys(uploadedFiles).map(type => ({
+          type,
+          fileId: uploadedFiles[type],
+          fileName: fileList.find(f => f.uid === uploadedFiles[type])?.name || ''
+        }))
+      }
+
+      const result = await certificationAPI.apply(applicationData)
+
+      if (result.code === 0) {
+        message.success(t('pages.certification.apply.messages.submitSuccess'))
+        // 跳转到认证进度页面
+        navigate('/certification/status')
+      } else {
+        message.error(result.message || '提交失败')
+      }
+    } catch (error: any) {
+      console.error('提交认证申请失败:', error)
+      if (error.errorFields) {
+        // 表单验证错误
+        return
+      }
+      message.error(error.message || '提交失败')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleMenuImport = (file: File) => {
     // TODO: 实现Excel/CSV批量导入菜单
     message.info(t('pages.certification.apply.messages.menuImportInProgress'))
     return false
+  }
+
+  // 处理文件上传
+  const handleFileUpload = async (file: File, documentType: string): Promise<string | null> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target?.result as string
+          const result = await certificationAPI.uploadFile({
+            base64,
+            fileName: file.name,
+            fileType: file.type,
+            documentType
+          })
+
+          if (result.code === 0) {
+            resolve(result.data.fileID)
+          } else {
+            reject(new Error(result.message || '上传失败'))
+          }
+        } catch (error: any) {
+          reject(error)
+        }
+      }
+      reader.onerror = () => reject(new Error('读取文件失败'))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // 文件上传前的处理
+  const beforeUpload = async (file: File, documentType: string) => {
+    try {
+      setLoading(true)
+      const fileID = await handleFileUpload(file, documentType)
+      if (fileID) {
+        setUploadedFiles(prev => ({ ...prev, [documentType]: fileID }))
+        setFileList(prev => [...prev, {
+          uid: fileID,
+          name: file.name,
+          status: 'done',
+          url: fileID
+        }])
+        message.success('文件上传成功')
+      }
+      return false // 阻止默认上传
+    } catch (error: any) {
+      message.error(error.message || '上传失败')
+      return false
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderStepContent = () => {
@@ -289,26 +490,66 @@ const CertificationApply: React.FC = () => {
             <Form form={form} layout="vertical">
               <Form.Item label={t('pages.certification.apply.documents.businessLicense')}>
                 <Upload
-                  fileList={fileList}
-                  onChange={({ fileList }) => setFileList(fileList)}
+                  fileList={fileList.filter(f => uploadedFiles.businessLicense === f.uid)}
+                  beforeUpload={(file) => beforeUpload(file, 'businessLicense')}
                   accept=".pdf,.jpg,.jpeg,.png"
+                  onRemove={() => {
+                    setUploadedFiles(prev => {
+                      const newFiles = { ...prev }
+                      delete newFiles.businessLicense
+                      return newFiles
+                    })
+                  }}
                 >
-                  <Button icon={<UploadOutlined />}>{t('common.upload')}</Button>
+                  <Button icon={<UploadOutlined />} loading={loading}>{t('common.upload')}</Button>
                 </Upload>
               </Form.Item>
               <Form.Item label={t('pages.certification.apply.documents.foodLicense')}>
-                <Upload accept=".pdf,.jpg,.jpeg,.png">
-                  <Button icon={<UploadOutlined />}>{t('common.upload')}</Button>
+                <Upload
+                  fileList={fileList.filter(f => uploadedFiles.foodLicense === f.uid)}
+                  beforeUpload={(file) => beforeUpload(file, 'foodLicense')}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onRemove={() => {
+                    setUploadedFiles(prev => {
+                      const newFiles = { ...prev }
+                      delete newFiles.foodLicense
+                      return newFiles
+                    })
+                  }}
+                >
+                  <Button icon={<UploadOutlined />} loading={loading}>{t('common.upload')}</Button>
                 </Upload>
               </Form.Item>
               <Form.Item label={t('pages.certification.apply.documents.supplierCert')}>
-                <Upload accept=".pdf,.jpg,.jpeg,.png">
-                  <Button icon={<UploadOutlined />}>{t('common.upload')}</Button>
+                <Upload
+                  fileList={fileList.filter(f => uploadedFiles.supplierCert === f.uid)}
+                  beforeUpload={(file) => beforeUpload(file, 'supplierCert')}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onRemove={() => {
+                    setUploadedFiles(prev => {
+                      const newFiles = { ...prev }
+                      delete newFiles.supplierCert
+                      return newFiles
+                    })
+                  }}
+                >
+                  <Button icon={<UploadOutlined />} loading={loading}>{t('common.upload')}</Button>
                 </Upload>
               </Form.Item>
               <Form.Item label={t('pages.certification.apply.documents.otherDocuments')}>
-                <Upload accept=".pdf,.jpg,.jpeg,.png">
-                  <Button icon={<UploadOutlined />}>{t('common.upload')}</Button>
+                <Upload
+                  fileList={fileList.filter(f => uploadedFiles.other === f.uid)}
+                  beforeUpload={(file) => beforeUpload(file, 'other')}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onRemove={() => {
+                    setUploadedFiles(prev => {
+                      const newFiles = { ...prev }
+                      delete newFiles.other
+                      return newFiles
+                    })
+                  }}
+                >
+                  <Button icon={<UploadOutlined />} loading={loading}>{t('common.upload')}</Button>
                 </Upload>
               </Form.Item>
             </Form>
@@ -399,7 +640,7 @@ const CertificationApply: React.FC = () => {
             {currentStep > 0 && (
               <Button onClick={handlePrev}>{t('common.previous')}</Button>
             )}
-            <Button icon={<SaveOutlined />} onClick={handleSaveDraft}>
+            <Button icon={<SaveOutlined />} onClick={handleSaveDraft} loading={loading}>
               {t('pages.certification.apply.buttons.saveDraft')}
             </Button>
             {currentStep < steps.length - 1 ? (
@@ -411,6 +652,7 @@ const CertificationApply: React.FC = () => {
                 type="primary"
                 icon={<CheckOutlined />}
                 onClick={handleSubmit}
+                loading={loading}
               >
                 {t('pages.certification.apply.buttons.submit')}
               </Button>

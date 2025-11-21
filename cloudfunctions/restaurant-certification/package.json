@@ -1,0 +1,11 @@
+{
+  "name": "restaurant-certification",
+  "version": "1.0.0",
+  "description": "气候餐厅认证管理云函数 - 认证申请、系统评估、审核、证书管理",
+  "main": "index.js",
+  "dependencies": {
+    "pdfkit": "^0.13.0",
+    "qrcode": "^1.5.4",
+    "wx-server-sdk": "~2.6.3"
+  }
+}

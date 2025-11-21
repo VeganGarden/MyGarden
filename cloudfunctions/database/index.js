@@ -14,6 +14,8 @@ const { main: migrateIngredientsAddCarbonCoefficient } = require('./migrate-ingr
 const { main: migrateIngredientsForceAddCarbonCoefficient } = require('./migrate-ingredients-force-add-carbon-coefficient');
 const { main: migrateIngredientsResetAllCarbonCoefficient } = require('./migrate-ingredients-reset-all-carbon-coefficient');
 const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-stats');
+const { main: initCertificationCollections } = require('./init-certification-collections');
+const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -35,6 +37,8 @@ const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-
  * - initMessageCollections: 初始化消息管理集合（messages, user_messages, message_event_rules）
  * - insertRestaurantTestData: 为"素开心"和"素欢乐"餐厅插入测试数据（订单、评价、优惠券、行为统计）
  * - insertCarbonTestData: 为指定租户的餐厅插入菜单碳足迹和订单碳足迹示例数据
+ * - initCertificationCollections: 初始化认证域集合（certification_applications, certification_stages, certification_badges, certification_documents, certification_materials）
+ * - migrate-restaurants-add-certification-fields: 为 restaurants 集合添加完整的 climateCertification 字段结构
  * - migrate-carbon-calculation-v1: 迁移数据库结构（添加地区、餐食类型等字段）
  * - migrate-recalculate-carbon-v1: 批量重新计算现有菜谱碳足迹
  * - migrate-recipes-add-isbaserecipe: 为所有已有食谱添加 isBaseRecipe 字段（默认值：true）
@@ -108,6 +112,10 @@ exports.main = async (event) => {
         return await migrateIngredientsResetAllCarbonCoefficient(event);
       case 'migrate-restaurants-add-stats':
         return await migrateRestaurantsAddStats(event);
+      case 'initCertificationCollections':
+        return await initCertificationCollections(event);
+      case 'migrate-restaurants-add-certification-fields':
+        return await migrateRestaurantsAddCertificationFields(event);
       default:
         return await initCollectionsV1(event);
     }

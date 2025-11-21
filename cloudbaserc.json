@@ -184,6 +184,13 @@
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 256
+    },
+    {
+      "name": "restaurant-certification",
+      "timeout": 30,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 512
     }
   ]
 }
