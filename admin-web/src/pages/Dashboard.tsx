@@ -298,6 +298,7 @@ const Dashboard: React.FC = () => {
         startDate,  // 起始日期，用于筛选数据库中的订单创建时间
         endDate,    // 终止日期，用于筛选数据库中的订单创建时间
         includeTrends: true,
+        includeTopRecipes: true, // 同时请求热门菜谱数据，避免单独调用
       })
       
       if (result && result.code === 0 && result.data) {
@@ -441,7 +442,12 @@ const Dashboard: React.FC = () => {
             setTopRecipes([])
           }
         } else {
-          console.warn('[热门菜谱] API返回的data中没有topRecipes字段，data结构:', Object.keys(result.data))
+          // 检查result.data是否是数组（可能是云函数返回格式问题）
+          if (Array.isArray(result.data)) {
+            console.warn('[热门菜谱] API返回的data是数组，不是对象，data:', result.data)
+          } else {
+            console.warn('[热门菜谱] API返回的data中没有topRecipes字段，data结构:', Object.keys(result.data || {}))
+          }
           setTopRecipes([])
         }
       } else {
