@@ -21,6 +21,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { platformAPI } from '@/services/cloudbase'
 
 interface Restaurant {
   id: string
@@ -46,68 +47,47 @@ const RestaurantList: React.FC = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<Restaurant | null>(null)
   const [form] = Form.useForm()
+  
+  // 筛选条件
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [certificationFilter, setCertificationFilter] = useState<string>('')
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  })
 
   useEffect(() => {
     fetchRestaurants()
-  }, [])
+  }, [pagination.current, pagination.pageSize, statusFilter, certificationFilter])
 
   const fetchRestaurants = async () => {
     setLoading(true)
     try {
-      // TODO: 调用API获取餐厅列表
-      // const result = await platformAPI.restaurant.list()
-      // setDataSource(result)
-      
-      // 模拟数据
-      const mockData: Restaurant[] = [
-        {
-          id: '1',
-          name: '虹桥素坊',
-          owner: '张经理',
-          phone: '13800138000',
-          email: 'zhang@example.com',
-          address: '上海市虹桥区XX路123号',
-          status: 'active',
-          certificationLevel: 'gold',
-          tenantId: 'tenant_001',
-          createdAt: '2024-01-15',
-          totalOrders: 1250,
-          totalRevenue: 125000,
-          carbonReduction: 3650,
-        },
-        {
-          id: '2',
-          name: '绿色餐厅',
-          owner: '李经理',
-          phone: '13900139000',
-          email: 'li@example.com',
-          address: '北京市朝阳区XX街456号',
-          status: 'active',
-          certificationLevel: 'silver',
-          tenantId: 'tenant_002',
-          createdAt: '2024-02-20',
-          totalOrders: 890,
-          totalRevenue: 89000,
-          carbonReduction: 2100,
-        },
-        {
-          id: '3',
-          name: '素食天地',
-          owner: '王经理',
-          phone: '13700137000',
-          email: 'wang@example.com',
-          address: '广州市天河区XX大道789号',
-          status: 'pending',
-          tenantId: 'tenant_003',
-          createdAt: '2025-01-10',
-          totalOrders: 0,
-          totalRevenue: 0,
-          carbonReduction: 0,
-        },
-      ]
-      setDataSource(mockData)
-    } catch (error) {
-      message.error(t('pages.platform.restaurantList.messages.loadFailed'))
+      const result = await platformAPI.restaurant.list({
+        keyword: searchKeyword || undefined,
+        status: statusFilter || undefined,
+        certificationLevel: certificationFilter || undefined,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+      })
+
+      if (result && result.code === 0 && result.data) {
+        const { list, total } = result.data
+        setDataSource(list || [])
+        setPagination({
+          ...pagination,
+          total: total || 0,
+        })
+      } else {
+        setDataSource([])
+        message.error(result?.message || t('pages.platform.restaurantList.messages.loadFailed'))
+      }
+    } catch (error: any) {
+      console.error('获取餐厅列表失败:', error)
+      message.error(error.message || t('pages.platform.restaurantList.messages.loadFailed'))
+      setDataSource([])
     } finally {
       setLoading(false)
     }
@@ -247,16 +227,16 @@ const RestaurantList: React.FC = () => {
       content: t('pages.platform.restaurantList.modal.suspend.content'),
       onOk: async () => {
         try {
-          // TODO: 调用API暂停餐厅
-          // await platformAPI.restaurant.suspend(id)
-          setDataSource(
-            dataSource.map((item) =>
-              item.id === id ? { ...item, status: 'suspended' } : item
-            )
-          )
-          message.success(t('pages.platform.restaurantList.messages.suspended'))
-        } catch (error) {
-          message.error(t('common.operationFailed'))
+          const result = await platformAPI.restaurant.suspend(id)
+          if (result && result.code === 0) {
+            message.success(t('pages.platform.restaurantList.messages.suspended'))
+            fetchRestaurants() // 重新获取列表
+          } else {
+            message.error(result?.message || t('common.operationFailed'))
+          }
+        } catch (error: any) {
+          console.error('暂停餐厅失败:', error)
+          message.error(error.message || t('common.operationFailed'))
         }
       },
     })
@@ -268,16 +248,16 @@ const RestaurantList: React.FC = () => {
       content: t('pages.platform.restaurantList.modal.activate.content'),
       onOk: async () => {
         try {
-          // TODO: 调用API激活餐厅
-          // await platformAPI.restaurant.activate(id)
-          setDataSource(
-            dataSource.map((item) =>
-              item.id === id ? { ...item, status: 'active' } : item
-            )
-          )
-          message.success(t('pages.platform.restaurantList.messages.activated'))
-        } catch (error) {
-          message.error(t('common.operationFailed'))
+          const result = await platformAPI.restaurant.activate(id)
+          if (result && result.code === 0) {
+            message.success(t('pages.platform.restaurantList.messages.activated'))
+            fetchRestaurants() // 重新获取列表
+          } else {
+            message.error(result?.message || t('common.operationFailed'))
+          }
+        } catch (error: any) {
+          console.error('激活餐厅失败:', error)
+          message.error(error.message || t('common.operationFailed'))
         }
       },
     })
@@ -293,33 +273,27 @@ const RestaurantList: React.FC = () => {
     form.validateFields().then(async (values) => {
       try {
         if (selectedRecord) {
-          // TODO: 调用API更新餐厅
-          // await platformAPI.restaurant.update(selectedRecord.id, values)
-          setDataSource(
-            dataSource.map((item) =>
-              item.id === selectedRecord.id ? { ...item, ...values } : item
-            )
-          )
-          message.success(t('common.updateSuccess'))
-        } else {
-          // TODO: 调用API创建餐厅
-          // await platformAPI.restaurant.create(values)
-          const newRestaurant: Restaurant = {
-            ...values,
-            id: Date.now().toString(),
-            status: 'pending',
-            tenantId: `tenant_${Date.now()}`,
-            createdAt: new Date().toISOString().split('T')[0],
-            totalOrders: 0,
-            totalRevenue: 0,
-            carbonReduction: 0,
+          const result = await platformAPI.restaurant.update(selectedRecord.id, values)
+          if (result && (result.success || result.code === 0)) {
+            message.success(t('common.updateSuccess'))
+            setIsModalVisible(false)
+            fetchRestaurants() // 重新获取列表
+          } else {
+            message.error(result?.message || t('common.operationFailed'))
           }
-          setDataSource([...dataSource, newRestaurant])
-          message.success(t('common.createSuccess'))
+        } else {
+          const result = await platformAPI.restaurant.create(values)
+          if (result && (result.success || result.code === 0)) {
+            message.success(t('common.createSuccess'))
+            setIsModalVisible(false)
+            fetchRestaurants() // 重新获取列表
+          } else {
+            message.error(result?.message || t('common.operationFailed'))
+          }
         }
-        setIsModalVisible(false)
-      } catch (error) {
-        message.error(t('common.operationFailed'))
+      } catch (error: any) {
+        console.error('提交失败:', error)
+        message.error(error.message || t('common.operationFailed'))
       }
     })
   }
@@ -339,18 +313,21 @@ const RestaurantList: React.FC = () => {
             placeholder={t('pages.platform.restaurantList.filters.search')}
             style={{ width: 300 }}
             allowClear
-            onSearch={(value) => {
-              // TODO: 实现搜索功能
-              console.log('搜索:', value)
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onSearch={() => {
+              setPagination({ ...pagination, current: 1 })
+              fetchRestaurants()
             }}
           />
           <Select
             placeholder={t('pages.platform.restaurantList.filters.status')}
             style={{ width: 150 }}
             allowClear
+            value={statusFilter}
             onChange={(value) => {
-              // TODO: 实现筛选功能
-              console.log('筛选状态:', value)
+              setStatusFilter(value || '')
+              setPagination({ ...pagination, current: 1 })
             }}
           >
             <Select.Option value="active">{t('pages.platform.restaurantList.status.active')}</Select.Option>
@@ -362,9 +339,10 @@ const RestaurantList: React.FC = () => {
             placeholder={t('pages.platform.restaurantList.filters.certificationLevel')}
             style={{ width: 150 }}
             allowClear
+            value={certificationFilter}
             onChange={(value) => {
-              // TODO: 实现筛选功能
-              console.log('筛选认证等级:', value)
+              setCertificationFilter(value || '')
+              setPagination({ ...pagination, current: 1 })
             }}
           >
             <Select.Option value="bronze">{t('pages.platform.restaurantList.certificationLevels.bronze')}</Select.Option>
@@ -381,11 +359,15 @@ const RestaurantList: React.FC = () => {
           loading={loading}
           scroll={{ x: 1200 }}
           pagination={{
-            total: dataSource.length,
-            pageSize: 10,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
             showSizeChanger: true,
             showQuickJumper: true,
+            onChange: (page, pageSize) => {
+              setPagination({ ...pagination, current: page, pageSize })
+            },
           }}
         />
       </Card>

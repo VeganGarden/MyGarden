@@ -27,6 +27,19 @@ async function requireAuth(event, context) {
     return { ok: false, error: err }
   }
 }
+
+async function requirePlatformAdmin(event, context) {
+  try {
+    const user = await checkPermission(event, context)
+    // 平台运营和系统管理员都可以进行平台管理操作
+    if (user && (user.role === 'platform_operator' || user.role === 'system_admin')) {
+      return { ok: true, user }
+    }
+    return { ok: false, error: { code: 403, message: '仅平台管理员可操作' } }
+  } catch (err) {
+    return { ok: false, error: err }
+  }
+}
 /**
  * 租户和餐厅管理云函数
  */
@@ -40,6 +53,14 @@ exports.main = async (event, context) => {
       case 'getTenant':
         // 获取租户信息
         return await getTenant(data.tenantId)
+      
+      case 'getAllTenants':
+        // 获取所有租户列表（平台管理员）
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await getAllTenants()
+        }
 
       case 'getRestaurants':
         // 获取租户下的餐厅列表
@@ -224,6 +245,46 @@ exports.main = async (event, context) => {
         if (!gate.ok) return gate.error
         return await uploadAvatar(gate.user, data || {}, context)
       }
+
+      // 平台管理：餐厅列表管理（仅平台管理员）
+      case 'listAllRestaurants':
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await listAllRestaurants(data || {}, gate.user)
+        }
+      case 'updateRestaurantStatus':
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateRestaurantStatus(data.restaurantId, data.status, gate.user, context)
+        }
+      case 'updateRestaurantCertification':
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateRestaurantCertification(data.restaurantId, data.certificationLevel, gate.user, context)
+        }
+      // 平台管理：跨租户数据查看（仅平台管理员）
+      case 'getCrossTenantData':
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await getCrossTenantData(data || {}, gate.user)
+        }
+      // 平台管理：平台级统计报表（仅平台管理员）
+      case 'getPlatformStatistics':
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await getPlatformStatistics(data || {}, gate.user)
+        }
+      case 'getTopRestaurants':
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await getTopRestaurants(data || {}, gate.user)
+        }
 
       case 'addXiaopingguo':
         // 添加"小苹果"租户
@@ -1093,6 +1154,27 @@ async function transferAllRestaurantData(params = {}) {
   } catch (_) {}
 
   return { code: 0, message: '关联数据迁移完成', data: { toTenantId: targetTenantId, summary } }
+}
+
+/**
+ * 获取所有租户列表（平台管理员）
+ */
+async function getAllTenants() {
+  try {
+    const result = await db.collection('tenants').get()
+    return {
+      code: 0,
+      message: '获取成功',
+      data: result.data || [],
+    }
+  } catch (error) {
+    console.error('获取租户列表失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取租户列表失败',
+      data: [],
+    }
+  }
 }
 
 /**
@@ -2573,6 +2655,920 @@ async function getDashboard(data, currentUser) {
       todayOrders,
       todayRevenue: Math.round(todayRevenue * 100) / 100, // 保留2位小数
     },
+  }
+}
+
+/**
+ * 平台管理：获取所有餐厅列表（跨租户）
+ * 支持搜索、筛选、分页
+ */
+async function listAllRestaurants(params, user) {
+  const {
+    keyword = '',
+    status = '',
+    certificationLevel = '',
+    page = 1,
+    pageSize = 10,
+  } = params
+
+  try {
+    // 构建查询条件
+    let query = db.collection('restaurants')
+
+    // 构建where条件
+    const whereConditions = {}
+
+    // 状态筛选
+    if (status) {
+      whereConditions.status = status
+    }
+
+    // 认证等级筛选
+    if (certificationLevel) {
+      whereConditions.certificationLevel = certificationLevel
+    }
+
+    // 关键词搜索（餐厅名称、负责人）
+    if (keyword) {
+      // 使用正则表达式进行模糊搜索
+      query = query.where({
+        ...whereConditions,
+        name: db.RegExp({
+          regexp: keyword,
+          options: 'i', // 不区分大小写
+        }),
+      })
+    } else if (Object.keys(whereConditions).length > 0) {
+      query = query.where(whereConditions)
+    } else {
+      // 如果没有筛选条件，查询所有餐厅
+      query = query.where({})
+    }
+
+    // 获取总数
+    const countResult = await query.count()
+    const total = countResult.total || 0
+
+    // 分页查询
+    const skip = (page - 1) * pageSize
+    const restaurantsResult = await query
+      .orderBy('createdAt', 'desc')
+      .skip(skip)
+      .limit(pageSize)
+      .get()
+
+    const restaurants = restaurantsResult.data || []
+
+    // 为每个餐厅聚合统计数据
+    const restaurantsWithStats = await Promise.all(
+      restaurants.map(async (restaurant) => {
+        const restaurantId = restaurant._id
+
+        // 查询订单统计数据
+        let totalOrders = 0
+        let totalRevenue = 0
+        let totalCarbonReduction = 0
+
+        try {
+          // 查询该餐厅的所有订单（仅获取必要字段）
+          const ordersResult = await db
+            .collection('restaurant_orders')
+            .where({
+              restaurantId: restaurantId,
+            })
+            .field({
+              'pricing.total': true,
+              'carbonFootprint.reduction': true,
+            })
+            .get()
+
+          const orders = ordersResult.data || []
+          totalOrders = orders.length
+          totalRevenue = orders.reduce((sum, order) => {
+            return sum + (order.pricing?.total || 0)
+          }, 0)
+          totalCarbonReduction = orders.reduce((sum, order) => {
+            return sum + (order.carbonFootprint?.reduction || 0)
+          }, 0)
+        } catch (error) {
+          console.error(`获取餐厅 ${restaurantId} 统计数据失败:`, error)
+        }
+
+        // 获取负责人信息（从租户信息中获取）
+        let owner = ''
+        let ownerPhone = ''
+        try {
+          if (restaurant.tenantId) {
+            const tenantResult = await db
+              .collection('tenants')
+              .doc(restaurant.tenantId)
+              .get()
+            if (tenantResult.data) {
+              owner = tenantResult.data.contactName || ''
+              ownerPhone = tenantResult.data.contactPhone || ''
+            }
+          }
+        } catch (error) {
+          console.error(`获取租户信息失败:`, error)
+        }
+
+        return {
+          id: restaurant._id,
+          _id: restaurant._id,
+          name: restaurant.name || '',
+          owner: owner || restaurant.contactName || '',
+          phone: restaurant.phone || ownerPhone || '',
+          email: restaurant.email || '',
+          address: restaurant.address || '',
+          status: restaurant.status || 'inactive',
+          certificationLevel: restaurant.certificationLevel || null,
+          tenantId: restaurant.tenantId || '',
+          createdAt: restaurant.createdAt
+            ? new Date(restaurant.createdAt).toISOString().split('T')[0]
+            : '',
+          totalOrders,
+          totalRevenue: Math.round(totalRevenue * 100) / 100,
+          carbonReduction: Math.round(totalCarbonReduction * 100) / 100,
+        }
+      })
+    )
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        list: restaurantsWithStats,
+        total,
+        page,
+        pageSize,
+      },
+    }
+  } catch (error) {
+    console.error('获取餐厅列表失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取餐厅列表失败',
+      data: {
+        list: [],
+        total: 0,
+        page,
+        pageSize,
+      },
+    }
+  }
+}
+
+/**
+ * 平台管理：更新餐厅状态
+ */
+async function updateRestaurantStatus(restaurantId, status, user, context) {
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空',
+    }
+  }
+
+  const validStatuses = ['active', 'inactive', 'pending', 'suspended']
+  if (!validStatuses.includes(status)) {
+    return {
+      code: 400,
+      message: '无效的状态值',
+    }
+  }
+
+  try {
+    // 检查餐厅是否存在
+    const restaurantResult = await db.collection('restaurants').doc(restaurantId).get()
+    if (!restaurantResult.data) {
+      return {
+        code: 404,
+        message: '餐厅不存在',
+      }
+    }
+
+    const oldStatus = restaurantResult.data.status
+
+    // 更新状态
+    await db.collection('restaurants').doc(restaurantId).update({
+      data: {
+        status: status,
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    // 记录审计日志
+    const { addAudit } = require('./audit')
+    await addAudit({
+      userId: user._id,
+      username: user.username,
+      role: user.role,
+      action: 'update_restaurant_status',
+      resource: 'restaurant',
+      resourceId: restaurantId,
+      description: `更新餐厅状态: ${oldStatus} -> ${status}`,
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+      tenantId: restaurantResult.data.tenantId || null,
+      status: 'success',
+      createdAt: new Date(),
+    })
+
+    return {
+      code: 0,
+      message: '更新成功',
+      data: {
+        restaurantId,
+        status,
+      },
+    }
+  } catch (error) {
+    console.error('更新餐厅状态失败:', error)
+    return {
+      code: -1,
+      message: error.message || '更新餐厅状态失败',
+    }
+  }
+}
+
+/**
+ * 平台管理：更新餐厅认证等级
+ */
+async function updateRestaurantCertification(restaurantId, certificationLevel, user, context) {
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空',
+    }
+  }
+
+  const validLevels = ['bronze', 'silver', 'gold', 'platinum', null]
+  if (!validLevels.includes(certificationLevel)) {
+    return {
+      code: 400,
+      message: '无效的认证等级',
+    }
+  }
+
+  try {
+    // 检查餐厅是否存在
+    const restaurantResult = await db.collection('restaurants').doc(restaurantId).get()
+    if (!restaurantResult.data) {
+      return {
+        code: 404,
+        message: '餐厅不存在',
+      }
+    }
+
+    const oldLevel = restaurantResult.data.certificationLevel
+
+    // 更新认证等级
+    const updateData = {
+      certificationLevel: certificationLevel,
+      updatedAt: db.serverDate(),
+    }
+
+    // 如果设置认证等级，同时更新认证状态
+    if (certificationLevel) {
+      updateData.certificationStatus = 'certified'
+      updateData.certifiedDate = db.serverDate()
+    } else {
+      updateData.certificationStatus = 'none'
+    }
+
+    await db.collection('restaurants').doc(restaurantId).update({
+      data: updateData,
+    })
+
+    // 记录审计日志
+    const { addAudit } = require('./audit')
+    await addAudit({
+      userId: user._id,
+      username: user.username,
+      role: user.role,
+      action: 'update_restaurant_certification',
+      resource: 'restaurant',
+      resourceId: restaurantId,
+      description: `更新餐厅认证等级: ${oldLevel || '未认证'} -> ${certificationLevel || '未认证'}`,
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+      tenantId: restaurantResult.data.tenantId || null,
+      status: 'success',
+      createdAt: new Date(),
+    })
+
+    return {
+      code: 0,
+      message: '更新成功',
+      data: {
+        restaurantId,
+        certificationLevel,
+      },
+    }
+  } catch (error) {
+    console.error('更新餐厅认证等级失败:', error)
+    return {
+      code: -1,
+      message: error.message || '更新餐厅认证等级失败',
+    }
+  }
+}
+
+/**
+ * 平台管理：获取跨租户数据
+ * 支持多租户数据聚合、时间范围筛选、数据类型筛选
+ */
+async function getCrossTenantData(params, user) {
+  const {
+    tenantIds = [],
+    dataType = 'all',
+    startDate,
+    endDate,
+    page = 1,
+    pageSize = 20,
+    groupBy = 'tenant',
+  } = params
+
+  try {
+    const _ = db.command
+
+    // 1. 获取租户列表
+    let tenantsQuery = db.collection('tenants')
+    if (tenantIds.length > 0) {
+      tenantsQuery = tenantsQuery.where({
+        _id: _.in(tenantIds),
+      })
+    }
+    const tenantsResult = await tenantsQuery.get()
+    const tenants = tenantsResult.data || []
+
+    if (tenants.length === 0) {
+      return {
+        code: 0,
+        message: '获取成功',
+        data: {
+          summary: {
+            totalTenants: 0,
+            totalOrders: 0,
+            totalRevenue: 0,
+            totalCarbonReduction: 0,
+            totalUsers: 0,
+          },
+          tenants: [],
+          trends: {
+            orders: [],
+            revenue: [],
+            carbonReduction: [],
+          },
+          total: 0,
+          page,
+          pageSize,
+        },
+      }
+    }
+
+    const tenantIdList = tenants.map(t => t._id)
+
+    // 2. 获取这些租户下的所有餐厅
+    const restaurantsResult = await db
+      .collection('restaurants')
+      .where({
+        tenantId: _.in(tenantIdList),
+      })
+      .get()
+
+    const restaurants = restaurantsResult.data || []
+    const restaurantIds = restaurants.map(r => r._id)
+
+    if (restaurantIds.length === 0) {
+      return {
+        code: 0,
+        message: '获取成功',
+        data: {
+          summary: {
+            totalTenants: tenants.length,
+            totalOrders: 0,
+            totalRevenue: 0,
+            totalCarbonReduction: 0,
+            totalUsers: 0,
+          },
+          tenants: tenants.map(t => ({
+            tenantId: t._id,
+            tenantName: t.name || t._id,
+            restaurantCount: 0,
+            restaurantIds: [],
+            statistics: {
+              orders: { total: 0, trend: [] },
+              revenue: { total: 0, trend: [] },
+              carbonReduction: { total: 0, trend: [] },
+              users: { total: 0, active: 0 },
+            },
+          })),
+          trends: {
+            orders: [],
+            revenue: [],
+            carbonReduction: [],
+          },
+          total: tenants.length,
+          page,
+          pageSize,
+        },
+      }
+    }
+
+    // 3. 构建订单查询条件
+    const orderQuery = {
+      restaurantId: _.in(restaurantIds),
+    }
+
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.createdAt = _.gte(new Date(startDate))
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate)
+        endDateTime.setHours(23, 59, 59, 999)
+        dateCondition.createdAt = dateCondition.createdAt
+          ? dateCondition.createdAt.and(_.lte(endDateTime))
+          : _.lte(endDateTime)
+      }
+      orderQuery.createdAt = dateCondition.createdAt
+    }
+
+    // 4. 查询订单数据
+    const ordersResult = await db
+      .collection('restaurant_orders')
+      .where(orderQuery)
+      .field({
+        restaurantId: true,
+        'pricing.total': true,
+        'carbonFootprint.reduction': true,
+        createdAt: true,
+      })
+      .get()
+
+    const orders = ordersResult.data || []
+
+    // 5. 按租户聚合数据
+    const tenantDataMap = new Map()
+
+    tenants.forEach(tenant => {
+      const tenantRestaurants = restaurants.filter(r => r.tenantId === tenant._id)
+      const tenantRestaurantIds = tenantRestaurants.map(r => r._id)
+      const tenantOrders = orders.filter(o => tenantRestaurantIds.includes(o.restaurantId))
+
+      const ordersTotal = tenantOrders.length
+      const revenueTotal = tenantOrders.reduce((sum, o) => sum + (o.pricing?.total || 0), 0)
+      const carbonTotal = tenantOrders.reduce((sum, o) => sum + (o.carbonFootprint?.reduction || 0), 0)
+
+      // 计算趋势数据（按日期分组）
+      const ordersByDate = new Map()
+      const revenueByDate = new Map()
+      const carbonByDate = new Map()
+
+      tenantOrders.forEach(order => {
+        if (order.createdAt) {
+          const date = new Date(order.createdAt).toISOString().split('T')[0]
+          
+          ordersByDate.set(date, (ordersByDate.get(date) || 0) + 1)
+          revenueByDate.set(date, (revenueByDate.get(date) || 0) + (order.pricing?.total || 0))
+          carbonByDate.set(date, (carbonByDate.get(date) || 0) + (order.carbonFootprint?.reduction || 0))
+        }
+      })
+
+      const ordersTrend = Array.from(ordersByDate.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+      const revenueTrend = Array.from(revenueByDate.entries())
+        .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+      const carbonTrend = Array.from(carbonByDate.entries())
+        .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+      tenantDataMap.set(tenant._id, {
+        tenantId: tenant._id,
+        tenantName: tenant.name || tenant._id,
+        restaurantCount: tenantRestaurants.length,
+        restaurantIds: tenantRestaurantIds,
+        statistics: {
+          orders: {
+            total: ordersTotal,
+            trend: ordersTrend,
+          },
+          revenue: {
+            total: Math.round(revenueTotal * 100) / 100,
+            trend: revenueTrend,
+          },
+          carbonReduction: {
+            total: Math.round(carbonTotal * 100) / 100,
+            trend: carbonTrend,
+          },
+          users: {
+            total: 0, // 需要单独查询用户数据
+            active: 0,
+          },
+        },
+      })
+    })
+
+    // 6. 查询用户数据（如果需要）
+    if (dataType === 'all' || dataType === 'user') {
+      // 获取最近30天有订单的用户
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      const activeUserIds = new Set()
+      orders.forEach(order => {
+        if (order.userId && new Date(order.createdAt) >= thirtyDaysAgo) {
+          activeUserIds.add(order.userId)
+        }
+      })
+
+      // 按租户统计用户
+      tenantDataMap.forEach((data, tenantId) => {
+        const tenantRestaurantIds = data.restaurantIds
+        const tenantUserIds = new Set()
+        orders.forEach(order => {
+          if (tenantRestaurantIds.includes(order.restaurantId) && order.userId) {
+            tenantUserIds.add(order.userId)
+          }
+        })
+        data.statistics.users.total = tenantUserIds.size
+        data.statistics.users.active = Array.from(tenantUserIds).filter(id => activeUserIds.has(id)).length
+      })
+    }
+
+    // 7. 根据数据类型筛选
+    let filteredTenants = Array.from(tenantDataMap.values())
+    if (dataType !== 'all') {
+      filteredTenants = filteredTenants.filter(tenant => {
+        switch (dataType) {
+          case 'order':
+            return tenant.statistics.orders.total > 0
+          case 'revenue':
+            return tenant.statistics.revenue.total > 0
+          case 'carbon':
+            return tenant.statistics.carbonReduction.total > 0
+          case 'user':
+            return tenant.statistics.users.total > 0
+          default:
+            return true
+        }
+      })
+    }
+
+    // 8. 计算汇总数据
+    const summary = {
+      totalTenants: filteredTenants.length,
+      totalOrders: filteredTenants.reduce((sum, t) => sum + t.statistics.orders.total, 0),
+      totalRevenue: filteredTenants.reduce((sum, t) => sum + t.statistics.revenue.total, 0),
+      totalCarbonReduction: filteredTenants.reduce((sum, t) => sum + t.statistics.carbonReduction.total, 0),
+      totalUsers: filteredTenants.reduce((sum, t) => sum + t.statistics.users.total, 0),
+    }
+
+    // 9. 计算整体趋势（所有租户合并）
+    const allOrdersByDate = new Map()
+    const allRevenueByDate = new Map()
+    const allCarbonByDate = new Map()
+
+    orders.forEach(order => {
+      if (order.createdAt) {
+        const date = new Date(order.createdAt).toISOString().split('T')[0]
+        
+        allOrdersByDate.set(date, (allOrdersByDate.get(date) || 0) + 1)
+        allRevenueByDate.set(date, (allRevenueByDate.get(date) || 0) + (order.pricing?.total || 0))
+        allCarbonByDate.set(date, (allCarbonByDate.get(date) || 0) + (order.carbonFootprint?.reduction || 0))
+      }
+    })
+
+    const trends = {
+      orders: Array.from(allOrdersByDate.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+      revenue: Array.from(allRevenueByDate.entries())
+        .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+      carbonReduction: Array.from(allCarbonByDate.entries())
+        .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    }
+
+    // 10. 分页
+    const total = filteredTenants.length
+    const skip = (page - 1) * pageSize
+    const paginatedTenants = filteredTenants.slice(skip, skip + pageSize)
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        summary,
+        tenants: paginatedTenants,
+        trends,
+        total,
+        page,
+        pageSize,
+      },
+    }
+  } catch (error) {
+    console.error('获取跨租户数据失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取跨租户数据失败',
+      data: {
+        summary: {
+          totalTenants: 0,
+          totalOrders: 0,
+          totalRevenue: 0,
+          totalCarbonReduction: 0,
+          totalUsers: 0,
+        },
+        tenants: [],
+        trends: {
+          orders: [],
+          revenue: [],
+          carbonReduction: [],
+        },
+        total: 0,
+        page: 1,
+        pageSize: 20,
+      },
+    }
+  }
+}
+
+/**
+ * 平台管理：获取平台统计数据
+ * 统计总餐厅数、订单数、收入、碳减排、用户数等
+ */
+async function getPlatformStatistics(params, user) {
+  const {
+    startDate,
+    endDate,
+    period = '30days',
+    includeTrends = false,
+  } = params
+
+  try {
+    const _ = db.command
+
+    // 计算时间范围
+    let startDateTime = null
+    let endDateTime = null
+
+    if (startDate && endDate) {
+      startDateTime = new Date(startDate)
+      startDateTime.setHours(0, 0, 0, 0)
+      endDateTime = new Date(endDate)
+      endDateTime.setHours(23, 59, 59, 999)
+    } else {
+      // 根据 period 计算
+      endDateTime = new Date()
+      endDateTime.setHours(23, 59, 59, 999)
+      startDateTime = new Date()
+      
+      switch (period) {
+        case '7days':
+          startDateTime.setDate(startDateTime.getDate() - 7)
+          break
+        case '30days':
+          startDateTime.setDate(startDateTime.getDate() - 30)
+          break
+        case '90days':
+          startDateTime.setDate(startDateTime.getDate() - 90)
+          break
+        default:
+          startDateTime.setDate(startDateTime.getDate() - 30)
+      }
+      startDateTime.setHours(0, 0, 0, 0)
+    }
+
+    // 1. 统计餐厅数据
+    const restaurantsResult = await db.collection('restaurants').get()
+    const allRestaurants = restaurantsResult.data || []
+    const totalRestaurants = allRestaurants.length
+    const activeRestaurants = allRestaurants.filter(r => r.status === 'active').length
+
+    // 2. 统计订单数据
+    const orderQuery = {}
+    if (startDateTime && endDateTime) {
+      orderQuery.createdAt = _.and(_.gte(startDateTime), _.lte(endDateTime))
+    }
+
+    const ordersResult = await db
+      .collection('restaurant_orders')
+      .where(orderQuery)
+      .field({
+        'pricing.total': true,
+        'carbonFootprint.reduction': true,
+        createdAt: true,
+      })
+      .get()
+
+    const orders = ordersResult.data || []
+    const totalOrders = orders.length
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.pricing?.total || 0), 0)
+    const totalCarbonReduction = orders.reduce((sum, o) => sum + (o.carbonFootprint?.reduction || 0), 0)
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+    const averageCarbonPerOrder = totalOrders > 0 ? totalCarbonReduction / totalOrders : 0
+
+    // 3. 统计用户数据（最近30天有订单的用户）
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
+    const activeUserIds = new Set()
+    orders.forEach(order => {
+      if (order.userId && new Date(order.createdAt) >= thirtyDaysAgo) {
+        activeUserIds.add(order.userId)
+      }
+    })
+    const totalUsers = activeUserIds.size
+
+    // 4. 计算趋势数据（如果需要）
+    let trends = null
+    if (includeTrends && startDateTime && endDateTime) {
+      const ordersByDate = new Map()
+      
+      orders.forEach(order => {
+        if (order.createdAt) {
+          const date = new Date(order.createdAt).toISOString().split('T')[0]
+          const existing = ordersByDate.get(date) || { count: 0, revenue: 0, carbon: 0 }
+          ordersByDate.set(date, {
+            count: existing.count + 1,
+            revenue: existing.revenue + (order.pricing?.total || 0),
+            carbon: existing.carbon + (order.carbonFootprint?.reduction || 0),
+          })
+        }
+      })
+
+      const dates = Array.from(ordersByDate.keys()).sort()
+      trends = {
+        orders: dates.map(date => ({
+          date,
+          count: ordersByDate.get(date).count,
+        })),
+        revenue: dates.map(date => ({
+          date,
+          amount: Math.round(ordersByDate.get(date).revenue * 100) / 100,
+        })),
+        carbonReduction: dates.map(date => ({
+          date,
+          amount: Math.round(ordersByDate.get(date).carbon * 100) / 100,
+        })),
+      }
+    }
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        totalRestaurants,
+        activeRestaurants,
+        totalOrders,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        totalCarbonReduction: Math.round(totalCarbonReduction * 100) / 100,
+        totalUsers,
+        averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+        averageCarbonPerOrder: Math.round(averageCarbonPerOrder * 100) / 100,
+        trends,
+      },
+    }
+  } catch (error) {
+    console.error('获取平台统计数据失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取平台统计数据失败',
+      data: {
+        totalRestaurants: 0,
+        activeRestaurants: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        totalCarbonReduction: 0,
+        totalUsers: 0,
+        averageOrderValue: 0,
+        averageCarbonPerOrder: 0,
+        trends: null,
+      },
+    }
+  }
+}
+
+/**
+ * 平台管理：获取餐厅排行榜
+ * 支持按订单数、收入、碳减排排序
+ */
+async function getTopRestaurants(params, user) {
+  const {
+    sortBy = 'orders',
+    limit = 10,
+    startDate,
+    endDate,
+  } = params
+
+  try {
+    const _ = db.command
+
+    // 计算时间范围
+    let startDateTime = null
+    let endDateTime = null
+
+    if (startDate && endDate) {
+      startDateTime = new Date(startDate)
+      startDateTime.setHours(0, 0, 0, 0)
+      endDateTime = new Date(endDate)
+      endDateTime.setHours(23, 59, 59, 999)
+    }
+
+    // 获取所有餐厅
+    const restaurantsResult = await db.collection('restaurants').get()
+    const restaurants = restaurantsResult.data || []
+
+    // 获取订单数据
+    const orderQuery = {}
+    if (startDateTime && endDateTime) {
+      orderQuery.createdAt = _.and(_.gte(startDateTime), _.lte(endDateTime))
+    }
+
+    const ordersResult = await db
+      .collection('restaurant_orders')
+      .where(orderQuery)
+      .field({
+        restaurantId: true,
+        'pricing.total': true,
+        'carbonFootprint.reduction': true,
+      })
+      .get()
+
+    const orders = ordersResult.data || []
+
+    // 按餐厅聚合数据
+    const restaurantStats = new Map()
+
+    restaurants.forEach(restaurant => {
+      restaurantStats.set(restaurant._id, {
+        restaurantId: restaurant._id,
+        restaurantName: restaurant.name || restaurant._id,
+        tenantId: restaurant.tenantId || '',
+        certificationLevel: restaurant.certificationLevel,
+        orders: 0,
+        revenue: 0,
+        carbonReduction: 0,
+      })
+    })
+
+    orders.forEach(order => {
+      if (order.restaurantId && restaurantStats.has(order.restaurantId)) {
+        const stats = restaurantStats.get(order.restaurantId)
+        stats.orders += 1
+        stats.revenue += order.pricing?.total || 0
+        stats.carbonReduction += order.carbonFootprint?.reduction || 0
+      }
+    })
+
+    // 转换为数组并排序
+    let sortedRestaurants = Array.from(restaurantStats.values())
+
+    switch (sortBy) {
+      case 'orders':
+        sortedRestaurants.sort((a, b) => b.orders - a.orders)
+        break
+      case 'revenue':
+        sortedRestaurants.sort((a, b) => b.revenue - a.revenue)
+        break
+      case 'carbonReduction':
+        sortedRestaurants.sort((a, b) => b.carbonReduction - a.carbonReduction)
+        break
+      default:
+        sortedRestaurants.sort((a, b) => b.orders - a.orders)
+    }
+
+    // 限制数量
+    const topRestaurants = sortedRestaurants.slice(0, limit).map(r => ({
+      restaurantId: r.restaurantId,
+      restaurantName: r.restaurantName,
+      tenantId: r.tenantId,
+      orders: r.orders,
+      revenue: Math.round(r.revenue * 100) / 100,
+      carbonReduction: Math.round(r.carbonReduction * 100) / 100,
+      certificationLevel: r.certificationLevel,
+    }))
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: topRestaurants,
+    }
+  } catch (error) {
+    console.error('获取餐厅排行榜失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取餐厅排行榜失败',
+      data: [],
+    }
   }
 }
 

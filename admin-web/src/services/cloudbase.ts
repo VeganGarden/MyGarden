@@ -568,6 +568,13 @@ export const tenantAPI = {
       data: { tenantId },
     }),
 
+  // 获取所有租户列表（平台管理员）
+  getAllTenants: () =>
+    callCloudFunction('tenant', {
+      action: 'getAllTenants',
+      data: {},
+    }),
+
   // 获取餐厅列表
   getRestaurants: (params?: { tenantId?: string; restaurantId?: string }) =>
     callCloudFunction('tenant', {
@@ -689,7 +696,7 @@ export const userAPI = {
 export const platformAPI = {
   // 餐厅列表管理
   restaurant: {
-    // 获取餐厅列表
+    // 获取餐厅列表（跨租户）
     list: (params?: {
       keyword?: string
       status?: string
@@ -697,52 +704,75 @@ export const platformAPI = {
       page?: number
       pageSize?: number
     }) =>
-      callCloudFunction('platform-management', {
-        action: 'listRestaurants',
-        ...params,
+      callCloudFunction('tenant', {
+        action: 'listAllRestaurants',
+        data: params || {},
       }),
 
-    // 获取餐厅详情
+    // 获取餐厅详情（使用tenant云函数的getRestaurants）
     get: (restaurantId: string) =>
-      callCloudFunction('platform-management', {
-        action: 'getRestaurant',
-        restaurantId,
+      callCloudFunction('tenant', {
+        action: 'getRestaurants',
+        data: {
+          restaurantId,
+        },
       }),
 
-    // 创建餐厅
+    // 创建餐厅（使用tenant云函数）
     create: (data: any) =>
-      callCloudFunction('platform-management', {
+      callCloudFunction('tenant', {
         action: 'createRestaurant',
         data,
       }),
 
-    // 更新餐厅
+    // 更新餐厅（使用tenant云函数）
     update: (restaurantId: string, data: any) =>
-      callCloudFunction('platform-management', {
+      callCloudFunction('tenant', {
         action: 'updateRestaurant',
-        restaurantId,
-        data,
+        data: {
+          restaurantId,
+          ...data,
+        },
       }),
 
-    // 删除餐厅
+    // 删除餐厅（暂不支持，使用更新状态代替）
     delete: (restaurantId: string) =>
-      callCloudFunction('platform-management', {
-        action: 'deleteRestaurant',
-        restaurantId,
+      callCloudFunction('tenant', {
+        action: 'updateRestaurantStatus',
+        data: {
+          restaurantId,
+          status: 'inactive',
+        },
       }),
 
     // 激活餐厅
     activate: (restaurantId: string) =>
-      callCloudFunction('platform-management', {
-        action: 'activateRestaurant',
-        restaurantId,
+      callCloudFunction('tenant', {
+        action: 'updateRestaurantStatus',
+        data: {
+          restaurantId,
+          status: 'active',
+        },
       }),
 
     // 暂停餐厅
     suspend: (restaurantId: string) =>
-      callCloudFunction('platform-management', {
-        action: 'suspendRestaurant',
-        restaurantId,
+      callCloudFunction('tenant', {
+        action: 'updateRestaurantStatus',
+        data: {
+          restaurantId,
+          status: 'suspended',
+        },
+      }),
+
+    // 更新认证等级
+    updateCertification: (restaurantId: string, certificationLevel: string | null) =>
+      callCloudFunction('tenant', {
+        action: 'updateRestaurantCertification',
+        data: {
+          restaurantId,
+          certificationLevel,
+        },
       }),
   },
 
@@ -756,22 +786,27 @@ export const platformAPI = {
       endDate?: string
       page?: number
       pageSize?: number
+      groupBy?: 'tenant' | 'date' | 'restaurant'
     }) =>
-      callCloudFunction('platform-management', {
+      callCloudFunction('tenant', {
         action: 'getCrossTenantData',
-        ...params,
+        data: params,
       }),
 
-    // 导出跨租户数据
+    // 导出跨租户数据（暂时返回数据，前端处理导出）
     export: (params: {
       tenantIds?: string[]
       dataType?: string
       startDate?: string
       endDate?: string
     }) =>
-      callCloudFunction('platform-management', {
-        action: 'exportCrossTenantData',
-        ...params,
+      callCloudFunction('tenant', {
+        action: 'getCrossTenantData',
+        data: {
+          ...params,
+          page: 1,
+          pageSize: 10000, // 导出时获取所有数据
+        },
       }),
   },
 
@@ -782,10 +817,11 @@ export const platformAPI = {
       startDate?: string
       endDate?: string
       period?: '7days' | '30days' | '90days' | 'custom'
+      includeTrends?: boolean
     }) =>
-      callCloudFunction('platform-management', {
+      callCloudFunction('tenant', {
         action: 'getPlatformStatistics',
-        ...params,
+        data: params || {},
       }),
 
     // 获取餐厅排行榜
@@ -795,9 +831,9 @@ export const platformAPI = {
       startDate?: string
       endDate?: string
     }) =>
-      callCloudFunction('platform-management', {
+      callCloudFunction('tenant', {
         action: 'getTopRestaurants',
-        ...params,
+        data: params,
       }),
 
     // 导出平台统计报表
