@@ -274,14 +274,18 @@ const Dashboard: React.FC = () => {
   // 注意：此函数会根据用户选择的日期范围（dateRange）从云端数据库查询数据
   // startDate 和 endDate 会传递给后端API，后端会根据这些日期筛选订单、统计等数据
   const fetchRestaurantData = async () => {
-    // 防止重复调用 - 但如果是手动刷新，允许强制刷新
+    // 防止重复调用
     if (isFetchingRef.current) {
       console.log('[fetchRestaurantData] 正在获取数据，跳过重复调用')
       return
     }
     
     try {
-      isFetchingRef.current = true
+      // 注意：isFetchingRef在useEffect中已经设置，这里不需要重复设置
+      // 但如果直接调用fetchRestaurantData（如手动刷新），需要设置
+      if (!isFetchingRef.current) {
+        isFetchingRef.current = true
+      }
       setLoading(true)
       console.log('[fetchRestaurantData] 开始获取数据')
       // 从日期选择器获取日期范围，如果没有选择则使用默认值（近30天）
@@ -718,16 +722,17 @@ const Dashboard: React.FC = () => {
     }
     
     // 使用防抖，延迟100ms执行，避免依赖项快速变化时多次触发
-    // 注意：不在useEffect中检查isFetchingRef，因为这会阻止正常的依赖项变化触发
     fetchTimeoutRef.current = setTimeout(async () => {
       // 在延迟后检查，如果正在获取数据，则跳过
       if (isFetchingRef.current) {
         console.log('[Dashboard] 延迟期间检测到正在获取数据，跳过')
+        fetchTimeoutRef.current = null
         return
       }
       
       try {
         isFetchingRef.current = true
+        console.log('[Dashboard] useEffect触发数据获取')
         if (isRestaurantAdmin) {
           await fetchRestaurantData()
         } else if (isPlatformOperator) {
@@ -740,7 +745,13 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         // 错误已在各自函数中处理
         console.error('[Dashboard] 获取数据失败:', error)
+        // 确保在错误时也重置状态
+        isFetchingRef.current = false
       } finally {
+        // 确保状态被重置
+        if (isFetchingRef.current) {
+          console.log('[Dashboard] 重置isFetchingRef状态')
+        }
         isFetchingRef.current = false
         fetchTimeoutRef.current = null
       }
