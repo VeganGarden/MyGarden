@@ -2926,7 +2926,9 @@
           "tenantGrowth": "Tenant Growth Trend Chart",
           "orders": "Orders",
           "revenue": "Revenue",
-          "newTenants": "New Tenants"
+          "newTenants": "New Tenants",
+          "newRestaurants": "New Restaurants",
+          "count": "Count"
         }
       },
       "systemAdmin": {
@@ -2996,6 +2998,59 @@
         "last30Days": "Last 30 Days",
         "last90Days": "Last 90 Days",
         "custom": "Custom"
+      },
+      "exportButton": "Export Data",
+      "exporting": "Exporting data...",
+      "tooltips": {
+        "totalTenants": "Click to view tenant list",
+        "activeTenants": "Number of currently active tenants",
+        "totalRestaurants": "Total number of restaurants on the platform",
+        "totalOrders": "Total number of orders on the platform",
+        "totalRevenue": "Total revenue of the platform",
+        "totalCarbonReduction": "Total carbon reduction of the platform",
+        "totalUsers": "Total number of users on the platform"
+      },
+      "export": {
+        "platformOperator": {
+          "title": "Platform Operator Data Report",
+          "sheetName": "Platform Operator Data",
+          "fileName": "Platform Operator Report",
+          "coreMetrics": "Core Metrics",
+          "businessData": "Business Data"
+        },
+        "systemAdmin": {
+          "title": "System Admin Data Report",
+          "sheetName": "System Admin Data",
+          "fileName": "System Admin Report",
+          "systemHealth": "System Health Metrics",
+          "usageStats": "System Usage Statistics"
+        },
+        "carbonSpecialist": {
+          "title": "Carbon Specialist Data Report",
+          "sheetName": "Carbon Data Report",
+          "fileName": "Carbon Data Report",
+          "coreMetrics": "Carbon Data Core Metrics",
+          "carbonStats": "Carbon Data Statistics"
+        },
+        "table": {
+          "rank": "Rank",
+          "restaurantName": "Restaurant Name",
+          "tenantName": "Tenant Name",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "carbonReduction": "Carbon Reduction",
+          "certificationLevel": "Certification Level",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "monthCarbonReduction": "Month's Carbon Reduction",
+          "avgCarbonPerOrder": "Average Carbon per Order",
+          "time": "Time",
+          "username": "Username",
+          "role": "Role",
+          "action": "Action",
+          "resource": "Resource",
+          "status": "Status"
+        },
+        "notCertified": "Not Certified"
       }
     }
   }

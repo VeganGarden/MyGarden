@@ -3069,7 +3069,9 @@
           "tenantGrowth": "租户增长趋势图",
           "orders": "订单数",
           "revenue": "收入",
-          "newTenants": "新增租户数"
+          "newTenants": "新增租户数",
+          "newRestaurants": "新增餐厅数",
+          "count": "数量"
         }
       },
       "systemAdmin": {
@@ -3139,6 +3141,59 @@
         "last30Days": "近30天",
         "last90Days": "近90天",
         "custom": "自定义"
+      },
+      "exportButton": "导出数据",
+      "exporting": "正在导出数据...",
+      "tooltips": {
+        "totalTenants": "点击查看租户列表",
+        "activeTenants": "当前活跃的租户数量",
+        "totalRestaurants": "平台总餐厅数量",
+        "totalOrders": "平台总订单数",
+        "totalRevenue": "平台总收入",
+        "totalCarbonReduction": "平台总碳减排量",
+        "totalUsers": "平台总用户数"
+      },
+      "export": {
+        "platformOperator": {
+          "title": "平台运营数据报表",
+          "sheetName": "平台运营数据",
+          "fileName": "平台运营数据报表",
+          "coreMetrics": "核心指标",
+          "businessData": "业务数据"
+        },
+        "systemAdmin": {
+          "title": "系统管理员数据报表",
+          "sheetName": "系统管理数据",
+          "fileName": "系统管理数据报表",
+          "systemHealth": "系统健康指标",
+          "usageStats": "系统使用统计"
+        },
+        "carbonSpecialist": {
+          "title": "碳核算专员数据报表",
+          "sheetName": "碳数据报表",
+          "fileName": "碳数据报表",
+          "coreMetrics": "碳数据核心指标",
+          "carbonStats": "碳数据统计"
+        },
+        "table": {
+          "rank": "排名",
+          "restaurantName": "餐厅名称",
+          "tenantName": "租户名称",
+          "orders": "订单数",
+          "revenue": "收入",
+          "carbonReduction": "碳减排量",
+          "certificationLevel": "认证等级",
+          "totalCarbonReduction": "累计碳减排量",
+          "monthCarbonReduction": "本月碳减排量",
+          "avgCarbonPerOrder": "平均每单碳减排",
+          "time": "时间",
+          "username": "用户名",
+          "role": "角色",
+          "action": "操作",
+          "resource": "资源",
+          "status": "状态"
+        },
+        "notCertified": "未认证"
       }
     },
     "operationLog": {

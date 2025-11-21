@@ -27,7 +27,7 @@ import {
   ExportOutlined,
   CheckCircleTwoTone,
 } from '@ant-design/icons'
-import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge, Select, DatePicker } from 'antd'
+import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge, Select, DatePicker, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import * as echarts from 'echarts'
 import { getBrandChartTheme } from '@/utils/chart-theme'
+import * as XLSX from 'xlsx'
 
 // 餐厅管理员看板数据
 interface RestaurantDashboardData {
@@ -287,6 +288,7 @@ const Dashboard: React.FC = () => {
             orders: stats.trends.orders,
             revenue: stats.trends.revenue,
             carbonReduction: stats.trends.carbonReduction,
+            tenantGrowth: stats.trends.tenantGrowth || stats.trends.restaurantGrowth || undefined,
           })
         }
       }
@@ -306,7 +308,7 @@ const Dashboard: React.FC = () => {
         })))
       }
 
-      // 获取租户总数和活跃数
+      // 获取租户总数和活跃数，并计算增长趋势
       if (tenantsResult && tenantsResult.code === 0 && tenantsResult.data) {
         const tenants = tenantsResult.data || []
         const activeTenants = tenants.filter((t: any) => t.status === 'active').length
@@ -315,6 +317,38 @@ const Dashboard: React.FC = () => {
           totalTenants: tenants.length,
           activeTenants: activeTenants,
         }))
+        
+        // 如果没有趋势数据中的租户增长数据，尝试从租户列表计算
+        if (!trendsData.tenantGrowth || trendsData.tenantGrowth.length === 0) {
+          // 按创建日期分组统计
+          const growthMap = new Map<string, { tenantCount: number; restaurantCount: number }>()
+          tenants.forEach((tenant: any) => {
+            const date = dayjs(tenant.createdAt || tenant.created_at).format('YYYY-MM-DD')
+            if (!growthMap.has(date)) {
+              growthMap.set(date, { tenantCount: 0, restaurantCount: 0 })
+            }
+            const current = growthMap.get(date)!
+            current.tenantCount++
+            if (tenant.restaurants && Array.isArray(tenant.restaurants)) {
+              current.restaurantCount += tenant.restaurants.length
+            }
+          })
+          
+          const growthData = Array.from(growthMap.entries())
+            .map(([date, counts]) => ({
+              date,
+              count: counts.tenantCount,
+              restaurantCount: counts.restaurantCount,
+            }))
+            .sort((a, b) => a.date.localeCompare(b.date))
+          
+          if (growthData.length > 0) {
+            setTrendsData(prev => ({
+              ...prev,
+              tenantGrowth: growthData,
+            }))
+          }
+        }
       }
     } catch (error: any) {
       message.error(error.message || t('common.loadFailed'))
@@ -473,6 +507,162 @@ const Dashboard: React.FC = () => {
     }
     fetchData()
   }, [currentRestaurantId, currentTenant, user?.role, dateRange, period])
+
+  // 自动刷新功能
+  useEffect(() => {
+    if (isPlatformOperator || isSystemAdmin || isCarbonSpecialist) {
+      const interval = setInterval(() => {
+        if (isPlatformOperator) {
+          fetchPlatformData()
+        } else if (isSystemAdmin) {
+          fetchSystemData()
+        } else if (isCarbonSpecialist) {
+          fetchCarbonData()
+        }
+      }, 5 * 60 * 1000) // 每5分钟自动刷新
+
+      return () => clearInterval(interval)
+    }
+  }, [isPlatformOperator, isSystemAdmin, isCarbonSpecialist])
+
+  // 导出功能
+  const handleExportPlatformData = async () => {
+    try {
+      message.loading(t('pages.dashboard.exporting'), 0)
+      
+      const exportData = [
+        [t('pages.dashboard.export.platformOperator.title')],
+        [],
+        [t('pages.dashboard.export.platformOperator.coreMetrics')],
+        [t('pages.dashboard.platformOperator.totalTenants'), platformData.totalTenants],
+        [t('pages.dashboard.platformOperator.activeTenants'), platformData.activeTenants],
+        [t('pages.dashboard.platformOperator.totalRestaurants'), platformData.totalRestaurants],
+        [t('pages.dashboard.platformOperator.pendingApplications'), platformData.pendingApplications],
+        [],
+        [t('pages.dashboard.export.platformOperator.businessData')],
+        [t('pages.dashboard.platformOperator.totalOrders'), platformData.totalOrders],
+        [t('pages.dashboard.platformOperator.totalRevenue'), `¥${platformData.totalRevenue.toLocaleString()}`],
+        [t('pages.dashboard.platformOperator.totalCarbonReduction'), `${platformData.totalCarbonReduction.toLocaleString()} kg CO₂e`],
+        [t('pages.dashboard.platformOperator.totalUsers'), platformData.totalUsers],
+        [],
+        [t('pages.dashboard.platformOperator.topRestaurants')],
+        [t('pages.dashboard.export.table.rank'), t('pages.dashboard.export.table.restaurantName'), t('pages.dashboard.export.table.tenantName'), t('pages.dashboard.export.table.orders'), t('pages.dashboard.export.table.revenue'), t('pages.dashboard.export.table.carbonReduction'), t('pages.dashboard.export.table.certificationLevel')],
+        ...topRestaurants.map((r) => [
+          r.rank,
+          r.restaurantName,
+          r.tenantName || r.tenantId,
+          r.orders,
+          `¥${r.revenue.toLocaleString()}`,
+          `${r.carbonReduction.toLocaleString()} kg`,
+          r.certificationLevel || t('pages.dashboard.export.notCertified'),
+        ]),
+      ]
+
+      const ws = XLSX.utils.aoa_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, t('pages.dashboard.export.platformOperator.sheetName'))
+      
+      const fileName = `${t('pages.dashboard.export.platformOperator.fileName')}_${dayjs().format('YYYY-MM-DD')}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      message.destroy()
+      message.success(t('common.exportSuccess'))
+    } catch (error: any) {
+      message.destroy()
+      message.error(error.message || t('common.exportFailed'))
+    }
+  }
+
+  const handleExportSystemData = async () => {
+    try {
+      message.loading(t('pages.dashboard.exporting'), 0)
+      
+      const exportData = [
+        [t('pages.dashboard.export.systemAdmin.title')],
+        [],
+        [t('pages.dashboard.export.systemAdmin.systemHealth')],
+        [t('pages.dashboard.systemAdmin.totalUsers'), systemData.totalUsers],
+        [t('pages.dashboard.systemAdmin.activeUsers'), systemData.activeUsers],
+        [t('pages.dashboard.systemAdmin.systemAlerts'), systemData.systemAlerts],
+        [t('pages.dashboard.systemAdmin.backupStatus'), systemData.backupStatus === 'success' ? t('pages.dashboard.systemAdmin.backupSuccess') : t('pages.dashboard.systemAdmin.backupUnknown')],
+        [],
+        [t('pages.dashboard.export.systemAdmin.usageStats')],
+        [t('pages.dashboard.systemAdmin.todayLogins'), systemData.todayLogins],
+        [t('pages.dashboard.systemAdmin.todayOperations'), systemData.todayOperations],
+        [t('pages.dashboard.systemAdmin.databaseUsage'), `${systemData.databaseUsage}%`],
+        [t('pages.dashboard.systemAdmin.apiCalls'), systemData.apiCalls],
+        [],
+        [t('pages.dashboard.systemAdmin.recentLogs')],
+        [t('pages.dashboard.export.table.time'), t('pages.dashboard.export.table.username'), t('pages.dashboard.export.table.role'), t('pages.dashboard.export.table.action'), t('pages.dashboard.export.table.resource'), t('pages.dashboard.export.table.status')],
+        ...recentLogs.map((log) => [
+          dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+          log.username,
+          log.role || '-',
+          log.action,
+          log.resource,
+          log.status,
+        ]),
+      ]
+
+      const ws = XLSX.utils.aoa_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, t('pages.dashboard.export.systemAdmin.sheetName'))
+      
+      const fileName = `${t('pages.dashboard.export.systemAdmin.fileName')}_${dayjs().format('YYYY-MM-DD')}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      message.destroy()
+      message.success(t('common.exportSuccess'))
+    } catch (error: any) {
+      message.destroy()
+      message.error(error.message || t('common.exportFailed'))
+    }
+  }
+
+  const handleExportCarbonData = async () => {
+    try {
+      message.loading(t('pages.dashboard.exporting'), 0)
+      
+      const exportData = [
+        [t('pages.dashboard.export.carbonSpecialist.title')],
+        [],
+        [t('pages.dashboard.export.carbonSpecialist.coreMetrics')],
+        [t('pages.dashboard.carbonSpecialist.totalCarbonReduction'), `${carbonData.totalCarbonReduction.toLocaleString()} kg CO₂e`],
+        [t('pages.dashboard.carbonSpecialist.baselineCount'), carbonData.baselineCount],
+        [t('pages.dashboard.carbonSpecialist.activeBaselineCount'), carbonData.activeBaselineCount],
+        [t('pages.dashboard.carbonSpecialist.pendingBaselineCount'), carbonData.pendingBaselineCount],
+        [],
+        [t('pages.dashboard.export.carbonSpecialist.carbonStats')],
+        [t('pages.dashboard.carbonSpecialist.todayCarbonReduction'), `${carbonData.todayCarbonReduction.toLocaleString()} kg CO₂e`],
+        [t('pages.dashboard.carbonSpecialist.monthCarbonReduction'), `${carbonData.monthCarbonReduction.toLocaleString()} kg CO₂e`],
+        [t('pages.dashboard.carbonSpecialist.averageCarbonPerOrder'), `${carbonData.averageCarbonPerOrder.toFixed(2)} kg CO₂e/单`],
+        [],
+        [t('pages.dashboard.carbonSpecialist.topRestaurants')],
+        [t('pages.dashboard.export.table.rank'), t('pages.dashboard.export.table.restaurantName'), t('pages.dashboard.export.table.tenantName'), t('pages.dashboard.export.table.totalCarbonReduction'), t('pages.dashboard.export.table.monthCarbonReduction'), t('pages.dashboard.export.table.avgCarbonPerOrder')],
+        ...topCarbonRestaurants.map((r) => [
+          r.rank,
+          r.restaurantName,
+          r.tenantName || r.tenantId,
+          `${r.carbonReduction.toLocaleString()} kg`,
+          `${(r.monthCarbonReduction || 0).toLocaleString()} kg`,
+          `${(r.averageCarbonPerOrder || 0).toFixed(2)} kg/单`,
+        ]),
+      ]
+
+      const ws = XLSX.utils.aoa_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, t('pages.dashboard.export.carbonSpecialist.sheetName'))
+      
+      const fileName = `${t('pages.dashboard.export.carbonSpecialist.fileName')}_${dayjs().format('YYYY-MM-DD')}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      message.destroy()
+      message.success(t('common.exportSuccess'))
+    } catch (error: any) {
+      message.destroy()
+      message.error(error.message || t('common.exportFailed'))
+    }
+  }
 
   // 餐厅管理员看板
   const renderRestaurantAdminDashboard = () => (
@@ -679,6 +869,9 @@ const Dashboard: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
               format="YYYY-MM-DD"
             />
+            <Button icon={<ExportOutlined />} onClick={() => handleExportPlatformData()} loading={loading}>
+              {t('pages.dashboard.exportButton')}
+            </Button>
             <Button icon={<ReloadOutlined />} onClick={() => fetchPlatformData()} loading={loading}>
               {t('common.refresh')}
             </Button>
@@ -758,62 +951,70 @@ const Dashboard: React.FC = () => {
         </Row>
 
         {/* 业务数据卡片 */}
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title={t('pages.dashboard.platformOperator.totalOrders')}
-                value={platformData.totalOrders}
-                prefix={<ShoppingCartOutlined />}
-                valueStyle={{ color: '#722ed1' }}
-                loading={loading}
-              />
-            </Card>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
+            <Tooltip title={t('pages.dashboard.platformOperator.tooltips.totalOrders')}>
+              <Card>
+                <Statistic
+                  title={t('pages.dashboard.platformOperator.totalOrders')}
+                  value={platformData.totalOrders}
+                  prefix={<ShoppingCartOutlined />}
+                  valueStyle={{ color: '#722ed1' }}
+                  loading={loading}
+                />
+              </Card>
+            </Tooltip>
           </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title={t('pages.dashboard.platformOperator.totalRevenue')}
-                value={platformData.totalRevenue}
-                prefix="¥"
-                valueStyle={{ color: '#faad14' }}
-                loading={loading}
-              />
-            </Card>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
+            <Tooltip title={t('pages.dashboard.platformOperator.tooltips.totalRevenue')}>
+              <Card>
+                <Statistic
+                  title={t('pages.dashboard.platformOperator.totalRevenue')}
+                  value={platformData.totalRevenue}
+                  prefix="¥"
+                  valueStyle={{ color: '#faad14' }}
+                  loading={loading}
+                />
+              </Card>
+            </Tooltip>
           </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title={t('pages.dashboard.platformOperator.totalCarbonReduction')}
-                value={platformData.totalCarbonReduction}
-                suffix="kg CO₂e"
-                prefix={<FireOutlined />}
-                valueStyle={{ color: '#52c41a' }}
-                loading={loading}
-              />
-            </Card>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
+            <Tooltip title={t('pages.dashboard.platformOperator.tooltips.totalCarbonReduction')}>
+              <Card>
+                <Statistic
+                  title={t('pages.dashboard.platformOperator.totalCarbonReduction')}
+                  value={platformData.totalCarbonReduction}
+                  suffix="kg CO₂e"
+                  prefix={<FireOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                  loading={loading}
+                />
+              </Card>
+            </Tooltip>
           </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title={t('pages.dashboard.platformOperator.totalUsers')}
-                value={platformData.totalUsers}
-                prefix={<TeamOutlined />}
-                valueStyle={{ color: '#13c2c2' }}
-                loading={loading}
-              />
-            </Card>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
+            <Tooltip title={t('pages.dashboard.platformOperator.tooltips.totalUsers')}>
+              <Card>
+                <Statistic
+                  title={t('pages.dashboard.platformOperator.totalUsers')}
+                  value={platformData.totalUsers}
+                  prefix={<TeamOutlined />}
+                  valueStyle={{ color: '#13c2c2' }}
+                  loading={loading}
+                />
+              </Card>
+            </Tooltip>
           </Col>
         </Row>
 
         {/* 趋势图表区域 */}
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={12}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card title={t('pages.dashboard.platformOperator.charts.orderTrend')}>
               <div ref={platformTrendChartRef} style={{ width: '100%', height: 300 }} />
             </Card>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card title={t('pages.dashboard.platformOperator.charts.tenantGrowth')}>
               <div ref={platformGrowthChartRef} style={{ width: '100%', height: 300 }} />
             </Card>
@@ -915,9 +1116,14 @@ const Dashboard: React.FC = () => {
       <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ margin: 0 }}>{t('pages.dashboard.title')}</h1>
-          <Button icon={<ReloadOutlined />} onClick={() => fetchSystemData()} loading={loading}>
-            {t('common.refresh')}
-          </Button>
+          <Space>
+            <Button icon={<ExportOutlined />} onClick={() => handleExportSystemData()} loading={loading}>
+              {t('pages.dashboard.exportButton')}
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchSystemData()} loading={loading}>
+              {t('common.refresh')}
+            </Button>
+          </Space>
         </div>
 
         <Alert
@@ -1138,6 +1344,13 @@ const Dashboard: React.FC = () => {
           type: 'line',
           data: trendsData.orders.map((item) => item.count),
           smooth: true,
+          itemStyle: {
+            color: '#722ed1', // 紫色 - 订单数
+          },
+          lineStyle: {
+            color: '#722ed1',
+            width: 2,
+          },
         },
         {
           name: t('pages.dashboard.platformOperator.charts.revenue'),
@@ -1145,6 +1358,13 @@ const Dashboard: React.FC = () => {
           yAxisIndex: 1,
           data: trendsData.revenue?.map((item) => item.amount) || [],
           smooth: true,
+          itemStyle: {
+            color: '#faad14', // 金色 - 收入
+          },
+          lineStyle: {
+            color: '#faad14',
+            width: 2,
+          },
         },
       ],
     }
@@ -1162,29 +1382,103 @@ const Dashboard: React.FC = () => {
 
     const chart = echarts.init(platformGrowthChartRef.current)
     const theme = getBrandChartTheme()
-    // 这里需要从API获取租户增长数据，暂时使用模拟数据
+    
+    // 从租户数据计算增长趋势（基于创建时间）
+    let growthData: Array<{ date: string; tenantCount: number; restaurantCount: number }> = []
+    if (trendsData.tenantGrowth && trendsData.tenantGrowth.length > 0) {
+      // 处理趋势数据，支持不同的数据结构
+      growthData = trendsData.tenantGrowth.map((item: any) => {
+        // 如果item是对象，直接使用；如果是简单结构，需要转换
+        if (typeof item === 'object' && item !== null) {
+          return {
+            date: item.date || item.day || '',
+            tenantCount: item.count || item.tenantCount || item.tenant_count || 0,
+            restaurantCount: item.restaurantCount || item.restaurant_count || 0,
+          }
+        }
+        return { date: '', tenantCount: 0, restaurantCount: 0 }
+      }).filter(item => item.date) // 过滤掉无效数据
+    } else {
+      // 如果没有趋势数据，使用空数据避免显示错误
+      growthData = []
+    }
+
     const option = {
       ...theme,
       title: {
         text: t('pages.dashboard.platformOperator.charts.tenantGrowth'),
         left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 600,
+        },
       },
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'shadow',
+        },
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const param = params[0]
+          let result = `${param.axisValue}<br/>`
+          params.forEach((p: any) => {
+            result += `${p.marker}${p.seriesName}: ${p.value}<br/>`
+          })
+          return result
+        },
+      },
+      legend: {
+        data: [
+          t('pages.dashboard.platformOperator.charts.newTenants'),
+          t('pages.dashboard.platformOperator.charts.newRestaurants'),
+        ],
+        bottom: 0,
+        itemGap: 20,
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '15%',
+        containLabel: true,
       },
       xAxis: {
         type: 'category',
-        data: [],
+        data: growthData.map((item) => dayjs(item.date).format('MM-DD')),
+        axisLabel: {
+          rotate: 0,
+          interval: 'auto',
+        },
       },
       yAxis: {
         type: 'value',
-        name: t('pages.dashboard.platformOperator.charts.newTenants'),
+        name: t('pages.dashboard.platformOperator.charts.count'),
+        nameLocation: 'middle',
+        nameGap: 40,
       },
       series: [
         {
           name: t('pages.dashboard.platformOperator.charts.newTenants'),
           type: 'bar',
-          data: [],
+          data: growthData.length > 0 
+            ? growthData.map((item) => item.tenantCount)
+            : [],
+          itemStyle: {
+            color: '#1890ff', // 蓝色 - 租户
+          },
+          barWidth: '40%',
+        },
+        {
+          name: t('pages.dashboard.platformOperator.charts.newRestaurants'),
+          type: 'bar',
+          data: growthData.length > 0 
+            ? growthData.map((item) => item.restaurantCount)
+            : [],
+          itemStyle: {
+            color: '#fa8c16', // 橙色 - 餐厅
+          },
+          barWidth: '40%',
         },
       ],
     }
@@ -1390,6 +1684,9 @@ const Dashboard: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
               format="YYYY-MM-DD"
             />
+            <Button icon={<ExportOutlined />} onClick={() => handleExportCarbonData()} loading={loading}>
+              {t('pages.dashboard.exportButton')}
+            </Button>
             <Button icon={<ReloadOutlined />} onClick={() => fetchCarbonData()} loading={loading}>
               {t('common.refresh')}
             </Button>
