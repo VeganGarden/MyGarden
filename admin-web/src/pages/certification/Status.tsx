@@ -1,5 +1,8 @@
+import { certificationAPI } from '@/services/cloudbase'
+import { useAppSelector, useAppDispatch } from '@/store/hooks'
+import { setCurrentRestaurant } from '@/store/slices/tenantSlice'
 import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
-import { Button, Card, Descriptions, Tag, Timeline } from 'antd'
+import { Button, Card, Descriptions, Select, Spin, Tag, Timeline, message, Empty, Alert } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -14,35 +17,94 @@ interface AuditRecord {
 
 const CertificationStatus: React.FC = () => {
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   const [auditRecords, setAuditRecords] = useState<AuditRecord[]>([])
   const [currentStatus, setCurrentStatus] = useState<'pending' | 'reviewing' | 'approved' | 'rejected'>('reviewing')
+  const [loading, setLoading] = useState(true)
+  const [statusData, setStatusData] = useState<any>(null)
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(currentRestaurantId)
 
   useEffect(() => {
-    // TODO: 从API获取审核进度
-    const mockData: AuditRecord[] = [
-      {
-        id: '1',
-        stage: t('pages.certification.status.stages.documentReview'),
-        status: 'approved',
-        comment: t('pages.certification.status.comments.documentComplete'),
-        reviewer: t('pages.certification.status.reviewer', { name: 'A' }),
-        timestamp: '2025-01-15 10:00:00',
-      },
-      {
-        id: '2',
-        stage: t('pages.certification.status.stages.onSiteInspection'),
-        status: 'pending',
-        timestamp: '2025-01-16 14:00:00',
-      },
-      {
-        id: '3',
-        stage: t('pages.certification.status.stages.review'),
-        status: 'pending',
-        timestamp: '',
-      },
-    ]
-    setAuditRecords(mockData)
-  }, [])
+    // 如果只有一个餐厅，自动选择它
+    if (restaurants.length === 1 && !currentRestaurantId) {
+      const restaurant = restaurants[0]
+      setSelectedRestaurantId(restaurant.id)
+      dispatch(setCurrentRestaurant(restaurant.id))
+    } else if (currentRestaurantId) {
+      setSelectedRestaurantId(currentRestaurantId)
+    }
+  }, [restaurants, currentRestaurantId, dispatch])
+
+  useEffect(() => {
+    if (selectedRestaurantId) {
+      loadStatus()
+    } else {
+      setLoading(false)
+    }
+  }, [selectedRestaurantId])
+
+  const handleRestaurantChange = (value: string) => {
+    setSelectedRestaurantId(value)
+    dispatch(setCurrentRestaurant(value))
+  }
+
+  const loadStatus = async () => {
+    if (!selectedRestaurantId) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await certificationAPI.getStatus({
+        restaurantId: selectedRestaurantId
+      })
+
+      if (result.code === 0 && result.data) {
+        const data = result.data
+        setStatusData(data)
+        
+        // 更新状态
+        if (data.status === 'submitted' || data.status === 'reviewing') {
+          setCurrentStatus('reviewing')
+        } else if (data.status === 'approved') {
+          setCurrentStatus('approved')
+        } else if (data.status === 'rejected') {
+          setCurrentStatus('rejected')
+        } else {
+          setCurrentStatus('pending')
+        }
+
+        // 转换阶段数据为审核记录
+        const records: AuditRecord[] = data.stages?.map((stage: any, index: number) => {
+          let status: 'pending' | 'approved' | 'rejected' = 'pending'
+          if (stage.status === 'completed') {
+            status = stage.result === 'pass' ? 'approved' : 'rejected'
+          }
+
+          return {
+            id: String(index + 1),
+            stage: stage.stageName || stage.stageType,
+            status,
+            comment: stage.comment,
+            reviewer: stage.operatorName,
+            timestamp: stage.endTime ? new Date(stage.endTime).toLocaleString() : 
+                      stage.startTime ? new Date(stage.startTime).toLocaleString() : ''
+          }
+        }) || []
+
+        setAuditRecords(records)
+      } else {
+        message.error(result.message || '获取状态失败')
+      }
+    } catch (error: any) {
+      console.error('获取认证状态失败:', error)
+      message.error(error.message || '获取状态失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getStatusTag = (status: string) => {
     switch (status) {
@@ -72,21 +134,87 @@ const CertificationStatus: React.FC = () => {
     }
   }
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 50 }}>
+        <Spin size="large" />
+      </div>
+    )
+  }
+
+  // 如果没有选择餐厅，显示空状态
+  if (!selectedRestaurantId) {
+    return (
+      <div>
+        <Card title={t('pages.certification.status.title')}>
+          {restaurants.length > 0 ? (
+            <div>
+              <Alert
+                message="请选择餐厅"
+                description="请先选择要查看认证进度的餐厅"
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+              <Select
+                placeholder={t('pages.certification.apply.placeholders.selectRestaurant')}
+                style={{ width: '100%' }}
+                value={selectedRestaurantId}
+                onChange={handleRestaurantChange}
+              >
+                {restaurants.map((restaurant: any) => (
+                  <Select.Option key={restaurant.id} value={restaurant.id}>
+                    {restaurant.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+          ) : (
+            <Empty
+              description="暂无餐厅数据"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div>
+      {restaurants.length > 1 && (
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>选择餐厅：</span>
+            <Select
+              style={{ flex: 1, maxWidth: 300 }}
+              value={selectedRestaurantId}
+              onChange={handleRestaurantChange}
+            >
+              {restaurants.map((restaurant: any) => (
+                <Select.Option key={restaurant.id} value={restaurant.id}>
+                  {restaurant.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Card>
+      )}
       <Card title={t('pages.certification.status.title')} style={{ marginBottom: 16 }}>
         <Descriptions column={2}>
           <Descriptions.Item label={t('pages.certification.status.fields.currentStatus')}>
             {getOverallStatus()}
           </Descriptions.Item>
           <Descriptions.Item label={t('pages.certification.status.fields.applyTime')}>
-            2025-01-15 09:00:00
+            {statusData?.submittedAt ? new Date(statusData.submittedAt).toLocaleString() : '-'}
           </Descriptions.Item>
           <Descriptions.Item label={t('pages.certification.status.fields.estimatedCompletion')}>
-            2025-01-25 18:00:00
+            {statusData?.estimatedCompletion ? new Date(statusData.estimatedCompletion).toLocaleString() : '-'}
           </Descriptions.Item>
           <Descriptions.Item label={t('pages.certification.status.fields.certificationLevel')}>
-            <Tag color="blue">{t('pages.certification.status.pendingEvaluation')}</Tag>
+            <Tag color="blue">
+              {statusData?.certificationLevel || t('pages.certification.status.pendingEvaluation')}
+            </Tag>
           </Descriptions.Item>
         </Descriptions>
       </Card>

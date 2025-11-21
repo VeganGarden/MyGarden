@@ -1698,6 +1698,44 @@ async function createRestaurant(data) {
     status: 'active',
     certificationLevel: null,
     certificationStatus: 'none',
+    // 完整的认证字段结构
+    climateCertification: {
+      isCertified: false,
+      certificationLevel: null,
+      certifiedDate: null,
+      certifiedBy: null,
+      certificateNumber: null,
+      expiryDate: null,
+      // 五大维度评估结果
+      standards: {
+        lowCarbonMenuRatio: null,
+        localIngredientRatio: null,
+        organicRatio: null,
+        foodWasteReduction: null,
+        energyEfficiency: null
+      },
+      // 系统评估结果
+      systemEvaluation: {
+        score: null,
+        report: null,
+        evaluatedAt: null,
+        evaluatedBy: null
+      },
+      // 人工抽检记录
+      inspectionRecords: [],
+      // 年度承诺
+      annualPledge: {
+        carbonReductionTarget: null,
+        customerParticipationTarget: null,
+        status: 'in_progress'
+      },
+      // 成长激励
+      growthIncentives: {
+        tasks: [],
+        badges: [],
+        exposurePriority: 0
+      }
+    },
     createdAt: db.serverDate(),
     updatedAt: db.serverDate(),
   }

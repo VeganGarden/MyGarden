@@ -272,23 +272,116 @@ export const certificationAPI = {
     }),
 
   // 获取认证状态
-  getStatus: (restaurantId: string) =>
+  getStatus: (data: { restaurantId?: string; applicationId?: string }) =>
     callCloudFunction('restaurant-certification', {
       action: 'getStatus',
-      restaurantId,
+      data,
     }),
 
   // 获取证书信息
-  getCertificate: (certificateId: string) =>
+  getCertificate: (data: { restaurantId?: string; certificateId?: string }) =>
     callCloudFunction('restaurant-certification', {
       action: 'getCertificate',
-      certificateId,
+      data,
     }),
 
   // 保存草稿
   saveDraft: (data: any) =>
     callCloudFunction('restaurant-certification', {
       action: 'saveDraft',
+      data,
+    }),
+
+  // 系统评估
+  systemEvaluate: (data: { applicationId: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'systemEvaluate',
+      data,
+    }),
+
+  // 更新认证资料
+  updateMaterials: (data: any) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'updateMaterials',
+      data,
+    }),
+
+  // 获取资料历史版本
+  getMaterialHistory: (data: { restaurantId: string; materialType: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'getMaterialHistory',
+      data,
+    }),
+
+  // 导出认证资料
+  exportMaterials: (data: { restaurantId: string; format?: string; fields?: string[] }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'exportMaterials',
+      data,
+    }),
+
+  // 审核操作（平台运营）
+  review: (data: any) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'review',
+      data,
+    }),
+
+  // 生成证书
+  generateCertificate: (data: { applicationId: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'generateCertificate',
+      data,
+    }),
+
+  // 创建抽检任务
+  createInspection: (data: any) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'createInspection',
+      data,
+    }),
+
+  // 获取抽检记录
+  getInspection: (data: { inspectionId?: string; applicationId?: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'getInspection',
+      data,
+    }),
+
+  // 更新抽检记录
+  updateInspection: (data: any) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'updateInspection',
+      data,
+    }),
+
+  // 获取抽检列表
+  listInspections: (data: any) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'listInspections',
+      data,
+    }),
+
+  // 上传文件
+  uploadFile: (data: { base64: string; fileName: string; fileType?: string; documentType?: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'uploadFile',
+      data,
+    }),
+
+  // 获取认证申请列表（平台运营）
+  listApplications: (data: {
+    status?: string
+    currentStage?: string
+    restaurantId?: string
+    tenantId?: string
+    page?: number
+    pageSize?: number
+    startDate?: string
+    endDate?: string
+  }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'listApplications',
       data,
     }),
 }
