@@ -68,7 +68,43 @@ exports.main = async (event, context) => {
 
       case 'createTenant':
         // 创建租户
-        return await createTenant(data)
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await createTenant(data)
+        }
+
+      case 'updateTenant':
+        // 更新租户信息（平台管理员）
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateTenant(data.tenantId, data, gate.user, context)
+        }
+
+      case 'updateTenantStatus':
+        // 更新租户状态（平台管理员）
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateTenantStatus(data.tenantId, data.status, gate.user, context)
+        }
+
+      case 'deleteTenant':
+        // 删除租户（平台管理员）
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await deleteTenant(data.tenantId, gate.user, context)
+        }
+
+      case 'updateTenantConfig':
+        // 更新租户配置（平台管理员）
+        {
+          const gate = await requirePlatformAdmin(event, context)
+          if (!gate.ok) return gate.error
+          return await updateTenantConfig(data.tenantId, data.config, gate.user, context)
+        }
 
       case 'createRestaurant':
         // 创建餐厅
@@ -212,8 +248,9 @@ exports.main = async (event, context) => {
         return await listPermissions()
       }
       case 'getAuditLogs':
+        // 获取操作日志（平台管理员）
         {
-          const gate = await requireSystemAdmin(event, context)
+          const gate = await requirePlatformAdmin(event, context)
           if (!gate.ok) return gate.error
           return await getAuditLogs(data || {})
         }
@@ -799,20 +836,118 @@ async function listPermissions() {
 /**
  * 审计日志列表
  */
+/**
+ * 获取操作日志（平台管理员）
+ */
 async function getAuditLogs(params = {}) {
-  const { page = 1, pageSize = 20, username, action, status, module, tenantId } = params
-  let query = db.collection('audit_logs')
-  if (username) query = query.where({ username })
-  if (action) query = query.where({ action })
-  if (status) query = query.where({ status })
-  if (module) query = query.where({ module })
-  if (tenantId) query = query.where({ tenantId })
-  const result = await query
-    .orderBy('createdAt', 'desc')
-    .skip((page - 1) * pageSize)
-    .limit(pageSize)
-    .get()
-  return { code: 0, data: { list: result.data || [], page, pageSize } }
+  const {
+    page = 1,
+    pageSize = 20,
+    username,
+    action,
+    status,
+    module,
+    tenantId,
+    resource,
+    startDate,
+    endDate,
+    keyword,
+  } = params
+
+  try {
+    const _ = db.command
+    let query = db.collection('audit_logs')
+
+    // 构建查询条件
+    const whereConditions = {}
+
+    if (username) {
+      whereConditions.username = db.RegExp({
+        regexp: username,
+        options: 'i',
+      })
+    }
+    if (action) {
+      whereConditions.action = action
+    }
+    if (status) {
+      whereConditions.status = status
+    }
+    if (module) {
+      whereConditions.module = module
+    }
+    if (tenantId) {
+      whereConditions.tenantId = tenantId
+    }
+    if (resource) {
+      whereConditions.resource = db.RegExp({
+        regexp: resource,
+        options: 'i',
+      })
+    }
+
+    // 时间范围筛选
+    if (startDate || endDate) {
+      whereConditions.createdAt = {}
+      if (startDate) {
+        whereConditions.createdAt = _.gte(new Date(startDate))
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate)
+        endDateTime.setHours(23, 59, 59, 999)
+        whereConditions.createdAt = whereConditions.createdAt
+          ? _.and(whereConditions.createdAt, _.lte(endDateTime))
+          : _.lte(endDateTime)
+      }
+    }
+
+    // 关键词搜索（搜索描述）
+    if (keyword) {
+      whereConditions.description = db.RegExp({
+        regexp: keyword,
+        options: 'i',
+      })
+    }
+
+    // 应用查询条件
+    if (Object.keys(whereConditions).length > 0) {
+      query = query.where(whereConditions)
+    }
+
+    // 获取总数
+    const countResult = await query.count()
+    const total = countResult.total || 0
+
+    // 获取列表数据
+    const result = await query
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get()
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        list: result.data || [],
+        total,
+        page,
+        pageSize,
+      },
+    }
+  } catch (error) {
+    console.error('获取操作日志失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取操作日志失败',
+      data: {
+        list: [],
+        total: 0,
+        page,
+        pageSize,
+      },
+    }
+  }
 }
 
 /**
@@ -1260,6 +1395,292 @@ async function createTenant(data) {
       _id: result._id,
       ...tenantData,
     },
+  }
+}
+
+/**
+ * 更新租户信息（平台管理员）
+ */
+async function updateTenant(tenantId, data, user, context) {
+  if (!tenantId) {
+    return {
+      code: 400,
+      message: 'tenantId不能为空',
+    }
+  }
+
+  try {
+    // 检查租户是否存在
+    const tenantDoc = await db.collection('tenants').doc(tenantId).get()
+    if (!tenantDoc.data) {
+      return {
+        code: 404,
+        message: '租户不存在',
+      }
+    }
+
+    // 构建更新数据
+    const updateData = {
+      updatedAt: db.serverDate(),
+    }
+
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.contactName !== undefined) updateData.contactName = data.contactName
+    if (data.contactPhone !== undefined) updateData.contactPhone = data.contactPhone
+    if (data.contactEmail !== undefined) updateData.contactEmail = data.contactEmail
+
+    // 更新租户
+    await db.collection('tenants').doc(tenantId).update({
+      data: updateData,
+    })
+
+    // 记录审计日志
+    const { addAudit } = require('./audit')
+    await addAudit({
+      action: 'updateTenant',
+      userId: user._id,
+      userName: user.name || user.username,
+      targetType: 'tenant',
+      targetId: tenantId,
+      targetName: data.name || tenantDoc.data.name,
+      details: updateData,
+      context,
+    })
+
+    return {
+      code: 0,
+      message: '更新成功',
+      data: {
+        tenantId,
+        ...updateData,
+      },
+    }
+  } catch (error) {
+    console.error('更新租户失败:', error)
+    return {
+      code: -1,
+      message: error.message || '更新租户失败',
+    }
+  }
+}
+
+/**
+ * 更新租户状态（平台管理员）
+ */
+async function updateTenantStatus(tenantId, status, user, context) {
+  if (!tenantId) {
+    return {
+      code: 400,
+      message: 'tenantId不能为空',
+    }
+  }
+
+  if (!['active', 'suspended', 'inactive'].includes(status)) {
+    return {
+      code: 400,
+      message: '状态值无效，必须是 active、suspended 或 inactive',
+    }
+  }
+
+  try {
+    // 检查租户是否存在
+    const tenantDoc = await db.collection('tenants').doc(tenantId).get()
+    if (!tenantDoc.data) {
+      return {
+        code: 404,
+        message: '租户不存在',
+      }
+    }
+
+    // 更新租户状态
+    await db.collection('tenants').doc(tenantId).update({
+      data: {
+        status,
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    // 记录审计日志
+    const { addAudit } = require('./audit')
+    await addAudit({
+      action: 'updateTenantStatus',
+      userId: user._id,
+      userName: user.name || user.username,
+      targetType: 'tenant',
+      targetId: tenantId,
+      targetName: tenantDoc.data.name,
+      details: { status, oldStatus: tenantDoc.data.status },
+      context,
+    })
+
+    return {
+      code: 0,
+      message: '状态更新成功',
+      data: {
+        tenantId,
+        status,
+      },
+    }
+  } catch (error) {
+    console.error('更新租户状态失败:', error)
+    return {
+      code: -1,
+      message: error.message || '更新租户状态失败',
+    }
+  }
+}
+
+/**
+ * 删除租户（平台管理员）
+ */
+async function deleteTenant(tenantId, user, context) {
+  if (!tenantId) {
+    return {
+      code: 400,
+      message: 'tenantId不能为空',
+    }
+  }
+
+  try {
+    // 检查租户是否存在
+    const tenantDoc = await db.collection('tenants').doc(tenantId).get()
+    if (!tenantDoc.data) {
+      return {
+        code: 404,
+        message: '租户不存在',
+      }
+    }
+
+    // 检查是否有关联数据
+    const restaurantsResult = await db
+      .collection('restaurants')
+      .where({ tenantId })
+      .count()
+
+    const restaurantCount = restaurantsResult.total || 0
+
+    if (restaurantCount > 0) {
+      return {
+        code: 400,
+        message: `无法删除租户，该租户下还有 ${restaurantCount} 个餐厅，请先处理关联数据`,
+      }
+    }
+
+    // 检查是否有订单数据
+    const ordersResult = await db
+      .collection('orders')
+      .where({ tenantId })
+      .count()
+
+    const orderCount = ordersResult.total || 0
+
+    if (orderCount > 0) {
+      return {
+        code: 400,
+        message: `无法删除租户，该租户下还有 ${orderCount} 个订单，请先处理关联数据`,
+      }
+    }
+
+    // 执行删除（软删除：标记为已删除）
+    await db.collection('tenants').doc(tenantId).update({
+      data: {
+        status: 'deleted',
+        deletedAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    // 记录审计日志
+    const { addAudit } = require('./audit')
+    await addAudit({
+      action: 'deleteTenant',
+      userId: user._id,
+      userName: user.name || user.username,
+      targetType: 'tenant',
+      targetId: tenantId,
+      targetName: tenantDoc.data.name,
+      details: { softDelete: true },
+      context,
+    })
+
+    return {
+      code: 0,
+      message: '租户已删除',
+      data: {
+        tenantId,
+      },
+    }
+  } catch (error) {
+    console.error('删除租户失败:', error)
+    return {
+      code: -1,
+      message: error.message || '删除租户失败',
+    }
+  }
+}
+
+/**
+ * 更新租户配置（平台管理员）
+ */
+async function updateTenantConfig(tenantId, config, user, context) {
+  if (!tenantId) {
+    return {
+      code: 400,
+      message: 'tenantId不能为空',
+    }
+  }
+
+  try {
+    // 检查租户是否存在
+    const tenantDoc = await db.collection('tenants').doc(tenantId).get()
+    if (!tenantDoc.data) {
+      return {
+        code: 404,
+        message: '租户不存在',
+      }
+    }
+
+    // 构建配置数据
+    const configData = {
+      ...config,
+      updatedAt: db.serverDate(),
+    }
+
+    // 更新租户配置
+    await db.collection('tenants').doc(tenantId).update({
+      data: {
+        config: configData,
+        updatedAt: db.serverDate(),
+      },
+    })
+
+    // 记录审计日志
+    const { addAudit } = require('./audit')
+    await addAudit({
+      action: 'updateTenantConfig',
+      userId: user._id,
+      userName: user.name || user.username,
+      targetType: 'tenant',
+      targetId: tenantId,
+      targetName: tenantDoc.data.name,
+      details: { config: configData },
+      context,
+    })
+
+    return {
+      code: 0,
+      message: '配置更新成功',
+      data: {
+        tenantId,
+        config: configData,
+      },
+    }
+  } catch (error) {
+    console.error('更新租户配置失败:', error)
+    return {
+      code: -1,
+      message: error.message || '更新租户配置失败',
+    }
   }
 }
 
@@ -2667,6 +3088,7 @@ async function listAllRestaurants(params, user) {
     keyword = '',
     status = '',
     certificationLevel = '',
+    tenantId = '',
     page = 1,
     pageSize = 10,
   } = params
@@ -2683,6 +3105,11 @@ async function listAllRestaurants(params, user) {
       whereConditions.status = status
     }
 
+    // 租户筛选
+    if (tenantId) {
+      whereConditions.tenantId = tenantId
+    }
+
     // 认证等级筛选
     if (certificationLevel) {
       whereConditions.certificationLevel = certificationLevel
@@ -2691,14 +3118,14 @@ async function listAllRestaurants(params, user) {
     // 关键词搜索（餐厅名称、负责人）
     if (keyword) {
       // 使用正则表达式进行模糊搜索
-      query = query.where({
-        ...whereConditions,
-        name: db.RegExp({
-          regexp: keyword,
-          options: 'i', // 不区分大小写
-        }),
+      whereConditions.name = db.RegExp({
+        regexp: keyword,
+        options: 'i', // 不区分大小写
       })
-    } else if (Object.keys(whereConditions).length > 0) {
+    }
+
+    // 应用所有筛选条件
+    if (Object.keys(whereConditions).length > 0) {
       query = query.where(whereConditions)
     } else {
       // 如果没有筛选条件，查询所有餐厅

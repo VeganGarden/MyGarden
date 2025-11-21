@@ -91,7 +91,7 @@ const CrossTenant: React.FC = () => {
     fetchTenantOptions()
     // 延迟调用fetchData，确保组件已完全挂载
     const timer = setTimeout(() => {
-      fetchData()
+    fetchData()
     }, 100)
     return () => clearTimeout(timer)
   }, [])
@@ -280,7 +280,7 @@ const CrossTenant: React.FC = () => {
       },
       tooltip: {
         trigger: 'axis',
-      },
+        },
       legend: {
         data: [
           t('pages.platform.crossTenant.dataTypes.order'),

@@ -575,6 +575,60 @@ export const tenantAPI = {
       data: {},
     }),
 
+  // 创建租户（平台管理员）
+  create: (data: {
+    name: string
+    contactName?: string
+    contactPhone?: string
+    contactEmail?: string
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'createTenant',
+      data,
+    }),
+
+  // 更新租户信息（平台管理员）
+  update: (tenantId: string, data: {
+    name?: string
+    contactName?: string
+    contactPhone?: string
+    contactEmail?: string
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'updateTenant',
+      data: {
+        tenantId,
+        ...data,
+      },
+    }),
+
+  // 更新租户状态（平台管理员）
+  updateStatus: (tenantId: string, status: 'active' | 'suspended' | 'inactive') =>
+    callCloudFunction('tenant', {
+      action: 'updateTenantStatus',
+      data: {
+        tenantId,
+        status,
+      },
+    }),
+
+  // 删除租户（平台管理员）
+  delete: (tenantId: string) =>
+    callCloudFunction('tenant', {
+      action: 'deleteTenant',
+      data: { tenantId },
+    }),
+
+  // 更新租户配置（平台管理员）
+  updateConfig: (tenantId: string, config: any) =>
+    callCloudFunction('tenant', {
+      action: 'updateTenantConfig',
+      data: {
+        tenantId,
+        config,
+      },
+    }),
+
   // 获取餐厅列表
   getRestaurants: (params?: { tenantId?: string; restaurantId?: string }) =>
     callCloudFunction('tenant', {
@@ -701,6 +755,7 @@ export const platformAPI = {
       keyword?: string
       status?: string
       certificationLevel?: string
+      tenantId?: string
       page?: number
       pageSize?: number
     }) =>
@@ -1035,7 +1090,20 @@ export const systemAPI = {
     }),
 
   // 审计日志
-  getAuditLogs: (params?: { username?: string; action?: string; status?: string; page?: number; pageSize?: number }) =>
+  getAuditLogs: (params?: {
+    username?: string
+    action?: string
+    status?: string
+    module?: string
+    tenantId?: string
+    resource?: string
+    startDate?: string
+    endDate?: string
+    timeRange?: [string, string]
+    keyword?: string
+    page?: number
+    pageSize?: number
+  }) =>
     callCloudFunction('tenant', {
       action: 'getAuditLogs',
       data: params || {},
