@@ -1426,7 +1426,7 @@ const Dashboard: React.FC = () => {
             <Col xs={24} sm={24} md={12} lg={8} xl={8}>
               <Card
                 hoverable
-                onClick={() => navigate('/orders')}
+                onClick={() => navigate('/operation/order')}
                 style={{ cursor: 'pointer', height: '100%' }}
                 bodyStyle={{ padding: '16px' }}
               >
@@ -1445,7 +1445,7 @@ const Dashboard: React.FC = () => {
             <Col xs={24} sm={24} md={12} lg={8} xl={8}>
               <Card
                 hoverable
-                onClick={() => navigate('/reports')}
+                onClick={() => navigate('/report/dashboard')}
                 style={{ cursor: 'pointer', height: '100%' }}
                 bodyStyle={{ padding: '16px' }}
               >
@@ -1484,7 +1484,7 @@ const Dashboard: React.FC = () => {
             <Col xs={24} sm={24} md={12} lg={12} xl={12}>
               <Card
                 hoverable
-                onClick={() => navigate('/certification')}
+                onClick={() => navigate('/certification/status')}
                 style={{ cursor: 'pointer', height: '100%' }}
                 bodyStyle={{ padding: '16px' }}
               >
@@ -1503,7 +1503,7 @@ const Dashboard: React.FC = () => {
             <Col xs={24} sm={24} md={12} lg={12} xl={12}>
               <Card
                 hoverable
-                onClick={() => navigate('/carbon')}
+                onClick={() => navigate('/carbon/menu')}
                 style={{ cursor: 'pointer', height: '100%' }}
                 bodyStyle={{ padding: '16px' }}
               >
@@ -1523,7 +1523,7 @@ const Dashboard: React.FC = () => {
             <Col xs={24} sm={24} md={24} lg={24} xl={24}>
               <Card
                 hoverable
-                onClick={() => navigate('/traceability')}
+                onClick={() => navigate('/traceability/suppliers')}
                 style={{ cursor: 'pointer', height: '100%' }}
                 bodyStyle={{ padding: '16px' }}
               >
