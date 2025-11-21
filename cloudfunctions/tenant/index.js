@@ -3209,60 +3209,34 @@ async function getDashboard(data, currentUser) {
       // 统计每个菜谱的数据
       const recipeStats = {}
       
-      ordersRes.data.forEach((order, orderIndex) => {
+      ordersRes.data.forEach((order) => {
         const items = order.items || []
         const orderTotal = order.pricing?.total || 0
         const carbonReduction = order.carbonImpact?.carbonSavingsVsMeat || 0
         
-        if (orderIndex === 0) {
-          console.log('[热门菜谱] 第一个订单示例:', {
-            itemsCount: items.length,
-            items: items.slice(0, 2), // 只打印前2个item
-            orderTotal,
-            carbonReduction
-          })
-        }
-        
         items.forEach(item => {
-          // 订单项可能使用不同的字段名：
-          // 1. recipeId / recipe_id / id (菜谱ID)
-          // 2. menuItemId (菜单项ID，需要通过菜单项查找菜谱)
-          // 3. menuItemName (菜单项名称，可以直接使用)
-          let recipeId = item.recipeId || item.recipe_id || item.id
-          let recipeName = item.name || item.recipeName || item.recipe_name || item.menuItemName || '未知菜谱'
+          // 优先使用 recipeId，如果不存在，则尝试 menuItemId，最后尝试 menuItemName
+          let currentRecipeId = item.recipeId || item.recipe_id || item.id || item.menuItemId || item.menuItemName
+          let currentRecipeName = item.name || item.recipeName || item.recipe_name || item.menuItemName || '未知菜谱'
+          
           const quantity = item.quantity || 1
-          const itemPrice = item.unitPrice || item.price || (orderTotal / items.length) // 优先使用unitPrice
-          const itemCarbonReduction = (item.carbonFootprint || 0) * quantity || (carbonReduction / items.length) * quantity // 优先使用item的carbonFootprint
+          const itemPrice = item.unitPrice || item.price || (orderTotal / items.length)
+          const itemCarbonReduction = item.carbonFootprint || (carbonReduction / items.length)
           
-          // 如果没有recipeId，尝试使用menuItemId作为标识
-          if (!recipeId && item.menuItemId) {
-            recipeId = item.menuItemId
-            console.log('[热门菜谱] 使用menuItemId作为标识:', item.menuItemId, item.menuItemName)
-          }
-          
-          // 如果使用menuItemName，也使用它作为标识
-          if (!recipeId && item.menuItemName) {
-            recipeId = item.menuItemName
-            recipeName = item.menuItemName
-            console.log('[热门菜谱] 使用menuItemName作为标识:', item.menuItemName)
-          }
-          
-          if (recipeId) {
-            if (!recipeStats[recipeId]) {
-              recipeStats[recipeId] = {
-                recipeId,
-                recipeName,
+          if (currentRecipeId) {
+            if (!recipeStats[currentRecipeId]) {
+              recipeStats[currentRecipeId] = {
+                recipeId: currentRecipeId,
+                recipeName: currentRecipeName,
                 orders: 0,
                 revenue: 0,
                 carbonReduction: 0,
               }
             }
             
-            recipeStats[recipeId].orders += quantity
-            recipeStats[recipeId].revenue += itemPrice * quantity
-            recipeStats[recipeId].carbonReduction += itemCarbonReduction
-          } else {
-            console.warn('[热门菜谱] 订单项缺少标识字段:', item)
+            recipeStats[currentRecipeId].orders += quantity
+            recipeStats[currentRecipeId].revenue += itemPrice * quantity
+            recipeStats[currentRecipeId].carbonReduction += itemCarbonReduction * quantity
           }
         })
       })
@@ -3271,7 +3245,7 @@ async function getDashboard(data, currentUser) {
       topRecipes = Object.values(recipeStats)
         .sort((a, b) => b.orders - a.orders)
         .slice(0, 10)
-        .map((recipe, index) => ({
+        .map((recipe) => ({
           recipeId: recipe.recipeId,
           recipeName: recipe.recipeName,
           orders: recipe.orders,
