@@ -5,6 +5,7 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command // 腾讯云开发数据库命令对象
 const { checkPermission } = require('./permission')
 
 async function requireSystemAdmin(event, context) {
