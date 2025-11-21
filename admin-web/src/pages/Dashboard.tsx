@@ -699,12 +699,25 @@ const Dashboard: React.FC = () => {
 
   // 使用ref来防止重复调用
   const isFetchingRef = useRef(false)
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   useEffect(() => {
-    const fetchData = async () => {
-      // 防止重复调用
+    // 清除之前的定时器
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+    }
+    
+    // 防止重复调用
+    if (isFetchingRef.current) {
+      console.log('[Dashboard] 正在获取数据，跳过重复调用')
+      return
+    }
+    
+    // 使用防抖，延迟100ms执行，避免依赖项快速变化时多次触发
+    fetchTimeoutRef.current = setTimeout(async () => {
+      // 再次检查，防止在延迟期间又有新的调用
       if (isFetchingRef.current) {
-        console.log('[Dashboard] 正在获取数据，跳过重复调用')
+        console.log('[Dashboard] 延迟期间检测到重复调用，跳过')
         return
       }
       
@@ -724,8 +737,14 @@ const Dashboard: React.FC = () => {
       } finally {
         isFetchingRef.current = false
       }
+    }, 100)
+    
+    // 清理函数
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+      }
     }
-    fetchData()
   }, [currentRestaurantId, currentTenant, user?.role, dateRange, period])
 
   // 自动刷新功能
@@ -1021,8 +1040,11 @@ const Dashboard: React.FC = () => {
             <Button 
               icon={<ReloadOutlined />} 
               onClick={() => {
-                // 手动刷新时，重置fetching状态
-                isFetchingRef.current = false
+                // 手动刷新时，如果正在获取数据，直接返回
+                if (isFetchingRef.current) {
+                  console.log('[手动刷新] 正在获取数据，跳过重复调用')
+                  return
+                }
                 fetchRestaurantData()
               }} 
               loading={loading}
