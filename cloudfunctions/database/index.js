@@ -13,6 +13,7 @@ const { main: migrateMeatProductsAddFields } = require('./migrate-meat-products-
 const { main: migrateIngredientsAddCarbonCoefficient } = require('./migrate-ingredients-add-carbon-coefficient');
 const { main: migrateIngredientsForceAddCarbonCoefficient } = require('./migrate-ingredients-force-add-carbon-coefficient');
 const { main: migrateIngredientsResetAllCarbonCoefficient } = require('./migrate-ingredients-reset-all-carbon-coefficient');
+const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-stats');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -102,6 +103,8 @@ exports.main = async (event) => {
         return await migrateIngredientsForceAddCarbonCoefficient(event);
       case 'migrate-ingredients-reset-all-carbon-coefficient':
         return await migrateIngredientsResetAllCarbonCoefficient(event);
+      case 'migrate-restaurants-add-stats':
+        return await migrateRestaurantsAddStats(event);
       default:
         return await initCollectionsV1(event);
     }

@@ -21,6 +21,8 @@
     "view": "查看",
     "import": "导入",
     "export": "导出",
+    "exportSuccess": "导出成功",
+    "exportFailed": "导出失败",
     "refresh": "刷新",
     "archive": "归档",
     "activate": "激活",
@@ -2300,11 +2302,33 @@
         "table": {
           "columns": {
             "tenantId": "租户ID",
+            "tenantName": "租户名称",
             "restaurantName": "餐厅名称",
+            "restaurantCount": "餐厅数量",
             "dataType": "数据类型",
             "count": "数量",
             "amount": "金额",
-            "date": "日期"
+            "date": "日期",
+            "orders": "订单数",
+            "revenue": "总收入",
+            "carbonReduction": "碳减排(kg)",
+            "users": "用户数"
+          }
+        },
+        "charts": {
+          "trend": {
+            "title": "趋势分析",
+            "orders": "订单数",
+            "revenue": "收入(元)"
+          },
+          "compare": {
+            "title": "租户对比",
+            "orders": "订单数",
+            "revenue": "收入(元)"
+          },
+          "distribution": {
+            "title": "数据分布",
+            "orders": "订单分布"
           }
         },
         "summary": {
@@ -2318,7 +2342,7 @@
         },
         "messages": {
           "loadFailed": "获取数据失败",
-          "exportInProgress": "导出功能开发中"
+          "exportInProgress": "正在导出数据..."
         }
       },
       "statistics": {
@@ -2366,9 +2390,35 @@
           "platinum": "白金",
           "notCertified": "未认证"
         },
+        "charts": {
+          "trend": {
+            "title": "趋势分析",
+            "orders": "订单数",
+            "revenue": "收入(元)"
+          },
+          "compare": {
+            "title": "餐厅对比",
+            "orders": "订单数",
+            "revenue": "收入(元)"
+          },
+          "distribution": {
+            "title": "数据分布",
+            "orders": "订单分布"
+          }
+        },
+        "sortBy": {
+          "orders": "按订单数",
+          "revenue": "按收入",
+          "carbonReduction": "按碳减排"
+        },
+        "dataTypes": {
+          "order": "订单",
+          "revenue": "收入",
+          "carbon": "碳减排"
+        },
         "messages": {
           "loadFailed": "获取统计数据失败",
-          "exportInProgress": "导出报表功能开发中"
+          "exportInProgress": "正在导出报表..."
         }
       }
     },
