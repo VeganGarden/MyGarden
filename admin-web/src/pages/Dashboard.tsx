@@ -2442,18 +2442,19 @@ const Dashboard: React.FC = () => {
           t('pages.dashboard.restaurantAdmin.charts.orders'),
           t('pages.dashboard.restaurantAdmin.charts.revenue'),
         ],
-        bottom: 0, // 图例放在底部
-        itemGap: 20, // 增加图例项之间的间距
+        bottom: 10, // 图例放在底部，距离底部10px
+        itemGap: 30, // 增加图例项之间的间距
         textStyle: {
           fontSize: 12, // 减小字体，避免重叠
         },
+        padding: [5, 0, 5, 0], // 图例内边距
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%', // 为图例和X轴标签留出空间
-        top: '15%', // 为标题和工具箱留出空间
-        containLabel: true, // 包含坐标轴标签
+        left: '8%', // 为Y轴名称留出更多空间
+        right: '8%', // 为右侧Y轴名称留出更多空间
+        bottom: '20%', // 为图例和X轴标签留出更多空间
+        top: '18%', // 为标题和工具箱留出空间
+        containLabel: false, // 不包含坐标轴标签，手动控制间距
       },
       xAxis: {
         type: 'category',
@@ -2467,7 +2468,7 @@ const Dashboard: React.FC = () => {
             // 如果日期标签太长，可以进一步优化
             return value
           },
-          margin: 12, // 增加标签与轴线的距离，避免与图例重叠
+          margin: 20, // 增加标签与轴线的距离，避免与图例重叠
         },
         axisTick: {
           alignWithLabel: true, // 刻度线与标签对齐
@@ -2599,18 +2600,19 @@ const Dashboard: React.FC = () => {
         data: [
           t('pages.dashboard.restaurantAdmin.charts.carbonReduction'),
         ],
-        bottom: 0, // 图例放在底部
-        itemGap: 20, // 增加图例项之间的间距
+        bottom: 10, // 图例放在底部，距离底部10px
+        itemGap: 30, // 增加图例项之间的间距
         textStyle: {
           fontSize: 12, // 减小字体，避免重叠
         },
+        padding: [5, 0, 5, 0], // 图例内边距
       },
       grid: {
-        left: '3%',
+        left: '8%', // 为Y轴名称留出更多空间
         right: '4%',
-        bottom: '15%', // 为图例和X轴标签留出空间
-        top: '15%', // 为标题和工具箱留出空间
-        containLabel: true, // 包含坐标轴标签
+        bottom: '20%', // 为图例和X轴标签留出更多空间
+        top: '18%', // 为标题和工具箱留出空间
+        containLabel: false, // 不包含坐标轴标签，手动控制间距
       },
       xAxis: {
         type: 'category',
@@ -2624,7 +2626,7 @@ const Dashboard: React.FC = () => {
             // 如果日期标签太长，可以进一步优化
             return value
           },
-          margin: 12, // 增加标签与轴线的距离，避免与图例重叠
+          margin: 20, // 增加标签与轴线的距离，避免与图例重叠
         },
         axisTick: {
           alignWithLabel: true, // 刻度线与标签对齐
@@ -2635,7 +2637,10 @@ const Dashboard: React.FC = () => {
         type: 'value',
         name: t('pages.dashboard.restaurantAdmin.charts.carbonReduction'),
         nameLocation: 'middle', // Y轴名称位置
-        nameGap: 50, // Y轴名称与轴线的距离
+        nameGap: 60, // 增加Y轴名称与轴线的距离
+        nameTextStyle: {
+          padding: [0, 0, 0, 0], // Y轴名称内边距
+        },
       },
       series: [
         {
