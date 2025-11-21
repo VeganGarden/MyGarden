@@ -1,40 +1,40 @@
+import { baselineManageAPI } from '@/services/baseline'
+import { adminUsersAPI, onboardingAPI, platformAPI, reportAPI, systemAPI, tenantAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import { selectUser } from '@/store/slices/authSlice'
 import { UserRole } from '@/types/role'
-import { reportAPI, platformAPI, onboardingAPI, systemAPI, adminUsersAPI, tenantAPI } from '@/services/cloudbase'
-import { baselineManageAPI } from '@/services/baseline'
+import { getBrandChartTheme } from '@/utils/chart-theme'
 import {
+  ApiOutlined,
+  BarChartOutlined,
+  BellOutlined,
   BookOutlined,
+  CheckCircleOutlined,
+  CheckCircleTwoTone,
+  DatabaseOutlined,
+  EnvironmentOutlined,
+  ExportOutlined,
+  EyeOutlined,
+  FileAddOutlined,
+  FileTextOutlined,
   FireOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+  ShopOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
   TrophyOutlined,
-  ShopOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
-  DatabaseOutlined,
-  ApiOutlined,
-  UserOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  BarChartOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  BellOutlined,
-  EnvironmentOutlined,
-  FileAddOutlined,
   UploadOutlined,
-  ExportOutlined,
-  CheckCircleTwoTone,
+  UserOutlined,
+  WarningOutlined,
 } from '@ant-design/icons'
-import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge, Select, DatePicker, Tooltip, Empty, Skeleton } from 'antd'
+import { Alert, Badge, Button, Card, Col, DatePicker, Empty, Row, Select, Skeleton, Space, Statistic, Table, Tag, Tooltip, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import React, { useEffect, useState, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import * as echarts from 'echarts'
-import { getBrandChartTheme } from '@/utils/chart-theme'
+import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 
 // 餐厅管理员看板数据
@@ -271,17 +271,24 @@ const Dashboard: React.FC = () => {
   }
 
   // 获取餐厅管理员数据
+  // 注意：此函数会根据用户选择的日期范围（dateRange）从云端数据库查询数据
+  // startDate 和 endDate 会传递给后端API，后端会根据这些日期筛选订单、统计等数据
   const fetchRestaurantData = async () => {
     try {
       setLoading(true)
+      // 从日期选择器获取日期范围，如果没有选择则使用默认值（近30天）
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
       
+      console.log('[餐厅数据] 查询日期范围:', startDate, '到', endDate)
+      
+      // 调用后端API，传入日期范围参数
+      // 后端会根据这些日期范围从数据库查询对应时间段的订单、统计等数据
       const result = await reportAPI.dashboard({
         restaurantId: currentRestaurantId,
         tenantId: currentTenant?.id,
-        startDate,
-        endDate,
+        startDate,  // 起始日期，用于筛选数据库中的订单创建时间
+        endDate,    // 终止日期，用于筛选数据库中的订单创建时间
         includeTrends: true,
       })
       
@@ -345,21 +352,28 @@ const Dashboard: React.FC = () => {
   // 2. 当查看所有餐厅时（currentRestaurantId 为空）：统计当前租户下所有餐厅的菜谱 Top 10
   // 统计维度：按订单数量（orders）排序，取前10名
   // 返回数据包含：菜谱ID、名称、订单数、收入、碳减排量
+  // 注意：此函数会根据用户选择的日期范围（dateRange）从云端数据库查询订单数据
+  // 后端会根据startDate和endDate筛选对应时间段的订单，然后统计每个菜谱的订单数
   const fetchTopRecipes = async () => {
     try {
+      // 从日期选择器获取日期范围，如果没有选择则使用默认值（近30天）
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
+      
+      console.log('[热门菜谱] 查询日期范围:', startDate, '到', endDate)
       
       // 调用reportAPI获取热门菜谱数据
       // 参数说明：
       // - restaurantId: 如果为null，则统计当前租户下所有餐厅的菜谱；如果指定，则只统计该餐厅的菜谱
       // - tenantId: 当前租户ID，用于数据隔离
+      // - startDate: 起始日期，后端会筛选此日期之后的订单
+      // - endDate: 终止日期，后端会筛选此日期之前的订单
       // - includeTopRecipes: 标识需要返回热门菜谱数据
       const params = {
         restaurantId: currentRestaurantId,
         tenantId: currentTenant?.id,
-        startDate,
-        endDate,
+        startDate,  // 传递给后端，用于筛选订单的创建时间
+        endDate,    // 传递给后端，用于筛选订单的创建时间
         includeTopRecipes: true,
       }
       
@@ -917,7 +931,26 @@ const Dashboard: React.FC = () => {
           <Space>
             <Select
               value={period}
-              onChange={setPeriod}
+              onChange={(value) => {
+                setPeriod(value)
+                // 根据选择的时间段自动更新日期范围
+                const today = dayjs()
+                let startDate: dayjs.Dayjs
+                switch (value) {
+                  case '7days':
+                    startDate = today.subtract(7, 'day')
+                    break
+                  case '30days':
+                    startDate = today.subtract(30, 'day')
+                    break
+                  case '90days':
+                    startDate = today.subtract(90, 'day')
+                    break
+                  default:
+                    startDate = today.subtract(30, 'day')
+                }
+                setDateRange([startDate, today])
+              }}
               style={{ width: 120 }}
             >
               <Select.Option value="7days">{t('pages.dashboard.periods.last7Days')}</Select.Option>
@@ -930,6 +963,8 @@ const Dashboard: React.FC = () => {
                 // 直接设置日期范围，不进行任何自动调整
                 // 允许用户选择任意日期范围，包括终止日期早于起始日期的情况
                 setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)
+                // 当用户手动选择日期时，将period设置为空或自定义状态
+                // 这里可以设置为'custom'，但需要先添加这个选项
               }}
               format="YYYY-MM-DD"
               allowClear
@@ -1463,7 +1498,26 @@ const Dashboard: React.FC = () => {
           <Space>
             <Select
               value={period}
-              onChange={setPeriod}
+              onChange={(value) => {
+                setPeriod(value)
+                // 根据选择的时间段自动更新日期范围
+                const today = dayjs()
+                let startDate: dayjs.Dayjs
+                switch (value) {
+                  case '7days':
+                    startDate = today.subtract(7, 'day')
+                    break
+                  case '30days':
+                    startDate = today.subtract(30, 'day')
+                    break
+                  case '90days':
+                    startDate = today.subtract(90, 'day')
+                    break
+                  default:
+                    startDate = today.subtract(30, 'day')
+                }
+                setDateRange([startDate, today])
+              }}
               style={{ width: 120 }}
             >
               <Select.Option value="7days">{t('pages.dashboard.periods.last7Days')}</Select.Option>
@@ -1476,6 +1530,8 @@ const Dashboard: React.FC = () => {
                 // 直接设置日期范围，不进行任何自动调整
                 // 允许用户选择任意日期范围，包括终止日期早于起始日期的情况
                 setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)
+                // 当用户手动选择日期时，将period设置为空或自定义状态
+                // 这里可以设置为'custom'，但需要先添加这个选项
               }}
               format="YYYY-MM-DD"
               allowClear
@@ -2501,7 +2557,26 @@ const Dashboard: React.FC = () => {
           <Space>
             <Select
               value={period}
-              onChange={setPeriod}
+              onChange={(value) => {
+                setPeriod(value)
+                // 根据选择的时间段自动更新日期范围
+                const today = dayjs()
+                let startDate: dayjs.Dayjs
+                switch (value) {
+                  case '7days':
+                    startDate = today.subtract(7, 'day')
+                    break
+                  case '30days':
+                    startDate = today.subtract(30, 'day')
+                    break
+                  case '90days':
+                    startDate = today.subtract(90, 'day')
+                    break
+                  default:
+                    startDate = today.subtract(30, 'day')
+                }
+                setDateRange([startDate, today])
+              }}
               style={{ width: 120 }}
             >
               <Select.Option value="7days">{t('pages.dashboard.periods.last7Days')}</Select.Option>
@@ -2514,6 +2589,8 @@ const Dashboard: React.FC = () => {
                 // 直接设置日期范围，不进行任何自动调整
                 // 允许用户选择任意日期范围，包括终止日期早于起始日期的情况
                 setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)
+                // 当用户手动选择日期时，将period设置为空或自定义状态
+                // 这里可以设置为'custom'，但需要先添加这个选项
               }}
               format="YYYY-MM-DD"
               allowClear
