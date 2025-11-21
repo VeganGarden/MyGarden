@@ -3130,11 +3130,28 @@ async function getDashboard(data, currentUser) {
         }
         
         items.forEach(item => {
-          const recipeId = item.recipeId || item.recipe_id || item.id
-          const recipeName = item.name || item.recipeName || item.recipe_name || '未知菜谱'
+          // 订单项可能使用不同的字段名：
+          // 1. recipeId / recipe_id / id (菜谱ID)
+          // 2. menuItemId (菜单项ID，需要通过菜单项查找菜谱)
+          // 3. menuItemName (菜单项名称，可以直接使用)
+          let recipeId = item.recipeId || item.recipe_id || item.id
+          let recipeName = item.name || item.recipeName || item.recipe_name || item.menuItemName || '未知菜谱'
           const quantity = item.quantity || 1
-          const itemPrice = item.price || (orderTotal / items.length) // 如果没有单价，平均分配
-          const itemCarbonReduction = carbonReduction / items.length // 平均分配碳减排量
+          const itemPrice = item.unitPrice || item.price || (orderTotal / items.length) // 优先使用unitPrice
+          const itemCarbonReduction = (item.carbonFootprint || 0) * quantity || (carbonReduction / items.length) * quantity // 优先使用item的carbonFootprint
+          
+          // 如果没有recipeId，尝试使用menuItemId作为标识
+          if (!recipeId && item.menuItemId) {
+            recipeId = item.menuItemId
+            console.log('[热门菜谱] 使用menuItemId作为标识:', item.menuItemId, item.menuItemName)
+          }
+          
+          // 如果使用menuItemName，也使用它作为标识
+          if (!recipeId && item.menuItemName) {
+            recipeId = item.menuItemName
+            recipeName = item.menuItemName
+            console.log('[热门菜谱] 使用menuItemName作为标识:', item.menuItemName)
+          }
           
           if (recipeId) {
             if (!recipeStats[recipeId]) {
@@ -3149,9 +3166,9 @@ async function getDashboard(data, currentUser) {
             
             recipeStats[recipeId].orders += quantity
             recipeStats[recipeId].revenue += itemPrice * quantity
-            recipeStats[recipeId].carbonReduction += itemCarbonReduction * quantity
+            recipeStats[recipeId].carbonReduction += itemCarbonReduction
           } else {
-            console.warn('[热门菜谱] 订单项缺少recipeId:', item)
+            console.warn('[热门菜谱] 订单项缺少标识字段:', item)
           }
         })
       })
