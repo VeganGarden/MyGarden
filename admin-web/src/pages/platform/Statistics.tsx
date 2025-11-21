@@ -97,13 +97,6 @@ const Statistics: React.FC = () => {
   const fetchStatistics = async () => {
     setLoading(true)
     try {
-      console.log('开始获取平台统计数据...', {
-        period,
-        startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-        endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-        sortBy,
-      })
-
       const [statisticsResult, topRestaurantsResult] = await Promise.all([
         platformAPI.statistics.getPlatformStatistics({
           startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
@@ -119,12 +112,8 @@ const Statistics: React.FC = () => {
         }),
       ])
       
-      console.log('获取平台统计数据结果:', statisticsResult)
-      console.log('获取餐厅排行榜结果:', topRestaurantsResult)
-      
       if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
         const stats = statisticsResult.data
-        console.log('设置统计数据:', stats)
         setStatistics({
           totalRestaurants: stats.totalRestaurants || stats.total_restaurants || 0,
           activeRestaurants: stats.activeRestaurants || stats.active_restaurants || 0,
@@ -137,7 +126,6 @@ const Statistics: React.FC = () => {
           trends: stats.trends || undefined,
         })
       } else {
-        console.error('获取统计数据失败:', statisticsResult)
         if (statisticsResult) {
           message.error(statisticsResult.message || '获取统计数据失败')
         } else {
@@ -169,11 +157,9 @@ const Statistics: React.FC = () => {
           certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
         })))
       } else {
-        console.error('获取餐厅排行榜失败:', topRestaurantsResult)
         setTopRestaurants([])
       }
     } catch (error: any) {
-      console.error('获取统计数据失败:', error)
       message.error(error.message || t('pages.platform.statistics.messages.loadFailed'))
       // 即使失败也设置默认值
       setStatistics({
@@ -302,7 +288,6 @@ const Statistics: React.FC = () => {
       message.success(t('common.exportSuccess'))
     } catch (error: any) {
       message.destroy()
-      console.error('导出失败:', error)
       message.error(error.message || t('common.exportFailed'))
     } finally {
       setLoading(false)

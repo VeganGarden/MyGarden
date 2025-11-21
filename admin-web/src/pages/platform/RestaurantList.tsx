@@ -81,20 +81,16 @@ const RestaurantList: React.FC = () => {
   const fetchTenantOptions = async () => {
     try {
       const result = await tenantAPI.getAllTenants()
-      console.log('获取租户列表结果:', result)
       if (result && result.code === 0 && result.data) {
         const options = result.data.map((tenant: any) => ({
           label: tenant.name || tenant._id,
           value: tenant._id,
         }))
-        console.log('租户选项:', options)
         setTenantOptions(options)
       } else {
-        console.warn('获取租户列表失败或为空:', result)
         setTenantOptions([])
       }
     } catch (error) {
-      console.error('获取租户列表失败:', error)
       setTenantOptions([])
     }
   }
@@ -110,9 +106,7 @@ const RestaurantList: React.FC = () => {
         page: pagination.current,
         pageSize: pagination.pageSize,
       }
-      console.log('查询餐厅列表参数:', queryParams)
       const result = await platformAPI.restaurant.list(queryParams)
-      console.log('查询餐厅列表结果:', result)
 
       if (result && result.code === 0 && result.data) {
         let { list, total } = result.data
@@ -137,7 +131,6 @@ const RestaurantList: React.FC = () => {
         message.error(result?.message || t('pages.platform.restaurantList.messages.loadFailed'))
       }
     } catch (error: any) {
-      console.error('获取餐厅列表失败:', error)
       message.error(error.message || t('pages.platform.restaurantList.messages.loadFailed'))
       setDataSource([])
     } finally {
@@ -287,7 +280,6 @@ const RestaurantList: React.FC = () => {
             message.error(result?.message || t('common.operationFailed'))
           }
         } catch (error: any) {
-          console.error('暂停餐厅失败:', error)
           message.error(error.message || t('common.operationFailed'))
         }
       },
@@ -308,7 +300,6 @@ const RestaurantList: React.FC = () => {
             message.error(result?.message || t('common.operationFailed'))
           }
         } catch (error: any) {
-          console.error('激活餐厅失败:', error)
           message.error(error.message || t('common.operationFailed'))
         }
       },
@@ -345,7 +336,6 @@ const RestaurantList: React.FC = () => {
             fetchRestaurants()
           }
         } catch (error: any) {
-          console.error('批量激活失败:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -378,7 +368,6 @@ const RestaurantList: React.FC = () => {
             fetchRestaurants()
           }
         } catch (error: any) {
-          console.error('批量暂停失败:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -435,7 +424,6 @@ const RestaurantList: React.FC = () => {
 
       message.success(t('common.exportSuccess'))
     } catch (error: any) {
-      console.error('导出失败:', error)
       message.error(error.message || t('common.exportFailed'))
     }
   }
@@ -475,7 +463,6 @@ const RestaurantList: React.FC = () => {
           }
         }
       } catch (error: any) {
-        console.error('提交失败:', error)
         message.error(error.message || t('common.operationFailed'))
       }
     })

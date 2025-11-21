@@ -90,7 +90,6 @@ const OperationLog: React.FC = () => {
         )
       }
     } catch (error) {
-      console.error('获取租户选项失败:', error)
       setTenantOptions([])
     }
   }
@@ -110,10 +109,7 @@ const OperationLog: React.FC = () => {
         pageSize: pagination.pageSize,
       }
 
-      console.log('查询操作日志参数:', params)
-
       const result = await systemAPI.getAuditLogs(params)
-      console.log('查询操作日志结果:', result)
 
       if (result && result.code === 0 && result.data) {
         setDataSource(result.data.list || [])
@@ -126,7 +122,6 @@ const OperationLog: React.FC = () => {
         message.error(result?.message || t('pages.platform.operationLog.messages.loadFailed'))
       }
     } catch (error: any) {
-      console.error('获取操作日志失败:', error)
       message.error(error.message || t('pages.platform.operationLog.messages.loadFailed'))
       setDataSource([])
     } finally {
@@ -350,7 +345,6 @@ const OperationLog: React.FC = () => {
       }
     } catch (error: any) {
       message.destroy()
-      console.error('导出失败:', error)
       message.error(error.message || t('common.exportFailed'))
     } finally {
       setLoading(false)

@@ -192,7 +192,6 @@ const AccountApprovals: React.FC = () => {
 
       message.success(t('common.exportSuccess'))
     } catch (error: any) {
-      console.error('导出失败:', error)
       message.error(error.message || t('common.exportFailed'))
     }
   }
