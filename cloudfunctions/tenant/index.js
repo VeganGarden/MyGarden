@@ -3070,6 +3070,8 @@ async function getDashboard(data, currentUser) {
   let topRecipes = []
   if (includeTopRecipes) {
     try {
+      console.log('[热门菜谱] 开始统计，参数:', { restaurantId, tenantId, startDate, endDate })
+      
       // 构建订单查询条件（用于统计菜谱订单数）
       const recipeOrderQuery = { ...orderQuery }
       
@@ -3078,6 +3080,8 @@ async function getDashboard(data, currentUser) {
         const start = new Date(startDate)
         const end = new Date(endDate)
         end.setHours(23, 59, 59, 999) // 包含结束日期的整天
+        
+        console.log('[热门菜谱] 时间范围:', start, '到', end)
         
         if (recipeOrderQuery.createdAt) {
           // 如果已有时间条件，需要合并
@@ -3089,6 +3093,8 @@ async function getDashboard(data, currentUser) {
           recipeOrderQuery.createdAt = _.gte(start).and(_.lte(end))
         }
       }
+      
+      console.log('[热门菜谱] 订单查询条件:', JSON.stringify(recipeOrderQuery))
       
       // 查询订单数据，统计每个菜谱的订单数、收入、碳减排量
       const ordersQueryObj = Object.keys(recipeOrderQuery).length > 0
@@ -3103,13 +3109,24 @@ async function getDashboard(data, currentUser) {
         })
         .get()
       
+      console.log('[热门菜谱] 查询到订单数量:', ordersRes.data.length)
+      
       // 统计每个菜谱的数据
       const recipeStats = {}
       
-      ordersRes.data.forEach(order => {
+      ordersRes.data.forEach((order, orderIndex) => {
         const items = order.items || []
         const orderTotal = order.pricing?.total || 0
         const carbonReduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+        
+        if (orderIndex === 0) {
+          console.log('[热门菜谱] 第一个订单示例:', {
+            itemsCount: items.length,
+            items: items.slice(0, 2), // 只打印前2个item
+            orderTotal,
+            carbonReduction
+          })
+        }
         
         items.forEach(item => {
           const recipeId = item.recipeId || item.recipe_id || item.id
@@ -3132,9 +3149,13 @@ async function getDashboard(data, currentUser) {
             recipeStats[recipeId].orders += quantity
             recipeStats[recipeId].revenue += itemPrice * quantity
             recipeStats[recipeId].carbonReduction += itemCarbonReduction * quantity
+          } else {
+            console.warn('[热门菜谱] 订单项缺少recipeId:', item)
           }
         })
       })
+      
+      console.log('[热门菜谱] 统计到的菜谱数量:', Object.keys(recipeStats).length)
       
       // 转换为数组并按订单数排序，取前10名
       topRecipes = Object.values(recipeStats)
@@ -3149,8 +3170,12 @@ async function getDashboard(data, currentUser) {
         }))
       
       console.log('[热门菜谱] 统计结果:', topRecipes.length, '条数据')
+      if (topRecipes.length > 0) {
+        console.log('[热门菜谱] Top 3:', topRecipes.slice(0, 3))
+      }
     } catch (error) {
-      console.error('获取热门菜谱排行榜失败:', error)
+      console.error('[热门菜谱] 获取热门菜谱排行榜失败:', error)
+      console.error('[热门菜谱] 错误堆栈:', error.stack)
       topRecipes = []
     }
   }
