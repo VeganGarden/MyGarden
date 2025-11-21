@@ -274,7 +274,14 @@ const Dashboard: React.FC = () => {
   // 注意：此函数会根据用户选择的日期范围（dateRange）从云端数据库查询数据
   // startDate 和 endDate 会传递给后端API，后端会根据这些日期筛选订单、统计等数据
   const fetchRestaurantData = async () => {
+    // 防止重复调用
+    if (isFetchingRef.current) {
+      console.log('[fetchRestaurantData] 正在获取数据，跳过重复调用')
+      return
+    }
+    
     try {
+      isFetchingRef.current = true
       setLoading(true)
       // 从日期选择器获取日期范围，如果没有选择则使用默认值（近30天）
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
@@ -353,6 +360,7 @@ const Dashboard: React.FC = () => {
       message.error(error.message || t('common.loadFailed'))
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
   }
 
@@ -2372,12 +2380,27 @@ const Dashboard: React.FC = () => {
           t('pages.dashboard.restaurantAdmin.charts.revenue'),
         ],
         bottom: 0,
+        itemGap: 20, // 增加图例项之间的间距
+        textStyle: {
+          fontSize: 12, // 减小字体，避免重叠
+        },
       },
       xAxis: {
         type: 'category',
         data: ordersData.length > 0 
           ? ordersData.map((item) => dayjs(item.date).format('MM-DD'))
           : [],
+        axisLabel: {
+          rotate: 45, // 旋转45度，避免重叠
+          interval: ordersData.length > 30 ? 'auto' : 0, // 如果数据点超过30个，自动调整间隔
+          formatter: (value: string) => {
+            // 如果日期标签太长，可以进一步优化
+            return value
+          },
+        },
+        axisTick: {
+          alignWithLabel: true, // 刻度线与标签对齐
+        },
       },
       yAxis: [
         {
@@ -2487,6 +2510,19 @@ const Dashboard: React.FC = () => {
         data: carbonData.length > 0 
           ? carbonData.map((item) => dayjs(item.date).format('MM-DD'))
           : [],
+        axisLabel: {
+          rotate: carbonData.length > 15 ? 45 : 0, // 如果数据点超过15个，旋转45度避免重叠
+          interval: carbonData.length > 30 ? 'auto' : 0, // 如果数据点超过30个，自动调整间隔
+          formatter: (value: string) => {
+            // 如果日期标签太长，可以进一步优化
+            return value
+          },
+          margin: 8, // 增加标签与轴线的距离
+        },
+        axisTick: {
+          alignWithLabel: true, // 刻度线与标签对齐
+        },
+        boundaryGap: false, // 数据点对齐到刻度线
       },
       yAxis: {
         type: 'value',
@@ -2498,6 +2534,8 @@ const Dashboard: React.FC = () => {
           type: 'line',
           data: carbonData.map((item) => item.amount),
           smooth: true,
+          symbol: 'circle', // 数据点样式
+          symbolSize: 6, // 数据点大小
           areaStyle: {
             color: {
               type: 'linear',
@@ -2517,6 +2555,11 @@ const Dashboard: React.FC = () => {
           lineStyle: {
             color: '#22c55e',
             width: 2,
+          },
+          label: {
+            show: false, // 默认不显示标签，避免重叠
+            position: 'top',
+            fontSize: 10,
           },
         },
       ],
