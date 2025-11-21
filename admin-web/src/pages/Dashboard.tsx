@@ -45,6 +45,20 @@ interface RestaurantDashboardData {
   activeUsers: number
   todayOrders: number
   todayRevenue: number
+  yesterdayOrders?: number
+  yesterdayRevenue?: number
+}
+
+// 待办事项数据
+interface TodoItem {
+  id: string
+  type: 'certification' | 'recipe' | 'order' | 'notification'
+  title: string
+  description?: string
+  count?: number
+  time?: string
+  status?: string
+  link?: string
 }
 
 // 平台运营看板数据
@@ -137,7 +151,12 @@ const Dashboard: React.FC = () => {
     activeUsers: 0,
     todayOrders: 0,
     todayRevenue: 0,
+    yesterdayOrders: 0,
+    yesterdayRevenue: 0,
   })
+
+  // 待办事项数据
+  const [todoItems, setTodoItems] = useState<TodoItem[]>([])
 
   // 平台运营数据
   const [platformData, setPlatformData] = useState<PlatformOperatorDashboardData>({
@@ -213,6 +232,8 @@ const Dashboard: React.FC = () => {
   const systemResourceChartRef = useRef<HTMLDivElement>(null)
   const carbonTrendChartRef = useRef<HTMLDivElement>(null)
   const carbonLabelChartRef = useRef<HTMLDivElement>(null)
+  const restaurantTrendChartRef = useRef<HTMLDivElement>(null)
+  const restaurantCarbonChartRef = useRef<HTMLDivElement>(null)
 
   const [loading, setLoading] = useState(true)
 
@@ -223,9 +244,16 @@ const Dashboard: React.FC = () => {
   // 获取餐厅管理员数据
   const fetchRestaurantData = async () => {
     try {
+      setLoading(true)
+      const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
+      const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
+      
       const result = await reportAPI.dashboard({
         restaurantId: currentRestaurantId,
         tenantId: currentTenant?.id,
+        startDate,
+        endDate,
+        includeTrends: true,
       })
       
       if (result && result.code === 0 && result.data) {
@@ -236,10 +264,41 @@ const Dashboard: React.FC = () => {
           activeUsers: result.data.activeUsers || 0,
           todayOrders: result.data.todayOrders || 0,
           todayRevenue: result.data.todayRevenue || 0,
+          yesterdayOrders: result.data.yesterdayOrders || 0,
+          yesterdayRevenue: result.data.yesterdayRevenue || 0,
         })
+        
+        // 保存趋势数据
+        if (result.data.trends) {
+          setTrendsData(prev => ({
+            ...prev,
+            orders: result.data.trends.orders,
+            revenue: result.data.trends.revenue,
+            carbonReduction: result.data.trends.carbonReduction,
+          }))
+        }
       }
+      
+      // 获取待办事项
+      await fetchTodoItems()
     } catch (error: any) {
       message.error(error.message || t('common.loadFailed'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 获取待办事项数据
+  const fetchTodoItems = async () => {
+    try {
+      const todos: TodoItem[] = []
+      
+      // TODO: 实际调用API获取待办事项
+      // 这里暂时使用空数组，后续根据实际API接口实现
+      
+      setTodoItems(todos)
+    } catch (error: any) {
+      // 静默处理错误
     }
   }
 
@@ -490,7 +549,6 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true)
       try {
         if (isRestaurantAdmin) {
           await fetchRestaurantData()
@@ -501,8 +559,8 @@ const Dashboard: React.FC = () => {
         } else if (isCarbonSpecialist) {
           await fetchCarbonData()
         }
-      } finally {
-        setLoading(false)
+      } catch (error) {
+        // 错误已在各自函数中处理
       }
     }
     fetchData()
@@ -665,21 +723,51 @@ const Dashboard: React.FC = () => {
   }
 
   // 餐厅管理员看板
-  const renderRestaurantAdminDashboard = () => (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>{t('pages.dashboard.title')}</h1>
-        {currentRestaurant && (
-          <Tag color="blue" style={{ fontSize: 14, padding: '4px 12px' }}>
-            {t('pages.dashboard.tags.currentView', { name: currentRestaurant.name })}
-          </Tag>
-        )}
-        {!currentRestaurantId && currentTenant && (
-          <Tag color="green" style={{ fontSize: 14, padding: '4px 12px' }}>
-            {t('pages.dashboard.tags.viewAll', { count: restaurants.length })}
-          </Tag>
-        )}
-      </div>
+  const renderRestaurantAdminDashboard = () => {
+    // 计算趋势百分比
+    const ordersTrend = restaurantData.yesterdayOrders 
+      ? ((restaurantData.todayOrders - restaurantData.yesterdayOrders) / restaurantData.yesterdayOrders * 100).toFixed(1)
+      : '0'
+    const revenueTrend = restaurantData.yesterdayRevenue 
+      ? ((restaurantData.todayRevenue - restaurantData.yesterdayRevenue) / restaurantData.yesterdayRevenue * 100).toFixed(1)
+      : '0'
+
+    return (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <h1 style={{ margin: 0 }}>{t('pages.dashboard.title')}</h1>
+            {currentRestaurant && (
+              <Tag color="blue" style={{ fontSize: 14, padding: '4px 12px' }}>
+                {t('pages.dashboard.tags.currentView', { name: currentRestaurant.name })}
+              </Tag>
+            )}
+            {!currentRestaurantId && currentTenant && (
+              <Tag color="green" style={{ fontSize: 14, padding: '4px 12px' }}>
+                {t('pages.dashboard.tags.viewAll', { count: restaurants.length })}
+              </Tag>
+            )}
+          </div>
+          <Space>
+            <Select
+              value={period}
+              onChange={setPeriod}
+              style={{ width: 120 }}
+            >
+              <Select.Option value="7days">{t('pages.dashboard.periods.last7Days')}</Select.Option>
+              <Select.Option value="30days">{t('pages.dashboard.periods.last30Days')}</Select.Option>
+              <Select.Option value="90days">{t('pages.dashboard.periods.last90Days')}</Select.Option>
+            </Select>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              format="YYYY-MM-DD"
+            />
+            <Button icon={<ReloadOutlined />} onClick={() => fetchRestaurantData()} loading={loading}>
+              {t('common.refresh')}
+            </Button>
+          </Space>
+        </div>
 
       <Alert
         message={
@@ -749,45 +837,127 @@ const Dashboard: React.FC = () => {
         </Col>
       </Row>
 
-      <Row gutter={16}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={t('pages.dashboard.statistics.todayOrders')}
-              value={restaurantData.todayOrders}
-              prefix={<ShoppingCartOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
-              loading={loading}
-            />
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.statistics.todayOrders')}
+                value={restaurantData.todayOrders}
+                prefix={<ShoppingCartOutlined />}
+                valueStyle={{ color: '#fa8c16' }}
+                loading={loading}
+                suffix={
+                  restaurantData.yesterdayOrders !== undefined ? (
+                    <span style={{ fontSize: 12, color: Number(ordersTrend) >= 0 ? '#52c41a' : '#f5222d' }}>
+                      {Number(ordersTrend) >= 0 ? '↑' : '↓'} {Math.abs(Number(ordersTrend))}%
+                    </span>
+                  ) : null
+                }
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.statistics.todayRevenue')}
+                value={restaurantData.todayRevenue}
+                prefix="¥"
+                valueStyle={{ color: '#52c41a' }}
+                loading={loading}
+                suffix={
+                  restaurantData.yesterdayRevenue !== undefined ? (
+                    <span style={{ fontSize: 12, color: Number(revenueTrend) >= 0 ? '#52c41a' : '#f5222d' }}>
+                      {Number(revenueTrend) >= 0 ? '↑' : '↓'} {Math.abs(Number(revenueTrend))}%
+                    </span>
+                  ) : null
+                }
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 趋势图表区域 */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+            <Card title={t('pages.dashboard.restaurantAdmin.charts.orderTrend')}>
+              <div ref={restaurantTrendChartRef} style={{ width: '100%', height: 300 }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+            <Card title={t('pages.dashboard.restaurantAdmin.charts.carbonTrend')}>
+              <div ref={restaurantCarbonChartRef} style={{ width: '100%', height: 300 }} />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 待办事项卡片 */}
+        {todoItems.length > 0 && (
+          <Card title={t('pages.dashboard.restaurantAdmin.todos.title')} style={{ marginBottom: 24 }}>
+            <Row gutter={[16, 16]}>
+              {todoItems.map((item) => (
+                <Col xs={24} sm={12} md={12} lg={6} xl={6} key={item.id}>
+                  <Card
+                    hoverable
+                    onClick={() => item.link && navigate(item.link)}
+                    style={{ cursor: item.link ? 'pointer' : 'default' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+                          {item.title}
+                        </div>
+                        {item.count !== undefined && (
+                          <Badge count={item.count} showZero={false} />
+                        )}
+                      </div>
+                      {item.type === 'certification' && <TrophyOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
+                      {item.type === 'recipe' && <BookOutlined style={{ fontSize: 24, color: '#3f8600' }} />}
+                      {item.type === 'order' && <ShoppingCartOutlined style={{ fontSize: 24, color: '#fa8c16' }} />}
+                      {item.type === 'notification' && <BellOutlined style={{ fontSize: 24, color: '#722ed1' }} />}
+                    </div>
+                    {item.description && (
+                      <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+                        {item.description}
+                      </div>
+                    )}
+                    {item.link && (
+                      <Button type="link" size="small" style={{ padding: 0, marginTop: 8 }}>
+                        {t('pages.dashboard.restaurantAdmin.todos.view')} →
+                      </Button>
+                    )}
+                  </Card>
+                </Col>
+              ))}
+            </Row>
           </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={t('pages.dashboard.statistics.todayRevenue')}
-              value={restaurantData.todayRevenue}
-              prefix="¥"
-              valueStyle={{ color: '#52c41a' }}
-              loading={loading}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card>
-            <h3>{t('pages.dashboard.quickAccess.title')}</h3>
-            <p>{t('pages.dashboard.quickAccess.description')}</p>
-            <ul>
-              <li>{t('pages.dashboard.quickAccess.modules.certification')}</li>
-              <li>{t('pages.dashboard.quickAccess.modules.carbon')}</li>
-              <li>{t('pages.dashboard.quickAccess.modules.traceability')}</li>
-              <li>{t('pages.dashboard.quickAccess.modules.operation')}</li>
-              <li>{t('pages.dashboard.quickAccess.modules.report')}</li>
-            </ul>
-          </Card>
-        </Col>
-      </Row>
-    </>
-  )
+        )}
+
+        {/* 快速操作区域 */}
+        <Card title={t('pages.dashboard.quickAccess.title')}>
+          <Space wrap>
+            <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/orders')}>
+              {t('pages.dashboard.quickAccess.modules.operation')}
+            </Button>
+            <Button icon={<FileTextOutlined />} onClick={() => navigate('/reports')}>
+              {t('pages.dashboard.quickAccess.modules.report')}
+            </Button>
+            <Button icon={<BookOutlined />} onClick={() => navigate('/recipes')}>
+              {t('pages.dashboard.restaurantAdmin.quickActions.manageRecipes')}
+            </Button>
+            <Button icon={<TrophyOutlined />} onClick={() => navigate('/certification')}>
+              {t('pages.dashboard.quickAccess.modules.certification')}
+            </Button>
+            <Button icon={<FireOutlined />} onClick={() => navigate('/carbon')}>
+              {t('pages.dashboard.quickAccess.modules.carbon')}
+            </Button>
+            <Button icon={<EnvironmentOutlined />} onClick={() => navigate('/traceability')}>
+              {t('pages.dashboard.quickAccess.modules.traceability')}
+            </Button>
+          </Space>
+        </Card>
+      </>
+    )
+  }
 
   // 平台运营看板
   const renderPlatformOperatorDashboard = () => {
@@ -1594,10 +1764,161 @@ const Dashboard: React.FC = () => {
     chart.setOption(option)
   }
 
+  // 餐厅管理员图表渲染函数
+  const renderRestaurantTrendChart = () => {
+    if (!restaurantTrendChartRef.current) return
+
+    const existingChart = echarts.getInstanceByDom(restaurantTrendChartRef.current)
+    if (existingChart) {
+      existingChart.dispose()
+    }
+
+    const chart = echarts.init(restaurantTrendChartRef.current)
+    const theme = getBrandChartTheme()
+    
+    const ordersData = trendsData.orders || []
+    const revenueData = trendsData.revenue || []
+    
+    const option = {
+      ...theme,
+      title: {
+        text: t('pages.dashboard.restaurantAdmin.charts.orderTrend'),
+        left: 'center',
+      },
+      tooltip: {
+        trigger: 'axis',
+      },
+      legend: {
+        data: [
+          t('pages.dashboard.restaurantAdmin.charts.orders'),
+          t('pages.dashboard.restaurantAdmin.charts.revenue'),
+        ],
+        bottom: 0,
+      },
+      xAxis: {
+        type: 'category',
+        data: ordersData.length > 0 
+          ? ordersData.map((item) => dayjs(item.date).format('MM-DD'))
+          : [],
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: t('pages.dashboard.restaurantAdmin.charts.orders'),
+          position: 'left',
+        },
+        {
+          type: 'value',
+          name: t('pages.dashboard.restaurantAdmin.charts.revenue'),
+          position: 'right',
+        },
+      ],
+      series: [
+        {
+          name: t('pages.dashboard.restaurantAdmin.charts.orders'),
+          type: 'line',
+          data: ordersData.map((item) => item.count),
+          smooth: true,
+          itemStyle: {
+            color: '#722ed1', // 紫色 - 订单数
+          },
+          lineStyle: {
+            color: '#722ed1',
+            width: 2,
+          },
+        },
+        {
+          name: t('pages.dashboard.restaurantAdmin.charts.revenue'),
+          type: 'line',
+          yAxisIndex: 1,
+          data: revenueData.map((item) => item.amount),
+          smooth: true,
+          itemStyle: {
+            color: '#faad14', // 金色 - 收入
+          },
+          lineStyle: {
+            color: '#faad14',
+            width: 2,
+          },
+        },
+      ],
+    }
+
+    chart.setOption(option)
+  }
+
+  const renderRestaurantCarbonChart = () => {
+    if (!restaurantCarbonChartRef.current) return
+
+    const existingChart = echarts.getInstanceByDom(restaurantCarbonChartRef.current)
+    if (existingChart) {
+      existingChart.dispose()
+    }
+
+    const chart = echarts.init(restaurantCarbonChartRef.current)
+    const theme = getBrandChartTheme()
+    
+    const carbonData = trendsData.carbonReduction || []
+    
+    const option = {
+      ...theme,
+      title: {
+        text: t('pages.dashboard.restaurantAdmin.charts.carbonTrend'),
+        left: 'center',
+      },
+      tooltip: {
+        trigger: 'axis',
+      },
+      xAxis: {
+        type: 'category',
+        data: carbonData.length > 0 
+          ? carbonData.map((item) => dayjs(item.date).format('MM-DD'))
+          : [],
+      },
+      yAxis: {
+        type: 'value',
+        name: t('pages.dashboard.restaurantAdmin.charts.carbonReduction'),
+      },
+      series: [
+        {
+          name: t('pages.dashboard.restaurantAdmin.charts.carbonReduction'),
+          type: 'line',
+          data: carbonData.map((item) => item.amount),
+          smooth: true,
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(34, 197, 94, 0.3)' },
+                { offset: 1, color: 'rgba(34, 197, 94, 0.1)' },
+              ],
+            },
+          },
+          itemStyle: {
+            color: '#22c55e', // 绿色 - 碳减排
+          },
+          lineStyle: {
+            color: '#22c55e',
+            width: 2,
+          },
+        },
+      ],
+    }
+
+    chart.setOption(option)
+  }
+
   // 图表渲染效果
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (isPlatformOperator) {
+      if (isRestaurantAdmin) {
+        renderRestaurantTrendChart()
+        renderRestaurantCarbonChart()
+      } else if (isPlatformOperator) {
         renderPlatformTrendChart()
         renderPlatformGrowthChart()
       } else if (isCarbonSpecialist) {
@@ -1609,7 +1930,7 @@ const Dashboard: React.FC = () => {
     return () => {
       clearTimeout(timer)
     }
-  }, [trendsData, carbonData, isPlatformOperator, isCarbonSpecialist])
+  }, [trendsData, carbonData, isRestaurantAdmin, isPlatformOperator, isCarbonSpecialist])
 
   // 碳核算专员看板
   const renderCarbonSpecialistDashboard = () => {

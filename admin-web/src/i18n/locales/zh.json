@@ -3136,6 +3136,34 @@
           "carbonReduction": "碳减排量（kg CO₂e）"
         }
       },
+      "restaurantAdmin": {
+        "charts": {
+          "orderTrend": "订单趋势图",
+          "carbonTrend": "碳减排趋势图",
+          "orders": "订单数",
+          "revenue": "收入",
+          "carbonReduction": "碳减排量（kg CO₂e）"
+        },
+        "todos": {
+          "title": "待办事项",
+          "certification": {
+            "title": "待处理的认证申请"
+          },
+          "recipe": {
+            "title": "待审核的菜谱"
+          },
+          "order": {
+            "title": "待处理的订单"
+          },
+          "notification": {
+            "title": "系统通知"
+          },
+          "view": "查看"
+        },
+        "quickActions": {
+          "manageRecipes": "管理菜谱"
+        }
+      },
       "periods": {
         "last7Days": "近7天",
         "last30Days": "近30天",
