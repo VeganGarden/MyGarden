@@ -2481,14 +2481,20 @@ const Dashboard: React.FC = () => {
           name: t('pages.dashboard.restaurantAdmin.charts.orders'),
           position: 'left',
           nameLocation: 'middle',
-          nameGap: 50,
+          nameGap: 60, // 增加Y轴名称与轴线的距离
+          nameTextStyle: {
+            padding: [0, 0, 0, 0], // Y轴名称内边距
+          },
         },
         {
           type: 'value',
           name: t('pages.dashboard.restaurantAdmin.charts.revenue'),
           position: 'right',
           nameLocation: 'middle',
-          nameGap: 50,
+          nameGap: 60, // 增加Y轴名称与轴线的距离
+          nameTextStyle: {
+            padding: [0, 0, 0, 0], // Y轴名称内边距
+          },
         },
       ],
       series: [
