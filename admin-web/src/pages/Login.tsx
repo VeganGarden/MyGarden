@@ -8,6 +8,7 @@ import { Button, Card, Form, Input, message } from 'antd'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
@@ -106,8 +107,30 @@ const Login: React.FC = () => {
         alignItems: 'center',
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'relative',
       }}
     >
+      {/* 语言切换按钮 - 右上角 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 24,
+          right: 24,
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.2)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '8px',
+            padding: '4px',
+          }}
+        >
+          <LanguageSwitcher />
+        </div>
+      </div>
+
       <Card
         title={
           <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}>
