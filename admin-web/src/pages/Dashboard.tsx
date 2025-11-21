@@ -2178,6 +2178,41 @@ const Dashboard: React.FC = () => {
       tooltip: {
         trigger: 'axis',
       },
+      toolbox: {
+        show: true,
+        feature: {
+          dataZoom: {
+            yAxisIndex: 'none',
+            title: {
+              zoom: t('pages.dashboard.restaurantAdmin.charts.zoom'),
+              back: t('pages.dashboard.restaurantAdmin.charts.restore'),
+            },
+          },
+          restore: {
+            title: t('pages.dashboard.restaurantAdmin.charts.restore'),
+          },
+          saveAsImage: {
+            title: t('pages.dashboard.restaurantAdmin.charts.saveAsImage'),
+          },
+        },
+        right: 10,
+        top: 10,
+      },
+      dataZoom: [
+        {
+          type: 'slider',
+          show: true,
+          xAxisIndex: [0],
+          start: 0,
+          end: 100,
+        },
+        {
+          type: 'inside',
+          xAxisIndex: [0],
+          start: 0,
+          end: 100,
+        },
+      ],
       xAxis: {
         type: 'category',
         data: carbonData.length > 0 
