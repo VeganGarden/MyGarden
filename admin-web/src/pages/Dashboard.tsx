@@ -1418,15 +1418,7 @@ const Dashboard: React.FC = () => {
         axisPointer: {
           type: 'shadow',
         },
-        formatter: (params: any) => {
-          if (!params || params.length === 0) return ''
-          const param = params[0]
-          let result = `${param.axisValue}<br/>`
-          params.forEach((p: any) => {
-            result += `${p.marker}${p.seriesName}: ${p.value}<br/>`
-          })
-          return result
-        },
+        // 使用默认formatter，避免信息重叠
       },
       legend: {
         data: [
