@@ -2993,6 +2993,34 @@
           "carbonReduction": "Carbon Reduction (kg CO₂e)"
         }
       },
+      "restaurantAdmin": {
+        "charts": {
+          "orderTrend": "Order Trend Chart",
+          "carbonTrend": "Carbon Reduction Trend Chart",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "carbonReduction": "Carbon Reduction (kg CO₂e)"
+        },
+        "todos": {
+          "title": "Todo Items",
+          "certification": {
+            "title": "Pending Certification Applications"
+          },
+          "recipe": {
+            "title": "Pending Recipe Reviews"
+          },
+          "order": {
+            "title": "Pending Orders"
+          },
+          "notification": {
+            "title": "System Notifications"
+          },
+          "view": "View"
+        },
+        "quickActions": {
+          "manageRecipes": "Manage Recipes"
+        }
+      },
       "periods": {
         "last7Days": "Last 7 Days",
         "last30Days": "Last 30 Days",
