@@ -2422,12 +2422,19 @@ const Dashboard: React.FC = () => {
           type: 'line',
           data: ordersData.map((item) => item.count),
           smooth: true,
+          symbol: 'circle', // 数据点样式
+          symbolSize: 6, // 数据点大小
           itemStyle: {
             color: '#722ed1', // 紫色 - 订单数
           },
           lineStyle: {
             color: '#722ed1',
             width: 2,
+          },
+          label: {
+            show: false, // 默认不显示标签，避免重叠
+            position: 'top',
+            fontSize: 10,
           },
         },
         {
@@ -2436,12 +2443,19 @@ const Dashboard: React.FC = () => {
           yAxisIndex: 1,
           data: revenueData.map((item) => item.amount),
           smooth: true,
+          symbol: 'circle', // 数据点样式
+          symbolSize: 6, // 数据点大小
           itemStyle: {
             color: '#faad14', // 金色 - 收入
           },
           lineStyle: {
             color: '#faad14',
             width: 2,
+          },
+          label: {
+            show: false, // 默认不显示标签，避免重叠
+            position: 'top',
+            fontSize: 10,
           },
         },
       ],
