@@ -3142,7 +3142,10 @@
           "carbonTrend": "碳减排趋势图",
           "orders": "订单数",
           "revenue": "收入",
-          "carbonReduction": "碳减排量（kg CO₂e）"
+          "carbonReduction": "碳减排量（kg CO₂e）",
+          "zoom": "区域缩放",
+          "restore": "还原",
+          "saveAsImage": "保存为图片"
         },
         "todos": {
           "title": "待办事项",
@@ -3173,6 +3176,12 @@
           "activeUsers": "最近30天在餐厅下单或互动的用户数",
           "todayOrders": "今日订单总数，包括已完成和进行中的订单。点击查看订单管理。",
           "todayRevenue": "今日总收入，包括已完成订单的收入。点击查看运营台账。"
+        },
+        "empty": {
+          "noOrderData": "暂无订单趋势数据",
+          "noCarbonData": "暂无碳减排趋势数据",
+          "noRecipeData": "暂无热门菜谱数据",
+          "goToRecipes": "前往菜谱管理"
         }
       },
       "periods": {

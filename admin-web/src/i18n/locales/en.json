@@ -2999,7 +2999,10 @@
           "carbonTrend": "Carbon Reduction Trend Chart",
           "orders": "Orders",
           "revenue": "Revenue",
-          "carbonReduction": "Carbon Reduction (kg CO₂e)"
+          "carbonReduction": "Carbon Reduction (kg CO₂e)",
+          "zoom": "Area Zoom",
+          "restore": "Restore",
+          "saveAsImage": "Save as Image"
         },
         "todos": {
           "title": "Todo Items",
@@ -3030,6 +3033,12 @@
           "activeUsers": "Number of users who placed orders or interacted with the restaurant in the last 30 days",
           "todayOrders": "Total number of orders today, including completed and in-progress orders. Click to view order management.",
           "todayRevenue": "Total revenue today, including revenue from completed orders. Click to view operation reports."
+        },
+        "empty": {
+          "noOrderData": "No order trend data available",
+          "noCarbonData": "No carbon reduction trend data available",
+          "noRecipeData": "No top recipe data available",
+          "goToRecipes": "Go to Recipe Management"
         }
       },
       "periods": {

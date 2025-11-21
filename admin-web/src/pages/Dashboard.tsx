@@ -27,7 +27,7 @@ import {
   ExportOutlined,
   CheckCircleTwoTone,
 } from '@ant-design/icons'
-import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge, Select, DatePicker, Tooltip } from 'antd'
+import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge, Select, DatePicker, Tooltip, Empty, Skeleton } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -619,9 +619,11 @@ const Dashboard: React.FC = () => {
 
   // 自动刷新功能
   useEffect(() => {
-    if (isPlatformOperator || isSystemAdmin || isCarbonSpecialist) {
+    if (isRestaurantAdmin || isPlatformOperator || isSystemAdmin || isCarbonSpecialist) {
       const interval = setInterval(() => {
-        if (isPlatformOperator) {
+        if (isRestaurantAdmin) {
+          fetchRestaurantData()
+        } else if (isPlatformOperator) {
           fetchPlatformData()
         } else if (isSystemAdmin) {
           fetchSystemData()
@@ -632,7 +634,7 @@ const Dashboard: React.FC = () => {
 
       return () => clearInterval(interval)
     }
-  }, [isPlatformOperator, isSystemAdmin, isCarbonSpecialist])
+  }, [isRestaurantAdmin, isPlatformOperator, isSystemAdmin, isCarbonSpecialist])
 
   // 导出功能
   const handleExportPlatformData = async () => {
@@ -1036,12 +1038,38 @@ const Dashboard: React.FC = () => {
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card title={t('pages.dashboard.restaurantAdmin.charts.orderTrend')}>
-              <div ref={restaurantTrendChartRef} style={{ width: '100%', height: 300 }} />
+              {loading && (!trendsData.orders || trendsData.orders.length === 0) ? (
+                <Skeleton active paragraph={{ rows: 8 }} />
+              ) : (!trendsData.orders || trendsData.orders.length === 0) ? (
+                <Empty
+                  description={t('pages.dashboard.restaurantAdmin.empty.noOrderData')}
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  <Button type="primary" onClick={() => fetchRestaurantData()}>
+                    {t('common.refresh')}
+                  </Button>
+                </Empty>
+              ) : (
+                <div ref={restaurantTrendChartRef} style={{ width: '100%', height: 300 }} />
+              )}
             </Card>
           </Col>
           <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card title={t('pages.dashboard.restaurantAdmin.charts.carbonTrend')}>
-              <div ref={restaurantCarbonChartRef} style={{ width: '100%', height: 300 }} />
+              {loading && (!trendsData.carbonReduction || trendsData.carbonReduction.length === 0) ? (
+                <Skeleton active paragraph={{ rows: 8 }} />
+              ) : (!trendsData.carbonReduction || trendsData.carbonReduction.length === 0) ? (
+                <Empty
+                  description={t('pages.dashboard.restaurantAdmin.empty.noCarbonData')}
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  <Button type="primary" onClick={() => fetchRestaurantData()}>
+                    {t('common.refresh')}
+                  </Button>
+                </Empty>
+              ) : (
+                <div ref={restaurantCarbonChartRef} style={{ width: '100%', height: 300 }} />
+              )}
             </Card>
           </Col>
         </Row>
@@ -1089,11 +1117,11 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* 热门菜谱排行榜 */}
-        {topRecipes.length > 0 && (
-          <Card 
-            title={t('pages.dashboard.restaurantAdmin.topRecipes')} 
-            style={{ marginBottom: 24 }}
-            extra={
+        <Card 
+          title={t('pages.dashboard.restaurantAdmin.topRecipes')} 
+          style={{ marginBottom: 24 }}
+          extra={
+            topRecipes.length > 0 && (
               <Button 
                 type="link" 
                 size="small" 
@@ -1101,8 +1129,21 @@ const Dashboard: React.FC = () => {
               >
                 {t('pages.dashboard.restaurantAdmin.viewAllRecipes')}
               </Button>
-            }
-          >
+            )
+          }
+        >
+          {loading && topRecipes.length === 0 ? (
+            <Skeleton active paragraph={{ rows: 5 }} />
+          ) : topRecipes.length === 0 ? (
+            <Empty
+              description={t('pages.dashboard.restaurantAdmin.empty.noRecipeData')}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button type="primary" onClick={() => navigate('/recipes')}>
+                {t('pages.dashboard.restaurantAdmin.empty.goToRecipes')}
+              </Button>
+            </Empty>
+          ) : (
             <Table
               columns={[
                 {
@@ -2021,6 +2062,41 @@ const Dashboard: React.FC = () => {
       tooltip: {
         trigger: 'axis',
       },
+      toolbox: {
+        show: true,
+        feature: {
+          dataZoom: {
+            yAxisIndex: 'none',
+            title: {
+              zoom: t('pages.dashboard.restaurantAdmin.charts.zoom'),
+              back: t('pages.dashboard.restaurantAdmin.charts.restore'),
+            },
+          },
+          restore: {
+            title: t('pages.dashboard.restaurantAdmin.charts.restore'),
+          },
+          saveAsImage: {
+            title: t('pages.dashboard.restaurantAdmin.charts.saveAsImage'),
+          },
+        },
+        right: 10,
+        top: 10,
+      },
+      dataZoom: [
+        {
+          type: 'slider',
+          show: true,
+          xAxisIndex: [0],
+          start: 0,
+          end: 100,
+        },
+        {
+          type: 'inside',
+          xAxisIndex: [0],
+          start: 0,
+          end: 100,
+        },
+      ],
       legend: {
         data: [
           t('pages.dashboard.restaurantAdmin.charts.orders'),
