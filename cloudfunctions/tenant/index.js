@@ -3173,33 +3173,25 @@ async function getDashboard(data, currentUser) {
 
   // 7. 获取热门菜谱排行榜（Top 10）
   let topRecipes = []
-  if (includeTopRecipes) {
+  if (includeTopRecipes && startDate && endDate) {
     try {
-      console.log('[热门菜谱] 开始统计，参数:', { restaurantId, tenantId, startDate, endDate })
-      
       // 构建订单查询条件（用于统计菜谱订单数）
       const recipeOrderQuery = { ...orderQuery }
       
       // 如果指定了时间范围，添加时间筛选
-      if (startDate && endDate) {
-        const start = new Date(startDate)
-        const end = new Date(endDate)
-        end.setHours(23, 59, 59, 999) // 包含结束日期的整天
-        
-        console.log('[热门菜谱] 时间范围:', start, '到', end)
-        
-        if (recipeOrderQuery.createdAt) {
-          // 如果已有时间条件，需要合并
-          recipeOrderQuery.createdAt = _.and(
-            recipeOrderQuery.createdAt,
-            _.gte(start).and(_.lte(end))
-          )
-        } else {
-          recipeOrderQuery.createdAt = _.gte(start).and(_.lte(end))
-        }
-      }
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999) // 包含结束日期的整天
       
-      console.log('[热门菜谱] 订单查询条件:', JSON.stringify(recipeOrderQuery))
+      if (recipeOrderQuery.createdAt) {
+        // 如果已有时间条件，需要合并
+        recipeOrderQuery.createdAt = _.and(
+          recipeOrderQuery.createdAt,
+          _.gte(start).and(_.lte(end))
+        )
+      } else {
+        recipeOrderQuery.createdAt = _.gte(start).and(_.lte(end))
+      }
       
       // 查询订单数据，统计每个菜谱的订单数、收入、碳减排量
       const ordersQueryObj = Object.keys(recipeOrderQuery).length > 0
