@@ -254,6 +254,22 @@ const Dashboard: React.FC = () => {
     ? restaurants.find((r: any) => r.id === currentRestaurantId)
     : null
 
+  // 计算当前租户下的认证餐厅数量
+  // 认证餐厅的判断标准：certificationStatus === 'certified' 或 certificationLevel 存在且不为空
+  const calculateCertifiedRestaurants = () => {
+    if (!currentTenant || restaurants.length === 0) return 0
+    return restaurants.filter((r: any) => {
+      // 优先使用 certificationStatus
+      if (r.certificationStatus === 'certified') return true
+      // 其次使用 certificationLevel（bronze, silver, gold, platinum 都算认证）
+      if (r.certificationLevel && 
+          ['bronze', 'silver', 'gold', 'platinum'].includes(r.certificationLevel)) {
+        return true
+      }
+      return false
+    }).length
+  }
+
   // 获取餐厅管理员数据
   const fetchRestaurantData = async () => {
     try {
@@ -270,10 +286,15 @@ const Dashboard: React.FC = () => {
       })
       
       if (result && result.code === 0 && result.data) {
+        // 如果查看所有餐厅，使用计算出的认证餐厅数量；否则使用后端返回的值（通常为0）
+        const certifiedCount = !currentRestaurantId 
+          ? calculateCertifiedRestaurants() 
+          : (result.data.certifiedRestaurants || 0)
+        
         setRestaurantData({
           totalRecipes: result.data.totalRecipes || 0,
           totalCarbonReduction: result.data.totalCarbonReduction || 0,
-          certifiedRestaurants: result.data.certifiedRestaurants || 0,
+          certifiedRestaurants: certifiedCount,
           activeUsers: result.data.activeUsers || 0,
           todayOrders: result.data.todayOrders || 0,
           todayRevenue: result.data.todayRevenue || 0,
@@ -941,24 +962,27 @@ const Dashboard: React.FC = () => {
             </Card>
           </Tooltip>
         </Col>
-        <Col span={6}>
-          <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.certifiedRestaurants')}>
-            <Card
-              hoverable
-              onClick={() => navigate('/certification')}
-              style={{ cursor: 'pointer' }}
-            >
-              <Statistic
-                title={t('pages.dashboard.statistics.certifiedRestaurants')}
-                value={restaurantData.certifiedRestaurants}
-                prefix={<TrophyOutlined />}
-                valueStyle={{ color: '#1890ff' }}
-                loading={loading}
-              />
-            </Card>
-          </Tooltip>
-        </Col>
-        <Col span={6}>
+        {/* 认证餐厅栏：仅在查看所有餐厅时显示，选择具体餐厅时隐藏 */}
+        {!currentRestaurantId && (
+          <Col span={6}>
+            <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.certifiedRestaurants')}>
+              <Card
+                hoverable
+                onClick={() => navigate('/certification')}
+                style={{ cursor: 'pointer' }}
+              >
+                <Statistic
+                  title={t('pages.dashboard.statistics.certifiedRestaurants')}
+                  value={restaurantData.certifiedRestaurants}
+                  prefix={<TrophyOutlined />}
+                  valueStyle={{ color: '#1890ff' }}
+                  loading={loading}
+                />
+              </Card>
+            </Tooltip>
+          </Col>
+        )}
+        <Col span={currentRestaurantId ? 12 : 6}>
           <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.activeUsers')}>
             <Card>
               <Statistic
