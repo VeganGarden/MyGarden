@@ -1461,7 +1461,8 @@ const Dashboard: React.FC = () => {
           itemStyle: {
             color: '#1890ff', // 蓝色 - 租户
           },
-          barWidth: '40%',
+          barWidth: '35%',
+          barGap: '20%',
         },
         {
           name: t('pages.dashboard.platformOperator.charts.newRestaurants'),
@@ -1472,7 +1473,7 @@ const Dashboard: React.FC = () => {
           itemStyle: {
             color: '#fa8c16', // 橙色 - 餐厅
           },
-          barWidth: '40%',
+          barWidth: '35%',
         },
       ],
     }
