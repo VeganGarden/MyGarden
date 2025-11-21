@@ -49,16 +49,13 @@ const Login: React.FC = () => {
       // 如果是餐厅管理员且有租户ID，从云函数加载租户数据
       if (user.tenantId && user.role === 'restaurant_admin') {
         try {
-          // 从云函数获取租户和餐厅信息
+          // 从云函数获取租户信息（getTenant已包含餐厅列表，无需单独调用getRestaurants）
           const { tenantAPI } = await import('@/services/cloudbase')
           const tenantResult = await tenantAPI.getTenant(user.tenantId)
-          const restaurantsResult = await tenantAPI.getRestaurants({ tenantId: user.tenantId })
           
           if (tenantResult.code === 0 && tenantResult.data) {
-            // 使用 restaurantsResult.data 或 tenantResult.data.restaurants
-            const restaurantsList = restaurantsResult.code === 0 
-              ? (restaurantsResult.data || [])
-              : (tenantResult.data.restaurants || [])
+            // getTenant返回的数据已包含restaurants数组
+            const restaurantsList = tenantResult.data.restaurants || []
             
             const tenantData = {
               id: tenantResult.data._id || tenantResult.data.id,
