@@ -59,8 +59,10 @@ import ReportESG from './pages/report/ESG'
 import AccountApprovals from './pages/platform/AccountApprovals'
 import AdminUsers from './pages/platform/AdminUsers'
 import PlatformCrossTenant from './pages/platform/CrossTenant'
+import OperationLog from './pages/platform/OperationLog'
 import PlatformRestaurantList from './pages/platform/RestaurantList'
 import PlatformStatistics from './pages/platform/Statistics'
+import TenantList from './pages/platform/TenantList'
 import RestaurantManage from './pages/restaurant/Manage'
 
 // 个人中心
@@ -166,10 +168,12 @@ const App: React.FC = () => {
           <Route path="restaurant/manage" element={<RestaurantManage />} />
           
           {/* 平台管理模块（仅平台管理员可见） */}
+          <Route path="platform/tenants" element={<TenantList />} />
           <Route path="platform/restaurants" element={<PlatformRestaurantList />} />
           <Route path="platform/cross-tenant" element={<PlatformCrossTenant />} />
           <Route path="platform/statistics" element={<PlatformStatistics />} />
           <Route path="platform/account-approvals" element={<AccountApprovals />} />
+          <Route path="platform/operation-log" element={<OperationLog />} />
           <Route path="platform/admin-users" element={<AdminUsers />} />
           
           {/* 系统管理（仅系统管理员可见 - 由菜单与守卫共同控制） */}

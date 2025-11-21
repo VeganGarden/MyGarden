@@ -1,11 +1,10 @@
-import { ConfigProvider, theme } from 'antd'
+import { App as AntdApp, ConfigProvider, theme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-import enUS from 'antd/locale/en_US'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Provider } from 'react-redux'
 import App from './App'
-import './i18n' // 初始化 i18n
+import './i18n'; // 初始化 i18n
 import './index.css'
 import { store } from './store'
 import { initCloudbase } from './utils/cloudbase-init'
@@ -36,7 +35,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <ConfigProvider locale={zhCN} theme={antdTheme}>
-        <App />
+        <AntdApp>
+          <App />
+        </AntdApp>
       </ConfigProvider>
     </Provider>
   </React.StrictMode>

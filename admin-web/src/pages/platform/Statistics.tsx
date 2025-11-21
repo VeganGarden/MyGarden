@@ -1,11 +1,11 @@
 import { platformAPI } from '@/services/cloudbase'
 import {
-  BarChartOutlined,
-  DownloadOutlined,
-  FireOutlined,
+    BarChartOutlined,
+    DownloadOutlined,
+    FireOutlined,
   ReloadOutlined,
-  ShoppingCartOutlined,
-  TeamOutlined,
+    ShoppingCartOutlined,
+    TeamOutlined,
   TrophyOutlined
 } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Tabs, Tag, message } from 'antd'
@@ -121,7 +121,7 @@ const Statistics: React.FC = () => {
       
       console.log('获取平台统计数据结果:', statisticsResult)
       console.log('获取餐厅排行榜结果:', topRestaurantsResult)
-
+      
       if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
         const stats = statisticsResult.data
         console.log('设置统计数据:', stats)

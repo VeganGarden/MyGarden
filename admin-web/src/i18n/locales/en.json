@@ -169,10 +169,12 @@
     "recipeCreate": "Create Recipe",
     "recipeCategories": "Category Management",
     "platform": "Platform Management",
+    "platformTenants": "Tenant List Management",
     "platformRestaurants": "Restaurant List",
     "platformCrossTenant": "Cross-Tenant Data",
     "platformStatistics": "Platform Statistics",
-    "platformAccountApprovals": "Account Approvals"
+    "platformAccountApprovals": "Account Approvals",
+    "platformOperationLog": "Operation Log"
   },
   "header": {
     "searchPlaceholder": "Search menus, features...",
@@ -2046,18 +2048,174 @@
       }
     },
     "platform": {
+      "tenantList": {
+        "title": "Tenant List Management",
+        "buttons": {
+          "add": "Add Tenant",
+          "suspend": "Suspend",
+          "activate": "Activate",
+          "delete": "Delete",
+          "batchActivate": "Batch Activate ({{count}})",
+          "batchSuspend": "Batch Suspend ({{count}})"
+        },
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive",
+          "suspended": "Suspended"
+        },
+        "filters": {
+          "search": "Search tenant name, contact, phone, etc.",
+          "status": "Status",
+          "startDate": "Start Date",
+          "endDate": "End Date"
+        },
+        "table": {
+          "columns": {
+            "name": "Tenant Name",
+            "contactName": "Contact",
+            "contactPhone": "Phone",
+            "contactEmail": "Email",
+            "status": "Status",
+            "restaurantCount": "Restaurant Count",
+            "totalOrders": "Total Orders",
+            "totalRevenue": "Total Revenue",
+            "totalUsers": "Total Users",
+            "totalCarbonReduction": "Carbon Reduction",
+            "createdAt": "Created At",
+            "actions": "Actions"
+          }
+        },
+        "detail": {
+          "fields": {
+            "name": "Tenant Name",
+            "contactName": "Contact",
+            "contactPhone": "Phone",
+            "contactEmail": "Email",
+            "status": "Status",
+            "createdAt": "Created At"
+          },
+          "statistics": {
+            "title": "Statistics",
+            "restaurantCount": "Restaurant Count",
+            "totalOrders": "Total Orders",
+            "totalRevenue": "Total Revenue",
+            "totalUsers": "Total Users"
+          },
+          "restaurants": {
+            "title": "Associated Restaurants",
+            "columns": {
+              "name": "Restaurant Name",
+              "status": "Status"
+            }
+          },
+          "tabs": {
+            "basic": "Basic Information",
+            "operationLog": "Operation Log",
+            "config": "Configuration Management"
+          }
+        },
+        "config": {
+          "fields": {
+            "enableCarbonTracking": "Enable Carbon Tracking",
+            "enableOrderManagement": "Enable Order Management",
+            "enableMenuManagement": "Enable Menu Management",
+            "maxRestaurants": "Max Restaurants",
+            "maxUsers": "Max Users"
+          },
+          "messages": {
+            "maxRestaurantsRequired": "Please enter max restaurants",
+            "maxUsersRequired": "Please enter max users"
+          }
+        },
+        "form": {
+          "fields": {
+            "name": "Tenant Name",
+            "contactName": "Contact",
+            "contactPhone": "Phone",
+            "contactEmail": "Email"
+          },
+          "placeholders": {
+            "name": "Please enter tenant name",
+            "contactName": "Please enter contact name",
+            "contactPhone": "Please enter contact phone",
+            "contactEmail": "Please enter email address"
+          },
+          "messages": {
+            "nameRequired": "Please enter tenant name",
+            "phoneInvalid": "Please enter a valid phone number",
+            "emailInvalid": "Please enter a valid email address"
+          }
+        },
+        "modal": {
+          "detail": {
+            "title": "Tenant Details"
+          },
+          "add": {
+            "title": "Add Tenant"
+          },
+          "edit": {
+            "title": "Edit Tenant"
+          },
+          "suspend": {
+            "title": "Confirm Suspend",
+            "content": "Are you sure you want to suspend this tenant? The tenant and all its restaurants will not be able to function normally after suspension."
+          },
+          "activate": {
+            "title": "Confirm Activate",
+            "content": "Are you sure you want to activate this tenant?"
+          },
+          "delete": {
+            "title": "Confirm Delete",
+            "content": "Are you sure you want to delete tenant \"{{name}}\"? This operation will mark the tenant as deleted. If the tenant still has restaurants or orders, it cannot be deleted."
+          },
+          "batchActivate": {
+            "title": "Batch Activate",
+            "content": "Are you sure you want to activate the selected {{count}} tenants?"
+          },
+          "batchSuspend": {
+            "title": "Batch Suspend",
+            "content": "Are you sure you want to suspend the selected {{count}} tenants? The tenants and all their restaurants will not be able to function normally after suspension."
+          }
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "suspended": "Suspended",
+          "activated": "Activated",
+          "deleted": "Deleted",
+          "configUpdated": "Configuration updated",
+          "selectTenants": "Please select tenants to operate",
+          "selectedCount": "{{count}} tenants selected",
+          "batchActivated": "Successfully activated {{count}} tenants",
+          "batchSuspended": "Successfully suspended {{count}} tenants",
+          "batchActivatePartial": "Partial success: {{success}}/{{total}} tenants activated",
+          "batchSuspendPartial": "Partial success: {{success}}/{{total}} tenants suspended"
+        },
+        "export": {
+          "fileName": "Tenant List",
+          "sheetName": "Tenant List",
+          "columns": {
+            "no": "No.",
+            "createdAt": "Created At"
+          }
+        }
+      },
       "restaurantList": {
         "title": "Restaurant List Management",
         "buttons": {
           "add": "Add Restaurant",
           "detail": "Detail",
           "suspend": "Suspend",
-          "activate": "Activate"
+          "activate": "Activate",
+          "batchActivate": "Batch Activate ({{count}})",
+          "batchSuspend": "Batch Suspend ({{count}})"
         },
         "filters": {
           "search": "Search restaurant name, owner",
           "status": "Status",
-          "certificationLevel": "Certification Level"
+          "certificationLevel": "Certification Level",
+          "tenant": "Select Tenant",
+          "startDate": "Start Date",
+          "endDate": "End Date"
         },
         "status": {
           "active": "Active",
@@ -2077,11 +2235,14 @@
             "name": "Restaurant Name",
             "owner": "Owner",
             "phone": "Phone",
+            "email": "Email",
+            "address": "Address",
             "status": "Status",
             "certificationLevel": "Certification Level",
             "totalOrders": "Total Orders",
             "totalRevenue": "Total Revenue",
             "carbonReduction": "Carbon Reduction",
+            "tenantId": "Tenant ID",
             "actions": "Actions"
           }
         },
@@ -2102,6 +2263,14 @@
           "activate": {
             "title": "Confirm Activate",
             "content": "Are you sure you want to activate this restaurant?"
+          },
+          "batchActivate": {
+            "title": "Batch Activate",
+            "content": "Are you sure you want to activate the selected {{count}} restaurants?"
+          },
+          "batchSuspend": {
+            "title": "Batch Suspend",
+            "content": "Are you sure you want to suspend the selected {{count}} restaurants? The restaurants will not be able to function normally after suspension."
           }
         },
         "detail": {
@@ -2150,7 +2319,21 @@
         "messages": {
           "loadFailed": "Failed to load",
           "suspended": "Suspended",
-          "activated": "Activated"
+          "activated": "Activated",
+          "selectRestaurants": "Please select restaurants to operate",
+          "selectedCount": "{{count}} restaurants selected",
+          "batchActivated": "Successfully activated {{count}} restaurants",
+          "batchSuspended": "Successfully suspended {{count}} restaurants",
+          "batchActivatePartial": "Partial success: {{success}}/{{total}} restaurants activated",
+          "batchSuspendPartial": "Partial success: {{success}}/{{total}} restaurants suspended"
+        },
+        "export": {
+          "fileName": "Restaurant List",
+          "sheetName": "Restaurant List",
+          "columns": {
+            "no": "No.",
+            "createdAt": "Created At"
+          }
         }
       },
       "adminUsers": {
@@ -2329,6 +2512,125 @@
         "messages": {
           "loadFailed": "Failed to fetch statistics",
           "exportInProgress": "Export report feature in development"
+        }
+      },
+      "operationLog": {
+        "title": "Operation Log",
+        "buttons": {
+          "refresh": "Refresh",
+          "export": "Export"
+        },
+        "filters": {
+          "search": "Search operation description, username, etc.",
+          "action": "Operation Type",
+          "status": "Status",
+          "module": "Module",
+          "tenant": "Tenant",
+          "startDate": "Start Date",
+          "endDate": "End Date"
+        },
+        "table": {
+          "columns": {
+            "time": "Operation Time",
+            "user": "Operator",
+            "role": "Role",
+            "module": "Module",
+            "action": "Operation Type",
+            "resource": "Operation Object",
+            "description": "Operation Description",
+            "status": "Status",
+            "actions": "Actions"
+          }
+        },
+        "actions": {
+          "login": "Login",
+          "logout": "Logout",
+          "create": "Create",
+          "update": "Update",
+          "delete": "Delete",
+          "approve": "Approve",
+          "reject": "Reject",
+          "suspend": "Suspend",
+          "activate": "Activate",
+          "export": "Export",
+          "view": "View",
+          "deploy": "Deploy",
+          "migrate": "Migrate",
+          "calculate": "Calculate",
+          "import": "Import",
+          "reset": "Reset"
+        },
+        "status": {
+          "success": "Success",
+          "failed": "Failed",
+          "pending": "In Progress"
+        },
+        "modules": {
+          "system": "System Management",
+          "platform": "Platform Management",
+          "tenant": "Tenant Management",
+          "restaurant": "Restaurant Management",
+          "onboarding": "Onboarding Application",
+          "user": "User Management",
+          "carbon": "Carbon Footprint",
+          "recipe": "Recipe Management",
+          "order": "Order Management",
+          "traceability": "Traceability Management",
+          "message": "Message Management"
+        },
+        "roles": {
+          "systemAdmin": "System Administrator",
+          "platformOperator": "Platform Operator"
+        },
+        "resources": {
+          "user": "User",
+          "tenant": "Tenant",
+          "restaurant": "Restaurant",
+          "application": "Onboarding Application",
+          "auditLog": "Operation Log",
+          "systemConfig": "System Configuration",
+          "menuItem": "Menu Item",
+          "order": "Order",
+          "coupon": "Coupon",
+          "baseline": "Carbon Baseline",
+          "ingredientLot": "Ingredient Lot",
+          "supplier": "Supplier",
+          "traceChain": "Traceability Chain"
+        },
+        "detail": {
+          "fields": {
+            "time": "Operation Time",
+            "user": "Operator",
+            "role": "Role",
+            "module": "Module",
+            "action": "Operation Type",
+            "resource": "Operation Object",
+            "description": "Operation Description",
+            "status": "Status",
+            "tenantId": "Tenant ID",
+            "ip": "IP Address",
+            "userAgent": "User Agent",
+            "details": "Details"
+          }
+        },
+        "modal": {
+          "detail": {
+            "title": "Operation Log Details"
+          }
+        },
+        "messages": {
+          "loadFailed": "Failed to load",
+          "exportInProgress": "Exporting..."
+        },
+        "export": {
+          "fileName": "Operation Log",
+          "sheetName": "Operation Log",
+          "columns": {
+            "no": "No.",
+            "role": "Role",
+            "tenantId": "Tenant ID",
+            "ip": "IP Address"
+          }
         }
       }
     },

@@ -309,6 +309,10 @@ const MainLayout: React.FC = () => {
             label: t('menu.platform'),
             children: [
               {
+                key: '/platform/tenants',
+                label: t('menu.platformTenants'),
+              },
+              {
                 key: '/platform/restaurants',
                 label: t('menu.platformRestaurants'),
               },
@@ -323,6 +327,10 @@ const MainLayout: React.FC = () => {
               {
                 key: '/platform/account-approvals',
                 label: t('menu.platformAccountApprovals'),
+              },
+              {
+                key: '/platform/operation-log',
+                label: t('menu.platformOperationLog'),
               },
               {
                 // 平台级账户管理改由系统管理员在"系统管理 → 用户管理"中处理

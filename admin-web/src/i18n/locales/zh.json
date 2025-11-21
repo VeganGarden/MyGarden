@@ -172,10 +172,12 @@
     "recipeCreate": "创建菜谱",
     "recipeCategories": "分类管理",
     "platform": "平台管理",
+    "platformTenants": "租户列表管理",
     "platformRestaurants": "餐厅列表管理",
     "platformCrossTenant": "跨租户数据查看",
     "platformStatistics": "平台级统计报表",
-    "platformAccountApprovals": "入驻申请审批"
+    "platformAccountApprovals": "入驻申请审批",
+    "platformOperationLog": "操作日志"
   },
   "header": {
     "searchPlaceholder": "搜索菜单、功能...",
@@ -2088,18 +2090,187 @@
       }
     },
     "platform": {
+      "tenantList": {
+        "title": "租户列表管理",
+        "buttons": {
+          "add": "添加租户",
+          "suspend": "暂停",
+          "activate": "激活",
+          "delete": "删除",
+          "batchActivate": "批量激活（{{count}}）",
+          "batchSuspend": "批量暂停（{{count}}）"
+        },
+        "status": {
+          "active": "正常",
+          "inactive": "停用",
+          "suspended": "已暂停"
+        },
+        "filters": {
+          "search": "搜索租户名称、联系人、电话等",
+          "status": "状态",
+          "startDate": "开始日期",
+          "endDate": "结束日期"
+        },
+        "table": {
+          "columns": {
+            "name": "租户名称",
+            "contactName": "联系人",
+            "contactPhone": "电话",
+            "contactEmail": "邮箱",
+            "status": "状态",
+            "restaurantCount": "餐厅数",
+            "totalOrders": "订单数",
+            "totalRevenue": "总收入",
+            "totalUsers": "用户数",
+            "totalCarbonReduction": "碳减排",
+            "createdAt": "创建时间",
+            "actions": "操作"
+          }
+        },
+        "detail": {
+          "fields": {
+            "name": "租户名称",
+            "contactName": "联系人",
+            "contactPhone": "电话",
+            "contactEmail": "邮箱",
+            "status": "状态",
+            "createdAt": "创建时间"
+          },
+          "statistics": {
+            "title": "统计数据",
+            "restaurantCount": "餐厅数",
+            "totalOrders": "订单数",
+            "totalRevenue": "总收入",
+            "totalUsers": "用户数"
+          },
+          "restaurants": {
+            "title": "关联餐厅",
+            "columns": {
+              "name": "餐厅名称",
+              "status": "状态"
+            }
+          },
+          "tabs": {
+            "basic": "基本信息",
+            "operationLog": "操作日志",
+            "config": "配置管理"
+          }
+        },
+        "config": {
+          "fields": {
+            "enableCarbonTracking": "启用碳足迹追踪",
+            "enableOrderManagement": "启用订单管理",
+            "enableMenuManagement": "启用菜单管理",
+            "maxRestaurants": "最大餐厅数",
+            "maxUsers": "最大用户数"
+          },
+          "messages": {
+            "maxRestaurantsRequired": "请输入最大餐厅数",
+            "maxUsersRequired": "请输入最大用户数"
+          }
+        },
+        "form": {
+          "fields": {
+            "name": "租户名称",
+            "contactName": "联系人",
+            "contactPhone": "电话",
+            "contactEmail": "邮箱"
+          },
+          "placeholders": {
+            "name": "请输入租户名称",
+            "contactName": "请输入联系人姓名",
+            "contactPhone": "请输入联系电话",
+            "contactEmail": "请输入邮箱地址"
+          },
+          "messages": {
+            "nameRequired": "请输入租户名称",
+            "phoneInvalid": "请输入正确的手机号码",
+            "emailInvalid": "请输入正确的邮箱地址"
+          }
+        },
+          "config": {
+            "fields": {
+              "enableCarbonTracking": "启用碳足迹追踪",
+              "enableOrderManagement": "启用订单管理",
+              "enableMenuManagement": "启用菜单管理",
+              "maxRestaurants": "最大餐厅数",
+              "maxUsers": "最大用户数"
+            },
+            "messages": {
+              "maxRestaurantsRequired": "请输入最大餐厅数",
+              "maxUsersRequired": "请输入最大用户数"
+            }
+          },
+          "modal": {
+            "detail": {
+              "title": "租户详情"
+            },
+            "add": {
+              "title": "添加租户"
+            },
+            "edit": {
+              "title": "编辑租户"
+            },
+            "suspend": {
+              "title": "确认暂停",
+              "content": "确定要暂停该租户吗？暂停后租户及其下所有餐厅将无法正常使用。"
+            },
+            "activate": {
+              "title": "确认激活",
+              "content": "确定要激活该租户吗？"
+            },
+            "delete": {
+              "title": "确认删除",
+              "content": "确定要删除租户\"{{name}}\"吗？此操作将标记租户为已删除状态。如果租户下还有餐厅或订单，将无法删除。"
+            },
+            "batchActivate": {
+              "title": "批量激活",
+              "content": "确定要激活选中的 {{count}} 个租户吗？"
+            },
+            "batchSuspend": {
+              "title": "批量暂停",
+              "content": "确定要暂停选中的 {{count}} 个租户吗？暂停后租户及其下所有餐厅将无法正常使用。"
+            }
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "suspended": "已暂停",
+          "activated": "已激活",
+          "deleted": "已删除",
+          "configUpdated": "配置已更新",
+          "selectTenants": "请先选择要操作的租户",
+          "selectedCount": "已选择 {{count}} 个租户",
+          "batchActivated": "已成功激活 {{count}} 个租户",
+          "batchSuspended": "已成功暂停 {{count}} 个租户",
+          "batchActivatePartial": "部分成功：{{success}}/{{total}} 个租户已激活",
+          "batchSuspendPartial": "部分成功：{{success}}/{{total}} 个租户已暂停"
+        },
+        "export": {
+          "fileName": "租户列表",
+          "sheetName": "租户列表",
+          "columns": {
+            "no": "序号",
+            "createdAt": "创建时间"
+          }
+        }
+      },
       "restaurantList": {
         "title": "餐厅列表管理",
         "buttons": {
           "add": "添加餐厅",
           "detail": "详情",
           "suspend": "暂停",
-          "activate": "激活"
+          "activate": "激活",
+          "batchActivate": "批量激活（{{count}}）",
+          "batchSuspend": "批量暂停（{{count}}）"
         },
         "filters": {
           "search": "搜索餐厅名称、负责人",
           "status": "状态",
-          "certificationLevel": "认证等级"
+          "certificationLevel": "认证等级",
+          "tenant": "选择租户",
+          "startDate": "开始日期",
+          "endDate": "结束日期"
         },
         "status": {
           "active": "正常",
@@ -2119,11 +2290,14 @@
             "name": "餐厅名称",
             "owner": "负责人",
             "phone": "电话",
+            "email": "邮箱",
+            "address": "地址",
             "status": "状态",
             "certificationLevel": "认证等级",
             "totalOrders": "订单数",
             "totalRevenue": "总收入",
             "carbonReduction": "碳减排",
+            "tenantId": "租户ID",
             "actions": "操作"
           }
         },
@@ -2144,6 +2318,14 @@
           "activate": {
             "title": "确认激活",
             "content": "确定要激活该餐厅吗？"
+          },
+          "batchActivate": {
+            "title": "批量激活",
+            "content": "确定要激活选中的 {{count}} 个餐厅吗？"
+          },
+          "batchSuspend": {
+            "title": "批量暂停",
+            "content": "确定要暂停选中的 {{count}} 个餐厅吗？暂停后餐厅将无法正常使用。"
           }
         },
         "detail": {
@@ -2192,7 +2374,21 @@
         "messages": {
           "loadFailed": "加载失败",
           "suspended": "已暂停",
-          "activated": "已激活"
+          "activated": "已激活",
+          "selectRestaurants": "请先选择要操作的餐厅",
+          "selectedCount": "已选择 {{count}} 个餐厅",
+          "batchActivated": "已成功激活 {{count}} 个餐厅",
+          "batchSuspended": "已成功暂停 {{count}} 个餐厅",
+          "batchActivatePartial": "部分成功：{{success}}/{{total}} 个餐厅已激活",
+          "batchSuspendPartial": "部分成功：{{success}}/{{total}} 个餐厅已暂停"
+        },
+        "export": {
+          "fileName": "餐厅列表",
+          "sheetName": "餐厅列表",
+          "columns": {
+            "no": "序号",
+            "createdAt": "创建时间"
+          }
         }
       },
       "adminUsers": {
@@ -2254,6 +2450,11 @@
       },
       "accountApprovals": {
         "title": "入驻申请审批",
+        "tabs": {
+          "pending": "待审批",
+          "approved": "已批准",
+          "rejected": "已拒绝"
+        },
         "buttons": {
           "approve": "审批通过并创建账号",
           "reject": "驳回"
@@ -2262,6 +2463,12 @@
           "pending": "待审核",
           "approved": "已通过",
           "rejected": "已驳回"
+        },
+        "filters": {
+          "search": "搜索机构名称、联系人、电话等",
+          "city": "选择城市",
+          "startDate": "开始日期",
+          "endDate": "结束日期"
         },
         "table": {
           "columns": {
@@ -2273,13 +2480,42 @@
             "city": "城市",
             "restaurantCount": "门店数",
             "status": "状态",
+            "createdAt": "申请时间",
             "actions": "操作"
           }
         },
+        "detail": {
+          "fields": {
+            "organizationName": "机构/餐厅",
+            "desiredUsername": "期望账户名",
+            "contactName": "联系人",
+            "contactPhone": "电话",
+            "contactEmail": "邮箱",
+            "city": "城市",
+            "restaurantCount": "门店数",
+            "status": "状态",
+            "createdAt": "申请时间",
+            "approvedAt": "批准时间",
+            "rejectedAt": "拒绝时间",
+            "rejectedReason": "拒绝原因",
+            "note": "备注"
+          }
+        },
         "modal": {
+          "detail": {
+            "title": "申请详情"
+          },
           "reject": {
             "title": "驳回申请",
             "placeholder": "请输入驳回原因（可选）"
+          }
+        },
+        "export": {
+          "fileName": "入驻申请审批",
+          "sheetName": "申请列表",
+          "columns": {
+            "no": "序号",
+            "createdAt": "申请时间"
           }
         },
         "messages": {
@@ -2419,6 +2655,125 @@
         "messages": {
           "loadFailed": "获取统计数据失败",
           "exportInProgress": "正在导出报表..."
+        }
+      },
+      "operationLog": {
+        "title": "操作日志",
+        "buttons": {
+          "refresh": "刷新",
+          "export": "导出"
+        },
+        "filters": {
+          "search": "搜索操作描述、用户名等",
+          "action": "操作类型",
+          "status": "状态",
+          "module": "模块",
+          "tenant": "租户",
+          "startDate": "开始日期",
+          "endDate": "结束日期"
+        },
+        "table": {
+          "columns": {
+            "time": "操作时间",
+            "user": "操作人",
+            "role": "角色",
+            "module": "模块",
+            "action": "操作类型",
+            "resource": "操作对象",
+            "description": "操作描述",
+            "status": "状态",
+            "actions": "操作"
+          }
+        },
+        "actions": {
+          "login": "登录",
+          "logout": "登出",
+          "create": "创建",
+          "update": "更新",
+          "delete": "删除",
+          "approve": "审批通过",
+          "reject": "审批拒绝",
+          "suspend": "暂停",
+          "activate": "激活",
+          "export": "导出",
+          "view": "查看",
+          "deploy": "部署",
+          "migrate": "迁移",
+          "calculate": "计算",
+          "import": "导入",
+          "reset": "重置"
+        },
+        "status": {
+          "success": "成功",
+          "failed": "失败",
+          "pending": "进行中"
+        },
+        "modules": {
+          "system": "系统管理",
+          "platform": "平台管理",
+          "tenant": "租户管理",
+          "restaurant": "餐厅管理",
+          "onboarding": "入驻申请",
+          "user": "用户管理",
+          "carbon": "碳足迹",
+          "recipe": "菜谱管理",
+          "order": "订单管理",
+          "traceability": "溯源管理",
+          "message": "消息管理"
+        },
+        "roles": {
+          "systemAdmin": "系统管理员",
+          "platformOperator": "平台运营"
+        },
+        "resources": {
+          "user": "用户",
+          "tenant": "租户",
+          "restaurant": "餐厅",
+          "application": "入驻申请",
+          "auditLog": "操作日志",
+          "systemConfig": "系统配置",
+          "menuItem": "菜品",
+          "order": "订单",
+          "coupon": "优惠券",
+          "baseline": "碳基线",
+          "ingredientLot": "食材批次",
+          "supplier": "供应商",
+          "traceChain": "溯源链"
+        },
+        "detail": {
+          "fields": {
+            "time": "操作时间",
+            "user": "操作人",
+            "role": "角色",
+            "module": "模块",
+            "action": "操作类型",
+            "resource": "操作对象",
+            "description": "操作描述",
+            "status": "状态",
+            "tenantId": "租户ID",
+            "ip": "IP地址",
+            "userAgent": "用户代理",
+            "details": "详细信息"
+          }
+        },
+        "modal": {
+          "detail": {
+            "title": "操作日志详情"
+          }
+        },
+        "messages": {
+          "loadFailed": "加载失败",
+          "exportInProgress": "正在导出..."
+        },
+        "export": {
+          "fileName": "操作日志",
+          "sheetName": "操作日志",
+          "columns": {
+            "no": "序号",
+            "role": "角色",
+            "tenantId": "租户ID",
+            "ip": "IP地址"
+          }
         }
       }
     },
@@ -2691,6 +3046,125 @@
           "traceability": "供应链溯源 - 供应商管理、食材批次追踪、溯源链构建与展示",
           "operation": "餐厅运营 - 订单管理、积分系统、运营台账、行为统计",
           "report": "报表与生态拓展 - 数据报表、ESG报告、对外接口、生态联动"
+        }
+      }
+    },
+    "operationLog": {
+      "title": "操作日志",
+      "buttons": {
+        "refresh": "刷新",
+        "export": "导出"
+      },
+      "filters": {
+        "search": "搜索操作描述、用户名等",
+        "action": "操作类型",
+        "status": "状态",
+        "module": "模块",
+        "tenant": "租户",
+        "startDate": "开始日期",
+        "endDate": "结束日期"
+      },
+      "table": {
+        "columns": {
+          "time": "操作时间",
+          "user": "操作人",
+          "role": "角色",
+          "module": "模块",
+          "action": "操作类型",
+          "resource": "操作对象",
+          "description": "操作描述",
+          "status": "状态",
+          "actions": "操作"
+        }
+      },
+      "actions": {
+        "login": "登录",
+        "logout": "登出",
+        "create": "创建",
+        "update": "更新",
+        "delete": "删除",
+        "approve": "审批通过",
+        "reject": "审批拒绝",
+        "suspend": "暂停",
+        "activate": "激活",
+        "export": "导出",
+        "view": "查看",
+        "deploy": "部署",
+        "migrate": "迁移",
+        "calculate": "计算",
+        "import": "导入",
+        "reset": "重置"
+      },
+      "status": {
+        "success": "成功",
+        "failed": "失败",
+        "pending": "进行中"
+      },
+      "modules": {
+        "system": "系统管理",
+        "platform": "平台管理",
+        "tenant": "租户管理",
+        "restaurant": "餐厅管理",
+        "onboarding": "入驻申请",
+        "user": "用户管理",
+        "carbon": "碳足迹",
+        "recipe": "菜谱管理",
+        "order": "订单管理",
+        "traceability": "溯源管理",
+        "message": "消息管理"
+      },
+      "roles": {
+        "systemAdmin": "系统管理员",
+        "platformOperator": "平台运营"
+      },
+      "resources": {
+        "user": "用户",
+        "tenant": "租户",
+        "restaurant": "餐厅",
+        "application": "入驻申请",
+        "auditLog": "操作日志",
+        "systemConfig": "系统配置",
+        "menuItem": "菜品",
+        "order": "订单",
+        "coupon": "优惠券",
+        "baseline": "碳基线",
+        "ingredientLot": "食材批次",
+        "supplier": "供应商",
+        "traceChain": "溯源链"
+      },
+      "detail": {
+        "fields": {
+          "time": "操作时间",
+          "user": "操作人",
+          "role": "角色",
+          "module": "模块",
+          "action": "操作类型",
+          "resource": "操作对象",
+          "description": "操作描述",
+          "status": "状态",
+          "tenantId": "租户ID",
+          "ip": "IP地址",
+          "userAgent": "用户代理",
+          "details": "详细信息"
+        }
+      },
+      "modal": {
+        "detail": {
+          "title": "操作日志详情"
+        }
+      },
+      "messages": {
+        "loadFailed": "加载失败",
+        "exportInProgress": "正在导出..."
+      },
+      "export": {
+        "fileName": "操作日志",
+        "sheetName": "操作日志",
+        "columns": {
+          "no": "序号",
+          "role": "角色",
+          "tenantId": "租户ID",
+          "ip": "IP地址"
         }
       }
     }
