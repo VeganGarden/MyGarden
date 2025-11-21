@@ -2861,11 +2861,12 @@ async function getDashboard(data, currentUser) {
           // 如果没有指定具体餐厅，则查询租户下所有餐厅
           // 菜谱可能使用 restaurantId 或 tenantId 字段，需要同时查询
           // 使用 _.or() 构建复合查询条件
-          recipeQuery = _.or([
+          // 注意：recipeQuery是const，不能直接赋值，需要使用db.command.or()
+          Object.assign(recipeQuery, _.or([
             { restaurantId: _.in(restaurantIds) },
             { tenantId: _.in(restaurantIds) },
             { tenantId: targetTenantId } // 也支持直接使用租户ID
-          ])
+          ]))
           orderQuery.restaurantId = _.in(restaurantIds)
         }
       } else {
@@ -3071,19 +3072,25 @@ async function getDashboard(data, currentUser) {
   let trends = null
   if (includeTrends && startDate && endDate) {
     try {
-      console.log('[趋势数据] 开始统计，日期范围:', startDate, '到', endDate)
-      
       const start = new Date(startDate)
       const end = new Date(endDate)
       end.setHours(23, 59, 59, 999)
       
       // 构建订单查询条件
-      const trendsOrderQuery = { ...orderQuery }
-      if (trendsOrderQuery.createdAt) {
-        trendsOrderQuery.createdAt = _.and(
-          trendsOrderQuery.createdAt,
-          _.gte(start).and(_.lte(end))
-        )
+      // 注意：如果orderQuery.createdAt已经是db.command对象，不能直接赋值，需要重新构建
+      const trendsOrderQuery = {}
+      
+      // 复制orderQuery的其他字段（除了createdAt）
+      Object.keys(orderQuery).forEach(key => {
+        if (key !== 'createdAt') {
+          trendsOrderQuery[key] = orderQuery[key]
+        }
+      })
+      
+      // 构建新的createdAt条件，结合原有的时间范围和新的日期范围
+      if (orderQuery.createdAt) {
+        // 如果已有createdAt条件，需要合并（这里简化处理，只使用新的日期范围）
+        trendsOrderQuery.createdAt = _.gte(start).and(_.lte(end))
       } else {
         trendsOrderQuery.createdAt = _.gte(start).and(_.lte(end))
       }
@@ -3102,8 +3109,6 @@ async function getDashboard(data, currentUser) {
           'carbonImpact.carbonSavingsVsMeat': 1,
         })
         .get()
-      
-      console.log('[趋势数据] 查询到订单数量:', trendsOrdersRes.data.length)
       
       // 按日期分组统计
       const ordersByDate = new Map()
@@ -3160,8 +3165,6 @@ async function getDashboard(data, currentUser) {
           amount: Math.round((carbonByDate.get(date) || 0) * 100) / 100,
         })),
       }
-      
-      console.log('[趋势数据] 统计完成，订单趋势:', trends.orders.length, '天，碳减排趋势:', trends.carbonReduction.length, '天')
     } catch (error) {
       console.error('[趋势数据] 获取趋势数据失败:', error)
       trends = null
@@ -3210,8 +3213,6 @@ async function getDashboard(data, currentUser) {
           'carbonImpact.carbonSavingsVsMeat': 1,
         })
         .get()
-      
-      console.log('[热门菜谱] 查询到订单数量:', ordersRes.data.length)
       
       // 统计每个菜谱的数据
       const recipeStats = {}
@@ -3274,8 +3275,6 @@ async function getDashboard(data, currentUser) {
         })
       })
       
-      console.log('[热门菜谱] 统计到的菜谱数量:', Object.keys(recipeStats).length)
-      
       // 转换为数组并按订单数排序，取前10名
       topRecipes = Object.values(recipeStats)
         .sort((a, b) => b.orders - a.orders)
@@ -3287,14 +3286,8 @@ async function getDashboard(data, currentUser) {
           revenue: Math.round(recipe.revenue * 100) / 100,
           carbonReduction: Math.round(recipe.carbonReduction * 100) / 100,
         }))
-      
-      console.log('[热门菜谱] 统计结果:', topRecipes.length, '条数据')
-      if (topRecipes.length > 0) {
-        console.log('[热门菜谱] Top 3:', topRecipes.slice(0, 3))
-      }
     } catch (error) {
       console.error('[热门菜谱] 获取热门菜谱排行榜失败:', error)
-      console.error('[热门菜谱] 错误堆栈:', error.stack)
       topRecipes = []
     }
   }

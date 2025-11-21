@@ -276,7 +276,6 @@ const Dashboard: React.FC = () => {
   const fetchRestaurantData = async (skipCheck = false) => {
     // 防止重复调用（如果skipCheck为true，则跳过检查，用于useEffect调用）
     if (!skipCheck && isFetchingRef.current) {
-      console.log('[fetchRestaurantData] 正在获取数据，跳过重复调用')
       return
     }
     
@@ -284,12 +283,9 @@ const Dashboard: React.FC = () => {
       // 设置状态标记
       isFetchingRef.current = true
       setLoading(true)
-      console.log('[fetchRestaurantData] 开始获取数据')
       // 从日期选择器获取日期范围，如果没有选择则使用默认值（近30天）
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
-      
-      console.log('[餐厅数据] 查询日期范围:', startDate, '到', endDate)
       
       // 调用后端API，传入日期范围参数
       // 后端会根据这些日期范围从数据库查询对应时间段的订单、统计等数据
@@ -337,7 +333,6 @@ const Dashboard: React.FC = () => {
       if (result && result.code === 0 && result.data && result.data.topRecipes) {
         // 如果API已经返回了topRecipes，直接使用
         const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
-        console.log('[热门菜谱] 从fetchRestaurantData获取到数据:', recipes.length, '条')
         
         if (recipes.length > 0) {
           const mappedRecipes = recipes.map((recipe: any, index: number) => ({
@@ -348,29 +343,20 @@ const Dashboard: React.FC = () => {
             revenue: recipe.revenue || recipe.total_revenue || 0,
             carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
           }))
-          console.log('[热门菜谱] 映射后的数据:', mappedRecipes)
           setTopRecipes(mappedRecipes)
         } else {
-          console.log('[热门菜谱] API返回的topRecipes为空数组')
           setTopRecipes([])
         }
       } else {
         // 如果API没有返回topRecipes，单独调用fetchTopRecipes
-        console.log('[热门菜谱] API未返回topRecipes，单独调用fetchTopRecipes')
         await fetchTopRecipes()
       }
     } catch (error: any) {
-      console.error('[fetchRestaurantData] 获取数据失败:', error)
       message.error(error.message || t('common.loadFailed'))
       // 确保在错误时也重置状态
       isFetchingRef.current = false
     } finally {
-      console.log('[fetchRestaurantData] 数据获取完成，重置状态')
       setLoading(false)
-      // 确保状态总是被重置
-      if (isFetchingRef.current) {
-        console.log('[fetchRestaurantData] 重置isFetchingRef状态')
-      }
       isFetchingRef.current = false
     }
   }
@@ -403,66 +389,37 @@ const Dashboard: React.FC = () => {
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
       
-      console.log('[热门菜谱] 查询日期范围:', startDate, '到', endDate)
-      
       // 调用reportAPI获取热门菜谱数据
-      // 参数说明：
-      // - restaurantId: 如果为null，则统计当前租户下所有餐厅的菜谱；如果指定，则只统计该餐厅的菜谱
-      // - tenantId: 当前租户ID，用于数据隔离
-      // - startDate: 起始日期，后端会筛选此日期之后的订单
-      // - endDate: 终止日期，后端会筛选此日期之前的订单
-      // - includeTopRecipes: 标识需要返回热门菜谱数据
       const params = {
         restaurantId: currentRestaurantId,
         tenantId: currentTenant?.id,
-        startDate,  // 传递给后端，用于筛选订单的创建时间
-        endDate,    // 传递给后端，用于筛选订单的创建时间
+        startDate,
+        endDate,
         includeTopRecipes: true,
       }
       
-      console.log('[热门菜谱] 请求参数:', params)
       const result = await reportAPI.dashboard(params)
-      console.log('[热门菜谱] API返回结果:', result)
       
-      if (result && result.code === 0 && result.data) {
-        console.log('[热门菜谱] API返回的data:', result.data)
-        console.log('[热门菜谱] topRecipes字段:', result.data.topRecipes)
+      if (result && result.code === 0 && result.data && result.data.topRecipes) {
+        const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
         
-        // 检查是否有topRecipes字段
-        if (result.data.topRecipes) {
-          const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
-          console.log('[热门菜谱] 解析后的recipes数组:', recipes)
-          
-          if (recipes.length > 0) {
-            const mappedRecipes = recipes.map((recipe: any, index: number) => ({
-              rank: index + 1,
-              recipeId: recipe.recipeId || recipe.recipe_id || recipe.id || '',
-              recipeName: recipe.recipeName || recipe.name || recipe.recipe_name || '',
-              orders: recipe.orders || recipe.order_count || 0,
-              revenue: recipe.revenue || recipe.total_revenue || 0,
-              carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
-            }))
-            console.log('[热门菜谱] 映射后的数据:', mappedRecipes)
-            setTopRecipes(mappedRecipes)
-          } else {
-            console.warn('[热门菜谱] topRecipes数组为空')
-            setTopRecipes([])
-          }
+        if (recipes.length > 0) {
+          const mappedRecipes = recipes.map((recipe: any, index: number) => ({
+            rank: index + 1,
+            recipeId: recipe.recipeId || recipe.recipe_id || recipe.id || '',
+            recipeName: recipe.recipeName || recipe.name || recipe.recipe_name || '',
+            orders: recipe.orders || recipe.order_count || 0,
+            revenue: recipe.revenue || recipe.total_revenue || 0,
+            carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
+          }))
+          setTopRecipes(mappedRecipes)
         } else {
-          // 检查result.data是否是数组（可能是云函数返回格式问题）
-          if (Array.isArray(result.data)) {
-            console.warn('[热门菜谱] API返回的data是数组，不是对象，data:', result.data)
-          } else {
-            console.warn('[热门菜谱] API返回的data中没有topRecipes字段，data结构:', Object.keys(result.data || {}))
-          }
           setTopRecipes([])
         }
       } else {
-        console.warn('[热门菜谱] API返回失败或格式不正确:', result)
         setTopRecipes([])
       }
     } catch (error: any) {
-      console.error('[热门菜谱] 获取数据失败:', error)
       // 静默处理错误，不影响其他数据加载
       setTopRecipes([])
     }
@@ -728,13 +685,11 @@ const Dashboard: React.FC = () => {
     fetchTimeoutRef.current = setTimeout(async () => {
       // 在延迟后检查，如果正在获取数据，则跳过
       if (isFetchingRef.current) {
-        console.log('[Dashboard] 延迟期间检测到正在获取数据，跳过')
         fetchTimeoutRef.current = null
         return
       }
       
       try {
-        console.log('[Dashboard] useEffect触发数据获取')
         // 注意：不在这里设置isFetchingRef，让各个fetch函数自己管理
         // 传递skipCheck=true，跳过fetchRestaurantData内部的重复检查
         if (isRestaurantAdmin) {
@@ -748,15 +703,11 @@ const Dashboard: React.FC = () => {
         }
       } catch (error) {
         // 错误已在各自函数中处理
-        console.error('[Dashboard] 获取数据失败:', error)
         // 确保在错误时也重置状态
         isFetchingRef.current = false
       } finally {
         // 确保状态被重置（如果fetch函数没有重置）
-        if (isFetchingRef.current) {
-          console.log('[Dashboard] 重置isFetchingRef状态')
-          isFetchingRef.current = false
-        }
+        isFetchingRef.current = false
         fetchTimeoutRef.current = null
       }
     }, 100)
@@ -1065,7 +1016,6 @@ const Dashboard: React.FC = () => {
               onClick={() => {
                 // 手动刷新时，如果正在获取数据，直接返回
                 if (isFetchingRef.current) {
-                  console.log('[手动刷新] 正在获取数据，跳过重复调用')
                   return
                 }
                 fetchRestaurantData()
@@ -1244,7 +1194,6 @@ const Dashboard: React.FC = () => {
                     type="primary" 
                     onClick={() => {
                       if (isFetchingRef.current) {
-                        console.log('[空状态刷新] 正在获取数据，跳过重复调用')
                         return
                       }
                       fetchRestaurantData()
@@ -1271,7 +1220,6 @@ const Dashboard: React.FC = () => {
                     type="primary" 
                     onClick={() => {
                       if (isFetchingRef.current) {
-                        console.log('[空状态刷新] 正在获取数据，跳过重复调用')
                         return
                       }
                       fetchRestaurantData()
@@ -2729,11 +2677,9 @@ const Dashboard: React.FC = () => {
             : null
           if (trendChart) {
             trendChart.resize()
-            console.log('[图表] 订单趋势图已调整大小')
           }
           if (carbonChart) {
             carbonChart.resize()
-            console.log('[图表] 碳减排趋势图已调整大小')
           }
         } else if (isPlatformOperator) {
           const trendChart = platformTrendChartRef.current
