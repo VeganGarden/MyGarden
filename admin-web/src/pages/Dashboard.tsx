@@ -689,9 +689,19 @@ const Dashboard: React.FC = () => {
     }
   }
 
+  // 使用ref来防止重复调用
+  const isFetchingRef = useRef(false)
+  
   useEffect(() => {
     const fetchData = async () => {
+      // 防止重复调用
+      if (isFetchingRef.current) {
+        console.log('[Dashboard] 正在获取数据，跳过重复调用')
+        return
+      }
+      
       try {
+        isFetchingRef.current = true
         if (isRestaurantAdmin) {
           await fetchRestaurantData()
         } else if (isPlatformOperator) {
@@ -703,6 +713,8 @@ const Dashboard: React.FC = () => {
         }
       } catch (error) {
         // 错误已在各自函数中处理
+      } finally {
+        isFetchingRef.current = false
       }
     }
     fetchData()
@@ -998,7 +1010,15 @@ const Dashboard: React.FC = () => {
             <Button icon={<ExportOutlined />} onClick={() => handleExportRestaurantData()} loading={loading}>
               {t('pages.dashboard.exportButton')}
             </Button>
-            <Button icon={<ReloadOutlined />} onClick={() => fetchRestaurantData()} loading={loading}>
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={() => {
+                // 手动刷新时，重置fetching状态
+                isFetchingRef.current = false
+                fetchRestaurantData()
+              }} 
+              loading={loading}
+            >
               {t('common.refresh')}
             </Button>
           </Space>

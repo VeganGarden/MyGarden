@@ -2818,7 +2818,7 @@ async function getMenuList(data) {
  * @param {Object} currentUser - 当前登录用户信息
  */
 async function getDashboard(data, currentUser) {
-  const { restaurantId, tenantId, includeTopRecipes, startDate, endDate } = data || {}
+  const { restaurantId, tenantId, includeTopRecipes, includeTrends, startDate, endDate } = data || {}
   const userRole = currentUser?.role || ''
 
   // 构建查询条件
@@ -3067,7 +3067,108 @@ async function getDashboard(data, currentUser) {
     console.error('统计今日订单失败:', error)
   }
 
-  // 6. 获取热门菜谱排行榜（Top 10）
+  // 6. 获取趋势数据（订单趋势和碳减排趋势）
+  let trends = null
+  if (includeTrends && startDate && endDate) {
+    try {
+      console.log('[趋势数据] 开始统计，日期范围:', startDate, '到', endDate)
+      
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      
+      // 构建订单查询条件
+      const trendsOrderQuery = { ...orderQuery }
+      if (trendsOrderQuery.createdAt) {
+        trendsOrderQuery.createdAt = _.and(
+          trendsOrderQuery.createdAt,
+          _.gte(start).and(_.lte(end))
+        )
+      } else {
+        trendsOrderQuery.createdAt = _.gte(start).and(_.lte(end))
+      }
+      
+      // 查询订单数据
+      const trendsOrdersQueryObj = Object.keys(trendsOrderQuery).length > 0
+        ? db.collection('restaurant_orders').where(trendsOrderQuery)
+        : db.collection('restaurant_orders').where({
+            createdAt: _.gte(start).and(_.lte(end))
+          })
+      
+      const trendsOrdersRes = await trendsOrdersQueryObj
+        .field({
+          'createdAt': 1,
+          'pricing.total': 1,
+          'carbonImpact.carbonSavingsVsMeat': 1,
+        })
+        .get()
+      
+      console.log('[趋势数据] 查询到订单数量:', trendsOrdersRes.data.length)
+      
+      // 按日期分组统计
+      const ordersByDate = new Map()
+      const revenueByDate = new Map()
+      const carbonByDate = new Map()
+      
+      trendsOrdersRes.data.forEach(order => {
+        if (order.createdAt) {
+          const date = new Date(order.createdAt).toISOString().split('T')[0] // YYYY-MM-DD格式
+          
+          // 订单数统计
+          if (!ordersByDate.has(date)) {
+            ordersByDate.set(date, 0)
+          }
+          ordersByDate.set(date, ordersByDate.get(date) + 1)
+          
+          // 收入统计
+          const revenue = order.pricing?.total || 0
+          if (!revenueByDate.has(date)) {
+            revenueByDate.set(date, 0)
+          }
+          revenueByDate.set(date, revenueByDate.get(date) + revenue)
+          
+          // 碳减排统计
+          const carbonReduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+          if (!carbonByDate.has(date)) {
+            carbonByDate.set(date, 0)
+          }
+          carbonByDate.set(date, carbonByDate.get(date) + carbonReduction)
+        }
+      })
+      
+      // 生成日期范围内的所有日期（填充没有订单的日期为0）
+      const allDates = []
+      const currentDate = new Date(start)
+      while (currentDate <= end) {
+        const dateStr = currentDate.toISOString().split('T')[0]
+        allDates.push(dateStr)
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      // 构建趋势数据
+      trends = {
+        orders: allDates.map(date => ({
+          date,
+          count: ordersByDate.get(date) || 0,
+        })),
+        revenue: allDates.map(date => ({
+          date,
+          amount: Math.round((revenueByDate.get(date) || 0) * 100) / 100,
+        })),
+        carbonReduction: allDates.map(date => ({
+          date,
+          amount: Math.round((carbonByDate.get(date) || 0) * 100) / 100,
+        })),
+      }
+      
+      console.log('[趋势数据] 统计完成，订单趋势:', trends.orders.length, '天，碳减排趋势:', trends.carbonReduction.length, '天')
+    } catch (error) {
+      console.error('[趋势数据] 获取趋势数据失败:', error)
+      trends = null
+    }
+  }
+
+  // 7. 获取热门菜谱排行榜（Top 10）
   let topRecipes = []
   if (includeTopRecipes) {
     try {
@@ -3213,6 +3314,11 @@ async function getDashboard(data, currentUser) {
   // 如果请求了热门菜谱数据，添加到返回结果中
   if (includeTopRecipes) {
     result.data.topRecipes = topRecipes
+  }
+  
+  // 如果请求了趋势数据，添加到返回结果中
+  if (includeTrends && trends) {
+    result.data.trends = trends
   }
   
   return result
