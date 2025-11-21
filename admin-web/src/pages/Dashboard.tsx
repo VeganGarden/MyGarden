@@ -365,9 +365,15 @@ const Dashboard: React.FC = () => {
     } catch (error: any) {
       console.error('[fetchRestaurantData] 获取数据失败:', error)
       message.error(error.message || t('common.loadFailed'))
+      // 确保在错误时也重置状态
+      isFetchingRef.current = false
     } finally {
-      console.log('[fetchRestaurantData] 数据获取完成')
+      console.log('[fetchRestaurantData] 数据获取完成，重置状态')
       setLoading(false)
+      // 确保状态总是被重置
+      if (isFetchingRef.current) {
+        console.log('[fetchRestaurantData] 重置isFetchingRef状态')
+      }
       isFetchingRef.current = false
     }
   }
