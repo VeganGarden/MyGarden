@@ -323,8 +323,32 @@ const Dashboard: React.FC = () => {
       // 获取待办事项
       await fetchTodoItems()
       
-      // 获取热门菜谱排行榜
-      await fetchTopRecipes()
+      // 检查API返回的数据中是否包含topRecipes
+      if (result && result.code === 0 && result.data && result.data.topRecipes) {
+        // 如果API已经返回了topRecipes，直接使用
+        const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
+        console.log('[热门菜谱] 从fetchRestaurantData获取到数据:', recipes.length, '条')
+        
+        if (recipes.length > 0) {
+          const mappedRecipes = recipes.map((recipe: any, index: number) => ({
+            rank: index + 1,
+            recipeId: recipe.recipeId || recipe.recipe_id || recipe.id || '',
+            recipeName: recipe.recipeName || recipe.name || recipe.recipe_name || '',
+            orders: recipe.orders || recipe.order_count || 0,
+            revenue: recipe.revenue || recipe.total_revenue || 0,
+            carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
+          }))
+          console.log('[热门菜谱] 映射后的数据:', mappedRecipes)
+          setTopRecipes(mappedRecipes)
+        } else {
+          console.log('[热门菜谱] API返回的topRecipes为空数组')
+          setTopRecipes([])
+        }
+      } else {
+        // 如果API没有返回topRecipes，单独调用fetchTopRecipes
+        console.log('[热门菜谱] API未返回topRecipes，单独调用fetchTopRecipes')
+        await fetchTopRecipes()
+      }
     } catch (error: any) {
       message.error(error.message || t('common.loadFailed'))
     } finally {
