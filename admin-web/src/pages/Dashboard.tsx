@@ -61,6 +61,16 @@ interface TodoItem {
   link?: string
 }
 
+// 热门菜谱数据
+interface TopRecipe {
+  rank: number
+  recipeId: string
+  recipeName: string
+  orders: number
+  revenue: number
+  carbonReduction: number
+}
+
 // 平台运营看板数据
 interface PlatformOperatorDashboardData {
   totalTenants: number
@@ -157,6 +167,9 @@ const Dashboard: React.FC = () => {
 
   // 待办事项数据
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
+
+  // 热门菜谱排行榜
+  const [topRecipes, setTopRecipes] = useState<TopRecipe[]>([])
 
   // 平台运营数据
   const [platformData, setPlatformData] = useState<PlatformOperatorDashboardData>({
@@ -281,6 +294,9 @@ const Dashboard: React.FC = () => {
       
       // 获取待办事项
       await fetchTodoItems()
+      
+      // 获取热门菜谱排行榜
+      await fetchTopRecipes()
     } catch (error: any) {
       message.error(error.message || t('common.loadFailed'))
     } finally {
@@ -299,6 +315,41 @@ const Dashboard: React.FC = () => {
       setTodoItems(todos)
     } catch (error: any) {
       // 静默处理错误
+    }
+  }
+
+  // 获取热门菜谱排行榜
+  const fetchTopRecipes = async () => {
+    try {
+      const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
+      const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
+      
+      // 调用reportAPI获取热门菜谱数据
+      const result = await reportAPI.dashboard({
+        restaurantId: currentRestaurantId,
+        tenantId: currentTenant?.id,
+        startDate,
+        endDate,
+        includeTopRecipes: true,
+      })
+      
+      if (result && result.code === 0 && result.data && result.data.topRecipes) {
+        const recipes = Array.isArray(result.data.topRecipes) ? result.data.topRecipes : []
+        setTopRecipes(recipes.map((recipe: any, index: number) => ({
+          rank: index + 1,
+          recipeId: recipe.recipeId || recipe.recipe_id || recipe.id || '',
+          recipeName: recipe.recipeName || recipe.name || recipe.recipe_name || '',
+          orders: recipe.orders || recipe.order_count || 0,
+          revenue: recipe.revenue || recipe.total_revenue || 0,
+          carbonReduction: recipe.carbonReduction || recipe.carbon_reduction || 0,
+        })))
+      } else {
+        // 如果没有数据，使用空数组
+        setTopRecipes([])
+      }
+    } catch (error: any) {
+      // 静默处理错误，不影响其他数据加载
+      setTopRecipes([])
     }
   }
 
@@ -677,6 +728,66 @@ const Dashboard: React.FC = () => {
     }
   }
 
+  // 导出餐厅管理员数据
+  const handleExportRestaurantData = async () => {
+    try {
+      message.loading(t('pages.dashboard.exporting'), 0)
+      
+      const exportData = [
+        [t('pages.dashboard.export.restaurantAdmin.title')],
+        [],
+        [t('pages.dashboard.export.restaurantAdmin.coreMetrics')],
+        [t('pages.dashboard.statistics.totalRecipes'), restaurantData.totalRecipes],
+        [t('pages.dashboard.statistics.totalCarbonReduction'), `${restaurantData.totalCarbonReduction.toLocaleString()} kg CO₂e`],
+        [t('pages.dashboard.statistics.certifiedRestaurants'), restaurantData.certifiedRestaurants],
+        [t('pages.dashboard.statistics.activeUsers'), restaurantData.activeUsers],
+        [],
+        [t('pages.dashboard.export.restaurantAdmin.todayData')],
+        [t('pages.dashboard.statistics.todayOrders'), restaurantData.todayOrders],
+        [t('pages.dashboard.statistics.todayRevenue'), `¥${restaurantData.todayRevenue.toLocaleString()}`],
+        [],
+        [t('pages.dashboard.export.restaurantAdmin.trendData')],
+        [t('pages.dashboard.restaurantAdmin.charts.orderTrend')],
+        [t('pages.dashboard.export.table.time'), t('pages.dashboard.restaurantAdmin.charts.orders'), t('pages.dashboard.restaurantAdmin.charts.revenue')],
+        ...(trendsData.orders || []).map((item, index) => [
+          dayjs(item.date).format('YYYY-MM-DD'),
+          item.count,
+          (trendsData.revenue && trendsData.revenue[index]) ? trendsData.revenue[index].amount : 0,
+        ]),
+        [],
+        [t('pages.dashboard.restaurantAdmin.charts.carbonTrend')],
+        [t('pages.dashboard.export.table.time'), t('pages.dashboard.restaurantAdmin.charts.carbonReduction')],
+        ...(trendsData.carbonReduction || []).map((item) => [
+          dayjs(item.date).format('YYYY-MM-DD'),
+          `${item.amount.toLocaleString()} kg`,
+        ]),
+        [],
+        [t('pages.dashboard.restaurantAdmin.topRecipes')],
+        [t('pages.dashboard.export.table.rank'), t('pages.dashboard.export.restaurantAdmin.recipeName'), t('pages.dashboard.export.table.orders'), t('pages.dashboard.export.table.revenue'), t('pages.dashboard.export.table.carbonReduction')],
+        ...topRecipes.map((r) => [
+          r.rank,
+          r.recipeName,
+          r.orders,
+          `¥${r.revenue.toLocaleString()}`,
+          `${r.carbonReduction.toLocaleString()} kg`,
+        ]),
+      ]
+
+      const ws = XLSX.utils.aoa_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, t('pages.dashboard.export.restaurantAdmin.sheetName'))
+      
+      const fileName = `${t('pages.dashboard.export.restaurantAdmin.fileName')}_${dayjs().format('YYYY-MM-DD')}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      message.destroy()
+      message.success(t('common.exportSuccess'))
+    } catch (error: any) {
+      message.destroy()
+      message.error(error.message || t('common.exportFailed'))
+    }
+  }
+
   const handleExportCarbonData = async () => {
     try {
       message.loading(t('pages.dashboard.exporting'), 0)
@@ -763,6 +874,9 @@ const Dashboard: React.FC = () => {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
               format="YYYY-MM-DD"
             />
+            <Button icon={<ExportOutlined />} onClick={() => handleExportRestaurantData()} loading={loading}>
+              {t('pages.dashboard.exportButton')}
+            </Button>
             <Button icon={<ReloadOutlined />} onClick={() => fetchRestaurantData()} loading={loading}>
               {t('common.refresh')}
             </Button>
@@ -791,88 +905,130 @@ const Dashboard: React.FC = () => {
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card>
-            <Statistic
-              title={t('pages.dashboard.statistics.totalRecipes')}
-              value={restaurantData.totalRecipes}
-              prefix={<BookOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-              loading={loading}
-            />
-          </Card>
+          <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.totalRecipes')}>
+            <Card
+              hoverable
+              onClick={() => navigate('/recipes')}
+              style={{ cursor: 'pointer' }}
+            >
+              <Statistic
+                title={t('pages.dashboard.statistics.totalRecipes')}
+                value={restaurantData.totalRecipes}
+                prefix={<BookOutlined />}
+                valueStyle={{ color: '#3f8600' }}
+                loading={loading}
+              />
+            </Card>
+          </Tooltip>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic
-              title={t('pages.dashboard.statistics.totalCarbonReduction')}
-              value={restaurantData.totalCarbonReduction}
-              suffix="kg CO₂e"
-              prefix={<FireOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-              loading={loading}
-            />
-          </Card>
+          <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.totalCarbonReduction')}>
+            <Card
+              hoverable
+              onClick={() => navigate('/carbon')}
+              style={{ cursor: 'pointer' }}
+            >
+              <Statistic
+                title={t('pages.dashboard.statistics.totalCarbonReduction')}
+                value={restaurantData.totalCarbonReduction}
+                suffix="kg CO₂e"
+                prefix={<FireOutlined />}
+                valueStyle={{ color: '#cf1322' }}
+                loading={loading}
+              />
+            </Card>
+          </Tooltip>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic
-              title={t('pages.dashboard.statistics.certifiedRestaurants')}
-              value={restaurantData.certifiedRestaurants}
-              prefix={<TrophyOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-              loading={loading}
-            />
-          </Card>
+          <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.certifiedRestaurants')}>
+            <Card
+              hoverable
+              onClick={() => navigate('/certification')}
+              style={{ cursor: 'pointer' }}
+            >
+              <Statistic
+                title={t('pages.dashboard.statistics.certifiedRestaurants')}
+                value={restaurantData.certifiedRestaurants}
+                prefix={<TrophyOutlined />}
+                valueStyle={{ color: '#1890ff' }}
+                loading={loading}
+              />
+            </Card>
+          </Tooltip>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic
-              title={t('pages.dashboard.statistics.activeUsers')}
-              value={restaurantData.activeUsers}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-              loading={loading}
-            />
-          </Card>
+          <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.activeUsers')}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.statistics.activeUsers')}
+                value={restaurantData.activeUsers}
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: '#722ed1' }}
+                loading={loading}
+              />
+            </Card>
+          </Tooltip>
         </Col>
       </Row>
 
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col span={6}>
-            <Card>
-              <Statistic
-                title={t('pages.dashboard.statistics.todayOrders')}
-                value={restaurantData.todayOrders}
-                prefix={<ShoppingCartOutlined />}
-                valueStyle={{ color: '#fa8c16' }}
-                loading={loading}
-                suffix={
-                  restaurantData.yesterdayOrders !== undefined ? (
-                    <span style={{ fontSize: 12, color: Number(ordersTrend) >= 0 ? '#52c41a' : '#f5222d' }}>
-                      {Number(ordersTrend) >= 0 ? '↑' : '↓'} {Math.abs(Number(ordersTrend))}%
-                    </span>
-                  ) : null
-                }
-              />
-            </Card>
+            <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.todayOrders')}>
+              <Card
+                hoverable
+                onClick={() => navigate('/orders')}
+                style={{ cursor: 'pointer' }}
+              >
+                <Statistic
+                  title={t('pages.dashboard.statistics.todayOrders')}
+                  value={restaurantData.todayOrders}
+                  prefix={<ShoppingCartOutlined />}
+                  valueStyle={{ color: '#fa8c16' }}
+                  loading={loading}
+                  suffix={
+                    restaurantData.yesterdayOrders !== undefined ? (
+                      <div style={{ fontSize: 12, marginTop: 4 }}>
+                        <span style={{ color: Number(ordersTrend) >= 0 ? '#52c41a' : '#f5222d' }}>
+                          {Number(ordersTrend) >= 0 ? '↑' : '↓'} {Math.abs(Number(ordersTrend))}%
+                        </span>
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                          {t('pages.dashboard.restaurantAdmin.vsYesterday')}
+                        </div>
+                      </div>
+                    ) : null
+                  }
+                />
+              </Card>
+            </Tooltip>
           </Col>
           <Col span={6}>
-            <Card>
-              <Statistic
-                title={t('pages.dashboard.statistics.todayRevenue')}
-                value={restaurantData.todayRevenue}
-                prefix="¥"
-                valueStyle={{ color: '#52c41a' }}
-                loading={loading}
-                suffix={
-                  restaurantData.yesterdayRevenue !== undefined ? (
-                    <span style={{ fontSize: 12, color: Number(revenueTrend) >= 0 ? '#52c41a' : '#f5222d' }}>
-                      {Number(revenueTrend) >= 0 ? '↑' : '↓'} {Math.abs(Number(revenueTrend))}%
-                    </span>
-                  ) : null
-                }
-              />
-            </Card>
+            <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.todayRevenue')}>
+              <Card
+                hoverable
+                onClick={() => navigate('/reports')}
+                style={{ cursor: 'pointer' }}
+              >
+                <Statistic
+                  title={t('pages.dashboard.statistics.todayRevenue')}
+                  value={restaurantData.todayRevenue}
+                  prefix="¥"
+                  valueStyle={{ color: '#52c41a' }}
+                  loading={loading}
+                  suffix={
+                    restaurantData.yesterdayRevenue !== undefined ? (
+                      <div style={{ fontSize: 12, marginTop: 4 }}>
+                        <span style={{ color: Number(revenueTrend) >= 0 ? '#52c41a' : '#f5222d' }}>
+                          {Number(revenueTrend) >= 0 ? '↑' : '↓'} {Math.abs(Number(revenueTrend))}%
+                        </span>
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                          {t('pages.dashboard.restaurantAdmin.vsYesterday')}
+                        </div>
+                      </div>
+                    ) : null
+                  }
+                />
+              </Card>
+            </Tooltip>
           </Col>
         </Row>
 
@@ -929,6 +1085,83 @@ const Dashboard: React.FC = () => {
                 </Col>
               ))}
             </Row>
+          </Card>
+        )}
+
+        {/* 热门菜谱排行榜 */}
+        {topRecipes.length > 0 && (
+          <Card 
+            title={t('pages.dashboard.restaurantAdmin.topRecipes')} 
+            style={{ marginBottom: 24 }}
+            extra={
+              <Button 
+                type="link" 
+                size="small" 
+                onClick={() => navigate('/recipes')}
+              >
+                {t('pages.dashboard.restaurantAdmin.viewAllRecipes')}
+              </Button>
+            }
+          >
+            <Table
+              columns={[
+                {
+                  title: t('pages.dashboard.export.table.rank'),
+                  dataIndex: 'rank',
+                  key: 'rank',
+                  width: 80,
+                  render: (rank: number) => {
+                    if (rank === 1) return <Tag color="gold">🥇 {rank}</Tag>
+                    if (rank === 2) return <Tag color="default">🥈 {rank}</Tag>
+                    if (rank === 3) return <Tag color="orange">🥉 {rank}</Tag>
+                    return rank
+                  },
+                },
+                {
+                  title: t('pages.dashboard.export.restaurantAdmin.recipeName'),
+                  dataIndex: 'recipeName',
+                  key: 'recipeName',
+                  render: (text: string, record: TopRecipe) => (
+                    <Button 
+                      type="link" 
+                      onClick={() => navigate(`/recipes/${record.recipeId}`)}
+                      style={{ padding: 0 }}
+                    >
+                      {text}
+                    </Button>
+                  ),
+                },
+                {
+                  title: t('pages.dashboard.export.table.orders'),
+                  dataIndex: 'orders',
+                  key: 'orders',
+                  width: 120,
+                  sorter: (a: TopRecipe, b: TopRecipe) => a.orders - b.orders,
+                  render: (value: number) => value.toLocaleString(),
+                },
+                {
+                  title: t('pages.dashboard.export.table.revenue'),
+                  dataIndex: 'revenue',
+                  key: 'revenue',
+                  width: 150,
+                  sorter: (a: TopRecipe, b: TopRecipe) => a.revenue - b.revenue,
+                  render: (value: number) => `¥${value.toLocaleString()}`,
+                },
+                {
+                  title: t('pages.dashboard.export.table.carbonReduction'),
+                  dataIndex: 'carbonReduction',
+                  key: 'carbonReduction',
+                  width: 150,
+                  sorter: (a: TopRecipe, b: TopRecipe) => a.carbonReduction - b.carbonReduction,
+                  render: (value: number) => `${value.toLocaleString()} kg`,
+                },
+              ]}
+              dataSource={topRecipes}
+              rowKey="recipeId"
+              loading={loading}
+              pagination={false}
+              size="small"
+            />
           </Card>
         )}
 

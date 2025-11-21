@@ -3019,6 +3019,17 @@
         },
         "quickActions": {
           "manageRecipes": "Manage Recipes"
+        },
+        "topRecipes": "Top Recipes (Top 10)",
+        "viewAllRecipes": "View All Recipes",
+        "vsYesterday": "vs Yesterday",
+        "tooltips": {
+          "totalRecipes": "Total number of recipes available for the restaurant, can be used for menu management. Click to view recipe list.",
+          "totalCarbonReduction": "Total cumulative carbon reduction achieved by the restaurant through providing low-carbon dishes. Click to view carbon footprint data.",
+          "certifiedRestaurants": "Number of restaurants under the current tenant that have obtained Climate Restaurant certification. Click to view certification management.",
+          "activeUsers": "Number of users who placed orders or interacted with the restaurant in the last 30 days",
+          "todayOrders": "Total number of orders today, including completed and in-progress orders. Click to view order management.",
+          "todayRevenue": "Total revenue today, including revenue from completed orders. Click to view operation reports."
         }
       },
       "periods": {
@@ -3059,6 +3070,15 @@
           "fileName": "Carbon Data Report",
           "coreMetrics": "Carbon Data Core Metrics",
           "carbonStats": "Carbon Data Statistics"
+        },
+        "restaurantAdmin": {
+          "title": "Restaurant Dashboard Report",
+          "sheetName": "Restaurant Data Report",
+          "fileName": "Restaurant Dashboard",
+          "coreMetrics": "Core Metrics",
+          "todayData": "Today's Operational Data",
+          "trendData": "Trend Data",
+          "recipeName": "Recipe Name"
         },
         "table": {
           "rank": "Rank",

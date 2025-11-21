@@ -3162,6 +3162,17 @@
         },
         "quickActions": {
           "manageRecipes": "管理菜谱"
+        },
+        "topRecipes": "热门菜谱排行榜（Top 10）",
+        "viewAllRecipes": "查看全部菜谱",
+        "vsYesterday": "较昨日",
+        "tooltips": {
+          "totalRecipes": "当前餐厅可用的菜谱总数，可用于菜单管理。点击查看菜谱列表。",
+          "totalCarbonReduction": "餐厅通过提供低碳菜品实现的累计碳减排总量。点击查看碳足迹数据。",
+          "certifiedRestaurants": "当前租户下已获得气候餐厅认证的餐厅数量。点击查看认证管理。",
+          "activeUsers": "最近30天在餐厅下单或互动的用户数",
+          "todayOrders": "今日订单总数，包括已完成和进行中的订单。点击查看订单管理。",
+          "todayRevenue": "今日总收入，包括已完成订单的收入。点击查看运营台账。"
         }
       },
       "periods": {
@@ -3202,6 +3213,15 @@
           "fileName": "碳数据报表",
           "coreMetrics": "碳数据核心指标",
           "carbonStats": "碳数据统计"
+        },
+        "restaurantAdmin": {
+          "title": "餐厅数据看板报表",
+          "sheetName": "餐厅数据报表",
+          "fileName": "餐厅数据看板",
+          "coreMetrics": "核心指标",
+          "todayData": "今日运营数据",
+          "trendData": "趋势数据",
+          "recipeName": "菜谱名称"
         },
         "table": {
           "rank": "排名",
