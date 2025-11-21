@@ -3047,6 +3047,44 @@
           "operation": "餐厅运营 - 订单管理、积分系统、运营台账、行为统计",
           "report": "报表与生态拓展 - 数据报表、ESG报告、对外接口、生态联动"
         }
+      },
+      "platformOperator": {
+        "totalTenants": "总租户数",
+        "activeTenants": "活跃租户数",
+        "totalRestaurants": "总餐厅数",
+        "pendingApplications": "待审批申请",
+        "totalOrders": "总订单数",
+        "totalRevenue": "总收入",
+        "totalCarbonReduction": "总碳减排量",
+        "totalUsers": "总用户数",
+        "quickActions": "快速操作",
+        "approveApplications": "审批入驻申请",
+        "viewTenants": "查看租户列表",
+        "viewRestaurants": "查看餐厅列表",
+        "viewStatistics": "查看平台统计",
+        "viewCrossTenantData": "查看跨租户数据",
+        "topRestaurants": "餐厅排行榜（Top 10）"
+      },
+      "systemAdmin": {
+        "totalUsers": "系统用户总数",
+        "activeUsers": "活跃用户数",
+        "systemAlerts": "系统告警数",
+        "backupStatus": "数据备份状态",
+        "backupSuccess": "备份成功",
+        "backupUnknown": "状态未知",
+        "todayLogins": "今日登录次数",
+        "todayOperations": "今日操作次数",
+        "databaseUsage": "数据库使用率",
+        "apiCalls": "API调用次数",
+        "quickActions": "快速操作",
+        "userManagement": "用户管理",
+        "roleManagement": "角色权限配置",
+        "systemMonitor": "系统监控",
+        "dataBackup": "数据备份",
+        "operationLog": "操作日志",
+        "auditLog": "审计日志",
+        "recentLogs": "最近操作日志（Top 20）",
+        "viewAllLogs": "查看全部日志"
       }
     },
     "operationLog": {

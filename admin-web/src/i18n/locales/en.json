@@ -2904,6 +2904,44 @@
           "operation": "Restaurant Operations - Order management, points system, operation ledger, behavior statistics",
           "report": "Reports & Ecosystem Expansion - Data reports, ESG reports, external interfaces, ecosystem integration"
         }
+      },
+      "platformOperator": {
+        "totalTenants": "Total Tenants",
+        "activeTenants": "Active Tenants",
+        "totalRestaurants": "Total Restaurants",
+        "pendingApplications": "Pending Applications",
+        "totalOrders": "Total Orders",
+        "totalRevenue": "Total Revenue",
+        "totalCarbonReduction": "Total Carbon Reduction",
+        "totalUsers": "Total Users",
+        "quickActions": "Quick Actions",
+        "approveApplications": "Approve Applications",
+        "viewTenants": "View Tenants",
+        "viewRestaurants": "View Restaurants",
+        "viewStatistics": "View Statistics",
+        "viewCrossTenantData": "View Cross-Tenant Data",
+        "topRestaurants": "Top Restaurants (Top 10)"
+      },
+      "systemAdmin": {
+        "totalUsers": "Total System Users",
+        "activeUsers": "Active Users",
+        "systemAlerts": "System Alerts",
+        "backupStatus": "Backup Status",
+        "backupSuccess": "Backup Success",
+        "backupUnknown": "Status Unknown",
+        "todayLogins": "Today's Logins",
+        "todayOperations": "Today's Operations",
+        "databaseUsage": "Database Usage",
+        "apiCalls": "API Calls",
+        "quickActions": "Quick Actions",
+        "userManagement": "User Management",
+        "roleManagement": "Role & Permission",
+        "systemMonitor": "System Monitor",
+        "dataBackup": "Data Backup",
+        "operationLog": "Operation Log",
+        "auditLog": "Audit Log",
+        "recentLogs": "Recent Operation Logs (Top 20)",
+        "viewAllLogs": "View All Logs"
       }
     }
   }
