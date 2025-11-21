@@ -1217,7 +1217,16 @@ const Dashboard: React.FC = () => {
                   description={t('pages.dashboard.restaurantAdmin.empty.noOrderData')}
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
-                  <Button type="primary" onClick={() => fetchRestaurantData()}>
+                  <Button 
+                    type="primary" 
+                    onClick={() => {
+                      if (isFetchingRef.current) {
+                        console.log('[空状态刷新] 正在获取数据，跳过重复调用')
+                        return
+                      }
+                      fetchRestaurantData()
+                    }}
+                  >
                     {t('common.refresh')}
                   </Button>
                 </Empty>
@@ -1235,7 +1244,16 @@ const Dashboard: React.FC = () => {
                   description={t('pages.dashboard.restaurantAdmin.empty.noCarbonData')}
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
-                  <Button type="primary" onClick={() => fetchRestaurantData()}>
+                  <Button 
+                    type="primary" 
+                    onClick={() => {
+                      if (isFetchingRef.current) {
+                        console.log('[空状态刷新] 正在获取数据，跳过重复调用')
+                        return
+                      }
+                      fetchRestaurantData()
+                    }}
+                  >
                     {t('common.refresh')}
                   </Button>
                 </Empty>
