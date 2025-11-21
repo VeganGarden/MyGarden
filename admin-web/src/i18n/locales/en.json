@@ -2920,7 +2920,14 @@
         "viewRestaurants": "View Restaurants",
         "viewStatistics": "View Statistics",
         "viewCrossTenantData": "View Cross-Tenant Data",
-        "topRestaurants": "Top Restaurants (Top 10)"
+        "topRestaurants": "Top Restaurants (Top 10)",
+        "charts": {
+          "orderTrend": "Order Trend Chart",
+          "tenantGrowth": "Tenant Growth Trend Chart",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "newTenants": "New Tenants"
+        }
       },
       "systemAdmin": {
         "totalUsers": "Total System Users",
@@ -2942,6 +2949,53 @@
         "auditLog": "Audit Log",
         "recentLogs": "Recent Operation Logs (Top 20)",
         "viewAllLogs": "View All Logs"
+      },
+      "carbonSpecialist": {
+        "welcome": "Welcome to Carbon Specialist Dashboard",
+        "description": "Here is the core data for platform carbon data and baseline management, including carbon reduction statistics, baseline data overview and other key indicators.",
+        "totalCarbonReduction": "Total Carbon Reduction",
+        "baselineCount": "Baseline Data Count",
+        "activeBaselineCount": "Active Baselines",
+        "pendingBaselineCount": "Pending Baselines",
+        "todayCarbonReduction": "Today's Carbon Reduction",
+        "monthCarbonReduction": "Month's Carbon Reduction",
+        "averageCarbonPerOrder": "Average Carbon per Order",
+        "carbonLabelDistribution": "Carbon Label Distribution",
+        "baselineOverview": "Baseline Data Overview",
+        "viewBaselines": "View Baseline List",
+        "quickActions": "Quick Actions",
+        "manageBaselines": "Manage Baselines",
+        "addBaseline": "Add Baseline",
+        "importBaselines": "Batch Import Baselines",
+        "generateReport": "Generate Carbon Report",
+        "exportData": "Export Carbon Data",
+        "dataQuality": "Data Quality Check",
+        "topRestaurants": "Top Carbon Reduction Restaurants (Top 10)",
+        "table": {
+          "rank": "Rank",
+          "restaurantName": "Restaurant Name",
+          "tenantName": "Tenant Name",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "monthCarbonReduction": "Month's Carbon Reduction",
+          "avgCarbonPerOrder": "Average Carbon per Order"
+        },
+        "labels": {
+          "ultraLow": "Ultra Low Carbon",
+          "low": "Low Carbon",
+          "medium": "Medium Carbon",
+          "high": "High Carbon"
+        },
+        "charts": {
+          "carbonTrend": "Carbon Reduction Trend",
+          "labelDistribution": "Carbon Label Distribution",
+          "carbonReduction": "Carbon Reduction (kg CO₂e)"
+        }
+      },
+      "periods": {
+        "last7Days": "Last 7 Days",
+        "last30Days": "Last 30 Days",
+        "last90Days": "Last 90 Days",
+        "custom": "Custom"
       }
     }
   }

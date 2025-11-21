@@ -2,6 +2,7 @@ import { useAppSelector } from '@/store/hooks'
 import { selectUser } from '@/store/slices/authSlice'
 import { UserRole } from '@/types/role'
 import { reportAPI, platformAPI, onboardingAPI, systemAPI, adminUsersAPI, tenantAPI } from '@/services/cloudbase'
+import { baselineManageAPI } from '@/services/baseline'
 import {
   BookOutlined,
   FireOutlined,
@@ -20,13 +21,20 @@ import {
   EyeOutlined,
   ReloadOutlined,
   BellOutlined,
+  EnvironmentOutlined,
+  FileAddOutlined,
+  UploadOutlined,
+  ExportOutlined,
+  CheckCircleTwoTone,
 } from '@ant-design/icons'
-import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge } from 'antd'
+import { Alert, Card, Col, Row, Statistic, Tag, message, Button, Space, Table, Badge, Select, DatePicker } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
+import * as echarts from 'echarts'
+import { getBrandChartTheme } from '@/utils/chart-theme'
 
 // 餐厅管理员看板数据
 interface RestaurantDashboardData {
@@ -62,6 +70,23 @@ interface SystemAdminDashboardData {
   apiCalls: number
 }
 
+// 碳核算专员看板数据
+interface CarbonSpecialistDashboardData {
+  totalCarbonReduction: number
+  baselineCount: number
+  activeBaselineCount: number
+  pendingBaselineCount: number
+  todayCarbonReduction: number
+  monthCarbonReduction: number
+  averageCarbonPerOrder: number
+  carbonLabelDistribution: {
+    ultraLow: number
+    low: number
+    medium: number
+    high: number
+  }
+}
+
 // 餐厅排行榜数据
 interface TopRestaurant {
   rank: number
@@ -72,6 +97,8 @@ interface TopRestaurant {
   revenue: number
   carbonReduction: number
   certificationLevel?: string
+  monthCarbonReduction?: number
+  averageCarbonPerOrder?: number
 }
 
 // 操作日志数据
@@ -141,6 +168,51 @@ const Dashboard: React.FC = () => {
   // 最近操作日志
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([])
 
+  // 碳核算专员数据
+  const [carbonData, setCarbonData] = useState<CarbonSpecialistDashboardData>({
+    totalCarbonReduction: 0,
+    baselineCount: 0,
+    activeBaselineCount: 0,
+    pendingBaselineCount: 0,
+    todayCarbonReduction: 0,
+    monthCarbonReduction: 0,
+    averageCarbonPerOrder: 0,
+    carbonLabelDistribution: {
+      ultraLow: 0,
+      low: 0,
+      medium: 0,
+      high: 0,
+    },
+  })
+
+  // 碳减排排行榜
+  const [topCarbonRestaurants, setTopCarbonRestaurants] = useState<TopRestaurant[]>([])
+
+  // 趋势数据
+  const [trendsData, setTrendsData] = useState<{
+    orders?: Array<{ date: string; count: number }>
+    revenue?: Array<{ date: string; amount: number }>
+    carbonReduction?: Array<{ date: string; amount: number }>
+    tenantGrowth?: Array<{ date: string; count: number }>
+    userActivity?: Array<{ date: string; count: number }>
+    systemResources?: Array<{ date: string; databaseUsage: number; apiCalls: number }>
+  }>({})
+
+  // 时间范围选择
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>([
+    dayjs().subtract(30, 'day'),
+    dayjs(),
+  ])
+  const [period, setPeriod] = useState<string>('30days')
+
+  // 图表引用
+  const platformTrendChartRef = useRef<HTMLDivElement>(null)
+  const platformGrowthChartRef = useRef<HTMLDivElement>(null)
+  const systemActivityChartRef = useRef<HTMLDivElement>(null)
+  const systemResourceChartRef = useRef<HTMLDivElement>(null)
+  const carbonTrendChartRef = useRef<HTMLDivElement>(null)
+  const carbonLabelChartRef = useRef<HTMLDivElement>(null)
+
   const [loading, setLoading] = useState(true)
 
   const currentRestaurant = currentRestaurantId
@@ -173,13 +245,16 @@ const Dashboard: React.FC = () => {
   // 获取平台运营数据
   const fetchPlatformData = async () => {
     try {
-      // 获取平台统计数据
+      const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
+      const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
+      
+      // 获取平台统计数据（包含趋势数据）
       const [statisticsResult, topRestaurantsResult, applicationsResult, tenantsResult] = await Promise.all([
         platformAPI.statistics.getPlatformStatistics({
-          startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
-          endDate: dayjs().format('YYYY-MM-DD'),
-          period: '30days',
-          includeTrends: false,
+          startDate,
+          endDate,
+          period: period as any,
+          includeTrends: true,
         }),
         platformAPI.statistics.getTopRestaurants({
           sortBy: 'orders',
@@ -205,6 +280,15 @@ const Dashboard: React.FC = () => {
           totalCarbonReduction: stats.totalCarbonReduction || stats.total_carbon_reduction || 0,
           totalUsers: stats.totalUsers || stats.total_users || 0,
         })
+        
+        // 保存趋势数据
+        if (stats.trends) {
+          setTrendsData({
+            orders: stats.trends.orders,
+            revenue: stats.trends.revenue,
+            carbonReduction: stats.trends.carbonReduction,
+          })
+        }
       }
 
       // 获取餐厅排行榜
@@ -283,6 +367,93 @@ const Dashboard: React.FC = () => {
     }
   }
 
+  // 获取碳核算专员数据
+  const fetchCarbonData = async () => {
+    try {
+      const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
+      const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
+      
+      // 获取平台碳数据和基准值数据
+      const [statisticsResult, baselineResult, topCarbonResult] = await Promise.all([
+        platformAPI.statistics.getPlatformStatistics({
+          startDate,
+          endDate,
+          period: period as any,
+          includeTrends: true,
+        }),
+        baselineManageAPI.list({
+          page: 1,
+          pageSize: 1,
+        }),
+        platformAPI.statistics.getTopRestaurants({
+          sortBy: 'carbonReduction',
+          limit: 10,
+        }),
+      ])
+
+      if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
+        const stats = statisticsResult.data
+        const today = dayjs().format('YYYY-MM-DD')
+        const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
+        
+        setCarbonData({
+          totalCarbonReduction: stats.totalCarbonReduction || stats.total_carbon_reduction || 0,
+          baselineCount: baselineResult?.pagination?.total || 0,
+          activeBaselineCount: 0, // 需要从基准值列表筛选
+          pendingBaselineCount: 0, // 需要从基准值列表筛选
+          todayCarbonReduction: 0, // 需要从趋势数据中获取
+          monthCarbonReduction: 0, // 需要从趋势数据中计算
+          averageCarbonPerOrder: stats.averageCarbonPerOrder || stats.average_carbon_per_order || 0,
+          carbonLabelDistribution: {
+            ultraLow: 0,
+            low: 0,
+            medium: 0,
+            high: 0,
+          },
+        })
+        
+        // 保存碳减排趋势数据
+        if (stats.trends && stats.trends.carbonReduction) {
+          setTrendsData(prev => ({
+            ...prev,
+            carbonReduction: stats.trends.carbonReduction,
+          }))
+        }
+      }
+
+      // 获取基准值统计
+      if (baselineResult && baselineResult.success) {
+        const baselines = baselineResult.data || []
+        const activeBaselines = baselines.filter((b: any) => b.status === 'active').length
+        const pendingBaselines = baselines.filter((b: any) => b.status === 'pending').length
+        
+        setCarbonData(prev => ({
+          ...prev,
+          baselineCount: baselineResult.pagination?.total || baselines.length,
+          activeBaselineCount: activeBaselines,
+          pendingBaselineCount: pendingBaselines,
+        }))
+      }
+
+      // 获取碳减排排行榜
+      if (topCarbonResult && topCarbonResult.code === 0 && topCarbonResult.data) {
+        const restaurants = Array.isArray(topCarbonResult.data) ? topCarbonResult.data : []
+        setTopCarbonRestaurants(restaurants.map((restaurant: any, index: number) => ({
+          rank: index + 1,
+          restaurantName: restaurant.restaurantName || restaurant.name || restaurant.restaurant_name || '',
+          tenantId: restaurant.tenantId || restaurant.tenant_id || '',
+          tenantName: restaurant.tenantName || restaurant.tenant_name || '',
+          orders: restaurant.orders || restaurant.order_count || 0,
+          revenue: restaurant.revenue || restaurant.total_revenue || 0,
+          carbonReduction: restaurant.carbonReduction || restaurant.carbon_reduction || 0,
+          certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
+        })))
+      }
+    } catch (error: any) {
+      message.error(error.message || t('common.loadFailed'))
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -293,13 +464,15 @@ const Dashboard: React.FC = () => {
           await fetchPlatformData()
         } else if (isSystemAdmin) {
           await fetchSystemData()
+        } else if (isCarbonSpecialist) {
+          await fetchCarbonData()
         }
       } finally {
         setLoading(false)
       }
     }
     fetchData()
-  }, [currentRestaurantId, currentTenant, user?.role])
+  }, [currentRestaurantId, currentTenant, user?.role, dateRange, period])
 
   // 餐厅管理员看板
   const renderRestaurantAdminDashboard = () => (
@@ -491,9 +664,25 @@ const Dashboard: React.FC = () => {
       <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ margin: 0 }}>{t('pages.dashboard.title')}</h1>
-          <Button icon={<ReloadOutlined />} onClick={() => fetchPlatformData()} loading={loading}>
-            {t('common.refresh')}
-          </Button>
+          <Space>
+            <Select
+              value={period}
+              onChange={setPeriod}
+              style={{ width: 120 }}
+            >
+              <Select.Option value="7days">{t('pages.dashboard.periods.last7Days')}</Select.Option>
+              <Select.Option value="30days">{t('pages.dashboard.periods.last30Days')}</Select.Option>
+              <Select.Option value="90days">{t('pages.dashboard.periods.last90Days')}</Select.Option>
+            </Select>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              format="YYYY-MM-DD"
+            />
+            <Button icon={<ReloadOutlined />} onClick={() => fetchPlatformData()} loading={loading}>
+              {t('common.refresh')}
+            </Button>
+          </Space>
         </div>
 
         <Alert
@@ -613,6 +802,20 @@ const Dashboard: React.FC = () => {
                 valueStyle={{ color: '#13c2c2' }}
                 loading={loading}
               />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 趋势图表区域 */}
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={12}>
+            <Card title={t('pages.dashboard.platformOperator.charts.orderTrend')}>
+              <div ref={platformTrendChartRef} style={{ width: '100%', height: 300 }} />
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card title={t('pages.dashboard.platformOperator.charts.tenantGrowth')}>
+              <div ref={platformGrowthChartRef} style={{ width: '100%', height: 300 }} />
             </Card>
           </Col>
         </Row>
@@ -886,11 +1089,525 @@ const Dashboard: React.FC = () => {
     )
   }
 
+  // 图表渲染函数
+  const renderPlatformTrendChart = () => {
+    if (!platformTrendChartRef.current || !trendsData.orders || trendsData.orders.length === 0) return
+
+    const existingChart = echarts.getInstanceByDom(platformTrendChartRef.current)
+    if (existingChart) {
+      existingChart.dispose()
+    }
+
+    const chart = echarts.init(platformTrendChartRef.current)
+    const theme = getBrandChartTheme()
+    const option = {
+      ...theme,
+      title: {
+        text: t('pages.dashboard.platformOperator.charts.orderTrend'),
+        left: 'center',
+      },
+      tooltip: {
+        trigger: 'axis',
+      },
+      legend: {
+        data: [
+          t('pages.dashboard.platformOperator.charts.orders'),
+          t('pages.dashboard.platformOperator.charts.revenue'),
+        ],
+        bottom: 0,
+      },
+      xAxis: {
+        type: 'category',
+        data: trendsData.orders.map((item) => dayjs(item.date).format('MM-DD')),
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: t('pages.dashboard.platformOperator.charts.orders'),
+          position: 'left',
+        },
+        {
+          type: 'value',
+          name: t('pages.dashboard.platformOperator.charts.revenue'),
+          position: 'right',
+        },
+      ],
+      series: [
+        {
+          name: t('pages.dashboard.platformOperator.charts.orders'),
+          type: 'line',
+          data: trendsData.orders.map((item) => item.count),
+          smooth: true,
+        },
+        {
+          name: t('pages.dashboard.platformOperator.charts.revenue'),
+          type: 'line',
+          yAxisIndex: 1,
+          data: trendsData.revenue?.map((item) => item.amount) || [],
+          smooth: true,
+        },
+      ],
+    }
+
+    chart.setOption(option)
+  }
+
+  const renderPlatformGrowthChart = () => {
+    if (!platformGrowthChartRef.current) return
+
+    const existingChart = echarts.getInstanceByDom(platformGrowthChartRef.current)
+    if (existingChart) {
+      existingChart.dispose()
+    }
+
+    const chart = echarts.init(platformGrowthChartRef.current)
+    const theme = getBrandChartTheme()
+    // 这里需要从API获取租户增长数据，暂时使用模拟数据
+    const option = {
+      ...theme,
+      title: {
+        text: t('pages.dashboard.platformOperator.charts.tenantGrowth'),
+        left: 'center',
+      },
+      tooltip: {
+        trigger: 'axis',
+      },
+      xAxis: {
+        type: 'category',
+        data: [],
+      },
+      yAxis: {
+        type: 'value',
+        name: t('pages.dashboard.platformOperator.charts.newTenants'),
+      },
+      series: [
+        {
+          name: t('pages.dashboard.platformOperator.charts.newTenants'),
+          type: 'bar',
+          data: [],
+        },
+      ],
+    }
+
+    chart.setOption(option)
+  }
+
+  const renderCarbonTrendChart = () => {
+    if (!carbonTrendChartRef.current || !trendsData.carbonReduction || trendsData.carbonReduction.length === 0) return
+
+    const existingChart = echarts.getInstanceByDom(carbonTrendChartRef.current)
+    if (existingChart) {
+      existingChart.dispose()
+    }
+
+    const chart = echarts.init(carbonTrendChartRef.current)
+    const theme = getBrandChartTheme()
+    const option = {
+      ...theme,
+      title: {
+        text: t('pages.dashboard.carbonSpecialist.charts.carbonTrend'),
+        left: 'center',
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const param = params[0]
+          return `${param.axisValue}<br/>${param.seriesName}: ${param.value.toFixed(2)} kg CO₂e`
+        },
+      },
+      xAxis: {
+        type: 'category',
+        data: trendsData.carbonReduction.map((item) => dayjs(item.date).format('MM-DD')),
+      },
+      yAxis: {
+        type: 'value',
+        name: t('pages.dashboard.carbonSpecialist.charts.carbonReduction'),
+      },
+      series: [
+        {
+          name: t('pages.dashboard.carbonSpecialist.charts.carbonReduction'),
+          type: 'line',
+          data: trendsData.carbonReduction.map((item) => item.amount),
+          smooth: true,
+          areaStyle: {},
+        },
+      ],
+    }
+
+    chart.setOption(option)
+  }
+
+  const renderCarbonLabelChart = () => {
+    if (!carbonLabelChartRef.current) return
+
+    const existingChart = echarts.getInstanceByDom(carbonLabelChartRef.current)
+    if (existingChart) {
+      existingChart.dispose()
+    }
+
+    const chart = echarts.init(carbonLabelChartRef.current)
+    const theme = getBrandChartTheme()
+    const { carbonLabelDistribution } = carbonData
+    const option = {
+      ...theme,
+      title: {
+        text: t('pages.dashboard.carbonSpecialist.charts.labelDistribution'),
+        left: 'center',
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: '{a} <br/>{b}: {c} ({d}%)',
+      },
+      legend: {
+        orient: 'vertical',
+        left: 'left',
+        data: [
+          t('pages.dashboard.carbonSpecialist.labels.ultraLow'),
+          t('pages.dashboard.carbonSpecialist.labels.low'),
+          t('pages.dashboard.carbonSpecialist.labels.medium'),
+          t('pages.dashboard.carbonSpecialist.labels.high'),
+        ],
+      },
+      series: [
+        {
+          name: t('pages.dashboard.carbonSpecialist.charts.labelDistribution'),
+          type: 'pie',
+          radius: '50%',
+          data: [
+            {
+              value: carbonLabelDistribution.ultraLow,
+              name: t('pages.dashboard.carbonSpecialist.labels.ultraLow'),
+            },
+            {
+              value: carbonLabelDistribution.low,
+              name: t('pages.dashboard.carbonSpecialist.labels.low'),
+            },
+            {
+              value: carbonLabelDistribution.medium,
+              name: t('pages.dashboard.carbonSpecialist.labels.medium'),
+            },
+            {
+              value: carbonLabelDistribution.high,
+              name: t('pages.dashboard.carbonSpecialist.labels.high'),
+            },
+          ],
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)',
+            },
+          },
+        },
+      ],
+    }
+
+    chart.setOption(option)
+  }
+
+  // 图表渲染效果
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isPlatformOperator) {
+        renderPlatformTrendChart()
+        renderPlatformGrowthChart()
+      } else if (isCarbonSpecialist) {
+        renderCarbonTrendChart()
+        renderCarbonLabelChart()
+      }
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [trendsData, carbonData, isPlatformOperator, isCarbonSpecialist])
+
+  // 碳核算专员看板
+  const renderCarbonSpecialistDashboard = () => {
+    const carbonRestaurantColumns: ColumnsType<TopRestaurant> = [
+      {
+        title: t('pages.dashboard.carbonSpecialist.table.rank'),
+        dataIndex: 'rank',
+        key: 'rank',
+        width: 80,
+        render: (rank: number) => {
+          if (rank === 1) return <Tag color="gold">🥇 {rank}</Tag>
+          if (rank === 2) return <Tag color="default">🥈 {rank}</Tag>
+          if (rank === 3) return <Tag color="orange">🥉 {rank}</Tag>
+          return rank
+        },
+      },
+      {
+        title: t('pages.dashboard.carbonSpecialist.table.restaurantName'),
+        dataIndex: 'restaurantName',
+        key: 'restaurantName',
+      },
+      {
+        title: t('pages.dashboard.carbonSpecialist.table.tenantName'),
+        dataIndex: 'tenantName',
+        key: 'tenantName',
+      },
+      {
+        title: t('pages.dashboard.carbonSpecialist.table.totalCarbonReduction'),
+        dataIndex: 'carbonReduction',
+        key: 'carbonReduction',
+        width: 150,
+        render: (value: number) => `${value.toLocaleString()} kg`,
+        sorter: (a, b) => a.carbonReduction - b.carbonReduction,
+      },
+      {
+        title: t('pages.dashboard.carbonSpecialist.table.monthCarbonReduction'),
+        dataIndex: 'monthCarbonReduction',
+        key: 'monthCarbonReduction',
+        width: 150,
+        render: (value: number) => `${(value || 0).toLocaleString()} kg`,
+      },
+      {
+        title: t('pages.dashboard.carbonSpecialist.table.avgCarbonPerOrder'),
+        dataIndex: 'averageCarbonPerOrder',
+        key: 'averageCarbonPerOrder',
+        width: 150,
+        render: (value: number) => `${(value || 0).toFixed(2)} kg/单`,
+      },
+    ]
+
+    return (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h1 style={{ margin: 0 }}>{t('pages.dashboard.title')}</h1>
+          <Space>
+            <Select
+              value={period}
+              onChange={setPeriod}
+              style={{ width: 120 }}
+            >
+              <Select.Option value="7days">{t('pages.dashboard.periods.last7Days')}</Select.Option>
+              <Select.Option value="30days">{t('pages.dashboard.periods.last30Days')}</Select.Option>
+              <Select.Option value="90days">{t('pages.dashboard.periods.last90Days')}</Select.Option>
+            </Select>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              format="YYYY-MM-DD"
+            />
+            <Button icon={<ReloadOutlined />} onClick={() => fetchCarbonData()} loading={loading}>
+              {t('common.refresh')}
+            </Button>
+          </Space>
+        </div>
+
+        <Alert
+          message={t('pages.dashboard.carbonSpecialist.welcome')}
+          description={t('pages.dashboard.carbonSpecialist.description')}
+          type="info"
+          showIcon
+          style={{ marginBottom: 24 }}
+        />
+
+        {/* 碳数据核心指标 */}
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.totalCarbonReduction')}
+                value={carbonData.totalCarbonReduction}
+                suffix="kg CO₂e"
+                prefix={<FireOutlined />}
+                valueStyle={{ color: '#22c55e' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card
+              style={{ cursor: 'pointer' }}
+              onClick={() => navigate('/carbon/baseline')}
+            >
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.baselineCount')}
+                value={carbonData.baselineCount}
+                prefix={<BarChartOutlined />}
+                valueStyle={{ color: '#3b82f6' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.activeBaselineCount')}
+                value={carbonData.activeBaselineCount}
+                suffix={`/ ${carbonData.baselineCount}`}
+                prefix={<CheckCircleTwoTone twoToneColor="#52c41a" />}
+                valueStyle={{ color: '#52c41a' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card
+              style={{ cursor: carbonData.pendingBaselineCount > 0 ? 'pointer' : 'default' }}
+              onClick={() => carbonData.pendingBaselineCount > 0 && navigate('/carbon/baseline')}
+            >
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.pendingBaselineCount')}
+                value={carbonData.pendingBaselineCount}
+                prefix={<BellOutlined />}
+                valueStyle={{
+                  color: carbonData.pendingBaselineCount > 0 ? '#f5222d' : '#8c8c8c',
+                }}
+                loading={loading}
+              />
+              {carbonData.pendingBaselineCount > 0 && (
+                <Badge count={carbonData.pendingBaselineCount} style={{ marginTop: 8 }} />
+              )}
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 碳数据统计 */}
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.todayCarbonReduction')}
+                value={carbonData.todayCarbonReduction}
+                suffix="kg CO₂e"
+                prefix={<BarChartOutlined />}
+                valueStyle={{ color: '#22c55e' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.monthCarbonReduction')}
+                value={carbonData.monthCarbonReduction}
+                suffix="kg CO₂e"
+                prefix={<BarChartOutlined />}
+                valueStyle={{ color: '#13c2c2' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.averageCarbonPerOrder')}
+                value={carbonData.averageCarbonPerOrder}
+                suffix="kg CO₂e/单"
+                prefix={<ShoppingCartOutlined />}
+                valueStyle={{ color: '#fa8c16' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.carbonLabelDistribution')}
+                value={Object.values(carbonData.carbonLabelDistribution).reduce((a, b) => a + b, 0)}
+                prefix={<TrophyOutlined />}
+                valueStyle={{ color: '#722ed1' }}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 趋势图表 */}
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={12}>
+            <Card>
+              <div ref={carbonTrendChartRef} style={{ width: '100%', height: 300 }} />
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card>
+              <div ref={carbonLabelChartRef} style={{ width: '100%', height: 300 }} />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 基准值数据概览 */}
+        <Card title={t('pages.dashboard.carbonSpecialist.baselineOverview')} style={{ marginBottom: 24 }}>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.baselineCount')}
+                value={carbonData.baselineCount}
+                prefix={<BarChartOutlined />}
+              />
+            </Col>
+            <Col span={8}>
+              <Statistic
+                title={t('pages.dashboard.carbonSpecialist.activeBaselineCount')}
+                value={carbonData.activeBaselineCount}
+                prefix={<CheckCircleTwoTone twoToneColor="#52c41a" />}
+              />
+            </Col>
+            <Col span={8}>
+              <Button
+                type="primary"
+                icon={<EyeOutlined />}
+                onClick={() => navigate('/carbon/baseline')}
+              >
+                {t('pages.dashboard.carbonSpecialist.viewBaselines')}
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* 快速操作区域 */}
+        <Card title={t('pages.dashboard.carbonSpecialist.quickActions')} style={{ marginBottom: 24 }}>
+          <Space wrap>
+            <Button
+              type="primary"
+              icon={<BarChartOutlined />}
+              onClick={() => navigate('/carbon/baseline')}
+            >
+              {t('pages.dashboard.carbonSpecialist.manageBaselines')}
+            </Button>
+            <Button icon={<FileAddOutlined />} onClick={() => navigate('/carbon/baseline/add')}>
+              {t('pages.dashboard.carbonSpecialist.addBaseline')}
+            </Button>
+            <Button icon={<UploadOutlined />} onClick={() => navigate('/carbon/baseline/import')}>
+              {t('pages.dashboard.carbonSpecialist.importBaselines')}
+            </Button>
+            <Button icon={<ExportOutlined />} onClick={() => navigate('/report/carbon')}>
+              {t('pages.dashboard.carbonSpecialist.generateReport')}
+            </Button>
+            <Button icon={<ExportOutlined />} onClick={() => navigate('/report/carbon')}>
+              {t('pages.dashboard.carbonSpecialist.exportData')}
+            </Button>
+            <Button icon={<CheckCircleOutlined />} onClick={() => navigate('/carbon/baseline')}>
+              {t('pages.dashboard.carbonSpecialist.dataQuality')}
+            </Button>
+          </Space>
+        </Card>
+
+        {/* 碳减排排行榜 */}
+        <Card title={t('pages.dashboard.carbonSpecialist.topRestaurants')}>
+          <Table
+            columns={carbonRestaurantColumns}
+            dataSource={topCarbonRestaurants}
+            rowKey="rank"
+            loading={loading}
+            pagination={false}
+          />
+        </Card>
+      </>
+    )
+  }
+
   // 根据角色渲染不同的看板
   if (isPlatformOperator) {
     return <div>{renderPlatformOperatorDashboard()}</div>
   } else if (isSystemAdmin) {
     return <div>{renderSystemAdminDashboard()}</div>
+  } else if (isCarbonSpecialist) {
+    return <div>{renderCarbonSpecialistDashboard()}</div>
   } else if (isRestaurantAdmin) {
     return <div>{renderRestaurantAdminDashboard()}</div>
   }

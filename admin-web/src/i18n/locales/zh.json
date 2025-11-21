@@ -3063,7 +3063,14 @@
         "viewRestaurants": "查看餐厅列表",
         "viewStatistics": "查看平台统计",
         "viewCrossTenantData": "查看跨租户数据",
-        "topRestaurants": "餐厅排行榜（Top 10）"
+        "topRestaurants": "餐厅排行榜（Top 10）",
+        "charts": {
+          "orderTrend": "订单趋势图",
+          "tenantGrowth": "租户增长趋势图",
+          "orders": "订单数",
+          "revenue": "收入",
+          "newTenants": "新增租户数"
+        }
       },
       "systemAdmin": {
         "totalUsers": "系统用户总数",
@@ -3085,6 +3092,53 @@
         "auditLog": "审计日志",
         "recentLogs": "最近操作日志（Top 20）",
         "viewAllLogs": "查看全部日志"
+      },
+      "carbonSpecialist": {
+        "welcome": "欢迎使用碳核算专员数据看板",
+        "description": "这里是平台碳数据和基准值管理的核心数据，包括碳减排统计、基准值数据概览等关键指标。",
+        "totalCarbonReduction": "平台总碳减排量",
+        "baselineCount": "基准值数据量",
+        "activeBaselineCount": "活跃基准值数",
+        "pendingBaselineCount": "待审核基准值",
+        "todayCarbonReduction": "今日碳减排量",
+        "monthCarbonReduction": "本月碳减排量",
+        "averageCarbonPerOrder": "平均每单碳减排",
+        "carbonLabelDistribution": "碳标签分布",
+        "baselineOverview": "基准值数据概览",
+        "viewBaselines": "查看基准值列表",
+        "quickActions": "快速操作",
+        "manageBaselines": "基准值管理",
+        "addBaseline": "添加基准值",
+        "importBaselines": "批量导入基准值",
+        "generateReport": "碳报告生成",
+        "exportData": "碳数据导出",
+        "dataQuality": "数据质量检查",
+        "topRestaurants": "碳减排排行榜（Top 10）",
+        "table": {
+          "rank": "排名",
+          "restaurantName": "餐厅名称",
+          "tenantName": "租户名称",
+          "totalCarbonReduction": "累计碳减排量",
+          "monthCarbonReduction": "本月碳减排量",
+          "avgCarbonPerOrder": "平均每单碳减排"
+        },
+        "labels": {
+          "ultraLow": "超低碳",
+          "low": "低碳",
+          "medium": "中碳",
+          "high": "高碳"
+        },
+        "charts": {
+          "carbonTrend": "碳减排趋势图",
+          "labelDistribution": "碳标签分布图",
+          "carbonReduction": "碳减排量（kg CO₂e）"
+        }
+      },
+      "periods": {
+        "last7Days": "近7天",
+        "last30Days": "近30天",
+        "last90Days": "近90天",
+        "custom": "自定义"
       }
     },
     "operationLog": {
