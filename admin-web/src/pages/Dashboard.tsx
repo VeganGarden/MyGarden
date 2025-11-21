@@ -1206,28 +1206,127 @@ const Dashboard: React.FC = () => {
           )}
         </Card>
 
-        {/* 快速操作区域 */}
+        {/* 快速入口区域 */}
         <Card title={t('pages.dashboard.quickAccess.title')}>
-          <Space wrap>
-            <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/orders')}>
-              {t('pages.dashboard.quickAccess.modules.operation')}
-            </Button>
-            <Button icon={<FileTextOutlined />} onClick={() => navigate('/reports')}>
-              {t('pages.dashboard.quickAccess.modules.report')}
-            </Button>
-            <Button icon={<BookOutlined />} onClick={() => navigate('/recipes')}>
-              {t('pages.dashboard.restaurantAdmin.quickActions.manageRecipes')}
-            </Button>
-            <Button icon={<TrophyOutlined />} onClick={() => navigate('/certification')}>
-              {t('pages.dashboard.quickAccess.modules.certification')}
-            </Button>
-            <Button icon={<FireOutlined />} onClick={() => navigate('/carbon')}>
-              {t('pages.dashboard.quickAccess.modules.carbon')}
-            </Button>
-            <Button icon={<EnvironmentOutlined />} onClick={() => navigate('/traceability')}>
-              {t('pages.dashboard.quickAccess.modules.traceability')}
-            </Button>
-          </Space>
+          <Row gutter={[16, 16]}>
+            {/* 第一行：3个卡片 */}
+            <Col xs={24} sm={24} md={12} lg={8} xl={8}>
+              <Card
+                hoverable
+                onClick={() => navigate('/orders')}
+                style={{ cursor: 'pointer', height: '100%' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ fontSize: 24, color: '#fa8c16' }}>
+                    <ShoppingCartOutlined />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      {t('pages.dashboard.quickAccess.modules.operation')}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={8} xl={8}>
+              <Card
+                hoverable
+                onClick={() => navigate('/reports')}
+                style={{ cursor: 'pointer', height: '100%' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ fontSize: 24, color: '#1890ff' }}>
+                    <FileTextOutlined />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      {t('pages.dashboard.quickAccess.modules.report')}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={8} xl={8}>
+              <Card
+                hoverable
+                onClick={() => navigate('/recipes')}
+                style={{ cursor: 'pointer', height: '100%' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ fontSize: 24, color: '#3f8600' }}>
+                    <BookOutlined />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      {t('pages.dashboard.restaurantAdmin.quickActions.manageRecipes')}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            {/* 第二行：2个卡片 */}
+            <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Card
+                hoverable
+                onClick={() => navigate('/certification')}
+                style={{ cursor: 'pointer', height: '100%' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ fontSize: 24, color: '#1890ff' }}>
+                    <TrophyOutlined />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      {t('pages.dashboard.quickAccess.modules.certification')}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Card
+                hoverable
+                onClick={() => navigate('/carbon')}
+                style={{ cursor: 'pointer', height: '100%' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ fontSize: 24, color: '#cf1322' }}>
+                    <FireOutlined />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      {t('pages.dashboard.quickAccess.modules.carbon')}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            {/* 第三行：1个卡片 */}
+            <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+              <Card
+                hoverable
+                onClick={() => navigate('/traceability')}
+                style={{ cursor: 'pointer', height: '100%' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ fontSize: 24, color: '#722ed1' }}>
+                    <EnvironmentOutlined />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      {t('pages.dashboard.quickAccess.modules.traceability')}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          </Row>
         </Card>
       </>
     )
