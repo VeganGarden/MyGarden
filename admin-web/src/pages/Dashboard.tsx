@@ -2442,11 +2442,18 @@ const Dashboard: React.FC = () => {
           t('pages.dashboard.restaurantAdmin.charts.orders'),
           t('pages.dashboard.restaurantAdmin.charts.revenue'),
         ],
-        bottom: 0,
+        bottom: 0, // 图例放在底部
         itemGap: 20, // 增加图例项之间的间距
         textStyle: {
           fontSize: 12, // 减小字体，避免重叠
         },
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%', // 为图例和X轴标签留出空间
+        top: '15%', // 为标题和工具箱留出空间
+        containLabel: true, // 包含坐标轴标签
       },
       xAxis: {
         type: 'category',
@@ -2460,7 +2467,7 @@ const Dashboard: React.FC = () => {
             // 如果日期标签太长，可以进一步优化
             return value
           },
-          margin: 8, // 增加标签与轴线的距离
+          margin: 12, // 增加标签与轴线的距离，避免与图例重叠
         },
         axisTick: {
           alignWithLabel: true, // 刻度线与标签对齐
@@ -2472,11 +2479,15 @@ const Dashboard: React.FC = () => {
           type: 'value',
           name: t('pages.dashboard.restaurantAdmin.charts.orders'),
           position: 'left',
+          nameLocation: 'middle',
+          nameGap: 50,
         },
         {
           type: 'value',
           name: t('pages.dashboard.restaurantAdmin.charts.revenue'),
           position: 'right',
+          nameLocation: 'middle',
+          nameGap: 50,
         },
       ],
       series: [
