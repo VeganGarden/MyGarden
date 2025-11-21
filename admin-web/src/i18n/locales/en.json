@@ -2904,6 +2904,210 @@
           "operation": "Restaurant Operations - Order management, points system, operation ledger, behavior statistics",
           "report": "Reports & Ecosystem Expansion - Data reports, ESG reports, external interfaces, ecosystem integration"
         }
+      },
+      "platformOperator": {
+        "totalTenants": "Total Tenants",
+        "activeTenants": "Active Tenants",
+        "totalRestaurants": "Total Restaurants",
+        "pendingApplications": "Pending Applications",
+        "totalOrders": "Total Orders",
+        "totalRevenue": "Total Revenue",
+        "totalCarbonReduction": "Total Carbon Reduction",
+        "totalUsers": "Total Users",
+        "quickActions": "Quick Actions",
+        "approveApplications": "Approve Applications",
+        "viewTenants": "View Tenants",
+        "viewRestaurants": "View Restaurants",
+        "viewStatistics": "View Statistics",
+        "viewCrossTenantData": "View Cross-Tenant Data",
+        "topRestaurants": "Top Restaurants (Top 10)",
+        "charts": {
+          "orderTrend": "Order Trend Chart",
+          "tenantGrowth": "Tenant Growth Trend Chart",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "newTenants": "New Tenants",
+          "newRestaurants": "New Restaurants",
+          "count": "Count"
+        }
+      },
+      "systemAdmin": {
+        "totalUsers": "Total System Users",
+        "activeUsers": "Active Users",
+        "systemAlerts": "System Alerts",
+        "backupStatus": "Backup Status",
+        "backupSuccess": "Backup Success",
+        "backupUnknown": "Status Unknown",
+        "todayLogins": "Today's Logins",
+        "todayOperations": "Today's Operations",
+        "databaseUsage": "Database Usage",
+        "apiCalls": "API Calls",
+        "quickActions": "Quick Actions",
+        "userManagement": "User Management",
+        "roleManagement": "Role & Permission",
+        "systemMonitor": "System Monitor",
+        "dataBackup": "Data Backup",
+        "operationLog": "Operation Log",
+        "auditLog": "Audit Log",
+        "recentLogs": "Recent Operation Logs (Top 20)",
+        "viewAllLogs": "View All Logs"
+      },
+      "carbonSpecialist": {
+        "welcome": "Welcome to Carbon Specialist Dashboard",
+        "description": "Here is the core data for platform carbon data and baseline management, including carbon reduction statistics, baseline data overview and other key indicators.",
+        "totalCarbonReduction": "Total Carbon Reduction",
+        "baselineCount": "Baseline Data Count",
+        "activeBaselineCount": "Active Baselines",
+        "pendingBaselineCount": "Pending Baselines",
+        "todayCarbonReduction": "Today's Carbon Reduction",
+        "monthCarbonReduction": "Month's Carbon Reduction",
+        "averageCarbonPerOrder": "Average Carbon per Order",
+        "carbonLabelDistribution": "Carbon Label Distribution",
+        "baselineOverview": "Baseline Data Overview",
+        "viewBaselines": "View Baseline List",
+        "quickActions": "Quick Actions",
+        "manageBaselines": "Manage Baselines",
+        "addBaseline": "Add Baseline",
+        "importBaselines": "Batch Import Baselines",
+        "generateReport": "Generate Carbon Report",
+        "exportData": "Export Carbon Data",
+        "dataQuality": "Data Quality Check",
+        "topRestaurants": "Top Carbon Reduction Restaurants (Top 10)",
+        "table": {
+          "rank": "Rank",
+          "restaurantName": "Restaurant Name",
+          "tenantName": "Tenant Name",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "monthCarbonReduction": "Month's Carbon Reduction",
+          "avgCarbonPerOrder": "Average Carbon per Order"
+        },
+        "labels": {
+          "ultraLow": "Ultra Low Carbon",
+          "low": "Low Carbon",
+          "medium": "Medium Carbon",
+          "high": "High Carbon"
+        },
+        "charts": {
+          "carbonTrend": "Carbon Reduction Trend",
+          "labelDistribution": "Carbon Label Distribution",
+          "carbonReduction": "Carbon Reduction (kg CO₂e)"
+        }
+      },
+      "restaurantAdmin": {
+        "charts": {
+          "orderTrend": "Order Trend Chart",
+          "carbonTrend": "Carbon Reduction Trend Chart",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "carbonReduction": "Carbon Reduction (kg CO₂e)",
+          "zoom": "Area Zoom",
+          "restore": "Restore",
+          "saveAsImage": "Save as Image"
+        },
+        "todos": {
+          "title": "Todo Items",
+          "certification": {
+            "title": "Pending Certification Applications"
+          },
+          "recipe": {
+            "title": "Pending Recipe Reviews"
+          },
+          "order": {
+            "title": "Pending Orders"
+          },
+          "notification": {
+            "title": "System Notifications"
+          },
+          "view": "View"
+        },
+        "quickActions": {
+          "manageRecipes": "Manage Recipes"
+        },
+        "topRecipes": "Top Recipes (Top 10)",
+        "viewAllRecipes": "View All Recipes",
+        "vsYesterday": "vs Yesterday",
+        "tooltips": {
+          "totalRecipes": "Total number of recipes available for the restaurant, can be used for menu management. Click to view recipe list.",
+          "totalCarbonReduction": "Total cumulative carbon reduction achieved by the restaurant through providing low-carbon dishes. Click to view carbon footprint data.",
+          "certifiedRestaurants": "Number of restaurants under the current tenant that have obtained Climate Restaurant certification. Click to view certification management.",
+          "activeUsers": "Number of users who placed orders or interacted with the restaurant in the last 30 days",
+          "todayOrders": "Total number of orders today, including completed and in-progress orders. Click to view order management.",
+          "todayRevenue": "Total revenue today, including revenue from completed orders. Click to view operation reports."
+        },
+        "empty": {
+          "noOrderData": "No order trend data available",
+          "noCarbonData": "No carbon reduction trend data available",
+          "noRecipeData": "No top recipe data available",
+          "goToRecipes": "Go to Recipe Management"
+        }
+      },
+      "periods": {
+        "last7Days": "Last 7 Days",
+        "last30Days": "Last 30 Days",
+        "last90Days": "Last 90 Days",
+        "custom": "Custom"
+      },
+      "exportButton": "Export Data",
+      "exporting": "Exporting data...",
+      "tooltips": {
+        "totalTenants": "Click to view tenant list",
+        "activeTenants": "Number of currently active tenants",
+        "totalRestaurants": "Total number of restaurants on the platform",
+        "totalOrders": "Total number of orders on the platform",
+        "totalRevenue": "Total revenue of the platform",
+        "totalCarbonReduction": "Total carbon reduction of the platform",
+        "totalUsers": "Total number of users on the platform"
+      },
+      "export": {
+        "platformOperator": {
+          "title": "Platform Operator Data Report",
+          "sheetName": "Platform Operator Data",
+          "fileName": "Platform Operator Report",
+          "coreMetrics": "Core Metrics",
+          "businessData": "Business Data"
+        },
+        "systemAdmin": {
+          "title": "System Admin Data Report",
+          "sheetName": "System Admin Data",
+          "fileName": "System Admin Report",
+          "systemHealth": "System Health Metrics",
+          "usageStats": "System Usage Statistics"
+        },
+        "carbonSpecialist": {
+          "title": "Carbon Specialist Data Report",
+          "sheetName": "Carbon Data Report",
+          "fileName": "Carbon Data Report",
+          "coreMetrics": "Carbon Data Core Metrics",
+          "carbonStats": "Carbon Data Statistics"
+        },
+        "restaurantAdmin": {
+          "title": "Restaurant Dashboard Report",
+          "sheetName": "Restaurant Data Report",
+          "fileName": "Restaurant Dashboard",
+          "coreMetrics": "Core Metrics",
+          "todayData": "Today's Operational Data",
+          "trendData": "Trend Data",
+          "recipeName": "Recipe Name"
+        },
+        "table": {
+          "rank": "Rank",
+          "restaurantName": "Restaurant Name",
+          "tenantName": "Tenant Name",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "carbonReduction": "Carbon Reduction",
+          "certificationLevel": "Certification Level",
+          "totalCarbonReduction": "Total Carbon Reduction",
+          "monthCarbonReduction": "Month's Carbon Reduction",
+          "avgCarbonPerOrder": "Average Carbon per Order",
+          "time": "Time",
+          "username": "Username",
+          "role": "Role",
+          "action": "Action",
+          "resource": "Resource",
+          "status": "Status"
+        },
+        "notCertified": "Not Certified"
       }
     }
   }

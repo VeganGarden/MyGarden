@@ -5,6 +5,7 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command // 腾讯云开发数据库命令对象
 const { checkPermission } = require('./permission')
 
 async function requireSystemAdmin(event, context) {
@@ -2452,8 +2453,6 @@ async function updateOrderStatus(orderId, status) {
 async function getOrderCarbonStats(data) {
   const { restaurantId, startDate, endDate } = data || {}
   
-  console.log('🔍 getOrderCarbonStats - 接收参数:', { restaurantId, startDate, endDate })
-
   if (!restaurantId) {
     return {
       code: 400,
@@ -2465,8 +2464,6 @@ async function getOrderCarbonStats(data) {
     const query = db.collection('restaurant_orders').where({
       restaurantId: restaurantId,
     })
-    
-    console.log('📊 getOrderCarbonStats - 查询条件: restaurantId =', restaurantId)
 
     // 添加日期筛选
     if (startDate || endDate) {
@@ -2484,10 +2481,6 @@ async function getOrderCarbonStats(data) {
 
     const result = await query.orderBy('orderDate', 'desc').get()
     const orders = result.data || []
-    console.log('📊 getOrderCarbonStats - 查询到订单数量:', orders.length)
-    if (orders.length > 0) {
-      console.log('📊 getOrderCarbonStats - 第一条订单示例:', JSON.stringify(orders[0], null, 2))
-    }
 
     // 计算统计数据
     let todayCarbon = 0
@@ -2700,8 +2693,6 @@ async function generateCarbonReport(data) {
 async function getMenuList(data) {
   const { restaurantId, page = 1, pageSize = 20 } = data || {}
   
-  console.log('🔍 getMenuList - 接收参数:', { restaurantId, page, pageSize })
-
   if (!restaurantId) {
     return {
       code: 400,
@@ -2719,7 +2710,6 @@ async function getMenuList(data) {
     
     // 首先尝试 restaurant_menu_items
     try {
-      console.log('📊 getMenuList - 查询 restaurant_menu_items, restaurantId =', restaurantId)
       const menuItemsResult = await db.collection('restaurant_menu_items')
         .where({
           restaurantId: restaurantId,
@@ -2729,13 +2719,11 @@ async function getMenuList(data) {
         .orderBy('createdAt', 'desc')
         .get()
       
-      console.log('📊 getMenuList - restaurant_menu_items 查询结果数量:', menuItemsResult.data?.length || 0)
       if (menuItemsResult.data && menuItemsResult.data.length > 0) {
         menus = menuItemsResult.data
-        console.log('✅ getMenuList - 从 restaurant_menu_items 获取到数据')
       }
     } catch (error) {
-      console.log('❌ restaurant_menu_items 集合查询失败，尝试其他集合:', error.message)
+      // 静默处理错误，继续尝试其他集合
     }
     
     // 如果 restaurant_menu_items 没有数据，尝试 restaurant_menus
@@ -2754,7 +2742,7 @@ async function getMenuList(data) {
           menus = menusResult.data
         }
       } catch (error) {
-        console.log('restaurant_menus 集合查询失败，尝试 menu_items')
+        // 静默处理错误，继续尝试其他集合
       }
     }
     
@@ -2774,7 +2762,7 @@ async function getMenuList(data) {
           menus = itemsResult.data
         }
       } catch (error) {
-        console.log('menu_items 集合查询失败')
+        // 静默处理错误
       }
     }
 
@@ -2790,11 +2778,6 @@ async function getMenuList(data) {
       status: menu.status || 'draft',
       restaurantId: menu.restaurantId || restaurantId,
     }))
-    
-    console.log('📊 getMenuList - 格式化后的菜单数量:', formattedMenus.length)
-    if (formattedMenus.length > 0) {
-      console.log('📊 getMenuList - 第一条菜单示例:', JSON.stringify(formattedMenus[0], null, 2))
-    }
 
     return {
       code: 0,
@@ -2817,7 +2800,7 @@ async function getMenuList(data) {
  * @param {Object} currentUser - 当前登录用户信息
  */
 async function getDashboard(data, currentUser) {
-  const { restaurantId, tenantId } = data || {}
+  const { restaurantId, tenantId, includeTopRecipes, includeTrends, startDate, endDate } = data || {}
   const userRole = currentUser?.role || ''
 
   // 构建查询条件
@@ -2860,11 +2843,12 @@ async function getDashboard(data, currentUser) {
           // 如果没有指定具体餐厅，则查询租户下所有餐厅
           // 菜谱可能使用 restaurantId 或 tenantId 字段，需要同时查询
           // 使用 _.or() 构建复合查询条件
-          recipeQuery = _.or([
+          // 注意：recipeQuery是const，不能直接赋值，需要使用db.command.or()
+          Object.assign(recipeQuery, _.or([
             { restaurantId: _.in(restaurantIds) },
             { tenantId: _.in(restaurantIds) },
             { tenantId: targetTenantId } // 也支持直接使用租户ID
-          ])
+          ]))
           orderQuery.restaurantId = _.in(restaurantIds)
         }
       } else {
@@ -3066,7 +3050,197 @@ async function getDashboard(data, currentUser) {
     console.error('统计今日订单失败:', error)
   }
 
-  return {
+  // 6. 获取趋势数据（订单趋势和碳减排趋势）
+  let trends = null
+  if (includeTrends && startDate && endDate) {
+    try {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      
+      // 构建订单查询条件
+      // 注意：如果orderQuery.createdAt已经是db.command对象，不能直接赋值，需要重新构建
+      const trendsOrderQuery = {}
+      
+      // 复制orderQuery的其他字段（除了createdAt）
+      Object.keys(orderQuery).forEach(key => {
+        if (key !== 'createdAt') {
+          trendsOrderQuery[key] = orderQuery[key]
+        }
+      })
+      
+      // 构建新的createdAt条件，结合原有的时间范围和新的日期范围
+      if (orderQuery.createdAt) {
+        // 如果已有createdAt条件，需要合并（这里简化处理，只使用新的日期范围）
+        trendsOrderQuery.createdAt = _.gte(start).and(_.lte(end))
+      } else {
+        trendsOrderQuery.createdAt = _.gte(start).and(_.lte(end))
+      }
+      
+      // 查询订单数据
+      const trendsOrdersQueryObj = Object.keys(trendsOrderQuery).length > 0
+        ? db.collection('restaurant_orders').where(trendsOrderQuery)
+        : db.collection('restaurant_orders').where({
+            createdAt: _.gte(start).and(_.lte(end))
+          })
+      
+      const trendsOrdersRes = await trendsOrdersQueryObj
+        .field({
+          'createdAt': 1,
+          'pricing.total': 1,
+          'carbonImpact.carbonSavingsVsMeat': 1,
+        })
+        .get()
+      
+      // 按日期分组统计
+      const ordersByDate = new Map()
+      const revenueByDate = new Map()
+      const carbonByDate = new Map()
+      
+      trendsOrdersRes.data.forEach(order => {
+        if (order.createdAt) {
+          const date = new Date(order.createdAt).toISOString().split('T')[0] // YYYY-MM-DD格式
+          
+          // 订单数统计
+          if (!ordersByDate.has(date)) {
+            ordersByDate.set(date, 0)
+          }
+          ordersByDate.set(date, ordersByDate.get(date) + 1)
+          
+          // 收入统计
+          const revenue = order.pricing?.total || 0
+          if (!revenueByDate.has(date)) {
+            revenueByDate.set(date, 0)
+          }
+          revenueByDate.set(date, revenueByDate.get(date) + revenue)
+          
+          // 碳减排统计
+          const carbonReduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+          if (!carbonByDate.has(date)) {
+            carbonByDate.set(date, 0)
+          }
+          carbonByDate.set(date, carbonByDate.get(date) + carbonReduction)
+        }
+      })
+      
+      // 生成日期范围内的所有日期（填充没有订单的日期为0）
+      const allDates = []
+      const currentDate = new Date(start)
+      while (currentDate <= end) {
+        const dateStr = currentDate.toISOString().split('T')[0]
+        allDates.push(dateStr)
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      // 构建趋势数据
+      trends = {
+        orders: allDates.map(date => ({
+          date,
+          count: ordersByDate.get(date) || 0,
+        })),
+        revenue: allDates.map(date => ({
+          date,
+          amount: Math.round((revenueByDate.get(date) || 0) * 100) / 100,
+        })),
+        carbonReduction: allDates.map(date => ({
+          date,
+          amount: Math.round((carbonByDate.get(date) || 0) * 100) / 100,
+        })),
+      }
+    } catch (error) {
+      console.error('[趋势数据] 获取趋势数据失败:', error)
+      trends = null
+    }
+  }
+
+  // 7. 获取热门菜谱排行榜（Top 10）
+  let topRecipes = []
+  if (includeTopRecipes && startDate && endDate) {
+    try {
+      // 构建订单查询条件（用于统计菜谱订单数）
+      const recipeOrderQuery = { ...orderQuery }
+      
+      // 如果指定了时间范围，添加时间筛选
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999) // 包含结束日期的整天
+      
+      if (recipeOrderQuery.createdAt) {
+        // 如果已有时间条件，需要合并
+        recipeOrderQuery.createdAt = _.and(
+          recipeOrderQuery.createdAt,
+          _.gte(start).and(_.lte(end))
+        )
+      } else {
+        recipeOrderQuery.createdAt = _.gte(start).and(_.lte(end))
+      }
+      
+      // 查询订单数据，统计每个菜谱的订单数、收入、碳减排量
+      const ordersQueryObj = Object.keys(recipeOrderQuery).length > 0
+        ? db.collection('restaurant_orders').where(recipeOrderQuery)
+        : db.collection('restaurant_orders')
+      
+      const ordersRes = await ordersQueryObj
+        .field({
+          'items': 1,
+          'pricing.total': 1,
+          'carbonImpact.carbonSavingsVsMeat': 1,
+        })
+        .get()
+      
+      // 统计每个菜谱的数据
+      const recipeStats = {}
+      
+      ordersRes.data.forEach((order) => {
+        const items = order.items || []
+        const orderTotal = order.pricing?.total || 0
+        const carbonReduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+        
+        items.forEach(item => {
+          // 优先使用 recipeId，如果不存在，则尝试 menuItemId，最后尝试 menuItemName
+          let currentRecipeId = item.recipeId || item.recipe_id || item.id || item.menuItemId || item.menuItemName
+          let currentRecipeName = item.name || item.recipeName || item.recipe_name || item.menuItemName || '未知菜谱'
+          
+          const quantity = item.quantity || 1
+          const itemPrice = item.unitPrice || item.price || (orderTotal / items.length)
+          const itemCarbonReduction = item.carbonFootprint || (carbonReduction / items.length)
+          
+          if (currentRecipeId) {
+            if (!recipeStats[currentRecipeId]) {
+              recipeStats[currentRecipeId] = {
+                recipeId: currentRecipeId,
+                recipeName: currentRecipeName,
+                orders: 0,
+                revenue: 0,
+                carbonReduction: 0,
+              }
+            }
+            
+            recipeStats[currentRecipeId].orders += quantity
+            recipeStats[currentRecipeId].revenue += itemPrice * quantity
+            recipeStats[currentRecipeId].carbonReduction += itemCarbonReduction * quantity
+          }
+        })
+      })
+      
+      // 转换为数组并按订单数排序，取前10名
+      topRecipes = Object.values(recipeStats)
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 10)
+        .map((recipe) => ({
+          recipeId: recipe.recipeId,
+          recipeName: recipe.recipeName,
+          orders: recipe.orders,
+          revenue: Math.round(recipe.revenue * 100) / 100,
+          carbonReduction: Math.round(recipe.carbonReduction * 100) / 100,
+        }))
+    } catch (error) {
+      console.error('[热门菜谱] 获取热门菜谱排行榜失败:', error)
+      topRecipes = []
+    }
+  }
+
+  const result = {
     code: 0,
     data: {
       totalRecipes,
@@ -3077,6 +3251,18 @@ async function getDashboard(data, currentUser) {
       todayRevenue: Math.round(todayRevenue * 100) / 100, // 保留2位小数
     },
   }
+  
+  // 如果请求了热门菜谱数据，添加到返回结果中
+  if (includeTopRecipes) {
+    result.data.topRecipes = topRecipes
+  }
+  
+  // 如果请求了趋势数据，添加到返回结果中
+  if (includeTrends && trends) {
+    result.data.trends = trends
+  }
+  
+  return result
 }
 
 /**

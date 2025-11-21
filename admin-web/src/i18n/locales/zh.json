@@ -3047,6 +3047,210 @@
           "operation": "餐厅运营 - 订单管理、积分系统、运营台账、行为统计",
           "report": "报表与生态拓展 - 数据报表、ESG报告、对外接口、生态联动"
         }
+      },
+      "platformOperator": {
+        "totalTenants": "总租户数",
+        "activeTenants": "活跃租户数",
+        "totalRestaurants": "总餐厅数",
+        "pendingApplications": "待审批申请",
+        "totalOrders": "总订单数",
+        "totalRevenue": "总收入",
+        "totalCarbonReduction": "总碳减排量",
+        "totalUsers": "总用户数",
+        "quickActions": "快速操作",
+        "approveApplications": "审批入驻申请",
+        "viewTenants": "查看租户列表",
+        "viewRestaurants": "查看餐厅列表",
+        "viewStatistics": "查看平台统计",
+        "viewCrossTenantData": "查看跨租户数据",
+        "topRestaurants": "餐厅排行榜（Top 10）",
+        "charts": {
+          "orderTrend": "订单趋势图",
+          "tenantGrowth": "租户增长趋势图",
+          "orders": "订单数",
+          "revenue": "收入",
+          "newTenants": "新增租户数",
+          "newRestaurants": "新增餐厅数",
+          "count": "数量"
+        }
+      },
+      "systemAdmin": {
+        "totalUsers": "系统用户总数",
+        "activeUsers": "活跃用户数",
+        "systemAlerts": "系统告警数",
+        "backupStatus": "数据备份状态",
+        "backupSuccess": "备份成功",
+        "backupUnknown": "状态未知",
+        "todayLogins": "今日登录次数",
+        "todayOperations": "今日操作次数",
+        "databaseUsage": "数据库使用率",
+        "apiCalls": "API调用次数",
+        "quickActions": "快速操作",
+        "userManagement": "用户管理",
+        "roleManagement": "角色权限配置",
+        "systemMonitor": "系统监控",
+        "dataBackup": "数据备份",
+        "operationLog": "操作日志",
+        "auditLog": "审计日志",
+        "recentLogs": "最近操作日志（Top 20）",
+        "viewAllLogs": "查看全部日志"
+      },
+      "carbonSpecialist": {
+        "welcome": "欢迎使用碳核算专员数据看板",
+        "description": "这里是平台碳数据和基准值管理的核心数据，包括碳减排统计、基准值数据概览等关键指标。",
+        "totalCarbonReduction": "平台总碳减排量",
+        "baselineCount": "基准值数据量",
+        "activeBaselineCount": "活跃基准值数",
+        "pendingBaselineCount": "待审核基准值",
+        "todayCarbonReduction": "今日碳减排量",
+        "monthCarbonReduction": "本月碳减排量",
+        "averageCarbonPerOrder": "平均每单碳减排",
+        "carbonLabelDistribution": "碳标签分布",
+        "baselineOverview": "基准值数据概览",
+        "viewBaselines": "查看基准值列表",
+        "quickActions": "快速操作",
+        "manageBaselines": "基准值管理",
+        "addBaseline": "添加基准值",
+        "importBaselines": "批量导入基准值",
+        "generateReport": "碳报告生成",
+        "exportData": "碳数据导出",
+        "dataQuality": "数据质量检查",
+        "topRestaurants": "碳减排排行榜（Top 10）",
+        "table": {
+          "rank": "排名",
+          "restaurantName": "餐厅名称",
+          "tenantName": "租户名称",
+          "totalCarbonReduction": "累计碳减排量",
+          "monthCarbonReduction": "本月碳减排量",
+          "avgCarbonPerOrder": "平均每单碳减排"
+        },
+        "labels": {
+          "ultraLow": "超低碳",
+          "low": "低碳",
+          "medium": "中碳",
+          "high": "高碳"
+        },
+        "charts": {
+          "carbonTrend": "碳减排趋势图",
+          "labelDistribution": "碳标签分布图",
+          "carbonReduction": "碳减排量（kg CO₂e）"
+        }
+      },
+      "restaurantAdmin": {
+        "charts": {
+          "orderTrend": "订单趋势图",
+          "carbonTrend": "碳减排趋势图",
+          "orders": "订单数",
+          "revenue": "收入",
+          "carbonReduction": "碳减排量（kg CO₂e）",
+          "zoom": "区域缩放",
+          "restore": "还原",
+          "saveAsImage": "保存为图片"
+        },
+        "todos": {
+          "title": "待办事项",
+          "certification": {
+            "title": "待处理的认证申请"
+          },
+          "recipe": {
+            "title": "待审核的菜谱"
+          },
+          "order": {
+            "title": "待处理的订单"
+          },
+          "notification": {
+            "title": "系统通知"
+          },
+          "view": "查看"
+        },
+        "quickActions": {
+          "manageRecipes": "管理菜谱"
+        },
+        "topRecipes": "热门菜谱排行榜（Top 10）",
+        "viewAllRecipes": "查看全部菜谱",
+        "vsYesterday": "较昨日",
+        "tooltips": {
+          "totalRecipes": "当前餐厅可用的菜谱总数，可用于菜单管理。点击查看菜谱列表。",
+          "totalCarbonReduction": "餐厅通过提供低碳菜品实现的累计碳减排总量。点击查看碳足迹数据。",
+          "certifiedRestaurants": "当前租户下已获得气候餐厅认证的餐厅数量。点击查看认证管理。",
+          "activeUsers": "最近30天在餐厅下单或互动的用户数",
+          "todayOrders": "今日订单总数，包括已完成和进行中的订单。点击查看订单管理。",
+          "todayRevenue": "今日总收入，包括已完成订单的收入。点击查看运营台账。"
+        },
+        "empty": {
+          "noOrderData": "暂无订单趋势数据",
+          "noCarbonData": "暂无碳减排趋势数据",
+          "noRecipeData": "暂无热门菜谱数据",
+          "goToRecipes": "前往菜谱管理"
+        }
+      },
+      "periods": {
+        "last7Days": "近7天",
+        "last30Days": "近30天",
+        "last90Days": "近90天",
+        "custom": "自定义"
+      },
+      "exportButton": "导出数据",
+      "exporting": "正在导出数据...",
+      "tooltips": {
+        "totalTenants": "点击查看租户列表",
+        "activeTenants": "当前活跃的租户数量",
+        "totalRestaurants": "平台总餐厅数量",
+        "totalOrders": "平台总订单数",
+        "totalRevenue": "平台总收入",
+        "totalCarbonReduction": "平台总碳减排量",
+        "totalUsers": "平台总用户数"
+      },
+      "export": {
+        "platformOperator": {
+          "title": "平台运营数据报表",
+          "sheetName": "平台运营数据",
+          "fileName": "平台运营数据报表",
+          "coreMetrics": "核心指标",
+          "businessData": "业务数据"
+        },
+        "systemAdmin": {
+          "title": "系统管理员数据报表",
+          "sheetName": "系统管理数据",
+          "fileName": "系统管理数据报表",
+          "systemHealth": "系统健康指标",
+          "usageStats": "系统使用统计"
+        },
+        "carbonSpecialist": {
+          "title": "碳核算专员数据报表",
+          "sheetName": "碳数据报表",
+          "fileName": "碳数据报表",
+          "coreMetrics": "碳数据核心指标",
+          "carbonStats": "碳数据统计"
+        },
+        "restaurantAdmin": {
+          "title": "餐厅数据看板报表",
+          "sheetName": "餐厅数据报表",
+          "fileName": "餐厅数据看板",
+          "coreMetrics": "核心指标",
+          "todayData": "今日运营数据",
+          "trendData": "趋势数据",
+          "recipeName": "菜谱名称"
+        },
+        "table": {
+          "rank": "排名",
+          "restaurantName": "餐厅名称",
+          "tenantName": "租户名称",
+          "orders": "订单数",
+          "revenue": "收入",
+          "carbonReduction": "碳减排量",
+          "certificationLevel": "认证等级",
+          "totalCarbonReduction": "累计碳减排量",
+          "monthCarbonReduction": "本月碳减排量",
+          "avgCarbonPerOrder": "平均每单碳减排",
+          "time": "时间",
+          "username": "用户名",
+          "role": "角色",
+          "action": "操作",
+          "resource": "资源",
+          "status": "状态"
+        },
+        "notCertified": "未认证"
       }
     },
     "operationLog": {

@@ -80,6 +80,9 @@ exports.main = async (event) => {
         return await initAdminCollections(event);
       case 'initAdminData':
         return await initAdminData(event);
+      case 'initRoleConfigs':
+        const { main: initRoleConfigs } = require('./init-role-configs');
+        return await initRoleConfigs(event);
       case 'initMessageCollections':
         return await initMessageCollections(event);
       case 'initMessageEventRules':
