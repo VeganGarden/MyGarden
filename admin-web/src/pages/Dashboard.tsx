@@ -2697,6 +2697,64 @@ const Dashboard: React.FC = () => {
     }
   }, [trendsData, carbonData, isRestaurantAdmin, isPlatformOperator, isCarbonSpecialist])
 
+  // 窗口大小变化时，重新调整图表大小
+  useEffect(() => {
+    let resizeTimer: NodeJS.Timeout | null = null
+    
+    const handleResize = () => {
+      // 清除之前的定时器
+      if (resizeTimer) {
+        clearTimeout(resizeTimer)
+      }
+      
+      // 延迟执行，避免频繁调整
+      resizeTimer = setTimeout(() => {
+        if (isRestaurantAdmin) {
+          const trendChart = restaurantTrendChartRef.current 
+            ? echarts.getInstanceByDom(restaurantTrendChartRef.current)
+            : null
+          const carbonChart = restaurantCarbonChartRef.current
+            ? echarts.getInstanceByDom(restaurantCarbonChartRef.current)
+            : null
+          if (trendChart) {
+            trendChart.resize()
+            console.log('[图表] 订单趋势图已调整大小')
+          }
+          if (carbonChart) {
+            carbonChart.resize()
+            console.log('[图表] 碳减排趋势图已调整大小')
+          }
+        } else if (isPlatformOperator) {
+          const trendChart = platformTrendChartRef.current
+            ? echarts.getInstanceByDom(platformTrendChartRef.current)
+            : null
+          const growthChart = platformGrowthChartRef.current
+            ? echarts.getInstanceByDom(platformGrowthChartRef.current)
+            : null
+          if (trendChart) trendChart.resize()
+          if (growthChart) growthChart.resize()
+        } else if (isCarbonSpecialist) {
+          const trendChart = carbonTrendChartRef.current
+            ? echarts.getInstanceByDom(carbonTrendChartRef.current)
+            : null
+          const labelChart = carbonLabelChartRef.current
+            ? echarts.getInstanceByDom(carbonLabelChartRef.current)
+            : null
+          if (trendChart) trendChart.resize()
+          if (labelChart) labelChart.resize()
+        }
+      }, 150)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (resizeTimer) {
+        clearTimeout(resizeTimer)
+      }
+    }
+  }, [isRestaurantAdmin, isPlatformOperator, isCarbonSpecialist])
+
   // 碳核算专员看板
   const renderCarbonSpecialistDashboard = () => {
     const carbonRestaurantColumns: ColumnsType<TopRestaurant> = [
