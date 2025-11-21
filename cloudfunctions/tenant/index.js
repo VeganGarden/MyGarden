@@ -2453,8 +2453,6 @@ async function updateOrderStatus(orderId, status) {
 async function getOrderCarbonStats(data) {
   const { restaurantId, startDate, endDate } = data || {}
   
-  console.log('🔍 getOrderCarbonStats - 接收参数:', { restaurantId, startDate, endDate })
-
   if (!restaurantId) {
     return {
       code: 400,
@@ -2466,8 +2464,6 @@ async function getOrderCarbonStats(data) {
     const query = db.collection('restaurant_orders').where({
       restaurantId: restaurantId,
     })
-    
-    console.log('📊 getOrderCarbonStats - 查询条件: restaurantId =', restaurantId)
 
     // 添加日期筛选
     if (startDate || endDate) {
@@ -2485,10 +2481,6 @@ async function getOrderCarbonStats(data) {
 
     const result = await query.orderBy('orderDate', 'desc').get()
     const orders = result.data || []
-    console.log('📊 getOrderCarbonStats - 查询到订单数量:', orders.length)
-    if (orders.length > 0) {
-      console.log('📊 getOrderCarbonStats - 第一条订单示例:', JSON.stringify(orders[0], null, 2))
-    }
 
     // 计算统计数据
     let todayCarbon = 0
@@ -2701,8 +2693,6 @@ async function generateCarbonReport(data) {
 async function getMenuList(data) {
   const { restaurantId, page = 1, pageSize = 20 } = data || {}
   
-  console.log('🔍 getMenuList - 接收参数:', { restaurantId, page, pageSize })
-
   if (!restaurantId) {
     return {
       code: 400,
@@ -2720,7 +2710,6 @@ async function getMenuList(data) {
     
     // 首先尝试 restaurant_menu_items
     try {
-      console.log('📊 getMenuList - 查询 restaurant_menu_items, restaurantId =', restaurantId)
       const menuItemsResult = await db.collection('restaurant_menu_items')
         .where({
           restaurantId: restaurantId,
@@ -2730,13 +2719,11 @@ async function getMenuList(data) {
         .orderBy('createdAt', 'desc')
         .get()
       
-      console.log('📊 getMenuList - restaurant_menu_items 查询结果数量:', menuItemsResult.data?.length || 0)
       if (menuItemsResult.data && menuItemsResult.data.length > 0) {
         menus = menuItemsResult.data
-        console.log('✅ getMenuList - 从 restaurant_menu_items 获取到数据')
       }
     } catch (error) {
-      console.log('❌ restaurant_menu_items 集合查询失败，尝试其他集合:', error.message)
+      // 静默处理错误，继续尝试其他集合
     }
     
     // 如果 restaurant_menu_items 没有数据，尝试 restaurant_menus
@@ -2755,7 +2742,7 @@ async function getMenuList(data) {
           menus = menusResult.data
         }
       } catch (error) {
-        console.log('restaurant_menus 集合查询失败，尝试 menu_items')
+        // 静默处理错误，继续尝试其他集合
       }
     }
     
@@ -2775,7 +2762,7 @@ async function getMenuList(data) {
           menus = itemsResult.data
         }
       } catch (error) {
-        console.log('menu_items 集合查询失败')
+        // 静默处理错误
       }
     }
 
@@ -2791,11 +2778,6 @@ async function getMenuList(data) {
       status: menu.status || 'draft',
       restaurantId: menu.restaurantId || restaurantId,
     }))
-    
-    console.log('📊 getMenuList - 格式化后的菜单数量:', formattedMenus.length)
-    if (formattedMenus.length > 0) {
-      console.log('📊 getMenuList - 第一条菜单示例:', JSON.stringify(formattedMenus[0], null, 2))
-    }
 
     return {
       code: 0,
