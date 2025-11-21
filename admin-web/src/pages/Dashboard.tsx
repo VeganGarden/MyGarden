@@ -340,12 +340,21 @@ const Dashboard: React.FC = () => {
   }
 
   // 获取热门菜谱排行榜
+  // 统计逻辑：
+  // 1. 当选择具体餐厅时（currentRestaurantId 不为空）：统计该餐厅的菜谱 Top 10
+  // 2. 当查看所有餐厅时（currentRestaurantId 为空）：统计当前租户下所有餐厅的菜谱 Top 10
+  // 统计维度：按订单数量（orders）排序，取前10名
+  // 返回数据包含：菜谱ID、名称、订单数、收入、碳减排量
   const fetchTopRecipes = async () => {
     try {
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
       
       // 调用reportAPI获取热门菜谱数据
+      // 参数说明：
+      // - restaurantId: 如果为null，则统计当前租户下所有餐厅的菜谱；如果指定，则只统计该餐厅的菜谱
+      // - tenantId: 当前租户ID，用于数据隔离
+      // - includeTopRecipes: 标识需要返回热门菜谱数据
       const result = await reportAPI.dashboard({
         restaurantId: currentRestaurantId,
         tenantId: currentTenant?.id,
@@ -931,7 +940,7 @@ const Dashboard: React.FC = () => {
           <Tooltip title={t('pages.dashboard.restaurantAdmin.tooltips.totalRecipes')}>
             <Card
               hoverable
-              onClick={() => navigate('/recipes')}
+              onClick={() => navigate('/recipe/list')}
               style={{ cursor: 'pointer' }}
             >
               <Statistic
@@ -1149,7 +1158,7 @@ const Dashboard: React.FC = () => {
               <Button 
                 type="link" 
                 size="small" 
-                onClick={() => navigate('/recipes')}
+                onClick={() => navigate('/recipe/list')}
               >
                 {t('pages.dashboard.restaurantAdmin.viewAllRecipes')}
               </Button>
@@ -1163,7 +1172,7 @@ const Dashboard: React.FC = () => {
               description={t('pages.dashboard.restaurantAdmin.empty.noRecipeData')}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             >
-              <Button type="primary" onClick={() => navigate('/recipes')}>
+              <Button type="primary" onClick={() => navigate('/recipe/list')}>
                 {t('pages.dashboard.restaurantAdmin.empty.goToRecipes')}
               </Button>
             </Empty>
@@ -1189,7 +1198,7 @@ const Dashboard: React.FC = () => {
                   render: (text: string, record: TopRecipe) => (
                     <Button 
                       type="link" 
-                      onClick={() => navigate(`/recipes/${record.recipeId}`)}
+                      onClick={() => navigate(`/recipe/detail/${record.recipeId}`)}
                       style={{ padding: 0 }}
                     >
                       {text}
@@ -1275,7 +1284,7 @@ const Dashboard: React.FC = () => {
             <Col xs={24} sm={24} md={12} lg={8} xl={8}>
               <Card
                 hoverable
-                onClick={() => navigate('/recipes')}
+                onClick={() => navigate('/recipe/list')}
                 style={{ cursor: 'pointer', height: '100%' }}
                 bodyStyle={{ padding: '16px' }}
               >
