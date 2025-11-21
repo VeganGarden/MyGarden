@@ -926,8 +926,15 @@ const Dashboard: React.FC = () => {
             </Select>
             <DatePicker.RangePicker
               value={dateRange}
-              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              onChange={(dates) => {
+                // 直接设置日期范围，不进行任何自动调整
+                // 允许用户选择任意日期范围，包括终止日期早于起始日期的情况
+                setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)
+              }}
               format="YYYY-MM-DD"
+              allowClear
+              // 禁用默认的日期范围限制，允许选择任意日期
+              disabledDate={() => false}
             />
             <Button icon={<ExportOutlined />} onClick={() => handleExportRestaurantData()} loading={loading}>
               {t('pages.dashboard.exportButton')}
@@ -1465,8 +1472,15 @@ const Dashboard: React.FC = () => {
             </Select>
             <DatePicker.RangePicker
               value={dateRange}
-              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              onChange={(dates) => {
+                // 直接设置日期范围，不进行任何自动调整
+                // 允许用户选择任意日期范围，包括终止日期早于起始日期的情况
+                setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)
+              }}
               format="YYYY-MM-DD"
+              allowClear
+              // 禁用默认的日期范围限制，允许选择任意日期
+              disabledDate={() => false}
             />
             <Button icon={<ExportOutlined />} onClick={() => handleExportPlatformData()} loading={loading}>
               {t('pages.dashboard.exportButton')}
@@ -2496,8 +2510,15 @@ const Dashboard: React.FC = () => {
             </Select>
             <DatePicker.RangePicker
               value={dateRange}
-              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              onChange={(dates) => {
+                // 直接设置日期范围，不进行任何自动调整
+                // 允许用户选择任意日期范围，包括终止日期早于起始日期的情况
+                setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)
+              }}
               format="YYYY-MM-DD"
+              allowClear
+              // 禁用默认的日期范围限制，允许选择任意日期
+              disabledDate={() => false}
             />
             <Button icon={<ExportOutlined />} onClick={() => handleExportCarbonData()} loading={loading}>
               {t('pages.dashboard.exportButton')}
