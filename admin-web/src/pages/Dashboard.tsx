@@ -358,8 +358,10 @@ const Dashboard: React.FC = () => {
         await fetchTopRecipes()
       }
     } catch (error: any) {
+      console.error('[fetchRestaurantData] 获取数据失败:', error)
       message.error(error.message || t('common.loadFailed'))
     } finally {
+      console.log('[fetchRestaurantData] 数据获取完成')
       setLoading(false)
       isFetchingRef.current = false
     }
