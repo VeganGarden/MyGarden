@@ -1445,10 +1445,12 @@ const Dashboard: React.FC = () => {
       },
       xAxis: {
         type: 'category',
-        data: growthData.map((item) => dayjs(item.date).format('MM-DD')),
+        data: growthData.length > 0 
+          ? growthData.map((item) => dayjs(item.date).format('MM-DD'))
+          : [],
         axisLabel: {
           rotate: 0,
-          interval: 'auto',
+          interval: growthData.length > 30 ? Math.floor(growthData.length / 10) : 'auto',
         },
       },
       yAxis: {
