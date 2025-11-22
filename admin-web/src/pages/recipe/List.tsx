@@ -31,6 +31,7 @@ const RecipeList: React.FC = () => {
   const [carbonLabelFilter, setCarbonLabelFilter] = useState<string>('all')
 
   useEffect(() => {
+    console.log('菜谱列表 - currentRestaurantId 变化:', currentRestaurantId)
     loadRecipes()
   }, [currentRestaurantId])
 
