@@ -36,6 +36,13 @@ const RecipeList: React.FC = () => {
 
   const loadRecipes = async () => {
     try {
+      console.log('菜谱列表加载参数:', {
+        currentRestaurantId,
+        searchKeyword,
+        statusFilter,
+        categoryFilter,
+        carbonLabelFilter
+      })
       await dispatch(
         fetchRecipes({
           keyword: searchKeyword || undefined,
