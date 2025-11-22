@@ -2,6 +2,7 @@ import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
   CheckOutlined,
+  InfoCircleOutlined,
   SaveOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
@@ -10,24 +11,31 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
   Form,
   Input,
+  InputNumber,
+  Modal,
   Row,
   Select,
   Space,
   Steps,
   Table,
+  Tag,
+  Typography,
   Upload,
   message,
 } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 const { Step } = Steps
 const { TextArea } = Input
 const { Option } = Select
+const { Panel } = Collapse
+const { Text } = Typography
 
 interface MenuItem {
   id: string
@@ -51,6 +59,9 @@ const CertificationApply: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({}) // 存储上传后的文件ID
   const [searchParams] = useSearchParams()
   const [isRenewal, setIsRenewal] = useState(false) // 是否为续期申请
+  const [dishModalVisible, setDishModalVisible] = useState(false) // 菜品Modal显示状态
+  const [editingDish, setEditingDish] = useState<MenuItem | null>(null) // 正在编辑的菜品
+  const [dishForm] = Form.useForm() // 菜品表单
 
   useEffect(() => {
     // 检查URL参数，判断是否为续期申请
@@ -269,6 +280,83 @@ const CertificationApply: React.FC = () => {
     return false
   }
 
+  // 打开添加菜品Modal
+  const handleAddDish = () => {
+    setEditingDish(null)
+    dishForm.resetFields()
+    setDishModalVisible(true)
+  }
+
+  // 打开编辑菜品Modal
+  const handleEditDish = (dish: MenuItem) => {
+    setEditingDish(dish)
+    dishForm.setFieldsValue({
+      name: dish.name,
+      ingredients: dish.ingredients,
+      quantity: dish.quantity,
+      unit: dish.unit,
+      cookingMethod: dish.cookingMethod || 'steamed',
+    })
+    setDishModalVisible(true)
+  }
+
+  // 删除菜品
+  const handleDeleteDish = (dishId: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这个菜品吗？',
+      onOk: () => {
+        setMenuItems(prev => prev.filter(item => item.id !== dishId))
+        message.success('删除成功')
+      },
+    })
+  }
+
+  // 保存菜品（添加或编辑）
+  const handleSaveDish = async () => {
+    try {
+      const values = await dishForm.validateFields()
+      
+      if (editingDish) {
+        // 编辑模式
+        setMenuItems(prev =>
+          prev.map(item =>
+            item.id === editingDish.id
+              ? {
+                  ...item,
+                  name: values.name,
+                  ingredients: values.ingredients,
+                  quantity: values.quantity,
+                  unit: values.unit,
+                  cookingMethod: values.cookingMethod,
+                }
+              : item
+          )
+        )
+        message.success('编辑成功')
+      } else {
+        // 添加模式
+        const newDish: MenuItem = {
+          id: `dish_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: values.name,
+          ingredients: values.ingredients,
+          quantity: values.quantity,
+          unit: values.unit,
+          cookingMethod: values.cookingMethod,
+        }
+        setMenuItems(prev => [...prev, newDish])
+        message.success('添加成功')
+      }
+      
+      setDishModalVisible(false)
+      dishForm.resetFields()
+      setEditingDish(null)
+    } catch (error) {
+      // 表单验证失败
+      console.error('表单验证失败:', error)
+    }
+  }
+
   // 处理文件上传
   const handleFileUpload = async (file: File, documentType: string): Promise<string | null> => {
     return new Promise((resolve, reject) => {
@@ -389,24 +477,55 @@ const CertificationApply: React.FC = () => {
               >
                 <Button icon={<UploadOutlined />}>{t('pages.certification.apply.buttons.batchImportMenu')}</Button>
               </Upload>
-              <Button type="primary">{t('pages.certification.apply.buttons.addDish')}</Button>
+              <Button type="primary" onClick={handleAddDish}>
+                {t('pages.certification.apply.buttons.addDish')}
+              </Button>
             </Space>
             <Table
               dataSource={menuItems}
               columns={[
-                { title: t('pages.certification.apply.menuTable.columns.name'), dataIndex: 'name', key: 'name' },
-                { title: t('pages.certification.apply.menuTable.columns.ingredients'), dataIndex: 'ingredients', key: 'ingredients' },
-                { title: t('pages.certification.apply.menuTable.columns.quantity'), dataIndex: 'quantity', key: 'quantity' },
-                { title: t('pages.certification.apply.menuTable.columns.unit'), dataIndex: 'unit', key: 'unit' },
+                { 
+                  title: t('pages.certification.apply.menuTable.columns.name'), 
+                  dataIndex: 'name', 
+                  key: 'name' 
+                },
+                { 
+                  title: t('pages.certification.apply.menuTable.columns.ingredients'), 
+                  dataIndex: 'ingredients', 
+                  key: 'ingredients',
+                  render: (text: string) => text || '-'
+                },
+                { 
+                  title: t('pages.certification.apply.menuTable.columns.quantity'), 
+                  dataIndex: 'quantity', 
+                  key: 'quantity',
+                  render: (quantity: number) => quantity || '-'
+                },
+                { 
+                  title: t('pages.certification.apply.menuTable.columns.unit'), 
+                  dataIndex: 'unit', 
+                  key: 'unit',
+                  render: (text: string) => text || '-'
+                },
                 {
                   title: t('pages.certification.apply.menuTable.columns.actions'),
                   key: 'action',
-                  render: () => (
+                  width: 150,
+                  render: (_: any, record: MenuItem) => (
                     <Space>
-                      <Button type="link" size="small">
+                      <Button 
+                        type="link" 
+                        size="small"
+                        onClick={() => handleEditDish(record)}
+                      >
                         {t('common.edit')}
                       </Button>
-                      <Button type="link" size="small" danger>
+                      <Button 
+                        type="link" 
+                        size="small" 
+                        danger
+                        onClick={() => handleDeleteDish(record.id)}
+                      >
                         {t('common.delete')}
                       </Button>
                     </Space>
@@ -414,6 +533,10 @@ const CertificationApply: React.FC = () => {
                 },
               ]}
               pagination={false}
+              rowKey="id"
+              locale={{
+                emptyText: '暂无菜品，请点击"添加菜品"按钮添加'
+              }}
             />
           </div>
         )
@@ -584,8 +707,73 @@ const CertificationApply: React.FC = () => {
     platinum: t('pages.certification.apply.certificationLevels.platinum')
   }
 
+  // 认证标准简要说明
+  const standardSummary = [
+    { dimension: '低碳菜品占比', requirement: '≥40%，核心菜品需提供碳足迹标签', weight: '40%' },
+    { dimension: '食材与供应链', requirement: '本地或可追溯低碳食材占比 ≥30%', weight: '20%' },
+    { dimension: '能源与运营', requirement: '年度能源强度下降 ≥10% 或绿色能源证明', weight: '10%' },
+    { dimension: '食物浪费管理', requirement: '月度浪费减量目标 ≥15%', weight: '15%' },
+    { dimension: '社会传播与教育', requirement: '不少于 3 项低碳倡导举措', weight: '15%' },
+  ]
+
   return (
     <div>
+      {/* 认证标准提示卡片 */}
+      <Collapse
+        defaultActiveKey={[]}
+        style={{ marginBottom: 16 }}
+        ghost
+      >
+        <Panel
+          header={
+            <Space>
+              <InfoCircleOutlined style={{ color: '#1890ff' }} />
+              <Text strong>气候餐厅认证标准</Text>
+              <Text type="secondary" style={{ fontSize: '12px', marginLeft: 8 }}>
+                点击查看详细标准要求
+              </Text>
+            </Space>
+          }
+          key="1"
+        >
+          <Card size="small" style={{ marginTop: 8 }}>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <div>
+                <Text strong>达标标准：</Text>
+                <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                  <li>所有达标项必须全部满足</li>
+                  <li>系统自动评估得分 ≥ 80 分（满分 100 分）</li>
+                  <li>人工抽检无重大风险项</li>
+                </ul>
+              </div>
+              <div>
+                <Text strong>五大维度评估标准：</Text>
+                <Row gutter={[8, 8]} style={{ marginTop: 8 }}>
+                  {standardSummary.map((item, index) => (
+                    <Col span={24} key={index}>
+                      <Card size="small" style={{ background: '#f5f5f5' }}>
+                        <Space>
+                          <Text strong>{item.dimension}</Text>
+                          <Tag color="blue">{item.weight}</Tag>
+                          <Text type="secondary">{item.requirement}</Text>
+                        </Space>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+              <div style={{ textAlign: 'right', marginTop: 8 }}>
+                <Link to="/certification/standard">
+                  <Button type="link" size="small">
+                    查看详细标准说明 →
+                  </Button>
+                </Link>
+              </div>
+            </Space>
+          </Card>
+        </Panel>
+      </Collapse>
+
       {!currentRestaurantId && restaurants.length > 1 && (
         <Alert
           message={t('pages.certification.apply.alerts.selectRestaurant')}
@@ -660,6 +848,100 @@ const CertificationApply: React.FC = () => {
           </Space>
         </div>
       </Card>
+
+      {/* 添加/编辑菜品Modal */}
+      <Modal
+        title={editingDish ? '编辑菜品' : '添加菜品'}
+        open={dishModalVisible}
+        onOk={handleSaveDish}
+        onCancel={() => {
+          setDishModalVisible(false)
+          dishForm.resetFields()
+          setEditingDish(null)
+        }}
+        width={600}
+        destroyOnClose
+      >
+        <Form
+          form={dishForm}
+          layout="vertical"
+          initialValues={{
+            unit: 'g',
+            cookingMethod: 'steamed',
+          }}
+        >
+          <Form.Item
+            name="name"
+            label="菜品名称"
+            rules={[{ required: true, message: '请输入菜品名称' }]}
+          >
+            <Input placeholder="请输入菜品名称，如：麻婆豆腐" />
+          </Form.Item>
+
+          <Form.Item
+            name="ingredients"
+            label="食材（用逗号分隔）"
+            rules={[{ required: true, message: '请输入食材' }]}
+            extra="多个食材请用逗号分隔，如：豆腐,豆瓣酱,花椒"
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="请输入食材，多个食材用逗号分隔"
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="quantity"
+                label="数量"
+                rules={[
+                  { required: true, message: '请输入数量' },
+                  { type: 'number', min: 0.01, message: '数量必须大于0' },
+                ]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  placeholder="请输入数量"
+                  min={0.01}
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="unit"
+                label="单位"
+                rules={[{ required: true, message: '请选择单位' }]}
+              >
+                <Select placeholder="请选择单位">
+                  <Option value="g">克(g)</Option>
+                  <Option value="kg">千克(kg)</Option>
+                  <Option value="ml">毫升(ml)</Option>
+                  <Option value="l">升(l)</Option>
+                  <Option value="个">个</Option>
+                  <Option value="份">份</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="cookingMethod"
+            label="烹饪方式"
+            rules={[{ required: true, message: '请选择烹饪方式' }]}
+          >
+            <Select placeholder="请选择烹饪方式">
+              <Option value="raw">生食</Option>
+              <Option value="steamed">蒸</Option>
+              <Option value="boiled">煮</Option>
+              <Option value="stir_fried">炒</Option>
+              <Option value="fried">炸</Option>
+              <Option value="baked">烤</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }
