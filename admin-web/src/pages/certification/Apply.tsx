@@ -4,7 +4,7 @@ import {
   CheckOutlined,
   InfoCircleOutlined,
   SaveOutlined,
-  UploadOutlined,
+  UploadOutlined
 } from '@ant-design/icons'
 import {
   Alert,
@@ -345,6 +345,117 @@ const CertificationApply: React.FC = () => {
     return false
   }
 
+  // 导入餐厅菜谱
+  const handleImportRecipes = async () => {
+    if (!selectedRestaurantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
+    try {
+      setLoading(true)
+      // 获取餐厅的所有菜谱
+      const result = await recipeAPI.list({
+        restaurantId: selectedRestaurantId,
+        status: 'active', // 只导入激活状态的菜谱
+        page: 1,
+        pageSize: 1000, // 获取所有菜谱
+      })
+
+      if (result.code === 0 && result.data && result.data.data) {
+        const recipes = result.data.data
+        if (recipes.length === 0) {
+          message.warning('该餐厅暂无菜谱数据')
+          return
+        }
+
+        // 将菜谱转换为菜单项
+        const importedMenuItems: MenuItem[] = recipes.map((recipe: any) => {
+          // 处理食材：如果是数组，转换为逗号分隔的字符串
+          let ingredientsStr = ''
+          if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+            ingredientsStr = recipe.ingredients
+              .map((ing: any) => {
+                if (typeof ing === 'string') {
+                  return ing
+                } else if (ing && ing.name) {
+                  // 如果食材是对象，提取名称
+                  return ing.name
+                }
+                return ''
+              })
+              .filter(Boolean)
+              .join(',')
+          } else if (typeof recipe.ingredients === 'string') {
+            ingredientsStr = recipe.ingredients
+          }
+
+          // 处理数量和单位：从菜谱中获取，如果没有则使用默认值
+          let quantity = 1
+          let unit = '份'
+          
+          // 尝试从菜谱的食材中获取总数量
+          if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+            const totalQuantity = recipe.ingredients.reduce((sum: number, ing: any) => {
+              if (ing && typeof ing.quantity === 'number') {
+                return sum + ing.quantity
+              }
+              return sum
+            }, 0)
+            if (totalQuantity > 0) {
+              quantity = totalQuantity
+              // 尝试获取单位
+              const firstIngredient = recipe.ingredients.find((ing: any) => ing && ing.unit)
+              if (firstIngredient && firstIngredient.unit) {
+                unit = firstIngredient.unit
+              }
+            }
+          }
+
+          // 处理烹饪方式
+          const cookingMethod = recipe.cookingMethod || 'steamed'
+
+          return {
+            id: `recipe_${recipe._id || recipe.id || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: recipe.name || '未命名菜品',
+            ingredients: ingredientsStr,
+            quantity: quantity,
+            unit: unit,
+            cookingMethod: cookingMethod,
+          }
+        })
+
+        // 添加到菜单列表（如果已有菜单项，询问是否覆盖）
+        if (menuItems.length > 0) {
+          Modal.confirm({
+            title: '确认导入',
+            content: `将导入 ${importedMenuItems.length} 个菜品。当前已有 ${menuItems.length} 个菜品，是否覆盖现有菜品？`,
+            onOk: () => {
+              setMenuItems(importedMenuItems)
+              message.success(`成功导入 ${importedMenuItems.length} 个菜品`)
+            },
+            okText: '覆盖',
+            cancelText: '追加',
+            onCancel: () => {
+              setMenuItems(prev => [...prev, ...importedMenuItems])
+              message.success(`成功追加 ${importedMenuItems.length} 个菜品`)
+            },
+          })
+        } else {
+          setMenuItems(importedMenuItems)
+          message.success(`成功导入 ${importedMenuItems.length} 个菜品`)
+        }
+      } else {
+        message.error(result.message || '获取菜谱失败')
+      }
+    } catch (error: any) {
+      console.error('导入菜谱失败:', error)
+      message.error(error.message || '导入菜谱失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // 打开添加菜品Modal
   const handleAddDish = () => {
     setEditingDish(null)
@@ -542,6 +653,13 @@ const CertificationApply: React.FC = () => {
               >
                 <Button icon={<UploadOutlined />}>{t('pages.certification.apply.buttons.batchImportMenu')}</Button>
               </Upload>
+              <Button 
+                icon={<ImportOutlined />} 
+                onClick={handleImportRecipes}
+                loading={loading}
+              >
+                导入餐厅菜谱
+              </Button>
               <Button type="primary" onClick={handleAddDish}>
                 {t('pages.certification.apply.buttons.addDish')}
               </Button>
