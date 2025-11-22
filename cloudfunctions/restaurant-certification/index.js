@@ -84,6 +84,9 @@ exports.main = async (event, context) => {
       case 'getTrialData':
         return await getTrialData(data)
       
+      case 'getRestaurantMenuItems':
+        return await getRestaurantMenuItems(data)
+      
       default:
         return {
           code: 400,
@@ -2097,6 +2100,62 @@ async function getTrialData(data) {
     return {
       code: 500,
       message: '获取试运营数据失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 获取餐厅菜单项（用于认证申请时导入）
+ * 从 restaurant_menu_items 集合查询当前餐厅的所有激活菜品
+ */
+async function getRestaurantMenuItems(data) {
+  const { restaurantId } = data
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空'
+    }
+  }
+
+  try {
+    // 从 restaurant_menu_items 集合查询餐厅的菜单项
+    const menuItemsResult = await db.collection('restaurant_menu_items')
+      .where({
+        restaurantId: restaurantId,
+        status: 'active' // 只获取激活状态的菜品
+      })
+      .orderBy('createdAt', 'desc')
+      .get()
+
+    const menuItems = menuItemsResult.data.map(item => ({
+      id: item._id || item.id,
+      name: item.name || item.dishName || '未命名菜品',
+      ingredients: item.ingredients 
+        ? (Array.isArray(item.ingredients) 
+          ? item.ingredients.map((ing) => typeof ing === 'string' ? ing : (ing.name || ing)).join(',')
+          : item.ingredients)
+        : '',
+      quantity: item.quantity || item.portion || 1,
+      unit: item.unit || '份',
+      cookingMethod: item.cookingMethod || 'steamed',
+      carbonFootprint: item.carbonFootprint || 0,
+    }))
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        menuItems: menuItems,
+        total: menuItems.length
+      }
+    }
+  } catch (error) {
+    console.error('获取餐厅菜单项失败:', error)
+    return {
+      code: 500,
+      message: '获取餐厅菜单项失败',
       error: error.message
     }
   }

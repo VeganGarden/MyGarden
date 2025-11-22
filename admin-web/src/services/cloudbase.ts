@@ -369,6 +369,13 @@ export const certificationAPI = {
       data,
     }),
 
+  // 获取餐厅菜单项（用于导入餐厅菜品）
+  getRestaurantMenuItems: (data: { restaurantId: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'getRestaurantMenuItems',
+      data,
+    }),
+
   // 获取认证申请列表（平台运营）
   listApplications: (data: any) =>
     callCloudFunction('restaurant-certification', {

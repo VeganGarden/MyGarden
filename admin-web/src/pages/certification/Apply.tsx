@@ -346,7 +346,7 @@ const CertificationApply: React.FC = () => {
     return false
   }
 
-  // 导入餐厅菜谱
+  // 导入餐厅菜品（从 restaurant_menu_items 集合）
   const handleImportRecipes = async () => {
     if (!selectedRestaurantId) {
       message.warning('请先选择餐厅')
@@ -355,74 +355,47 @@ const CertificationApply: React.FC = () => {
 
     try {
       setLoading(true)
-      // 获取餐厅的所有菜谱
-      const result = await recipeAPI.list({
+      // 从 restaurant_menu_items 集合获取餐厅的所有激活菜品
+      const result = await certificationAPI.getRestaurantMenuItems({
         restaurantId: selectedRestaurantId,
-        status: 'active', // 只导入激活状态的菜谱
-        page: 1,
-        pageSize: 1000, // 获取所有菜谱
       })
 
-      if (result.code === 0 && result.data && result.data.data) {
-        const recipes = result.data.data
-        if (recipes.length === 0) {
-          message.warning('该餐厅暂无菜谱数据')
+      if (result.code === 0 && result.data && result.data.menuItems) {
+        const menuItems = result.data.menuItems
+        if (menuItems.length === 0) {
+          message.warning('该餐厅暂无菜品数据')
           return
         }
 
-        // 将菜谱转换为菜单项
-        const importedMenuItems: MenuItem[] = recipes.map((recipe: any) => {
-          // 处理食材：如果是数组，转换为逗号分隔的字符串
+        // 将菜单项转换为认证申请所需的格式
+        const importedMenuItems: MenuItem[] = menuItems.map((item: any) => {
+          // 处理食材：确保是字符串格式
           let ingredientsStr = ''
-          if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
-            ingredientsStr = recipe.ingredients
-              .map((ing: any) => {
-                if (typeof ing === 'string') {
-                  return ing
-                } else if (ing && ing.name) {
-                  // 如果食材是对象，提取名称
-                  return ing.name
-                }
-                return ''
-              })
-              .filter(Boolean)
-              .join(',')
-          } else if (typeof recipe.ingredients === 'string') {
-            ingredientsStr = recipe.ingredients
-          }
-
-          // 处理数量和单位：从菜谱中获取，如果没有则使用默认值
-          let quantity = 1
-          let unit = '份'
-          
-          // 尝试从菜谱的食材中获取总数量
-          if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
-            const totalQuantity = recipe.ingredients.reduce((sum: number, ing: any) => {
-              if (ing && typeof ing.quantity === 'number') {
-                return sum + ing.quantity
-              }
-              return sum
-            }, 0)
-            if (totalQuantity > 0) {
-              quantity = totalQuantity
-              // 尝试获取单位
-              const firstIngredient = recipe.ingredients.find((ing: any) => ing && ing.unit)
-              if (firstIngredient && firstIngredient.unit) {
-                unit = firstIngredient.unit
-              }
+          if (item.ingredients) {
+            if (Array.isArray(item.ingredients)) {
+              ingredientsStr = item.ingredients
+                .map((ing: any) => {
+                  if (typeof ing === 'string') {
+                    return ing
+                  } else if (ing && ing.name) {
+                    return ing.name
+                  }
+                  return ''
+                })
+                .filter(Boolean)
+                .join(',')
+            } else {
+              ingredientsStr = String(item.ingredients)
             }
           }
 
-          // 处理烹饪方式
-          const cookingMethod = recipe.cookingMethod || 'steamed'
-
           return {
-            id: `recipe_${recipe._id || recipe.id || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: recipe.name || '未命名菜品',
+            id: `menu_item_${item.id || item._id || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: item.name || '未命名菜品',
             ingredients: ingredientsStr,
-            quantity: quantity,
-            unit: unit,
-            cookingMethod: cookingMethod,
+            quantity: item.quantity || 1,
+            unit: item.unit || '份',
+            cookingMethod: item.cookingMethod || 'steamed',
           }
         })
 
