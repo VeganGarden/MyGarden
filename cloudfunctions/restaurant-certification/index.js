@@ -2120,28 +2120,102 @@ async function getRestaurantMenuItems(data) {
   }
 
   try {
-    // 从 restaurant_menu_items 集合查询餐厅的菜单项
-    const menuItemsResult = await db.collection('restaurant_menu_items')
-      .where({
-        restaurantId: restaurantId,
-        status: 'active' // 只获取激活状态的菜品
-      })
-      .orderBy('createdAt', 'desc')
-      .get()
+    let menuItems = []
+    
+    // 首先尝试从 restaurant_menu_items 集合查询
+    try {
+      const menuItemsResult = await db.collection('restaurant_menu_items')
+        .where({
+          restaurantId: restaurantId,
+          status: _.neq('archived') // 排除已归档的菜品，允许其他状态
+        })
+        .orderBy('createdAt', 'desc')
+        .get()
 
-    const menuItems = menuItemsResult.data.map(item => ({
-      id: item._id || item.id,
-      name: item.name || item.dishName || '未命名菜品',
-      ingredients: item.ingredients 
-        ? (Array.isArray(item.ingredients) 
-          ? item.ingredients.map((ing) => typeof ing === 'string' ? ing : (ing.name || ing)).join(',')
-          : item.ingredients)
-        : '',
-      quantity: item.quantity || item.portion || 1,
-      unit: item.unit || '份',
-      cookingMethod: item.cookingMethod || 'steamed',
-      carbonFootprint: item.carbonFootprint || 0,
-    }))
+      if (menuItemsResult.data && menuItemsResult.data.length > 0) {
+        menuItems = menuItemsResult.data.map(item => ({
+          id: item._id || item.id,
+          name: item.name || item.dishName || '未命名菜品',
+          ingredients: item.ingredients 
+            ? (Array.isArray(item.ingredients) 
+              ? item.ingredients.map((ing) => typeof ing === 'string' ? ing : (ing.name || ing)).join(',')
+              : item.ingredients)
+            : '',
+          quantity: item.quantity || item.portion || 1,
+          unit: item.unit || '份',
+          cookingMethod: item.cookingMethod || 'steamed',
+          carbonFootprint: item.carbonFootprint || 0,
+        }))
+      }
+    } catch (error) {
+      console.warn('从 restaurant_menu_items 查询失败，尝试从 recipes 查询:', error)
+    }
+
+    // 如果 restaurant_menu_items 没有数据，尝试从 recipes 集合查询（菜谱列表页面使用的集合）
+    if (menuItems.length === 0) {
+      try {
+        const recipesResult = await db.collection('recipes')
+          .where({
+            restaurantId: restaurantId,
+            status: _.neq('archived') // 排除已归档的菜谱
+          })
+          .orderBy('createdAt', 'desc')
+          .get()
+
+        if (recipesResult.data && recipesResult.data.length > 0) {
+          menuItems = recipesResult.data.map(recipe => {
+            // 处理食材：如果是数组，转换为逗号分隔的字符串
+            let ingredientsStr = ''
+            if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+              ingredientsStr = recipe.ingredients
+                .map((ing) => {
+                  if (typeof ing === 'string') {
+                    return ing
+                  } else if (ing && ing.name) {
+                    return ing.name
+                  }
+                  return ''
+                })
+                .filter(Boolean)
+                .join(',')
+            } else if (typeof recipe.ingredients === 'string') {
+              ingredientsStr = recipe.ingredients
+            }
+
+            // 处理数量和单位
+            let quantity = 1
+            let unit = '份'
+            if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+              const totalQuantity = recipe.ingredients.reduce((sum, ing) => {
+                if (ing && typeof ing.quantity === 'number') {
+                  return sum + ing.quantity
+                }
+                return sum
+              }, 0)
+              if (totalQuantity > 0) {
+                quantity = totalQuantity
+                const firstIngredient = recipe.ingredients.find((ing) => ing && ing.unit)
+                if (firstIngredient && firstIngredient.unit) {
+                  unit = firstIngredient.unit
+                }
+              }
+            }
+
+            return {
+              id: recipe._id || recipe.id,
+              name: recipe.name || '未命名菜品',
+              ingredients: ingredientsStr,
+              quantity: quantity,
+              unit: unit,
+              cookingMethod: recipe.cookingMethod || 'steamed',
+              carbonFootprint: recipe.carbonFootprint || 0,
+            }
+          })
+        }
+      } catch (error) {
+        console.warn('从 recipes 查询失败:', error)
+      }
+    }
 
     return {
       code: 0,
