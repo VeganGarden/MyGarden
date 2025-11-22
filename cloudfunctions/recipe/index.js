@@ -103,8 +103,16 @@ exports.main = async (event, context) => {
         // 获取菜谱列表
         // 支持更多筛选参数
         const { status, category, carbonLabel, isBaseRecipe } = event
-        // 如果提供了 restaurantId，优先使用它（因为数据迁移后，restaurantId 更准确）
+        // 优先使用前端传入的 restaurantId（如果提供了的话）
+        // 如果前端没有提供 restaurantId，才使用从用户信息中获取的 tenantId
+        // 这样可以确保前端选择的餐厅ID能够正确传递到查询逻辑中
         const queryRestaurantId = event.restaurantId || tenantId
+        console.log('菜谱列表查询参数:', {
+          eventRestaurantId: event.restaurantId,
+          tenantId: tenantId,
+          queryRestaurantId: queryRestaurantId,
+          keyword: keyword
+        })
         return await listRecipes(recipeCollection, keyword, page, pageSize, queryRestaurantId, {
           status,
           category,
@@ -529,8 +537,16 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
         }
       } catch (error) {
         // 静默处理错误，使用原值
+        console.warn('获取餐厅信息失败，使用原值:', error)
       }
     }
+    
+    console.log('listRecipes 查询参数:', {
+      tenantId: tenantId,
+      actualTenantId: actualTenantId,
+      restaurantId: restaurantId,
+      keyword: keyword
+    })
     
     // 构建基础查询条件
     let query = recipeCollection.where({
@@ -553,7 +569,10 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
       
       if (queryConditions.length > 0) {
         query = query.where(_.or(queryConditions))
+        console.log('添加餐厅过滤条件:', queryConditions)
       }
+    } else {
+      console.warn('未提供 tenantId 或 restaurantId，将查询所有餐厅的菜谱')
     }
     // 如果没有提供tenantId，查询所有餐厅的菜谱（不添加餐厅过滤）
 
