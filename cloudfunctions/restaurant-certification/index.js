@@ -2121,24 +2121,32 @@ async function getRestaurantMenuItems(data) {
 
   try {
     // 从 restaurant_menu_items 集合查询餐厅的菜单项
-    // 不限制 status，只排除已归档的，允许所有其他状态（draft, published, active等）
-    let query = db.collection('restaurant_menu_items')
-      .where({
-        restaurantId: restaurantId
-      })
-
-    // 如果存在 status 字段，排除已归档的
-    // 使用 $or 查询，支持有 status 字段和无 status 字段的情况
-    query = query.where(_.or([
-      { status: _.neq('archived') },
-      { status: _.exists(false) } // 如果没有 status 字段，也包含
-    ]))
-
-    const menuItemsResult = await query
-      .orderBy('createdAt', 'desc')
-      .get()
-
-    console.log(`查询 restaurant_menu_items: restaurantId=${restaurantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
+    // 先尝试最简单的查询，只按 restaurantId 查询，不限制 status
+    let menuItemsResult
+    try {
+      menuItemsResult = await db.collection('restaurant_menu_items')
+        .where({
+          restaurantId: restaurantId
+        })
+        .orderBy('createdAt', 'desc')
+        .get()
+      
+      console.log(`查询 restaurant_menu_items: restaurantId=${restaurantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
+    } catch (error) {
+      console.error('查询 restaurant_menu_items 失败:', error)
+      // 如果按 restaurantId 查询失败，尝试不排序
+      try {
+        menuItemsResult = await db.collection('restaurant_menu_items')
+          .where({
+            restaurantId: restaurantId
+          })
+          .get()
+        console.log(`查询 restaurant_menu_items (无排序): restaurantId=${restaurantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
+      } catch (error2) {
+        console.error('查询 restaurant_menu_items (无排序) 也失败:', error2)
+        throw error2
+      }
+    }
 
     const menuItems = (menuItemsResult.data || []).map(item => ({
       id: item._id || item.id,
