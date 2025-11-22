@@ -559,21 +559,20 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
     })
 
     // 多租户隔离：只查询当前餐厅的菜谱
-    // 支持通过 tenantId 或 restaurantId 查询
-    const queryConditions = []
-    
-    if (actualTenantId) {
-      queryConditions.push({ tenantId: actualTenantId })
-    }
-    
+    // 优先使用 restaurantId 进行精确查询（避免同一租户下多个餐厅的数据混淆）
+    // 如果没有 restaurantId，才使用 tenantId 查询
     if (queryRestaurantId) {
-      queryConditions.push({ restaurantId: queryRestaurantId })
-    }
-    
-    if (queryConditions.length > 0) {
-      query = query.where(_.or(queryConditions))
-      console.log('添加餐厅过滤条件:', queryConditions)
-      console.log('查询条件数量:', queryConditions.length)
+      // 如果提供了 restaurantId，优先使用它进行精确查询
+      query = query.where({
+        restaurantId: queryRestaurantId
+      })
+      console.log('添加餐厅过滤条件（精确）: restaurantId =', queryRestaurantId)
+    } else if (actualTenantId) {
+      // 如果没有 restaurantId，使用 tenantId 查询（可能返回多个餐厅的数据）
+      query = query.where({
+        tenantId: actualTenantId
+      })
+      console.log('添加租户过滤条件: tenantId =', actualTenantId)
     } else {
       console.warn('未提供 tenantId 或 restaurantId，将查询所有餐厅的菜谱')
     }
