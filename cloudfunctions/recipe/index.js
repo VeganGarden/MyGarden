@@ -524,27 +524,32 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
     }
     
     // 如果提供了 tenantId，先尝试获取餐厅信息，确定实际的 tenantId
-    let actualTenantId = tenantId
-    let restaurantId = tenantId
+    let actualTenantId = null
+    let queryRestaurantId = null
     
-    if (tenantId && !tenantId.startsWith('tenant_')) {
-      // 如果传入的是餐厅ID（不是租户ID），查询餐厅信息获取租户ID
-      try {
-        const restaurantResult = await db.collection('restaurants').doc(tenantId).get()
-        if (restaurantResult.data && restaurantResult.data.tenantId) {
-          actualTenantId = restaurantResult.data.tenantId
-          restaurantId = tenantId
+    if (tenantId) {
+      if (tenantId.startsWith('tenant_')) {
+        // 如果传入的是租户ID，直接使用
+        actualTenantId = tenantId
+      } else {
+        // 如果传入的是餐厅ID（不是租户ID），查询餐厅信息获取租户ID
+        queryRestaurantId = tenantId
+        try {
+          const restaurantResult = await db.collection('restaurants').doc(tenantId).get()
+          if (restaurantResult.data && restaurantResult.data.tenantId) {
+            actualTenantId = restaurantResult.data.tenantId
+          }
+        } catch (error) {
+          // 如果查询餐厅信息失败，只使用 restaurantId 查询
+          console.warn('获取餐厅信息失败，仅使用 restaurantId 查询:', error)
         }
-      } catch (error) {
-        // 静默处理错误，使用原值
-        console.warn('获取餐厅信息失败，使用原值:', error)
       }
     }
     
     console.log('listRecipes 查询参数:', {
       tenantId: tenantId,
       actualTenantId: actualTenantId,
-      restaurantId: restaurantId,
+      queryRestaurantId: queryRestaurantId,
       keyword: keyword
     })
     
@@ -555,22 +560,20 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
 
     // 多租户隔离：只查询当前餐厅的菜谱
     // 支持通过 tenantId 或 restaurantId 查询
-    if (actualTenantId || restaurantId) {
-      // 使用 $or 查询，同时支持 tenantId 和 restaurantId
-      const queryConditions = []
-      
-      if (actualTenantId) {
-        queryConditions.push({ tenantId: actualTenantId })
-      }
-      
-      if (restaurantId) {
-        queryConditions.push({ restaurantId: restaurantId })
-      }
-      
-      if (queryConditions.length > 0) {
-        query = query.where(_.or(queryConditions))
-        console.log('添加餐厅过滤条件:', queryConditions)
-      }
+    const queryConditions = []
+    
+    if (actualTenantId) {
+      queryConditions.push({ tenantId: actualTenantId })
+    }
+    
+    if (queryRestaurantId) {
+      queryConditions.push({ restaurantId: queryRestaurantId })
+    }
+    
+    if (queryConditions.length > 0) {
+      query = query.where(_.or(queryConditions))
+      console.log('添加餐厅过滤条件:', queryConditions)
+      console.log('查询条件数量:', queryConditions.length)
     } else {
       console.warn('未提供 tenantId 或 restaurantId，将查询所有餐厅的菜谱')
     }
