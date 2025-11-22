@@ -5,21 +5,26 @@ import {
   CloseCircleOutlined,
   EditOutlined,
   EyeOutlined,
+  InfoCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
 } from '@ant-design/icons'
 import {
   Button,
   Card,
+  Col,
+  Collapse,
   DatePicker,
   Descriptions,
   Form,
   Input,
   Modal,
+  Row,
   Select,
   Space,
   Table,
   Tag,
+  Typography,
   Upload,
   message,
 } from 'antd'
@@ -27,8 +32,11 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 const { TextArea } = Input
+const { Panel } = Collapse
+const { Text } = Typography
 
 interface Inspection {
   id: string
@@ -262,8 +270,73 @@ const CertificationInspection: React.FC = () => {
     },
   ]
 
+  // 认证标准简要说明
+  const standardSummary = [
+    { dimension: '低碳菜品占比', requirement: '≥40%，核心菜品需提供碳足迹标签', weight: '40%' },
+    { dimension: '食材与供应链', requirement: '本地或可追溯低碳食材占比 ≥30%', weight: '20%' },
+    { dimension: '能源与运营', requirement: '年度能源强度下降 ≥10% 或绿色能源证明', weight: '10%' },
+    { dimension: '食物浪费管理', requirement: '月度浪费减量目标 ≥15%', weight: '15%' },
+    { dimension: '社会传播与教育', requirement: '不少于 3 项低碳倡导举措', weight: '15%' },
+  ]
+
   return (
     <div>
+      {/* 认证标准提示卡片 */}
+      <Collapse
+        defaultActiveKey={[]}
+        style={{ marginBottom: 16 }}
+        ghost
+      >
+        <Panel
+          header={
+            <Space>
+              <InfoCircleOutlined style={{ color: '#1890ff' }} />
+              <Text strong>气候餐厅认证标准</Text>
+              <Text type="secondary" style={{ fontSize: '12px', marginLeft: 8 }}>
+                点击查看详细标准要求（抽检参考）
+              </Text>
+            </Space>
+          }
+          key="1"
+        >
+          <Card size="small" style={{ marginTop: 8 }}>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <div>
+                <Text strong>达标标准：</Text>
+                <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                  <li>所有达标项必须全部满足</li>
+                  <li>系统自动评估得分 ≥ 80 分（满分 100 分）</li>
+                  <li>人工抽检无重大风险项</li>
+                </ul>
+              </div>
+              <div>
+                <Text strong>五大维度评估标准：</Text>
+                <Row gutter={[8, 8]} style={{ marginTop: 8 }}>
+                  {standardSummary.map((item, index) => (
+                    <Col span={24} key={index}>
+                      <Card size="small" style={{ background: '#f5f5f5' }}>
+                        <Space>
+                          <Text strong>{item.dimension}</Text>
+                          <Tag color="blue">{item.weight}</Tag>
+                          <Text type="secondary">{item.requirement}</Text>
+                        </Space>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+              <div style={{ textAlign: 'right', marginTop: 8 }}>
+                <Link to="/certification/standard">
+                  <Button type="link" size="small">
+                    查看详细标准说明 →
+                  </Button>
+                </Link>
+              </div>
+            </Space>
+          </Card>
+        </Panel>
+      </Collapse>
+
       <Card
         title="抽检管理"
         extra={

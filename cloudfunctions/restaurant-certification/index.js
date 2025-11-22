@@ -81,6 +81,9 @@ exports.main = async (event, context) => {
       case 'listApplications':
         return await listApplications(data)
       
+      case 'getTrialData':
+        return await getTrialData(data)
+      
       default:
         return {
           code: 400,
@@ -1846,12 +1849,15 @@ async function listApplications(data) {
     
     // 日期范围查询
     if (startDate || endDate) {
-      whereConditions.submittedAt = {}
-      if (startDate) {
+      if (startDate && endDate) {
+        whereConditions.submittedAt = _.and(
+          _.gte(new Date(startDate)),
+          _.lte(new Date(endDate))
+        )
+      } else if (startDate) {
         whereConditions.submittedAt = _.gte(new Date(startDate))
-      }
-      if (endDate) {
-        whereConditions.submittedAt = _.and(whereConditions.submittedAt, _.lte(new Date(endDate)))
+      } else if (endDate) {
+        whereConditions.submittedAt = _.lte(new Date(endDate))
       }
     }
 
@@ -1870,9 +1876,9 @@ async function listApplications(data) {
       .get()
 
     // 获取餐厅信息
-    const restaurantIds = [...new Set(applications.data.map((app: any) => app.restaurantId))]
+    const restaurantIds = [...new Set(applications.data.map((app) => app.restaurantId))]
     const restaurants = await Promise.all(
-      restaurantIds.map(async (id: string) => {
+      restaurantIds.map(async (id) => {
         try {
           const res = await db.collection('restaurants').doc(id).get()
           return res.data ? { id, ...res.data } : null
@@ -1881,10 +1887,10 @@ async function listApplications(data) {
         }
       })
     )
-    const restaurantMap = new Map(restaurants.filter(Boolean).map((r: any) => [r.id, r]))
+    const restaurantMap = new Map(restaurants.filter(Boolean).map((r) => [r.id, r]))
 
     // 格式化数据
-    const formattedApplications = applications.data.map((app: any) => {
+    const formattedApplications = applications.data.map((app) => {
       const restaurant = restaurantMap.get(app.restaurantId)
       return {
         id: app._id,
@@ -1919,6 +1925,178 @@ async function listApplications(data) {
     return {
       code: 500,
       message: '获取失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 获取试运营数据
+ * 用于在认证申请时自动填充试运营期间积累的数据
+ */
+async function getTrialData(data) {
+  const { restaurantId, tenantId } = data
+
+  if (!restaurantId || !tenantId) {
+    return {
+      code: 400,
+      message: '餐厅ID和租户ID不能为空'
+    }
+  }
+
+  try {
+    // 0. 获取餐厅信息（包含试运营期限）
+    const restaurantResult = await db.collection('restaurants')
+      .doc(restaurantId)
+      .get()
+    
+    const restaurant = restaurantResult.data
+    const trialStartDate = restaurant?.trialStartDate || null
+    const trialEndDate = restaurant?.trialEndDate || null
+    
+    // 计算剩余天数
+    let daysRemaining = null
+    if (trialEndDate) {
+      const endDate = new Date(trialEndDate)
+      const now = new Date()
+      const diffTime = endDate.getTime() - now.getTime()
+      daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    }
+
+    // 1. 获取菜单数据
+    const menuItemsResult = await db.collection('restaurant_menu_items')
+      .where({
+        restaurantId: restaurantId,
+        status: 'active'
+      })
+      .get()
+
+    const menuItems = menuItemsResult.data.map(item => ({
+      name: item.name || item.dishName,
+      ingredients: item.ingredients ? (Array.isArray(item.ingredients) ? item.ingredients.join(',') : item.ingredients) : '',
+      quantity: item.quantity || item.portion || 1,
+      unit: item.unit || '份',
+      cookingMethod: item.cookingMethod || 'steamed',
+      carbonFootprint: item.carbonFootprint || 0,
+      salesCount: item.salesCount || 0
+    }))
+
+    // 2. 获取订单数据（最近30天）
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const ordersResult = await db.collection('restaurant_orders')
+      .where({
+        restaurantId: restaurantId,
+        createdAt: _.gte(thirtyDaysAgo)
+      })
+      .get()
+
+    const orders = ordersResult.data || []
+    const totalOrders = orders.length
+    const totalAmount = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+
+    // 计算低碳菜品占比（基于订单中的菜品）
+    let lowCarbonDishCount = 0
+    let totalDishCount = 0
+    orders.forEach(order => {
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          totalDishCount++
+          // 假设碳足迹低于阈值的为低碳菜品（阈值可配置，这里假设为2.0 kg CO2e）
+          if (item.carbonFootprint && item.carbonFootprint < 2.0) {
+            lowCarbonDishCount++
+          }
+        })
+      }
+    })
+    const lowCarbonMenuRatio = totalDishCount > 0 ? (lowCarbonDishCount / totalDishCount * 100).toFixed(2) : 0
+
+    // 3. 获取供应链数据（从suppliers集合或restaurant_suppliers）
+    let suppliers = []
+    let localIngredientRatio = 0
+    try {
+      const suppliersResult = await db.collection('suppliers')
+        .where({
+          restaurantId: restaurantId
+        })
+        .get()
+      suppliers = suppliersResult.data.map(s => ({
+        name: s.name || s.supplierName,
+        address: s.address,
+        distance: s.distance || 0, // 距离（km）
+        isLocal: s.distance && s.distance <= 100
+      }))
+      
+      // 计算本地食材占比（距离<=100km的供应商）
+      const localSuppliers = suppliers.filter(s => s.isLocal)
+      localIngredientRatio = suppliers.length > 0 ? (localSuppliers.length / suppliers.length * 100).toFixed(2) : 0
+    } catch (error) {
+      console.log('获取供应商数据失败:', error)
+    }
+
+    // 4. 获取运营数据（能源、浪费等，从restaurant_operation_data或相关集合）
+    let energyUsage = ''
+    let wasteReduction = ''
+    let socialInitiatives = []
+    try {
+      // 这里假设有运营数据集合，实际需要根据数据库结构调整
+      // const operationDataResult = await db.collection('restaurant_operation_data')
+      //   .where({ restaurantId: restaurantId })
+      //   .get()
+      // 暂时返回空数据，后续可以根据实际数据结构补充
+    } catch (error) {
+      console.log('获取运营数据失败:', error)
+    }
+
+    // 5. 计算碳足迹统计
+    const totalCarbonFootprint = orders.reduce((sum, order) => {
+      if (order.items && Array.isArray(order.items)) {
+        return sum + order.items.reduce((itemSum, item) => itemSum + (item.carbonFootprint || 0), 0)
+      }
+      return sum
+    }, 0)
+
+    return {
+      code: 0,
+      message: '获取试运营数据成功',
+      data: {
+        menuInfo: {
+          menuItems: menuItems,
+          totalDishes: menuItems.length
+        },
+        orderInfo: {
+          totalOrders: totalOrders,
+          totalAmount: totalAmount,
+          lowCarbonMenuRatio: parseFloat(lowCarbonMenuRatio),
+          period: '30天'
+        },
+        supplyChainInfo: {
+          suppliers: suppliers,
+          localIngredientRatio: parseFloat(localIngredientRatio),
+          totalSuppliers: suppliers.length
+        },
+        operationData: {
+          energyUsage: energyUsage,
+          wasteReduction: wasteReduction,
+          socialInitiatives: socialInitiatives
+        },
+        carbonFootprint: {
+          totalCarbonFootprint: totalCarbonFootprint,
+          averagePerOrder: totalOrders > 0 ? (totalCarbonFootprint / totalOrders).toFixed(2) : 0
+        },
+        trialPeriod: {
+          startDate: trialStartDate,
+          endDate: trialEndDate,
+          daysRemaining: daysRemaining
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取试运营数据失败:', error)
+    return {
+      code: 500,
+      message: '获取试运营数据失败',
       error: error.message
     }
   }

@@ -62,6 +62,7 @@ const CertificationApply: React.FC = () => {
   const [dishModalVisible, setDishModalVisible] = useState(false) // 菜品Modal显示状态
   const [editingDish, setEditingDish] = useState<MenuItem | null>(null) // 正在编辑的菜品
   const [dishForm] = Form.useForm() // 菜品表单
+  const [trialData, setTrialData] = useState<any>(null) // 试运营数据
 
   useEffect(() => {
     // 检查URL参数，判断是否为续期申请
@@ -84,8 +85,72 @@ const CertificationApply: React.FC = () => {
         contactPhone: currentRestaurant.phone,
         address: currentRestaurant.address,
       })
+
+      // 如果是试运营状态，自动加载试运营数据
+      if (currentRestaurant.certificationStatus === 'trial') {
+        loadTrialData()
+      }
     }
   }, [currentRestaurant, form])
+
+  // 加载试运营数据并自动填充
+  const loadTrialData = async () => {
+    if (!selectedRestaurantId || !currentTenantId) return
+
+    try {
+      setLoading(true)
+      const result = await certificationAPI.getTrialData({
+        restaurantId: selectedRestaurantId,
+        tenantId: currentTenantId,
+      })
+
+      if (result.code === 0 && result.data) {
+        const trialDataResult = result.data
+        setTrialData(trialDataResult)
+
+        // 自动填充菜单信息
+        if (trialDataResult.menuInfo && trialDataResult.menuInfo.menuItems) {
+          const formattedMenuItems: MenuItem[] = trialDataResult.menuInfo.menuItems.map((item: any) => ({
+            id: `trial_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: item.name,
+            ingredients: item.ingredients,
+            quantity: item.quantity,
+            unit: item.unit,
+            cookingMethod: item.cookingMethod,
+          }))
+          setMenuItems(formattedMenuItems)
+          message.success(`已自动填充 ${formattedMenuItems.length} 个菜品`)
+        }
+
+        // 自动填充供应链信息
+        if (trialDataResult.supplyChainInfo) {
+          const suppliers = trialDataResult.supplyChainInfo.suppliers || []
+          if (suppliers.length > 0) {
+            form.setFieldsValue({
+              supplierInfo: suppliers.map((s: any) => s.name).join('、'),
+              localIngredientRatio: trialDataResult.supplyChainInfo.localIngredientRatio || 0,
+            })
+          }
+        }
+
+        // 自动填充运营数据
+        if (trialDataResult.operationData) {
+          form.setFieldsValue({
+            energyUsage: trialDataResult.operationData.energyUsage || '',
+            wasteReduction: trialDataResult.operationData.wasteReduction || '',
+            socialInitiatives: trialDataResult.operationData.socialInitiatives?.join('\n') || '',
+          })
+        }
+
+        message.success('试运营数据已自动填充，请检查并补充缺失信息')
+      }
+    } catch (error: any) {
+      console.error('加载试运营数据失败:', error)
+      message.warning('加载试运营数据失败，请手动填写')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const steps = [
     {
@@ -794,6 +859,45 @@ const CertificationApply: React.FC = () => {
                   </Select.Option>
                 ))}
               </Select>
+            </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {currentRestaurant && currentRestaurant.certificationStatus === 'trial' && (
+        <Alert
+          message="试运营状态"
+          description={
+            <div>
+              <div>您的餐厅正在试运营期间，系统已自动填充试运营期间积累的数据。</div>
+              {trialData?.trialPeriod && (
+                <div style={{ marginTop: 8 }}>
+                  {trialData.trialPeriod.daysRemaining !== null && (
+                    <div>
+                      {trialData.trialPeriod.daysRemaining > 0 ? (
+                        <span style={{ color: '#1890ff' }}>
+                          试运营剩余天数：{trialData.trialPeriod.daysRemaining} 天
+                        </span>
+                      ) : (
+                        <span style={{ color: '#ff4d4f' }}>
+                          试运营已到期，请尽快提交认证申请
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {trialData.trialPeriod.startDate && (
+                    <div style={{ marginTop: 4, fontSize: '12px', color: '#999' }}>
+                      试运营开始：{new Date(trialData.trialPeriod.startDate).toLocaleDateString()}
+                      {trialData.trialPeriod.endDate && (
+                        <> | 结束：{new Date(trialData.trialPeriod.endDate).toLocaleDateString()}</>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           }
           type="info"

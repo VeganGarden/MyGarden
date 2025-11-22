@@ -7,7 +7,9 @@ export interface Restaurant {
   phone?: string
   status: 'active' | 'inactive' | 'pending'
   certificationLevel?: 'bronze' | 'silver' | 'gold' | 'platinum'
-  certificationStatus?: 'none' | 'applying' | 'certified' | 'expired'
+  certificationStatus?: 'none' | 'trial' | 'applying' | 'certified' | 'expired'
+  trialStartDate?: string // 试运营开始时间
+  trialEndDate?: string // 试运营结束时间
   createdAt: string
 }
 

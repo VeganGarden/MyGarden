@@ -13,12 +13,14 @@ import RecipeList from './pages/recipe/List'
 // 核心模块1: 气候餐厅认证
 import CertificationApply from './pages/certification/Apply'
 import CertificationCertificate from './pages/certification/Certificate'
-import CertificationStatus from './pages/certification/Status'
-import CertificationReview from './pages/certification/Review'
-import CertificationMaterials from './pages/certification/Materials'
-import CertificationMaterialHistory from './pages/certification/MaterialHistory'
 import CertificationExport from './pages/certification/Export'
 import CertificationInspection from './pages/certification/Inspection'
+import CertificationMaterialHistory from './pages/certification/MaterialHistory'
+import CertificationMaterials from './pages/certification/Materials'
+import CertificationReview from './pages/certification/Review'
+import CertificationStandard from './pages/certification/Standard'
+import CertificationStatus from './pages/certification/Status'
+import CertificationTrialStats from './pages/certification/TrialStats'
 
 // 核心模块2: 碳足迹核算
 import BaselineAdd from './pages/carbon/BaselineAdd'
@@ -119,8 +121,10 @@ const App: React.FC = () => {
           <Route path="certification/apply" element={<CertificationApply />} />
           <Route path="certification/status" element={<CertificationStatus />} />
           <Route path="certification/certificate" element={<CertificationCertificate />} />
+          <Route path="certification/trial-stats" element={<CertificationTrialStats />} />
           <Route path="certification/review" element={<CertificationReview />} />
           <Route path="certification/materials" element={<CertificationMaterials />} />
+          <Route path="certification/standard" element={<CertificationStandard />} />
           <Route path="certification/materials/history" element={<CertificationMaterialHistory />} />
           <Route path="certification/export" element={<CertificationExport />} />
           <Route path="certification/inspection" element={<CertificationInspection />} />

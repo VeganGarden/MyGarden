@@ -362,6 +362,20 @@ export const certificationAPI = {
       data,
     }),
 
+  // 获取试运营数据（用于自动填充认证申请）
+  getTrialData: (data: { restaurantId: string; tenantId: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'getTrialData',
+      data,
+    }),
+
+  // 获取认证申请列表（平台运营）
+  listApplications: (data: any) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'listApplications',
+      data,
+    }),
+
   // 上传文件
   uploadFile: (data: { base64: string; fileName: string; fileType?: string; documentType?: string }) =>
     callCloudFunction('restaurant-certification', {

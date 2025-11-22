@@ -93,9 +93,12 @@ const MainLayout: React.FC = () => {
   ])
 
   // 角色判断
-  const isPlatformAdmin = user?.role === 'platform_operator'
-  const isSystemAdmin = user?.role === 'system_admin'
-  const isRestaurantAdmin = user?.role === 'restaurant_admin'
+  const userRole = user?.role
+  const isPlatformAdmin = userRole === 'platform_operator'
+  const isSystemAdmin = userRole === 'system_admin'
+  const isRestaurantAdmin = userRole === 'restaurant_admin'
+  // 明确判断是否为认证相关角色（仅餐厅管理员和平台运营）
+  const canAccessCertification = isRestaurantAdmin || isPlatformAdmin
 
   // 使用useMemo确保菜单项能够响应user状态变化和语言变化
   const menuItems = useMemo(() => {
@@ -116,53 +119,64 @@ const MainLayout: React.FC = () => {
         },
       ]
     }
+    // 气候餐厅认证模块（仅餐厅管理员和平台运营可见，其他角色不可见）
+    const certificationMenu = canAccessCertification
+      ? [
+          {
+            key: '/certification',
+            icon: <SafetyCertificateOutlined />,
+            label: t('menu.climateRestaurant'),
+            children: [
+              // 仅餐厅管理员可见的菜单（申请、进度、证书、资料维护）
+              ...(isRestaurantAdmin
+                ? [
+                    {
+                      key: '/certification/apply',
+                      label: t('menu.certificationApplication'),
+                    },
+                    {
+                      key: '/certification/status',
+                      label: t('menu.certificationProgress'),
+                    },
+                    {
+                      key: '/certification/certificate',
+                      label: t('menu.certificationCertificate'),
+                    },
+                    {
+                      key: '/certification/materials',
+                      label: t('menu.certificationMaterials'),
+                    },
+                    {
+                      key: '/certification/export',
+                      label: t('menu.certificationExport'),
+                    },
+                  ]
+                : []),
+              // 仅平台运营可见的菜单（审核、抽检）
+              ...(isPlatformAdmin
+                ? [
+                    {
+                      key: '/certification/review',
+                      label: t('menu.certificationReview'),
+                    },
+                    {
+                      key: '/certification/inspection',
+                      label: t('menu.certificationInspection'),
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ]
+      : []
+
     return [
     {
       key: '/dashboard',
       icon: <DashboardOutlined />,
       label: t('menu.dashboard'),
     },
-    {
-      key: '/certification',
-      icon: <SafetyCertificateOutlined />,
-      label: t('menu.climateRestaurant'),
-      children: [
-        // 餐厅管理员可见的菜单
-        {
-          key: '/certification/apply',
-          label: t('menu.certificationApplication'),
-        },
-        {
-          key: '/certification/status',
-          label: t('menu.certificationProgress'),
-        },
-        {
-          key: '/certification/certificate',
-          label: t('menu.certificationCertificate'),
-        },
-        {
-          key: '/certification/materials',
-          label: t('menu.certificationMaterials'),
-        },
-        {
-          key: '/certification/export',
-          label: t('menu.certificationExport'),
-        },
-        // 平台运营可见的菜单
-        ...(isPlatformAdmin
-          ? [
-              {
-                key: '/certification/review',
-                label: t('menu.certificationReview'),
-              },
-              {
-                key: '/certification/inspection',
-                label: t('menu.certificationInspection'),
-              },
-            ]
-          : []),
-      ],
-    },
+    ...certificationMenu,
     {
       key: '/carbon',
       icon: <CalculatorOutlined />,
@@ -365,7 +379,7 @@ const MainLayout: React.FC = () => {
           },
         ]
       : []),
-  ]}, [isPlatformAdmin, isSystemAdmin, isRestaurantAdmin, t])
+  ]}, [isPlatformAdmin, isSystemAdmin, isRestaurantAdmin, canAccessCertification, t])
 
   const handleLogout = () => {
     dispatch(logout())
