@@ -2110,38 +2110,76 @@ async function getTrialData(data) {
  * 从 restaurant_menu_items 集合查询当前餐厅的所有激活菜品
  */
 async function getRestaurantMenuItems(data) {
-  const { restaurantId } = data
+  const { restaurantId, tenantId } = data
 
-  if (!restaurantId) {
+  if (!restaurantId && !tenantId) {
     return {
       code: 400,
-      message: '餐厅ID不能为空'
+      message: '餐厅ID或租户ID不能为空'
     }
   }
 
   try {
-    // 从 restaurant_menu_items 集合查询餐厅的菜单项
-    // 先尝试最简单的查询，只按 restaurantId 查询，不限制 status
+    // 参考 recipes 集合的查询逻辑，支持通过 tenantId 或 restaurantId 查询
+    let actualTenantId = tenantId
+    let queryRestaurantId = restaurantId
+    
+    // 如果提供了 restaurantId，先尝试获取餐厅信息，确定实际的 tenantId
+    if (restaurantId && !restaurantId.startsWith('tenant_')) {
+      try {
+        const restaurantResult = await db.collection('restaurants').doc(restaurantId).get()
+        if (restaurantResult.data && restaurantResult.data.tenantId) {
+          actualTenantId = restaurantResult.data.tenantId
+          queryRestaurantId = restaurantId
+        }
+      } catch (error) {
+        // 静默处理错误，使用原值
+        console.warn('获取餐厅信息失败，使用原 restaurantId:', error)
+      }
+    }
+
+    // 构建查询条件：支持通过 tenantId 或 restaurantId 查询（使用 $or）
+    let query = db.collection('restaurant_menu_items')
+    
+    // 排除已归档的菜单项
+    query = query.where({
+      status: _.neq('archived')
+    })
+
+    // 多租户隔离：支持通过 tenantId 或 restaurantId 查询
+    const queryConditions = []
+    if (actualTenantId) {
+      queryConditions.push({ tenantId: actualTenantId })
+    }
+    if (queryRestaurantId) {
+      queryConditions.push({ restaurantId: queryRestaurantId })
+    }
+    
+    if (queryConditions.length > 0) {
+      query = query.where(_.or(queryConditions))
+    }
+
+    // 执行查询
     let menuItemsResult
     try {
-      menuItemsResult = await db.collection('restaurant_menu_items')
-        .where({
-          restaurantId: restaurantId
-        })
+      menuItemsResult = await query
         .orderBy('createdAt', 'desc')
         .get()
       
-      console.log(`查询 restaurant_menu_items: restaurantId=${restaurantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
+      console.log(`查询 restaurant_menu_items: restaurantId=${queryRestaurantId}, tenantId=${actualTenantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
     } catch (error) {
-      console.error('查询 restaurant_menu_items 失败:', error)
-      // 如果按 restaurantId 查询失败，尝试不排序
+      console.error('查询 restaurant_menu_items 失败（带排序）:', error)
+      // 如果带排序的查询失败，尝试不带排序
       try {
-        menuItemsResult = await db.collection('restaurant_menu_items')
-          .where({
-            restaurantId: restaurantId
-          })
-          .get()
-        console.log(`查询 restaurant_menu_items (无排序): restaurantId=${restaurantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
+        query = db.collection('restaurant_menu_items')
+        query = query.where({
+          status: _.neq('archived')
+        })
+        if (queryConditions.length > 0) {
+          query = query.where(_.or(queryConditions))
+        }
+        menuItemsResult = await query.get()
+        console.log(`查询 restaurant_menu_items (无排序): restaurantId=${queryRestaurantId}, tenantId=${actualTenantId}, 找到 ${menuItemsResult.data?.length || 0} 条记录`)
       } catch (error2) {
         console.error('查询 restaurant_menu_items (无排序) 也失败:', error2)
         throw error2
