@@ -1,9 +1,11 @@
 import { certificationAPI } from '@/services/cloudbase'
+import { supplierAPI } from '@/services/traceability'
 import { useAppSelector } from '@/store/hooks'
 import {
   CheckOutlined,
   ImportOutlined,
   InfoCircleOutlined,
+  ReloadOutlined,
   SaveOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
@@ -263,6 +265,109 @@ const CertificationApply: React.FC = () => {
   const currentRestaurant = selectedRestaurantId
     ? restaurants.find((r: any) => r.id === selectedRestaurantId)
     : null
+
+  // 加载已有供应商信息
+  const loadSuppliers = async () => {
+    const restaurantId = selectedRestaurantId || currentRestaurantId
+    let tenantId = currentTenantId
+    if (!tenantId && currentTenant) {
+      tenantId = currentTenant.id
+    }
+
+    if (!restaurantId || !tenantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await supplierAPI.list({
+        tenantId,
+        restaurantId, // 只加载当前餐厅关联的供应商
+        page: 1,
+        pageSize: 100, // 获取所有供应商
+      })
+
+      if (result.success && result.data && result.data.length > 0) {
+        // 构建供应商信息字符串
+        const supplierInfoParts = result.data.map((supplier: any) => {
+          const parts = [supplier.name || '未命名供应商']
+          
+          // 添加联系方式
+          if (supplier.contact) {
+            if (supplier.contact.phone) parts.push(`电话: ${supplier.contact.phone}`)
+            if (supplier.contact.email) parts.push(`邮箱: ${supplier.contact.email}`)
+            if (supplier.contact.address) parts.push(`地址: ${supplier.contact.address}`)
+          }
+          
+          // 添加认证信息
+          if (supplier.certifications && supplier.certifications.length > 0) {
+            const certNames = supplier.certifications
+              .map((c: any) => (typeof c === 'string' ? c : c.name || c.type))
+              .filter(Boolean)
+            if (certNames.length > 0) {
+              parts.push(`认证: ${certNames.join(', ')}`)
+            }
+          }
+          
+          // 添加业务信息
+          if (supplier.businessInfo) {
+            if (supplier.businessInfo.mainProducts) {
+              parts.push(`主营: ${supplier.businessInfo.mainProducts}`)
+            }
+            if (supplier.businessInfo.riskLevel) {
+              const riskLevelMap: Record<string, string> = {
+                low: '低风险',
+                medium: '中风险',
+                high: '高风险',
+              }
+              parts.push(`风险等级: ${riskLevelMap[supplier.businessInfo.riskLevel] || supplier.businessInfo.riskLevel}`)
+            }
+          }
+          
+          return parts.filter(Boolean).join('；')
+        })
+
+        const supplierInfoText = supplierInfoParts.join('\n\n')
+        
+        // 填充供应商信息字段
+        form.setFieldsValue({
+          supplierInfo: supplierInfoText,
+        })
+
+        // 构建食材来源信息（从供应商地址等信息提取）
+        const traceabilityParts = result.data
+          .map((supplier: any) => {
+            const parts = []
+            if (supplier.name) parts.push(`供应商: ${supplier.name}`)
+            if (supplier.contact?.address) parts.push(`地址: ${supplier.contact.address}`)
+            if (supplier.businessInfo?.location) parts.push(`产地: ${supplier.businessInfo.location}`)
+            return parts.length > 0 ? parts.join('，') : null
+          })
+          .filter(Boolean)
+
+        if (traceabilityParts.length > 0) {
+          const currentIngredientSource = form.getFieldValue('ingredientSource') || ''
+          const newIngredientSource = traceabilityParts.join('\n')
+          // 如果已有内容，追加；否则替换
+          form.setFieldsValue({
+            ingredientSource: currentIngredientSource 
+              ? `${currentIngredientSource}\n\n${newIngredientSource}`
+              : newIngredientSource,
+          })
+        }
+
+        message.success(`已加载 ${result.data.length} 个供应商信息`)
+      } else {
+        message.warning('当前餐厅暂无关联的供应商，请先在供应商管理模块添加供应商')
+      }
+    } catch (error: any) {
+      console.error('加载供应商信息失败:', error)
+      message.error(error.message || '加载供应商信息失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // 加载试运营数据并自动填充
   const loadTrialData = async () => {
@@ -1369,6 +1474,19 @@ const CertificationApply: React.FC = () => {
       case 2:
         return (
           <Form form={form} layout="vertical">
+            <Space style={{ marginBottom: 16 }}>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={loadSuppliers}
+                loading={loading}
+                type="primary"
+              >
+                加载已有供应商信息
+              </Button>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                从供应商管理模块加载当前餐厅关联的供应商信息
+              </Text>
+            </Space>
             <Form.Item
               name="supplierInfo"
               label={t('pages.certification.apply.fields.supplierInfo')}
