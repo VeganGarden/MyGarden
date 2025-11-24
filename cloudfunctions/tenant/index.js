@@ -5020,7 +5020,7 @@ async function getDashboardData(data, currentUser) {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
-      const orderQuery: any = {}
+      const orderQuery = {}
       if (restaurantId) {
         orderQuery.restaurantId = restaurantId
       }
