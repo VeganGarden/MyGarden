@@ -2565,7 +2565,7 @@ async function replyReview(reviewId, reply) {
  * 获取订单列表
  */
 async function listOrders(data) {
-  const { restaurantId, startDate, endDate, page = 1, pageSize = 20, status, keyword } = data || {}
+  const { restaurantId, startDate, endDate, page = 1, pageSize = 20, status, keyword, includeStats } = data || {}
 
   if (!restaurantId) {
     return {
@@ -2640,12 +2640,81 @@ async function listOrders(data) {
       })
     }
 
+    // 计算统计数据（如果需要）
+    let stats = null
+    if (includeStats) {
+      const totalOrders = orders.length
+      const completedOrders = orders.filter((o) => o.status === 'completed' || o.status === 'completed').length
+      const totalRevenue = orders
+        .filter((o) => o.status === 'completed' || o.status === 'completed')
+        .reduce((sum, o) => {
+          const amount = o.amount || o.totalAmount || o.total_amount || o.pricing?.total || 0
+          return sum + amount
+        }, 0)
+      const totalCarbonReduction = orders
+        .filter((o) => o.status === 'completed' || o.status === 'completed')
+        .reduce((sum, o) => {
+          const carbon = o.carbonFootprint || o.carbon_footprint || o.carbonImpact?.totalCarbonFootprint || 0
+          return sum + carbon
+        }, 0)
+      const avgOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0
+      const completionRate = totalOrders > 0 ? completedOrders / totalOrders : 0
+
+      // 按日期分组统计
+      const dailyStats = new Map()
+      orders.forEach((order) => {
+        const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+        if (!orderDate) return
+        
+        const dateStr = typeof orderDate === 'string' 
+          ? orderDate.substring(0, 10) 
+          : new Date(orderDate).toISOString().substring(0, 10)
+        
+        if (!dailyStats.has(dateStr)) {
+          dailyStats.set(dateStr, {
+            date: dateStr,
+            orderCount: 0,
+            revenue: 0,
+            carbonReduction: 0,
+          })
+        }
+        
+        const dayStat = dailyStats.get(dateStr)
+        dayStat.orderCount++
+        
+        if (order.status === 'completed' || order.status === 'completed') {
+          const amount = order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0
+          const carbon = order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0
+          dayStat.revenue += amount
+          dayStat.carbonReduction += carbon
+        }
+      })
+
+      // 按状态分组统计
+      const statusStats = new Map()
+      orders.forEach((order) => {
+        const orderStatus = order.status || 'pending'
+        statusStats.set(orderStatus, (statusStats.get(orderStatus) || 0) + 1)
+      })
+
+      stats = {
+        totalOrders,
+        completedOrders,
+        totalRevenue,
+        totalCarbonReduction,
+        avgOrderValue,
+        completionRate,
+        dailyStats: Array.from(dailyStats.values()).sort((a, b) => a.date.localeCompare(b.date)),
+        statusStats: Object.fromEntries(statusStats),
+      }
+    }
+
     // 分页处理
     const total = orders.length
-    orders = orders.slice((page - 1) * pageSize, page * pageSize)
+    const paginatedOrders = orders.slice((page - 1) * pageSize, page * pageSize)
 
     // 格式化订单数据
-    const formattedOrders = orders.map((order) => ({
+    const formattedOrders = paginatedOrders.map((order) => ({
       id: order._id || '',
       orderNo: order.orderNo || order.order_no || order.orderId || '',
       orderDate: order.orderDate || order.order_date || order.createdAt || '',
@@ -2653,12 +2722,20 @@ async function listOrders(data) {
       amount: order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0,
       carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0,
       status: order.status || 'pending',
+      items: order.items || [],
     }))
 
     return {
       code: 0,
       message: '获取成功',
       data: formattedOrders,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+      stats: stats,
     }
   } catch (error) {
     console.error('获取订单列表失败:', error)
