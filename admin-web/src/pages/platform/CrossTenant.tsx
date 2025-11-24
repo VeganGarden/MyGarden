@@ -127,20 +127,13 @@ const CrossTenant: React.FC = () => {
         )
       }
     } catch (error) {
-      console.error('获取租户列表失败:', error)
+      // 获取租户列表失败
     }
   }
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      console.log('开始获取跨租户数据...', {
-        tenantIds: selectedTenants,
-        dataType,
-        startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-        endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      })
-
       const result = await platformAPI.crossTenant.getData({
         tenantIds: selectedTenants.length > 0 ? selectedTenants : undefined,
         dataType: dataType === 'all' ? 'all' : (dataType as any),
@@ -149,8 +142,6 @@ const CrossTenant: React.FC = () => {
         page: pagination.current,
         pageSize: pagination.pageSize,
       })
-
-      console.log('获取跨租户数据结果:', result)
 
       if (result && result.code === 0 && result.data) {
         setSummary(result.data.summary || {
@@ -168,7 +159,6 @@ const CrossTenant: React.FC = () => {
         })
         setPagination({ ...pagination, total: result.data.total || 0 })
       } else {
-        console.error('API返回错误:', result)
         message.error(result?.message || t('pages.platform.crossTenant.messages.loadFailed'))
         // 即使失败也设置空数据，确保UI能显示
         setSummary({
@@ -186,7 +176,6 @@ const CrossTenant: React.FC = () => {
         })
       }
     } catch (error: any) {
-      console.error('获取跨租户数据失败:', error)
       message.error(error.message || t('pages.platform.crossTenant.messages.loadFailed'))
       // 即使失败也设置空数据，确保UI能显示
       setSummary({
@@ -256,7 +245,6 @@ const CrossTenant: React.FC = () => {
       }
     } catch (error: any) {
       message.destroy()
-      console.error('导出失败:', error)
       message.error(error.message || t('common.exportFailed'))
     } finally {
       setLoading(false)

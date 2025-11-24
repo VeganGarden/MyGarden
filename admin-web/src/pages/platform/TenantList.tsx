@@ -101,23 +101,10 @@ const TenantList: React.FC = () => {
   const fetchTenants = async () => {
     setLoading(true)
     try {
-      console.log('查询租户列表参数:', {
-        searchKeyword,
-        statusFilter,
-        dateRange: dateRange ? [dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD')] : null,
-      })
-
       const result = await tenantAPI.getAllTenants()
-      console.log('查询租户列表结果:', result)
 
       if (result && result.code === 0) {
         let tenants = result.data || []
-        
-        console.log('获取到的租户数量:', tenants.length)
-        
-        if (tenants.length === 0) {
-          console.warn('租户列表为空，可能是数据库中没有租户数据')
-        }
 
         // 前端筛选
         if (searchKeyword) {
@@ -192,7 +179,6 @@ const TenantList: React.FC = () => {
             }
           })
         } catch (error) {
-          console.error('获取租户统计数据失败，使用默认值:', error)
           // 如果获取统计数据失败，至少获取餐厅数量
           tenantsWithStats = await Promise.all(
             tenants.map(async (tenant: Tenant) => {
@@ -243,23 +229,11 @@ const TenantList: React.FC = () => {
           total,
         })
       } else {
-        console.error('获取租户列表失败，返回结果:', result)
         setDataSource([])
         const errorMsg = result?.message || t('pages.platform.tenantList.messages.loadFailed')
         message.error(errorMsg)
-        console.error('错误详情:', {
-          code: result?.code,
-          message: result?.message,
-          data: result?.data,
-        })
       }
     } catch (error: any) {
-      console.error('获取租户列表异常:', error)
-      console.error('异常详情:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response,
-      })
       message.error(error.message || t('pages.platform.tenantList.messages.loadFailed'))
       setDataSource([])
     } finally {
@@ -418,7 +392,7 @@ const TenantList: React.FC = () => {
             }
           }
         } catch (error) {
-          console.error('获取统计数据失败:', error)
+          // 获取统计数据失败，使用默认值
         }
         
         setSelectedRecord(tenantData)
@@ -441,7 +415,6 @@ const TenantList: React.FC = () => {
         message.error(result?.message || t('common.loadFailed'))
       }
     } catch (error: any) {
-      console.error('获取租户详情失败:', error)
       message.error(error.message || t('common.loadFailed'))
     } finally {
       setLoading(false)
@@ -467,7 +440,6 @@ const TenantList: React.FC = () => {
             message.error(result?.message || t('common.operationFailed'))
           }
         } catch (error: any) {
-          console.error('删除租户失败:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -490,7 +462,7 @@ const TenantList: React.FC = () => {
         setOperationLogs(result.data.list || [])
       }
     } catch (error) {
-      console.error('获取操作日志失败:', error)
+      // 获取操作日志失败
     } finally {
       setOperationLogsLoading(false)
     }
@@ -516,7 +488,6 @@ const TenantList: React.FC = () => {
           message.error(result?.message || t('common.operationFailed'))
         }
       } catch (error: any) {
-        console.error('更新配置失败:', error)
         message.error(error.message || t('common.operationFailed'))
       } finally {
         setLoading(false)
@@ -542,9 +513,7 @@ const TenantList: React.FC = () => {
       onOk: async () => {
         try {
           setLoading(true)
-          console.log('暂停租户，调用API:', { tenantId, status: 'suspended' })
           const result = await tenantAPI.updateStatus(tenantId, 'suspended')
-          console.log('API返回结果:', result)
           if (result && result.code === 0) {
             message.success(t('pages.platform.tenantList.messages.suspended'))
             // 立即更新本地状态
@@ -554,11 +523,9 @@ const TenantList: React.FC = () => {
             // 然后重新获取数据以确保数据一致性
             await fetchTenants()
           } else {
-            console.error('暂停租户失败，返回结果:', result)
             message.error(result?.message || t('common.operationFailed'))
           }
         } catch (error: any) {
-          console.error('暂停租户失败，异常:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -574,9 +541,7 @@ const TenantList: React.FC = () => {
       onOk: async () => {
         try {
           setLoading(true)
-          console.log('激活租户，调用API:', { tenantId, status: 'active' })
           const result = await tenantAPI.updateStatus(tenantId, 'active')
-          console.log('API返回结果:', result)
           if (result && result.code === 0) {
             message.success(t('pages.platform.tenantList.messages.activated'))
             // 立即更新本地状态
@@ -586,11 +551,9 @@ const TenantList: React.FC = () => {
             // 然后重新获取数据以确保数据一致性
             await fetchTenants()
           } else {
-            console.error('激活租户失败，返回结果:', result)
             message.error(result?.message || t('common.operationFailed'))
           }
         } catch (error: any) {
-          console.error('激活租户失败，异常:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -644,7 +607,6 @@ const TenantList: React.FC = () => {
             await fetchTenants()
           }
         } catch (error: any) {
-          console.error('批量激活失败:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -698,7 +660,6 @@ const TenantList: React.FC = () => {
             await fetchTenants()
           }
         } catch (error: any) {
-          console.error('批量暂停失败:', error)
           message.error(error.message || t('common.operationFailed'))
         } finally {
           setLoading(false)
@@ -736,7 +697,6 @@ const TenantList: React.FC = () => {
           }
         }
       } catch (error: any) {
-        console.error('提交失败:', error)
         message.error(error.message || t('common.operationFailed'))
       }
     })
@@ -789,7 +749,6 @@ const TenantList: React.FC = () => {
 
       message.success(t('common.exportSuccess'))
     } catch (error: any) {
-      console.error('导出失败:', error)
       message.error(error.message || t('common.exportFailed'))
     }
   }
