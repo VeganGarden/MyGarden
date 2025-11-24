@@ -202,6 +202,14 @@ exports.main = async (event, context) => {
           if (!gate.ok) return gate.error
           return await getDashboard(data, gate.user)
         }
+      
+      case 'getDashboardData':
+        // 获取数据看板数据（扩展版，包含关键指标、趋势数据、图表数据）
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await getDashboardData(data, gate.user)
+        }
 
       case 'init':
         // 初始化租户和餐厅数据
@@ -4167,6 +4175,144 @@ async function getDashboard(data, currentUser) {
   }
   
   return result
+}
+
+/**
+ * 获取数据看板数据（扩展版）
+ * 根据策划方案，返回关键指标、趋势数据、图表数据
+ */
+async function getDashboardData(data, currentUser) {
+  const { restaurantId, tenantId, dateRange, metrics } = data || {}
+  
+  try {
+    // 1. 获取基础看板数据
+    const dashboardResult = await getDashboard({
+      restaurantId,
+      tenantId,
+      includeTopRecipes: true,
+      includeTrends: true,
+      startDate: dateRange?.startDate,
+      endDate: dateRange?.endDate,
+    }, currentUser)
+
+    if (dashboardResult.code !== 0) {
+      return dashboardResult
+    }
+
+    const baseData = dashboardResult.data
+
+    // 2. 构建关键指标
+    const keyMetrics = {
+      todayOrders: baseData.todayOrders || 0,
+      todayRevenue: baseData.todayRevenue || 0,
+      todayCarbonReduction: 0, // 需要从订单数据计算今日碳减排
+      totalRecipes: baseData.totalRecipes || 0,
+      totalCarbonReduction: baseData.totalCarbonReduction || 0,
+      certifiedRestaurants: baseData.certifiedRestaurants || 0,
+      activeUsers: baseData.activeUsers || 0,
+    }
+
+    // 3. 计算今日碳减排（从订单数据）
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      const orderQuery: any = {}
+      if (restaurantId) {
+        orderQuery.restaurantId = restaurantId
+      }
+
+      const todayOrdersRes = await db.collection('restaurant_orders')
+        .where({
+          ...orderQuery,
+          createdAt: _.gte(today).and(_.lt(tomorrow)),
+        })
+        .field({
+          'carbonImpact.carbonSavingsVsMeat': 1,
+        })
+        .get()
+
+      keyMetrics.todayCarbonReduction = todayOrdersRes.data.reduce((sum, order) => {
+        const reduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+        return sum + reduction
+      }, 0)
+    } catch (error) {
+      console.error('计算今日碳减排失败:', error)
+    }
+
+    // 4. 构建趋势数据
+    const trends = baseData.trends || []
+
+    // 5. 构建图表数据
+    const charts = []
+    
+    // 订单趋势图
+    if (trends.length > 0) {
+      charts.push({
+        type: 'line',
+        title: '订单趋势',
+        data: trends.map((t: any) => ({
+          date: t.date,
+          value: t.orderCount,
+          type: '订单数',
+        })),
+      })
+
+      // 收入趋势图
+      charts.push({
+        type: 'line',
+        title: '收入趋势',
+        data: trends.map((t: any) => ({
+          date: t.date,
+          value: t.revenue,
+          type: '收入',
+        })),
+      })
+
+      // 碳减排趋势图
+      charts.push({
+        type: 'line',
+        title: '碳减排趋势',
+        data: trends.map((t: any) => ({
+          date: t.date,
+          value: t.carbonReduction,
+          type: '碳减排',
+        })),
+      })
+    }
+
+    // 热门菜谱图表
+    if (baseData.topRecipes && baseData.topRecipes.length > 0) {
+      charts.push({
+        type: 'bar',
+        title: '热门菜谱',
+        data: baseData.topRecipes.map((recipe: any) => ({
+          name: recipe.recipeName,
+          value: recipe.orders,
+        })),
+      })
+    }
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        keyMetrics,
+        trends,
+        charts,
+        topRecipes: baseData.topRecipes || [],
+      },
+    }
+  } catch (error) {
+    console.error('获取数据看板数据失败:', error)
+    return {
+      code: 500,
+      message: '获取数据看板数据失败',
+      error: error.message,
+    }
+  }
 }
 
 /**
