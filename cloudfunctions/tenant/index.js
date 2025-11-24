@@ -122,6 +122,10 @@ exports.main = async (event, context) => {
       case 'getBehaviorMetrics':
         // 获取行为统计数据
         return await getBehaviorMetrics(data)
+      
+      case 'generateBehaviorSnapshot':
+        // 生成行为指标快照
+        return await generateBehaviorSnapshot(data)
 
       // 优惠券管理
       case 'listCoupons':
@@ -1948,10 +1952,11 @@ async function getRestaurantData(data) {
 }
 
 /**
- * 获取行为统计数据
+ * 获取行为统计数据（扩展版 - 支持完整的行为指标统计）
+ * 根据策划方案实现餐厅行为指标和顾客行为指标
  */
 async function getBehaviorMetrics(data) {
-  const { restaurantId, startDate, endDate } = data || {}
+  const { restaurantId, tenantId, period, startDate, endDate } = data || {}
 
   if (!restaurantId) {
     return {
@@ -1961,96 +1966,233 @@ async function getBehaviorMetrics(data) {
   }
 
   try {
-    // 构建查询条件
-    const query = db.collection('restaurant_behavior_metrics').where({
+    // 1. 从订单数据计算行为指标
+    const ordersResult = await db.collection('restaurant_orders')
+      .where({
+        restaurantId: restaurantId,
+        status: db.command.in(['completed', 'processing']), // 只统计已完成或处理中的订单
+      })
+      .get()
+    
+    const orders = ordersResult.data || []
+    
+    // 应用日期筛选
+    let filteredOrders = orders
+    if (startDate || endDate) {
+      filteredOrders = orders.filter((order) => {
+        const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+        if (!orderDate) return false
+        
+        const dateStr = typeof orderDate === 'string' 
+          ? orderDate.substring(0, 10) 
+          : new Date(orderDate).toISOString().substring(0, 10)
+        
+        if (startDate && dateStr < startDate) return false
+        if (endDate && dateStr > endDate) return false
+        return true
+      })
+    }
+
+    // 2. 计算餐厅行为指标
+    let lowCarbonDishCount = 0 // 低碳菜品订单数
+    let totalOrderCount = filteredOrders.length // 总订单数
+    let localIngredientCount = 0 // 使用本地食材的订单数
+    let organicIngredientCount = 0 // 使用有机食材的订单数
+    let totalRevenue = 0 // 总收入（用于计算能源强度）
+    let totalServiceCount = 0 // 总服务人次
+
+    // 3. 计算顾客行为指标
+    const customerMap = new Map() // 用户ID -> 订单列表
+    const hourCountMap = new Map() // 小时 -> 订单数
+    let totalAmount = 0 // 总消费金额
+    let lowCarbonChoiceCount = 0 // 选择低碳菜品的订单数
+    let smallPortionCount = 0 // 选择小份的订单数
+    let noUtensilsCount = 0 // 不使用一次性餐具的订单数
+
+    filteredOrders.forEach((order) => {
+      // 餐厅行为指标计算
+      const amount = order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0
+      totalRevenue += amount
+      totalServiceCount += order.guestCount || order.guest_count || 1
+
+      // 检查是否为低碳菜品（通过碳足迹判断）
+      const carbonFootprint = order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0
+      const baselineCarbon = order.baselineCarbon || order.baseline_carbon || 0
+      if (baselineCarbon > 0 && carbonFootprint < baselineCarbon * 0.7) {
+        lowCarbonDishCount++
+      }
+
+      // 检查本地食材和有机食材（从订单项中判断）
+      const items = order.items || []
+      let hasLocalIngredient = false
+      let hasOrganicIngredient = false
+      items.forEach((item) => {
+        if (item.isLocal || item.is_local) {
+          hasLocalIngredient = true
+        }
+        if (item.isOrganic || item.is_organic) {
+          hasOrganicIngredient = true
+        }
+      })
+      if (hasLocalIngredient) localIngredientCount++
+      if (hasOrganicIngredient) organicIngredientCount++
+
+      // 顾客行为指标计算
+      const customerId = order.customerId || order.customer_id || order.userId || order.user_id || ''
+      if (customerId) {
+        if (!customerMap.has(customerId)) {
+          customerMap.set(customerId, [])
+        }
+        customerMap.get(customerId).push(order)
+      }
+
+      // 统计消费时段
+      const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+      if (orderDate) {
+        const date = new Date(orderDate)
+        const hour = date.getHours()
+        hourCountMap.set(hour, (hourCountMap.get(hour) || 0) + 1)
+      }
+
+      totalAmount += amount
+
+      // 检查低碳行为选择
+      if (order.lowCarbonChoice || order.low_carbon_choice) {
+        lowCarbonChoiceCount++
+      }
+      if (order.smallPortion || order.small_portion) {
+        smallPortionCount++
+      }
+      if (order.noUtensils || order.no_utensils) {
+        noUtensilsCount++
+      }
+    })
+
+    // 4. 计算餐厅行为指标
+    const lowCarbonDishRatio = totalOrderCount > 0 ? lowCarbonDishCount / totalOrderCount : 0
+    const localIngredientRatio = totalOrderCount > 0 ? localIngredientCount / totalOrderCount : 0
+    const organicIngredientRatio = totalOrderCount > 0 ? organicIngredientCount / totalOrderCount : 0
+
+    // 能源强度计算（需要从运营台账获取能源数据，这里先返回0）
+    const energyIntensity = 0 // 需要从运营台账计算
+    const energyIntensityReduction = 0 // 需要对比历史数据
+
+    // 浪费减少指标（需要从运营台账获取，这里先返回0）
+    const wasteReduction = 0
+    const wasteReductionRate = 0
+
+    // 5. 计算顾客行为指标
+    const customerCount = customerMap.size
+    const avgFrequency = customerCount > 0 ? totalOrderCount / customerCount : 0
+
+    // 找出高峰时段（订单数最多的3个时段）
+    const peakHours = Array.from(hourCountMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([hour]) => `${hour}:00`)
+
+    const avgAmount = totalOrderCount > 0 ? totalAmount / totalOrderCount : 0
+    const lowCarbonChoiceRate = totalOrderCount > 0 ? lowCarbonChoiceCount / totalOrderCount : 0
+    const smallPortionRate = totalOrderCount > 0 ? smallPortionCount / totalOrderCount : 0
+    const noUtensilsRate = totalOrderCount > 0 ? noUtensilsCount / totalOrderCount : 0
+
+    // 6. 获取历史快照数据
+    const snapshotQuery = db.collection('restaurant_behavior_metrics').where({
       restaurantId: restaurantId,
     })
 
-    // 添加日期筛选
     if (startDate || endDate) {
       const dateCondition = {}
       if (startDate) {
-        dateCondition.date = db.command.gte(startDate)
+        dateCondition.snapshotDate = db.command.gte(startDate)
       }
       if (endDate) {
-        dateCondition.date = db.command.lte(endDate)
+        dateCondition.snapshotDate = db.command.lte(endDate)
       }
       if (Object.keys(dateCondition).length > 0) {
-        query.where(dateCondition)
+        snapshotQuery.where(dateCondition)
       }
     }
 
-    // 查询数据
-    const result = await query.orderBy('date', 'desc').get()
-    const metrics = result.data || []
+    if (period) {
+      snapshotQuery.where({
+        period: period,
+      })
+    }
 
-    // 计算统计数据
-    let totalLowCarbonRatio = 0
-    let totalCarbonReduction = 0
-    let totalLowCarbonChoices = 0
-    let totalChoices = 0
+    const snapshotsResult = await snapshotQuery
+      .orderBy('snapshotDate', 'desc')
+      .limit(30) // 最多返回30个快照
+      .get()
 
-    metrics.forEach((metric) => {
-      const lowCarbonRatio = metric.lowCarbonRatio || metric.low_carbon_ratio || 0
-      const carbonReduction = metric.carbonReduction || metric.carbon_reduction || 0
-      const lowCarbonChoices = metric.lowCarbonChoices || metric.low_carbon_choices || 0
-      const totalChoicesCount = metric.totalChoices || metric.total_choices || 0
-
-      totalLowCarbonRatio += lowCarbonRatio
-      totalCarbonReduction += carbonReduction
-      totalLowCarbonChoices += lowCarbonChoices
-      totalChoices += totalChoicesCount
-    })
-
-    // 计算平均值和总计
-    const avgLowCarbonRatio = metrics.length > 0 ? totalLowCarbonRatio / metrics.length : 0
-    const customerLowCarbonChoiceRate = totalChoices > 0 ? totalLowCarbonChoices / totalChoices : 0
-
-    // 格式化详细数据
-    const details = metrics.map((metric) => ({
-      id: metric._id || '',
-      date: metric.date || metric.createTime || '',
-      lowCarbonRatio: metric.lowCarbonRatio || metric.low_carbon_ratio || 0,
-      customerBehavior: metric.customerBehavior || metric.customer_behavior || '',
-      carbonReduction: metric.carbonReduction || metric.carbon_reduction || 0,
+    const snapshots = (snapshotsResult.data || []).map((snapshot) => ({
+      metricId: snapshot._id || snapshot.metricId || '',
+      snapshotDate: snapshot.snapshotDate || snapshot.snapshot_date || '',
+      period: snapshot.period || 'daily',
+      restaurantMetrics: snapshot.restaurantMetrics || {},
+      customerMetrics: snapshot.customerMetrics || {},
     }))
 
-    // 生成图表数据（按日期分组）
+    // 7. 生成图表数据（按日期分组）
     const chartDataMap = new Map()
-    metrics.forEach((metric) => {
-      const date = metric.date || metric.createTime || ''
+    snapshots.forEach((snapshot) => {
+      const date = snapshot.snapshotDate || ''
       const month = date.substring(0, 7) // 提取年月 YYYY-MM
       if (!chartDataMap.has(month)) {
         chartDataMap.set(month, {
           date: month,
-          ratio: 0,
+          lowCarbonRatio: 0,
           count: 0,
         })
       }
       const chartItem = chartDataMap.get(month)
-      chartItem.ratio += metric.lowCarbonRatio || metric.low_carbon_ratio || 0
+      const lowCarbonRatio = snapshot.restaurantMetrics?.lowCarbonDishRatio || 0
+      chartItem.lowCarbonRatio += lowCarbonRatio
       chartItem.count += 1
     })
 
     const chartData = Array.from(chartDataMap.values())
       .map((item) => ({
         date: item.date,
-        ratio: item.count > 0 ? item.ratio / item.count : 0,
+        ratio: item.count > 0 ? item.lowCarbonRatio / item.count : 0,
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
 
+    // 8. 返回完整的行为指标数据
     return {
       code: 0,
       message: '获取成功',
       data: {
-        statistics: {
-          lowCarbonRatio: avgLowCarbonRatio,
-          monthlyCarbonReduction: totalCarbonReduction,
-          customerLowCarbonChoiceRate: customerLowCarbonChoiceRate,
-          behaviorRecordCount: metrics.length,
+        // 餐厅行为指标
+        restaurantMetrics: {
+          lowCarbonDishRatio: lowCarbonDishRatio,
+          localIngredientRatio: localIngredientRatio,
+          organicIngredientRatio: organicIngredientRatio,
+          energyIntensity: energyIntensity,
+          energyIntensityReduction: energyIntensityReduction,
+          wasteReduction: wasteReduction,
+          wasteReductionRate: wasteReductionRate,
         },
+        // 顾客行为指标
+        customerMetrics: {
+          avgFrequency: avgFrequency,
+          peakHours: peakHours,
+          avgAmount: avgAmount,
+          lowCarbonChoiceRate: lowCarbonChoiceRate,
+          smallPortionRate: smallPortionRate,
+          noUtensilsRate: noUtensilsRate,
+        },
+        // 历史快照
+        snapshots: snapshots,
+        // 图表数据
         chartData: chartData,
-        details: details,
+        // 统计数据（兼容旧接口）
+        statistics: {
+          lowCarbonRatio: lowCarbonDishRatio,
+          monthlyCarbonReduction: 0, // 需要从订单计算
+          customerLowCarbonChoiceRate: lowCarbonChoiceRate,
+          behaviorRecordCount: snapshots.length,
+        },
       },
     }
   } catch (error) {
