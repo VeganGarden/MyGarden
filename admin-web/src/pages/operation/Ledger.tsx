@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { operationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import { Column, Line } from '@ant-design/charts'
+import * as XLSX from 'xlsx'
 
 const { RangePicker } = DatePicker
 const { TextArea } = Input
@@ -66,6 +67,11 @@ const OperationLedger: React.FC = () => {
   // 获取当前餐厅和租户信息
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const { user } = useAppSelector((state: any) => state.auth)
+  
+  // 用于批量导入时获取用户信息
+  const getUser = () => {
+    return user
+  }
 
   const restaurantId = currentRestaurantId
   const tenantId = currentTenant?.id || user?.tenantId || 'default'
@@ -410,12 +416,12 @@ const OperationLedger: React.FC = () => {
       }
 
       // 发送到后端
-      const { user } = useAppSelector((state: any) => state.auth) || {}
+      const currentUser = getUser()
       const result = await operationAPI.ledger.batchImport({
         restaurantId,
         tenantId,
         ledgerData: ledgerData.filter(item => item.type && item.date && item.value > 0),
-        createdBy: user?.id || 'system',
+        createdBy: currentUser?.id || 'system',
       })
 
       if (result && result.code === 0) {
