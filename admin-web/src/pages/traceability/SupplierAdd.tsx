@@ -2,26 +2,34 @@
  * 供应商添加页
  */
 
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { Card, Form, Input, Select, Button, Space, message, Row, Col } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import RestaurantSelector from '@/components/traceability/RestaurantSelector'
 import { supplierAPI } from '@/services/traceability'
+import { useAppSelector } from '@/store/hooks'
 import type { SupplierFormData } from '@/types/traceability'
-import { SupplierType, RiskLevel } from '@/types/traceability'
+import { RiskLevel, SupplierType } from '@/types/traceability'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Button, Card, Col, Form, Input, Row, Select, Space, message } from 'antd'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 const SupplierAddPage: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  
+  // 从Redux获取租户信息
+  const { currentTenant } = useAppSelector((state: any) => state.tenant)
+  const { user } = useAppSelector((state: any) => state.auth)
 
   const handleSubmit = async (values: any) => {
     setLoading(true)
     try {
-      const formData: SupplierFormData & { tenantId: string } = {
-        tenantId: 'default', // 实际应从用户信息获取
+      const tenantId = currentTenant?.id || user?.tenantId || 'default'
+      
+      const formData: SupplierFormData & { tenantId: string; cooperation?: { restaurantIds: string[] } } = {
+        tenantId,
         name: values.name,
         type: values.type,
         legalName: values.legalName,
@@ -42,6 +50,9 @@ const SupplierAddPage: React.FC = () => {
           businessScope: values.businessScope,
           annualCapacity: values.annualCapacity,
           mainProducts: values.mainProducts ? values.mainProducts.split(',').map((s: string) => s.trim()) : []
+        },
+        cooperation: {
+          restaurantIds: values.restaurantIds || []
         }
       }
 
@@ -173,6 +184,14 @@ const SupplierAddPage: React.FC = () => {
 
         <Form.Item name="mainProducts" label={t('pages.traceability.supplierAdd.fields.mainProducts')}>
           <Input placeholder={t('pages.traceability.supplierAdd.placeholders.mainProducts')} />
+        </Form.Item>
+
+        <Form.Item
+          name="restaurantIds"
+          label="合作餐厅"
+          tooltip="选择与该供应商合作的餐厅，可多选"
+        >
+          <RestaurantSelector placeholder="请选择合作餐厅" />
         </Form.Item>
 
         <Form.Item>

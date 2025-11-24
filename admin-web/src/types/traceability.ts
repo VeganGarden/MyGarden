@@ -364,6 +364,9 @@ export interface SupplierFormData {
   contact: Supplier['contact']
   certifications?: Supplier['certifications']
   businessInfo: Supplier['businessInfo']
+  cooperation?: {
+    restaurantIds: string[]
+  }
 }
 
 export interface IngredientLotFormData {
