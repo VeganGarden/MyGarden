@@ -339,50 +339,105 @@ const OperationLedger: React.FC = () => {
     setImportLoading(true)
     try {
       // 读取文件内容
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        try {
-          const fileData = e.target?.result as string
-          // 转换为Base64
-          const base64Data = fileData.split(',')[1] || btoa(fileData)
-          
-          const result = await operationAPI.ledger.batchImport({
-            restaurantId,
-            tenantId,
-            fileData: base64Data,
-            fileName: importFile.name,
-            fileType: importFile.name.endsWith('.csv') ? 'csv' : 'excel',
-          })
+      const arrayBuffer = await importFile.arrayBuffer()
+      let parsedData: any[] = []
 
-          if (result && result.code === 0) {
-            const { successCount, failCount, errors } = result.data || {}
-            if (failCount > 0) {
-              message.warning(`导入完成：成功 ${successCount} 条，失败 ${failCount} 条`)
-              if (errors && errors.length > 0) {
-                console.error('导入错误:', errors)
-              }
-            } else {
-              message.success(`成功导入 ${successCount} 条记录`)
-            }
-            setImportModalVisible(false)
-            setImportFile(null)
-            loadData()
-          } else {
-            message.error(result?.message || '导入失败')
-          }
-        } catch (error: any) {
-          console.error('处理文件失败:', error)
-          message.error(error.message || '处理文件失败')
-        } finally {
+      // 解析文件
+      if (importFile.name.endsWith('.csv')) {
+        // CSV文件：简单解析（假设第一行是表头）
+        const text = await importFile.text()
+        const lines = text.split('\n').filter(line => line.trim())
+        if (lines.length < 2) {
+          message.error('CSV文件至少需要包含表头和一行数据')
           setImportLoading(false)
+          return
         }
+        
+        const headers = lines[0].split(',').map(h => h.trim())
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim())
+          const row: any = {}
+          headers.forEach((header, index) => {
+            row[header] = values[index] || ''
+          })
+          parsedData.push(row)
+        }
+      } else {
+        // Excel文件：使用XLSX库解析
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+        parsedData = XLSX.utils.sheet_to_json(firstSheet)
       }
-      
-      // 读取为Data URL（Base64）
-      reader.readAsDataURL(importFile)
+
+      if (parsedData.length === 0) {
+        message.error('文件中没有有效数据')
+        setImportLoading(false)
+        return
+      }
+
+      // 转换数据格式
+      const ledgerData = parsedData.map((row: any) => {
+        // 支持中英文列名
+        const getValue = (keys: string[]) => {
+          for (const key of keys) {
+            if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+              return row[key]
+            }
+          }
+          return null
+        }
+
+        return {
+          type: getValue(['类型', 'type', '台账类型']) || 'other',
+          date: getValue(['日期', 'date', '记录日期']) || new Date().toISOString().slice(0, 10),
+          period: getValue(['周期', 'period', '记录周期']) || 'daily',
+          description: getValue(['说明', 'description', '描述']) || '',
+          value: Number(getValue(['数值', 'value', '值'])) || 0,
+          unit: getValue(['单位', 'unit']) || '',
+          energyType: getValue(['能源类型', 'energyType', '能源']) || null,
+          wasteType: getValue(['浪费类型', 'wasteType', '浪费']) || null,
+          trainingType: getValue(['培训类型', 'trainingType', '培训']) || null,
+          participants: getValue(['参与人数', 'participants', '人数']) ? Number(getValue(['参与人数', 'participants', '人数'])) : null,
+          status: 'draft',
+        }
+      })
+
+      // 验证数据
+      const invalidData = ledgerData.filter(item => !item.type || !item.date || item.value === 0)
+      if (invalidData.length > 0) {
+        message.warning(`有 ${invalidData.length} 条数据缺少必填字段（类型、日期、数值）`)
+        // 继续导入有效数据
+      }
+
+      // 发送到后端
+      const { user } = useAppSelector((state: any) => state.auth) || {}
+      const result = await operationAPI.ledger.batchImport({
+        restaurantId,
+        tenantId,
+        ledgerData: ledgerData.filter(item => item.type && item.date && item.value > 0),
+        createdBy: user?.id || 'system',
+      })
+
+      if (result && result.code === 0) {
+        const { successCount, failCount, errors } = result.data || {}
+        if (failCount > 0) {
+          message.warning(`导入完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+          if (errors && errors.length > 0) {
+            console.error('导入错误:', errors)
+          }
+        } else {
+          message.success(`成功导入 ${successCount} 条记录`)
+        }
+        setImportModalVisible(false)
+        setImportFile(null)
+        loadData()
+      } else {
+        message.error(result?.message || '导入失败')
+      }
     } catch (error: any) {
       console.error('导入失败:', error)
       message.error(error.message || '导入失败')
+    } finally {
       setImportLoading(false)
     }
   }

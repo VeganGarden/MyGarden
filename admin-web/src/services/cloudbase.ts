@@ -581,7 +581,10 @@ export const operationAPI = {
     batchImport: (params?: any) =>
       callCloudFunction('restaurant-operation', {
         action: 'batchImportLedger',
-        ...params,
+        restaurantId: params?.restaurantId,
+        tenantId: params?.tenantId,
+        ledgerData: params?.ledgerData,
+        createdBy: params?.createdBy,
       }),
   },
 

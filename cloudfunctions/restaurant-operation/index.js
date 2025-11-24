@@ -458,35 +458,117 @@ async function getLedgerStats(params) {
 
 /**
  * 批量导入运营台账
+ * 注意：文件解析在前端完成，这里接收已解析的数据数组
  */
 async function batchImportLedger(params) {
   try {
     const {
       restaurantId,
       tenantId,
-      fileData, // Base64编码的文件数据
-      fileName,
-      fileType // excel, csv
+      ledgerData, // 已解析的台账数据数组
+      createdBy
     } = params
 
-    if (!restaurantId || !tenantId || !fileData) {
+    if (!restaurantId || !tenantId || !ledgerData || !Array.isArray(ledgerData)) {
       return {
         code: 400,
-        message: 'restaurantId、tenantId、fileData 为必填字段'
+        message: 'restaurantId、tenantId、ledgerData（数组）为必填字段'
       }
     }
 
-    // TODO: 实现文件解析逻辑
-    // 这里需要解析Excel/CSV文件，提取台账数据
-    // 暂时返回占位响应
+    if (ledgerData.length === 0) {
+      return {
+        code: 400,
+        message: '导入数据为空'
+      }
+    }
+
+    const results = {
+      successCount: 0,
+      failCount: 0,
+      errors: []
+    }
+
+    const now = new Date()
+
+    // 批量创建台账记录
+    for (let i = 0; i < ledgerData.length; i++) {
+      const item = ledgerData[i]
+      
+      try {
+        // 验证必填字段
+        if (!item.type || !item.date || item.value === undefined || item.value === null) {
+          results.failCount++
+          results.errors.push({
+            row: i + 1,
+            data: item,
+            error: '缺少必填字段：type、date、value'
+          })
+          continue
+        }
+
+        // 生成台账ID
+        const ledgerId = generateLedgerId()
+
+        // 构建台账记录
+        const ledger = {
+          ledgerId: ledgerId,
+          restaurantId: restaurantId,
+          tenantId: tenantId,
+          type: item.type, // energy, waste, training, other
+          date: new Date(item.date),
+          period: item.period || 'daily',
+          description: item.description || '',
+          value: Number(item.value),
+          unit: item.unit || '',
+          // 扩展字段
+          energyType: item.energyType || null,
+          wasteType: item.wasteType || null,
+          trainingType: item.trainingType || null,
+          participants: item.participants || null,
+          // 关联数据
+          relatedOrderId: item.relatedOrderId || null,
+          relatedSupplierId: item.relatedSupplierId || null,
+          // 审核与状态
+          status: item.status || 'draft',
+          verifiedBy: null,
+          verifiedAt: null,
+          verificationNotes: null,
+          // 系统字段
+          createdBy: createdBy || 'system',
+          createdAt: now,
+          updatedBy: createdBy || 'system',
+          updatedAt: now,
+          version: 1
+        }
+
+        // 插入数据库
+        await db.collection('restaurant_operation_ledgers').add({ data: ledger })
+        
+        results.successCount++
+      } catch (error) {
+        console.error(`导入第 ${i + 1} 条数据失败:`, error)
+        results.failCount++
+        results.errors.push({
+          row: i + 1,
+          data: item,
+          error: error.message || '导入失败'
+        })
+      }
+
+      // 每10条休息一下，避免超时
+      if ((i + 1) % 10 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
 
     return {
       code: 0,
-      message: '批量导入功能开发中',
+      message: `批量导入完成：成功 ${results.successCount} 条，失败 ${results.failCount} 条`,
       data: {
-        successCount: 0,
-        failCount: 0,
-        errors: []
+        successCount: results.successCount,
+        failCount: results.failCount,
+        errors: results.errors
       }
     }
   } catch (error) {
