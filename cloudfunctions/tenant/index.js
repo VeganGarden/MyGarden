@@ -130,18 +130,32 @@ exports.main = async (event, context) => {
       // 优惠券管理
       case 'listCoupons':
         return await listCoupons(data)
+      case 'getCouponDetail':
+        return await getCouponDetail(data.couponId)
       case 'createCoupon':
         return await createCoupon(data)
       case 'updateCoupon':
         return await updateCoupon(data.id, data.data)
       case 'deleteCoupon':
         return await deleteCoupon(data.id)
+      case 'distributeCoupon':
+        return await distributeCoupon(data)
+      case 'getCouponStats':
+        return await getCouponStats(data)
+      case 'analyzeCouponEffect':
+        return await analyzeCouponEffect(data)
 
       // 用户评价
       case 'listReviews':
         return await listReviews(data)
+      case 'getReviewDetail':
+        return await getReviewDetail(data.reviewId)
       case 'replyReview':
         return await replyReview(data.reviewId, data.reply)
+      case 'getReviewStats':
+        return await getReviewStats(data)
+      case 'analyzeReviews':
+        return await analyzeReviews(data)
 
       // 订单管理
       case 'listOrders':
@@ -2481,7 +2495,7 @@ async function deleteCoupon(id) {
  * 获取评价列表
  */
 async function listReviews(data) {
-  const { restaurantId, page = 1, pageSize = 20 } = data || {}
+  const { restaurantId, page = 1, pageSize = 20, startDate, endDate, rating, status, keyword } = data || {}
 
   if (!restaurantId) {
     return {
@@ -2495,13 +2509,78 @@ async function listReviews(data) {
       restaurantId: restaurantId,
     })
 
-    const result = await query
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .orderBy('reviewDate', 'desc')
-      .get()
+    // 添加评分筛选
+    if (rating) {
+      query.where({
+        rating: rating,
+      })
+    }
 
-    const reviews = result.data || []
+    // 添加状态筛选（待回复/已回复）
+    if (status === 'pending') {
+      query.where({
+        reply: _.eq(null).or(_.eq('')),
+      })
+    } else if (status === 'replied') {
+      query.where({
+        reply: _.neq(null).and(_.neq('')),
+      })
+    }
+
+    // 注意：日期和关键词筛选在内存中处理
+    let result
+    try {
+      result = await query.orderBy('reviewDate', 'desc').get()
+    } catch (error) {
+      // 如果排序失败，尝试不排序
+      try {
+        result = await query.get()
+        result.data = (result.data || []).sort((a, b) => {
+          const dateA = a.reviewDate || a.review_date || a.createdAt || ''
+          const dateB = b.reviewDate || b.review_date || b.createdAt || ''
+          return new Date(dateB).getTime() - new Date(dateA).getTime()
+        })
+      } catch (err) {
+        console.error('查询评价失败:', err)
+        return {
+          code: 500,
+          message: '查询评价失败',
+          error: err.message,
+        }
+      }
+    }
+
+    let reviews = result.data || []
+
+    // 添加日期筛选（在内存中过滤）
+    if (startDate || endDate) {
+      reviews = reviews.filter((review) => {
+        const reviewDate = review.reviewDate || review.review_date || review.createdAt || ''
+        if (!reviewDate) return false
+
+        const dateStr = typeof reviewDate === 'string'
+          ? reviewDate.substring(0, 10)
+          : new Date(reviewDate).toISOString().substring(0, 10)
+
+        if (startDate && dateStr < startDate) return false
+        if (endDate && dateStr > endDate) return false
+        return true
+      })
+    }
+
+    // 添加关键词搜索（在内存中过滤）
+    if (keyword) {
+      const keywordLower = keyword.toLowerCase()
+      reviews = reviews.filter((review) => {
+        const content = (review.content || review.comment || '').toLowerCase()
+        const customerName = (review.customerName || review.customer_name || '').toLowerCase()
+        return content.includes(keywordLower) || customerName.includes(keywordLower)
+      })
+    }
+
+    // 分页处理
+    const total = reviews.length
+    reviews = reviews.slice((page - 1) * pageSize, page * pageSize)
 
     return {
       code: 0,
@@ -2512,11 +2591,18 @@ async function listReviews(data) {
         customerName: review.customerName || review.customer_name || '',
         rating: review.rating || 0,
         content: review.content || review.comment || '',
+        images: review.images || [],
         carbonSatisfaction: review.carbonSatisfaction || review.carbon_satisfaction || 0,
         reviewDate: review.reviewDate || review.review_date || review.createdAt || '',
         reply: review.reply || '',
         replyDate: review.replyDate || review.reply_date || '',
       })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
     }
   } catch (error) {
     console.error('获取评价列表失败:', error)
@@ -2564,6 +2650,333 @@ async function replyReview(reviewId, reply) {
     return {
       code: 500,
       message: '回复评价失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取评价详情
+ */
+async function getReviewDetail(reviewId) {
+  if (!reviewId) {
+    return {
+      code: 400,
+      message: 'reviewId 不能为空',
+    }
+  }
+
+  try {
+    const result = await db.collection('restaurant_reviews').doc(reviewId).get()
+
+    if (!result.data) {
+      return {
+        code: 404,
+        message: '评价不存在',
+      }
+    }
+
+    const review = result.data
+
+    // 获取关联的订单信息
+    let orderInfo = null
+    if (review.orderId || review.order_id) {
+      try {
+        const orderResult = await db.collection('restaurant_orders')
+          .doc(review.orderId || review.order_id)
+          .get()
+        if (orderResult.data) {
+          orderInfo = {
+            orderNo: orderResult.data.orderNo || orderResult.data.order_no || '',
+            orderDate: orderResult.data.orderDate || orderResult.data.order_date || orderResult.data.createdAt || '',
+            amount: orderResult.data.amount || orderResult.data.totalAmount || orderResult.data.total_amount || 0,
+            items: orderResult.data.items || [],
+          }
+        }
+      } catch (error) {
+        console.error('获取订单信息失败:', error)
+      }
+    }
+
+    // 获取用户历史评价
+    let userHistoryReviews = []
+    if (review.userId || review.user_id) {
+      try {
+        const historyResult = await db.collection('restaurant_reviews')
+          .where({
+            userId: review.userId || review.user_id,
+            restaurantId: review.restaurantId,
+            _id: _.neq(reviewId),
+          })
+          .orderBy('reviewDate', 'desc')
+          .limit(5)
+          .get()
+        userHistoryReviews = (historyResult.data || []).map((r) => ({
+          id: r._id || '',
+          rating: r.rating || 0,
+          content: r.content || r.comment || '',
+          reviewDate: r.reviewDate || r.review_date || r.createdAt || '',
+        }))
+      } catch (error) {
+        console.error('获取用户历史评价失败:', error)
+      }
+    }
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        id: review._id || '',
+        orderNo: review.orderNo || review.order_id || '',
+        customerName: review.customerName || review.customer_name || '',
+        userId: review.userId || review.user_id || '',
+        rating: review.rating || 0,
+        content: review.content || review.comment || '',
+        images: review.images || [],
+        carbonSatisfaction: review.carbonSatisfaction || review.carbon_satisfaction || 0,
+        reviewDate: review.reviewDate || review.review_date || review.createdAt || '',
+        reply: review.reply || '',
+        replyDate: review.replyDate || review.reply_date || '',
+        replyHistory: review.replyHistory || [],
+        orderInfo: orderInfo,
+        userHistoryReviews: userHistoryReviews,
+      },
+    }
+  } catch (error) {
+    console.error('获取评价详情失败:', error)
+    return {
+      code: 500,
+      message: '获取评价详情失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取评价统计
+ */
+async function getReviewStats(data) {
+  const { restaurantId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_reviews').where({
+      restaurantId: restaurantId,
+    })
+
+    // 添加日期筛选
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.reviewDate = _.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.reviewDate = _.lte(endDate)
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        query.where(dateCondition)
+      }
+    }
+
+    const result = await query.get()
+    const reviews = result.data || []
+
+    // 计算统计数据
+    let totalReviews = reviews.length
+    let totalRating = 0
+    let ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+    let repliedCount = 0
+    let pendingReplyCount = 0
+
+    reviews.forEach((review) => {
+      const rating = review.rating || 0
+      totalRating += rating
+      if (rating >= 1 && rating <= 5) {
+        ratingCounts[rating] = (ratingCounts[rating] || 0) + 1
+      }
+      if (review.reply) {
+        repliedCount++
+      } else {
+        pendingReplyCount++
+      }
+    })
+
+    const avgRating = totalReviews > 0 ? totalRating / totalReviews : 0
+    const goodRate = totalReviews > 0 ? ((ratingCounts[5] || 0) + (ratingCounts[4] || 0)) / totalReviews : 0
+    const badRate = totalReviews > 0 ? ((ratingCounts[1] || 0) + (ratingCounts[2] || 0)) / totalReviews : 0
+    const neutralRate = totalReviews > 0 ? (ratingCounts[3] || 0) / totalReviews : 0
+    const replyRate = totalReviews > 0 ? repliedCount / totalReviews : 0
+
+    // 按日期分组统计趋势
+    const dailyStatsMap = new Map()
+    reviews.forEach((review) => {
+      const reviewDate = review.reviewDate || review.review_date || review.createdAt || ''
+      if (!reviewDate) return
+
+      const dateStr = typeof reviewDate === 'string'
+        ? reviewDate.substring(0, 10)
+        : new Date(reviewDate).toISOString().substring(0, 10)
+
+      if (!dailyStatsMap.has(dateStr)) {
+        dailyStatsMap.set(dateStr, {
+          date: dateStr,
+          count: 0,
+          avgRating: 0,
+          totalRating: 0,
+        })
+      }
+
+      const dayStat = dailyStatsMap.get(dateStr)
+      dayStat.count++
+      dayStat.totalRating += review.rating || 0
+      dayStat.avgRating = dayStat.totalRating / dayStat.count
+    })
+
+    const trends = Array.from(dailyStatsMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+
+    // 评分分布
+    const distribution = [
+      { rating: 5, count: ratingCounts[5] || 0, label: '5星' },
+      { rating: 4, count: ratingCounts[4] || 0, label: '4星' },
+      { rating: 3, count: ratingCounts[3] || 0, label: '3星' },
+      { rating: 2, count: ratingCounts[2] || 0, label: '2星' },
+      { rating: 1, count: ratingCounts[1] || 0, label: '1星' },
+    ]
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        totalReviews,
+        avgRating,
+        goodRate,
+        badRate,
+        neutralRate,
+        replyRate,
+        repliedCount,
+        pendingReplyCount,
+        ratingCounts,
+        trends,
+        distribution,
+      },
+    }
+  } catch (error) {
+    console.error('获取评价统计失败:', error)
+    return {
+      code: 500,
+      message: '获取评价统计失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 分析评价数据
+ */
+async function analyzeReviews(data) {
+  const { restaurantId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_reviews').where({
+      restaurantId: restaurantId,
+    })
+
+    // 添加日期筛选
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.reviewDate = _.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.reviewDate = _.lte(endDate)
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        query.where(dateCondition)
+      }
+    }
+
+    const result = await query.get()
+    const reviews = result.data || []
+
+    // 关键词分析（简单实现，提取高频词）
+    const keywordMap = new Map()
+    reviews.forEach((review) => {
+      const content = (review.content || review.comment || '').toLowerCase()
+      // 简单分词（按常见分隔符）
+      const words = content.split(/[\s，。！？、；：,\.!?\s]+/).filter((w) => w.length > 1)
+      words.forEach((word) => {
+        keywordMap.set(word, (keywordMap.get(word) || 0) + 1)
+      })
+    })
+
+    // 获取高频关键词（前20个）
+    const topKeywords = Array.from(keywordMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([word, count]) => ({ word, count }))
+
+    // 情感分析（简单实现：基于评分）
+    const sentimentAnalysis = {
+      positive: reviews.filter((r) => (r.rating || 0) >= 4).length,
+      neutral: reviews.filter((r) => (r.rating || 0) === 3).length,
+      negative: reviews.filter((r) => (r.rating || 0) <= 2).length,
+    }
+
+    // 评价主题分析（简单实现：基于关键词匹配）
+    const themes = {
+      dish: 0, // 菜品
+      service: 0, // 服务
+      environment: 0, // 环境
+      price: 0, // 价格
+      carbon: 0, // 碳减排
+    }
+
+    const themeKeywords = {
+      dish: ['菜品', '菜', '味道', '口感', '好吃', '难吃', '食材'],
+      service: ['服务', '态度', '速度', '效率', '服务员', '等待'],
+      environment: ['环境', '装修', '氛围', '干净', '卫生', '舒适'],
+      price: ['价格', '贵', '便宜', '划算', '性价比', '收费'],
+      carbon: ['碳', '环保', '绿色', '低碳', '减排', '环境'],
+    }
+
+    reviews.forEach((review) => {
+      const content = (review.content || review.comment || '').toLowerCase()
+      Object.entries(themeKeywords).forEach(([theme, keywords]) => {
+        if (keywords.some((kw) => content.includes(kw))) {
+          themes[theme]++
+        }
+      })
+    })
+
+    return {
+      code: 0,
+      message: '分析成功',
+      data: {
+        topKeywords,
+        sentimentAnalysis,
+        themes,
+        totalAnalyzed: reviews.length,
+      },
+    }
+  } catch (error) {
+    console.error('分析评价数据失败:', error)
+    return {
+      code: 500,
+      message: '分析评价数据失败',
       error: error.message,
     }
   }
