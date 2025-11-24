@@ -2779,7 +2779,7 @@ async function analyzeCouponEffect(data) {
     }
 
     if (startDate || endDate) {
-      const dateCondition: any = {}
+      const dateCondition = {}
       if (startDate) {
         dateCondition.createdAt = _.gte(startDate)
       }
