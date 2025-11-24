@@ -595,6 +595,11 @@ export const operationAPI = {
         action: 'getBehaviorMetrics',
         data: params,
       }),
+    generateSnapshot: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'generateBehaviorSnapshot',
+        data: params,
+      }),
   },
 
   // 优惠券管理
