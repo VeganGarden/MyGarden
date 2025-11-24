@@ -16,6 +16,7 @@ const { main: migrateIngredientsResetAllCarbonCoefficient } = require('./migrate
 const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-stats');
 const { main: initCertificationCollections } = require('./init-certification-collections');
 const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
+const { initOperationCollections } = require('./init-operation-collections');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -116,6 +117,8 @@ exports.main = async (event) => {
         return await initCertificationCollections(event);
       case 'migrate-restaurants-add-certification-fields':
         return await migrateRestaurantsAddCertificationFields(event);
+      case 'initOperationCollections':
+        return await initOperationCollections(event);
       default:
         return await initCollectionsV1(event);
     }

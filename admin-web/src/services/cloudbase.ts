@@ -559,18 +559,29 @@ export const operationAPI = {
     create: (data: any) =>
       callCloudFunction('restaurant-operation', {
         action: 'createLedger',
-        data,
+        ...data,
       }),
-    update: (id: string, data: any) =>
+    update: (ledgerId: string, data: any) =>
       callCloudFunction('restaurant-operation', {
         action: 'updateLedger',
-        id,
-        data,
+        ledgerId,
+        ...data,
       }),
-    delete: (id: string) =>
+    delete: (ledgerId: string, tenantId: string) =>
       callCloudFunction('restaurant-operation', {
         action: 'deleteLedger',
-        id,
+        ledgerId,
+        tenantId,
+      }),
+    getStats: (params?: any) =>
+      callCloudFunction('restaurant-operation', {
+        action: 'getLedgerStats',
+        ...params,
+      }),
+    batchImport: (params?: any) =>
+      callCloudFunction('restaurant-operation', {
+        action: 'batchImportLedger',
+        ...params,
       }),
   },
 
