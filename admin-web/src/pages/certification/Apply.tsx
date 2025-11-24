@@ -1,9 +1,9 @@
-import { certificationAPI, recipeAPI } from '@/services/cloudbase'
+import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
   CheckOutlined,
-  InfoCircleOutlined,
   ImportOutlined,
+  InfoCircleOutlined,
   SaveOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
@@ -74,25 +74,16 @@ const CertificationApply: React.FC = () => {
     }
   }, [searchParams])
 
+  // 监听 Redux store 中的 currentRestaurantId 变化，同步更新 selectedRestaurantId
+  useEffect(() => {
+    if (currentRestaurantId !== selectedRestaurantId) {
+      setSelectedRestaurantId(currentRestaurantId)
+    }
+  }, [currentRestaurantId, selectedRestaurantId])
+
   const currentRestaurant = selectedRestaurantId
     ? restaurants.find((r: any) => r.id === selectedRestaurantId)
     : null
-
-  useEffect(() => {
-    // 如果当前选中的餐厅有信息，自动填充表单
-    if (currentRestaurant) {
-      form.setFieldsValue({
-        restaurantName: currentRestaurant.name,
-        contactPhone: currentRestaurant.phone,
-        address: currentRestaurant.address,
-      })
-
-      // 如果是试运营状态，自动加载试运营数据
-      if (currentRestaurant.certificationStatus === 'trial') {
-        loadTrialData()
-      }
-    }
-  }, [currentRestaurant, form])
 
   // 加载试运营数据并自动填充
   const loadTrialData = async () => {
@@ -152,6 +143,36 @@ const CertificationApply: React.FC = () => {
       setLoading(false)
     }
   }
+
+  // 当餐厅切换时，重置页面数据
+  useEffect(() => {
+    // 清空表单数据
+    form.resetFields()
+    // 清空菜单项列表
+    setMenuItems([])
+    // 清空文件列表
+    setFileList([])
+    setUploadedFiles({})
+    // 清空试运营数据
+    setTrialData(null)
+    // 重置步骤到第一步
+    setCurrentStep(0)
+
+    // 如果当前选中的餐厅有信息，自动填充表单
+    if (currentRestaurant) {
+      form.setFieldsValue({
+        restaurantName: currentRestaurant.name,
+        contactPhone: currentRestaurant.phone,
+        address: currentRestaurant.address,
+      })
+
+      // 如果是试运营状态，自动加载试运营数据
+      if (currentRestaurant.certificationStatus === 'trial') {
+        loadTrialData()
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRestaurantId])
 
   const steps = [
     {

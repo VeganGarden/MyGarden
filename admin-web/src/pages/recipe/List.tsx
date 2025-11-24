@@ -1,16 +1,21 @@
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { deleteRecipe, fetchRecipes } from '@/store/slices/recipeSlice'
-import { Recipe, RecipeStatus } from '@/types'
-import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
+import { recipeAPI, tenantAPI } from '@/services/cloudbase'
+import { useAppSelector } from '@/store/hooks'
+import { CheckOutlined, DeleteOutlined, EditOutlined, SearchOutlined, ShoppingCartOutlined } from '@ant-design/icons'
 import {
+  Alert,
   Button,
   Card,
   Col,
+  Divider,
+  Form,
   Input,
+  InputNumber,
+  Modal,
   Popconfirm,
   Row,
   Select,
   Space,
+  Switch,
   Table,
   Tag,
   message,
@@ -19,72 +24,440 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+// 菜单项接口
+interface MenuItem {
+  _id: string
+  id: string
+  name: string
+  price?: number
+  carbonFootprint?: number
+  carbonLabel?: string
+  category?: string
+  ingredients?: any[]
+  status?: string
+  isAvailable?: boolean
+  baseRecipeId?: string
+  restaurantId: string
+}
+
+// 基础菜谱接口
+interface BaseRecipe {
+  _id: string
+  name: string
+  category?: string
+  carbonFootprint?: number | { value: number }
+  carbonLabel?: string
+  ingredients?: any[]
+  description?: string
+  cookingMethod?: string
+}
+
 const RecipeList: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const dispatch = useAppDispatch()
-  const { recipes, loading, pagination } = useAppSelector((state) => state.recipe)
   const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  
+  // 菜单项相关状态
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 20, total: 0 })
+  
+  // 搜索和筛选
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState<RecipeStatus | 'all'>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [carbonLabelFilter, setCarbonLabelFilter] = useState<string>('all')
+  
+  // 基础菜谱选择器相关状态
+  const [baseRecipeSelectorVisible, setBaseRecipeSelectorVisible] = useState(false)
+  const [baseRecipes, setBaseRecipes] = useState<BaseRecipe[]>([])
+  const [baseRecipesLoading, setBaseRecipesLoading] = useState(false)
+  const [baseRecipeSearchKeyword, setBaseRecipeSearchKeyword] = useState('')
+  const [baseRecipeCategoryFilter, setBaseRecipeCategoryFilter] = useState<string>('all')
+  const [selectedBaseRecipe, setSelectedBaseRecipe] = useState<BaseRecipe | null>(null)
+  const [addToMenuForm] = Form.useForm()
+  const [addingToMenu, setAddingToMenu] = useState(false)
+  const [baseRecipesPagination, setBaseRecipesPagination] = useState({ page: 1, pageSize: 10, total: 0 })
+  const [addedBaseRecipeIds, setAddedBaseRecipeIds] = useState<Set<string>>(new Set())
+  const [showAddedRecipes, setShowAddedRecipes] = useState(true) // 是否显示已添加的菜谱
 
+  // 编辑菜单项相关状态
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null)
+  const [editForm] = Form.useForm()
+  const [updating, setUpdating] = useState(false)
+
+  // 加载餐厅菜单项
   useEffect(() => {
-    console.log('菜谱列表 - currentRestaurantId 变化:', currentRestaurantId)
-    loadRecipes()
-  }, [currentRestaurantId])
+    if (currentRestaurantId) {
+      loadMenuItems()
+    } else {
+      setMenuItems([])
+      setPagination({ page: 1, pageSize: 20, total: 0 })
+    }
+  }, [currentRestaurantId, pagination.page, pagination.pageSize])
 
-  const loadRecipes = async () => {
+  // 加载菜单项列表
+  const loadMenuItems = async () => {
+    if (!currentRestaurantId) {
+      return
+    }
+
     try {
-      console.log('菜谱列表加载参数:', {
-        currentRestaurantId,
-        searchKeyword,
-        statusFilter,
-        categoryFilter,
-        carbonLabelFilter
+      setLoading(true)
+      const result = await (tenantAPI as any).getMenuList({
+        restaurantId: currentRestaurantId,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
       })
-      await dispatch(
-        fetchRecipes({
-          keyword: searchKeyword || undefined,
-          restaurantId: currentRestaurantId || undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-          category: categoryFilter !== 'all' ? categoryFilter : undefined,
-          carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-        })
-      ).unwrap()
+
+      if (result && result.code === 0 && result.data) {
+        const data = result.data
+        const items = Array.isArray(data) ? data : (data.menus || data.menuItems || [])
+        setMenuItems(items)
+        // 如果没有返回总数，使用当前数据长度作为总数（分页可能不准确，但至少能显示）
+        setPagination(prev => ({
+          ...prev,
+          total: data.total || data.totalCount || items.length,
+        }))
+      } else {
+        message.error(result?.message || '加载菜单项失败')
+      }
     } catch (error: any) {
-      message.error(error.message || t('pages.recipe.list.messages.loadFailed'))
+      console.error('加载菜单项失败:', error)
+      message.error(error.message || '加载菜单项失败')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleSearch = () => {
-    dispatch(
-      fetchRecipes({
-        keyword: searchKeyword || undefined,
-        restaurantId: currentRestaurantId || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        category: categoryFilter !== 'all' ? categoryFilter : undefined,
-        carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
-        page: 1,
-        pageSize: pagination.pageSize,
-      })
-    )
-  }
-
-  const handleFilterChange = () => {
-    loadRecipes()
-  }
-
-  const handleDelete = async (recipeId: string) => {
+  // 加载基础菜谱列表（用于选择器）
+  const loadBaseRecipes = async (page = 1) => {
     try {
-      await dispatch(deleteRecipe(recipeId)).unwrap()
-      message.success(t('pages.recipe.list.messages.deleteSuccess'))
-      loadRecipes()
+      setBaseRecipesLoading(true)
+      const result = await recipeAPI.list({
+        isBaseRecipe: true,
+        keyword: baseRecipeSearchKeyword || undefined,
+        category: baseRecipeCategoryFilter !== 'all' ? baseRecipeCategoryFilter : undefined,
+        page: page,
+        pageSize: baseRecipesPagination.pageSize,
+      })
+
+      // 处理返回结果
+      const actualResult = result?.result || result
+      
+      if (actualResult && actualResult.code === 0) {
+        // 基础菜谱查询返回格式：{ code: 0, data: { data: [...], pagination: {...} } }
+        const data = actualResult.data
+        const recipes = data?.data || data || []
+        
+        // 过滤已添加的菜谱（如果设置了不显示）
+        let filteredRecipes = recipes
+        if (!showAddedRecipes && currentRestaurantId && addedBaseRecipeIds.size > 0) {
+          filteredRecipes = recipes.filter((recipe: BaseRecipe) => !addedBaseRecipeIds.has(recipe._id))
+        }
+        
+        setBaseRecipes(filteredRecipes)
+        
+        // 更新分页信息
+        if (data?.pagination) {
+          const total = data.pagination.total || 0
+          // 如果隐藏已添加的菜谱，需要调整总数
+          let adjustedTotal = total
+          if (!showAddedRecipes && currentRestaurantId && addedBaseRecipeIds.size > 0) {
+            // 这里简化处理：如果当前页过滤后数量少于预期，说明有已添加的菜谱被过滤
+            // 实际应该查询总数后再过滤，但为了性能，这里使用当前页的结果估算
+            adjustedTotal = Math.max(0, total - addedBaseRecipeIds.size)
+          }
+          
+          setBaseRecipesPagination(prev => ({
+            ...prev,
+            page: data.pagination.page || page,
+            total: adjustedTotal,
+          }))
+        } else {
+          setBaseRecipesPagination(prev => ({
+            ...prev,
+            page: page,
+            total: filteredRecipes.length,
+          }))
+        }
+      } else {
+        const errorMsg = actualResult?.message || result?.message || '加载基础菜谱失败'
+        message.error(errorMsg)
+      }
     } catch (error: any) {
-      message.error(error.message || t('pages.recipe.list.messages.deleteFailed'))
+      console.error('加载基础菜谱异常:', error)
+      message.error(error.message || '加载基础菜谱失败')
+    } finally {
+      setBaseRecipesLoading(false)
+    }
+  }
+
+  // 加载已添加到菜单的基础菜谱ID列表
+  const loadAddedBaseRecipeIds = async () => {
+    if (!currentRestaurantId) {
+      setAddedBaseRecipeIds(new Set())
+      return
+    }
+
+    try {
+      const result = await tenantAPI.getAddedBaseRecipeIds({
+        restaurantId: currentRestaurantId,
+      })
+
+      if (result && result.code === 0 && result.data && result.data.baseRecipeIds) {
+        setAddedBaseRecipeIds(new Set(result.data.baseRecipeIds))
+      } else {
+        setAddedBaseRecipeIds(new Set())
+      }
+    } catch (error: any) {
+      console.error('查询已添加到菜单的基础菜谱ID列表失败:', error)
+      setAddedBaseRecipeIds(new Set())
+    }
+  }
+
+  // 打开基础菜谱选择器
+  const handleOpenBaseRecipeSelector = () => {
+    if (!currentRestaurantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
+    setBaseRecipeSelectorVisible(true)
+    setBaseRecipeSearchKeyword('')
+    setBaseRecipeCategoryFilter('all')
+    setSelectedBaseRecipe(null)
+    setBaseRecipes([])
+    setBaseRecipesPagination({ page: 1, pageSize: 10, total: 0 })
+    // 加载已添加的菜谱ID列表
+    loadAddedBaseRecipeIds()
+    // 延迟加载，确保 Modal 已经渲染
+    setTimeout(() => {
+      loadBaseRecipes(1)
+    }, 100)
+  }
+
+  // 搜索菜单项
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+    loadMenuItems()
+  }
+
+  // 删除菜单项
+  const handleDeleteMenuItem = async (menuItem: MenuItem) => {
+    try {
+      // 如果菜单项有 baseRecipeId，说明是从基础菜谱添加的，使用 removeRecipeFromMenu
+      if (menuItem.baseRecipeId) {
+        const result = await tenantAPI.removeRecipeFromMenu({
+          recipeId: menuItem.baseRecipeId,
+          restaurantId: currentRestaurantId!,
+        })
+
+        // callCloudFunction 已经处理了返回格式，直接返回 { code, message, data }
+        // 但为了兼容，也支持 { result: { code, message, data } } 格式
+        const actualResult = result?.result || result
+        
+        // 记录返回结果用于调试
+        console.log('删除菜单项返回结果:', { result, actualResult })
+        
+        // 检查返回结果
+        if (actualResult && actualResult.code === 0) {
+          message.success('移出成功')
+          loadMenuItems()
+        } else {
+          // 如果返回的 code 不是 0，先刷新列表
+          // 然后重新查询列表，检查是否真的删除了
+          await loadMenuItems()
+          
+          // 延迟重新查询列表，确认删除状态
+          setTimeout(async () => {
+            try {
+              const checkResult = await tenantAPI.getMenuList({
+                restaurantId: currentRestaurantId,
+                page: pagination.page,
+                pageSize: pagination.pageSize,
+              })
+              
+              const checkData = checkResult?.result || checkResult
+              const checkItems = checkData?.data?.data || checkData?.data || []
+              
+              // 检查是否还存在该项
+              const itemStillExists = checkItems.some((item: MenuItem) => 
+                (item._id === menuItem._id || item.id === menuItem.id) && 
+                item.baseRecipeId === menuItem.baseRecipeId
+              )
+              
+              if (!itemStillExists) {
+                // 如果列表中已经没有该项，说明删除成功
+                message.success('移出成功')
+              } else {
+                // 如果仍然存在，显示错误消息
+                const errorMsg = actualResult?.message || result?.message || '移出失败'
+                message.error(errorMsg)
+              }
+            } catch (checkError) {
+              console.error('检查删除状态失败:', checkError)
+              // 如果检查失败，假设删除成功（因为用户反馈数据已删除）
+              message.success('移出成功')
+            }
+          }, 500)
+        }
+      } else {
+        // 如果是餐厅自己创建的菜单项，直接删除（需要添加删除菜单项的API）
+        // 暂时使用 removeRecipeFromMenu，传入菜单项ID
+        message.warning('删除餐厅自定义菜单项功能开发中')
+        // TODO: 添加删除菜单项的API
+      }
+    } catch (error: any) {
+      console.error('删除菜单项失败:', error)
+      // 即使出错，也尝试刷新列表，因为删除可能已经成功
+      await loadMenuItems()
+      
+      // 延迟重新查询列表，确认删除状态
+      setTimeout(async () => {
+        try {
+          const checkResult = await tenantAPI.getMenuList({
+            restaurantId: currentRestaurantId,
+            page: pagination.page,
+            pageSize: pagination.pageSize,
+          })
+          
+          const checkData = checkResult?.result || checkResult
+          const checkItems = checkData?.data?.data || checkData?.data || []
+          
+          const itemStillExists = checkItems.some((item: MenuItem) => 
+            (item._id === menuItem._id || item.id === menuItem.id) && 
+            item.baseRecipeId === menuItem.baseRecipeId
+          )
+          
+          if (!itemStillExists) {
+            message.success('移出成功')
+          } else {
+            message.error(error.message || '移出失败')
+          }
+        } catch (checkError) {
+          console.error('检查删除状态失败:', checkError)
+          message.error(error.message || '移出失败')
+        }
+      }, 500)
+    }
+  }
+
+  // 打开编辑菜单项Modal
+  const handleEditMenuItem = (menuItem: MenuItem) => {
+    setEditingMenuItem(menuItem)
+    setEditModalVisible(true)
+    // 设置表单初始值
+    editForm.setFieldsValue({
+      name: menuItem.name,
+      description: menuItem.description || '',
+      price: menuItem.price || 0,
+      category: menuItem.category || '',
+      status: menuItem.status || 'active',
+      isAvailable: menuItem.isAvailable !== false, // 默认为true
+    })
+  }
+
+  // 保存编辑的菜单项
+  const handleUpdateMenuItem = async () => {
+    if (!editingMenuItem || !currentRestaurantId) {
+      return
+    }
+
+    try {
+      const values = await editForm.validateFields()
+      setUpdating(true)
+
+      const result = await tenantAPI.updateMenuItem({
+        menuItemId: editingMenuItem._id || editingMenuItem.id,
+        restaurantId: currentRestaurantId,
+        updateData: {
+          name: values.name,
+          description: values.description,
+          price: values.price,
+          category: values.category,
+          status: values.status,
+          isAvailable: values.isAvailable,
+        },
+      })
+
+      const actualResult = result?.result || result
+      if (actualResult && actualResult.code === 0) {
+        message.success('更新成功')
+        setEditModalVisible(false)
+        setEditingMenuItem(null)
+        editForm.resetFields()
+        loadMenuItems()
+      } else {
+        message.error(actualResult?.message || result?.message || '更新失败')
+      }
+    } catch (error: any) {
+      console.error('更新菜单项失败:', error)
+      if (error.errorFields) {
+        // 表单验证错误
+        return
+      }
+      message.error(error.message || '更新失败')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  // 选择基础菜谱并添加到菜单
+  const handleSelectBaseRecipe = (recipe: BaseRecipe) => {
+    setSelectedBaseRecipe(recipe)
+    addToMenuForm.setFieldsValue({
+      price: 0,
+      isAvailable: true,
+    })
+  }
+
+  // 提交添加到菜单
+  const handleAddToMenuSubmit = async () => {
+    if (!selectedBaseRecipe || !currentRestaurantId) {
+      return
+    }
+
+    try {
+      const values = await addToMenuForm.validateFields()
+      setAddingToMenu(true)
+
+      const result = await tenantAPI.createMenuItemFromRecipe({
+        recipeId: selectedBaseRecipe._id,
+        restaurantId: currentRestaurantId,
+        customFields: {
+          price: values.price,
+          isAvailable: values.isAvailable,
+        },
+      })
+
+      const actualResult = result?.result || result
+      if (actualResult && actualResult.code === 0) {
+        message.success('已成功添加到菜单')
+        // 刷新已添加的菜谱ID列表
+        await loadAddedBaseRecipeIds()
+        // 刷新当前页的基础菜谱列表（更新状态标记）
+        loadBaseRecipes(baseRecipesPagination.page)
+        // 刷新主菜单列表
+        loadMenuItems()
+        // 关闭选择器（可选，也可以保持打开让用户继续添加）
+        // setBaseRecipeSelectorVisible(false)
+        addToMenuForm.resetFields()
+        setSelectedBaseRecipe(null)
+      } else if (actualResult?.code === 409 || result?.code === 409) {
+        message.warning('该菜谱已添加到菜单中')
+        // 即使已添加，也刷新已添加列表
+        await loadAddedBaseRecipeIds()
+        loadBaseRecipes(baseRecipesPagination.page)
+      } else {
+        message.error(actualResult?.message || result?.message || '添加到菜单失败')
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        return
+      }
+      message.error(error.message || '添加到菜单失败')
+    } finally {
+      setAddingToMenu(false)
     }
   }
 
@@ -105,116 +478,109 @@ const RecipeList: React.FC = () => {
   const getCarbonLabelText = (label?: string) => {
     switch (label) {
       case 'ultra_low':
-        return t('pages.recipe.list.filters.carbonLabel.ultraLow')
+        return '超低'
       case 'low':
-        return t('pages.recipe.list.filters.carbonLabel.low')
+        return '低'
       case 'medium':
-        return t('pages.recipe.list.filters.carbonLabel.medium')
+        return '中'
       case 'high':
-        return t('pages.recipe.list.filters.carbonLabel.high')
+        return '高'
       default:
-        return t('pages.recipe.list.filters.carbonLabel.notCalculated')
+        return '未计算'
     }
   }
 
-  const getStatusTag = (status: RecipeStatus) => {
-    const statusMap = {
-      [RecipeStatus.DRAFT]: { color: 'default', text: t('pages.recipe.list.status.draft') },
-      [RecipeStatus.PUBLISHED]: { color: 'success', text: t('pages.recipe.list.status.published') },
-      [RecipeStatus.ARCHIVED]: { color: 'default', text: t('pages.recipe.list.status.archived') },
-    }
-    const statusInfo = statusMap[status] || { color: 'default', text: t('pages.recipe.list.status.unknown') }
-    return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
-  }
-
-  const columns = [
+  // 菜单项表格列定义
+  const menuItemColumns = [
     {
-      title: t('pages.recipe.list.table.columns.name'),
+      title: '菜品名称',
       dataIndex: 'name',
       key: 'name',
       width: 200,
     },
     {
-      title: t('pages.recipe.list.table.columns.category'),
+      title: '价格（元）',
+      dataIndex: 'price',
+      key: 'price',
+      width: 100,
+      render: (price: number) => price !== undefined && price !== null ? `¥${price.toFixed(2)}` : '-',
+    },
+    {
+      title: '分类',
       dataIndex: 'category',
       key: 'category',
       width: 100,
     },
     {
-      title: t('pages.recipe.list.table.columns.ingredients'),
-      dataIndex: 'ingredients',
-      key: 'ingredients',
-      width: 100,
-      render: (ingredients: any[]) => t('pages.recipe.list.table.ingredientsCount', { count: ingredients?.length || 0 }),
-    },
-    {
-      title: t('pages.recipe.list.table.columns.carbonFootprint'),
+      title: '碳足迹 (kg CO₂e)',
       dataIndex: 'carbonFootprint',
       key: 'carbonFootprint',
       width: 120,
-      render: (footprint: number) =>
-        footprint !== undefined ? `${footprint.toFixed(2)} kg CO₂e` : '-',
+      render: (footprint: number | any) => {
+        if (footprint !== undefined && footprint !== null) {
+          if (typeof footprint === 'object' && footprint.value) {
+            return footprint.value.toFixed(2)
+          }
+          if (typeof footprint === 'number') {
+            return footprint.toFixed(2)
+          }
+        }
+        return '-'
+      },
     },
     {
-      title: t('pages.recipe.list.table.columns.carbonLabel'),
+      title: '碳标签',
       dataIndex: 'carbonLabel',
       key: 'carbonLabel',
       width: 100,
-      render: (label: string) => (
-        <Tag color={getCarbonLabelColor(label)}>
-          {getCarbonLabelText(label)}
-        </Tag>
-      ),
+      render: (label: string | any) => {
+        const actualLabel = (typeof label === 'object' && label?.carbonLabel) 
+          ? label.carbonLabel 
+          : (typeof label === 'string' ? label : undefined)
+        return (
+          <Tag color={getCarbonLabelColor(actualLabel)}>
+            {getCarbonLabelText(actualLabel)}
+          </Tag>
+        )
+      },
     },
     {
-      title: t('pages.recipe.list.table.columns.status'),
+      title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: RecipeStatus) => getStatusTag(status),
+      render: (status: string, record: MenuItem) => {
+        if (record.isAvailable === false) {
+          return <Tag color="red">不可用</Tag>
+        }
+        if (status === 'active' || !status) {
+          return <Tag color="green">可用</Tag>
+        }
+        return <Tag>{status}</Tag>
+      },
     },
     {
-      title: t('pages.recipe.list.table.columns.version'),
-      dataIndex: 'version',
-      key: 'version',
-      width: 80,
-      render: (version: number) => `v${version}`,
-    },
-    {
-      title: t('pages.recipe.list.table.columns.actions'),
+      title: '操作',
       key: 'action',
-      width: 150,
-      render: (_: any, record: Recipe) => (
+      width: 200,
+      render: (_: any, record: MenuItem) => (
         <Space size="small">
           <Button
             type="link"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/recipe/detail/${record._id}`)}
-          >
-            {t('pages.recipe.list.table.actions.view')}
-          </Button>
-          <Button
-            type="link"
             icon={<EditOutlined />}
-            onClick={() => navigate(`/recipe/edit/${record._id}`)}
+            onClick={() => handleEditMenuItem(record)}
           >
-            {t('pages.recipe.list.table.actions.edit')}
-          </Button>
-          <Button
-            type="link"
-            icon={<CopyOutlined />}
-            onClick={() => navigate('/recipe/create', { state: { copyFrom: record } })}
-          >
-            {t('pages.recipe.list.table.actions.copy')}
+            编辑
           </Button>
           <Popconfirm
-            title={t('pages.recipe.list.messages.confirmDelete')}
-            onConfirm={() => handleDelete(record._id!)}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
+            title="确认删除"
+            description="确定要删除这个菜品吗？"
+            onConfirm={() => handleDeleteMenuItem(record)}
+            okText="确认"
+            cancelText="取消"
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
-              {t('pages.recipe.list.table.actions.delete')}
+              删除
             </Button>
           </Popconfirm>
         </Space>
@@ -222,121 +588,638 @@ const RecipeList: React.FC = () => {
     },
   ]
 
+  // 获取分类显示文本
+  const getCategoryText = (category?: string) => {
+    const categoryMap: Record<string, string> = {
+      hot: '热菜',
+      cold: '凉菜',
+      soup: '汤品',
+      staple: '主食',
+      dessert: '甜品',
+      drink: '饮品',
+    }
+    return categoryMap[category || ''] || category || '-'
+  }
+
+  // 获取烹饪方式显示文本
+  const getCookingMethodText = (method?: string) => {
+    const methodMap: Record<string, string> = {
+      raw: '生食',
+      steamed: '蒸',
+      boiled: '煮',
+      stir_fried: '炒',
+      fried: '炸',
+      baked: '烤',
+    }
+    return methodMap[method || ''] || method || '-'
+  }
+
+  // 基础菜谱表格列定义（用于选择器）
+  const baseRecipeColumns = [
+    {
+      title: '菜谱名称',
+      dataIndex: 'name',
+      key: 'name',
+      width: 180,
+      render: (text: string, record: BaseRecipe) => (
+        <div>
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>{text}</div>
+          {record.description && (
+            <div style={{ fontSize: 12, color: '#999', lineHeight: 1.4 }}>
+              {record.description.length > 30 
+                ? `${record.description.substring(0, 30)}...` 
+                : record.description}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: '分类',
+      dataIndex: 'category',
+      key: 'category',
+      width: 80,
+      render: (category: string) => (
+        <Tag color="blue">{getCategoryText(category)}</Tag>
+      ),
+    },
+    {
+      title: '食材数',
+      dataIndex: 'ingredients',
+      key: 'ingredients',
+      width: 80,
+      render: (ingredients: any[]) => {
+        const count = Array.isArray(ingredients) ? ingredients.length : 0
+        return <span>{count} 种</span>
+      },
+    },
+    {
+      title: '烹饪方式',
+      dataIndex: 'cookingMethod',
+      key: 'cookingMethod',
+      width: 100,
+      render: (method: string) => getCookingMethodText(method),
+    },
+    {
+      title: '碳足迹',
+      dataIndex: 'carbonFootprint',
+      key: 'carbonFootprint',
+      width: 100,
+      render: (footprint: number | any) => {
+        if (footprint === undefined || footprint === null) {
+          return <span style={{ color: '#999' }}>-</span>
+        }
+        let value: number
+        if (typeof footprint === 'object' && footprint.value !== undefined) {
+          value = footprint.value
+        } else if (typeof footprint === 'number') {
+          value = footprint
+        } else if (typeof footprint === 'string') {
+          value = parseFloat(footprint)
+          if (isNaN(value)) return <span style={{ color: '#999' }}>-</span>
+        } else {
+          return <span style={{ color: '#999' }}>-</span>
+        }
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>{value.toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: '#999' }}>kg CO₂e</div>
+          </div>
+        )
+      },
+    },
+    {
+      title: '碳标签',
+      dataIndex: 'carbonLabel',
+      key: 'carbonLabel',
+      width: 90,
+      render: (label: string) => (
+        <Tag color={getCarbonLabelColor(label)}>
+          {getCarbonLabelText(label)}
+        </Tag>
+      ),
+    },
+    {
+      title: '状态',
+      key: 'status',
+      width: 100,
+      render: (_: any, record: BaseRecipe) => {
+        const isAdded = addedBaseRecipeIds.has(record._id)
+        if (isAdded) {
+          return (
+            <Tag color="green" icon={<CheckOutlined />}>
+              已添加
+            </Tag>
+          )
+        }
+        return <Tag color="default">未添加</Tag>
+      },
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 100,
+      render: (_: any, record: BaseRecipe) => {
+        const isAdded = addedBaseRecipeIds.has(record._id)
+        if (isAdded) {
+          return (
+            <Button type="link" disabled style={{ color: '#999' }}>
+              已添加
+            </Button>
+          )
+        }
+        return (
+          <Button
+            type="primary"
+            size="small"
+            onClick={() => handleSelectBaseRecipe(record)}
+          >
+            选择
+          </Button>
+        )
+      },
+    },
+  ]
+
+  // 当前选中的餐厅
+  const currentRestaurant = currentRestaurantId
+    ? restaurants.find((r: any) => r.id === currentRestaurantId)
+    : null
+
   return (
     <div>
       <Card>
+        {/* 提示信息 */}
         {!currentRestaurantId && restaurants.length > 1 && (
-          <div style={{ marginBottom: 16, padding: 12, background: '#f0f0f0', borderRadius: 4 }}>
-            <span style={{ color: '#666' }}>{t('pages.recipe.list.tips.viewAllRestaurants')}</span>
+          <Alert
+            message="请先选择餐厅"
+            description="请从顶部标题栏选择餐厅，然后查看和管理该餐厅的菜单项。"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {currentRestaurantId && (
+          <>
+            {/* 操作栏 */}
+            <div style={{ marginBottom: 16 }}>
+              <Row gutter={16} align="middle">
+                <Col span={12}>
+                  <Space>
+                    <Input
+                      placeholder="搜索菜品名称..."
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                      onPressEnter={handleSearch}
+                      prefix={<SearchOutlined />}
+                      style={{ width: 300 }}
+                    />
+                    <Button type="primary" onClick={handleSearch}>
+                      搜索
+                    </Button>
+                  </Space>
+                </Col>
+                <Col span={12} style={{ textAlign: 'right' }}>
+                  <Space>
+                    <Button
+                      type="primary"
+                      icon={<ShoppingCartOutlined />}
+                      onClick={handleOpenBaseRecipeSelector}
+                    >
+                      从基础菜谱库添加
+                    </Button>
+                  </Space>
+                </Col>
+              </Row>
+            </div>
+
+            {/* 菜单项表格 */}
+            <Table
+              columns={menuItemColumns}
+              dataSource={menuItems}
+              rowKey="_id"
+              loading={loading}
+              pagination={{
+                current: pagination.page,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 条`,
+                onChange: (page, pageSize) => {
+                  setPagination(prev => ({ ...prev, page, pageSize }))
+                },
+              }}
+            />
+          </>
+        )}
+
+        {currentRestaurantId && menuItems.length === 0 && !loading && (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+            <p>暂无菜单项</p>
+            <p style={{ marginTop: 8, fontSize: 12 }}>
+              点击"从基础菜谱库添加"按钮，选择基础菜谱添加到菜单
+            </p>
           </div>
         )}
-        <div style={{ marginBottom: 16 }}>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={6}>
-              <Input
-                placeholder={t('pages.recipe.list.filters.search')}
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                onPressEnter={handleSearch}
-                prefix={<SearchOutlined />}
-              />
-            </Col>
-            <Col span={4}>
-              <Select
-                value={statusFilter}
-                onChange={(value) => {
-                  setStatusFilter(value)
-                  setTimeout(handleFilterChange, 0)
-                }}
-                style={{ width: '100%' }}
-              >
-                <Select.Option value="all">{t('pages.recipe.list.filters.status.all')}</Select.Option>
-                <Select.Option value={RecipeStatus.DRAFT}>{t('pages.recipe.list.filters.status.draft')}</Select.Option>
-                <Select.Option value={RecipeStatus.PUBLISHED}>{t('pages.recipe.list.filters.status.published')}</Select.Option>
-                <Select.Option value={RecipeStatus.ARCHIVED}>{t('pages.recipe.list.filters.status.archived')}</Select.Option>
-              </Select>
-            </Col>
-            <Col span={4}>
-              <Select
-                value={categoryFilter}
-                onChange={(value) => {
-                  setCategoryFilter(value)
-                  setTimeout(handleFilterChange, 0)
-                }}
-                style={{ width: '100%' }}
-              >
-                <Select.Option value="all">{t('pages.recipe.list.filters.category.all')}</Select.Option>
-                <Select.Option value="hot">{t('pages.recipe.list.filters.category.hot')}</Select.Option>
-                <Select.Option value="cold">{t('pages.recipe.list.filters.category.cold')}</Select.Option>
-                <Select.Option value="soup">{t('pages.recipe.list.filters.category.soup')}</Select.Option>
-                <Select.Option value="staple">{t('pages.recipe.list.filters.category.staple')}</Select.Option>
-                <Select.Option value="dessert">{t('pages.recipe.list.filters.category.dessert')}</Select.Option>
-                <Select.Option value="drink">{t('pages.recipe.list.filters.category.drink')}</Select.Option>
-              </Select>
-            </Col>
-            <Col span={4}>
-              <Select
-                value={carbonLabelFilter}
-                onChange={(value) => {
-                  setCarbonLabelFilter(value)
-                  setTimeout(handleFilterChange, 0)
-                }}
-                style={{ width: '100%' }}
-              >
-                <Select.Option value="all">{t('pages.recipe.list.filters.carbonLabel.all')}</Select.Option>
-                <Select.Option value="ultra_low">{t('pages.recipe.list.filters.carbonLabel.ultraLow')}</Select.Option>
-                <Select.Option value="low">{t('pages.recipe.list.filters.carbonLabel.low')}</Select.Option>
-                <Select.Option value="medium">{t('pages.recipe.list.filters.carbonLabel.medium')}</Select.Option>
-                <Select.Option value="high">{t('pages.recipe.list.filters.carbonLabel.high')}</Select.Option>
-              </Select>
-            </Col>
-            <Col span={6}>
-              <Space>
-                <Button type="primary" onClick={handleSearch}>
-                  {t('pages.recipe.list.buttons.search')}
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => navigate('/recipe/create')}
+      </Card>
+
+      {/* 基础菜谱选择器弹窗样式 */}
+      <style>{`
+        .recipe-row-added {
+          background-color: #f6ffed !important;
+        }
+        .recipe-row-added:hover {
+          background-color: #f0f9e8 !important;
+        }
+      `}</style>
+
+      {/* 基础菜谱选择器弹窗 */}
+        <Modal
+        title={
+          <div style={{ fontSize: 18, fontWeight: 500 }}>
+            从基础菜谱库选择
+            {currentRestaurantId && (
+              <span style={{ fontSize: 14, fontWeight: 400, color: '#666', marginLeft: 8 }}>
+                （为当前餐厅添加菜品）
+              </span>
+            )}
+          </div>
+        }
+        open={baseRecipeSelectorVisible}
+          onCancel={() => {
+            setBaseRecipeSelectorVisible(false)
+            setSelectedBaseRecipe(null)
+            setBaseRecipeSearchKeyword('')
+            setBaseRecipeCategoryFilter('all')
+            setShowAddedRecipes(true)
+            setBaseRecipesPagination({ page: 1, pageSize: 10, total: 0 })
+            // 延迟重置表单，确保在 Modal 关闭后执行
+            setTimeout(() => {
+              try {
+                addToMenuForm.resetFields()
+              } catch (error) {
+                // 忽略表单重置错误（可能表单已卸载）
+              }
+            }, 0)
+          }}
+          footer={null}
+          width={1200}
+          destroyOnClose={true}
+          maskClosable={false}
+          centered={true}
+          style={{ marginLeft: 200 }}
+        >
+          {/* 搜索和筛选区域 */}
+          <Card size="small" style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <Input
+                  placeholder="搜索菜谱名称、描述..."
+                  value={baseRecipeSearchKeyword}
+                  onChange={(e) => {
+                    setBaseRecipeSearchKeyword(e.target.value)
+                  }}
+                  onPressEnter={() => loadBaseRecipes(1)}
+                  prefix={<SearchOutlined />}
+                  allowClear
+                />
+              </Col>
+              <Col span={5}>
+                <Select
+                  value={baseRecipeCategoryFilter}
+                  onChange={(value) => {
+                    setBaseRecipeCategoryFilter(value)
+                    setTimeout(() => loadBaseRecipes(1), 0)
+                  }}
+                  style={{ width: '100%' }}
+                  placeholder="选择分类"
                 >
-                  {t('pages.recipe.list.buttons.create')}
+                  <Select.Option value="all">全部分类</Select.Option>
+                  <Select.Option value="hot">热菜</Select.Option>
+                  <Select.Option value="cold">凉菜</Select.Option>
+                  <Select.Option value="soup">汤品</Select.Option>
+                  <Select.Option value="staple">主食</Select.Option>
+                  <Select.Option value="dessert">甜品</Select.Option>
+                  <Select.Option value="drink">饮品</Select.Option>
+                </Select>
+              </Col>
+              <Col span={6}>
+                <Space>
+                  <span style={{ color: '#666' }}>显示已添加：</span>
+                  <Switch
+                    checked={showAddedRecipes}
+                    onChange={(checked) => {
+                      setShowAddedRecipes(checked)
+                      setTimeout(() => loadBaseRecipes(1), 0)
+                    }}
+                    checkedChildren="是"
+                    unCheckedChildren="否"
+                  />
+                </Space>
+              </Col>
+              <Col span={5} style={{ textAlign: 'right' }}>
+                <Space>
+                  <Button onClick={() => loadBaseRecipes(1)}>重置</Button>
+                  <Button type="primary" onClick={() => loadBaseRecipes(1)}>
+                    搜索
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* 菜谱列表表格 */}
+          <Table
+            columns={baseRecipeColumns}
+            dataSource={baseRecipes}
+            rowKey="_id"
+            loading={baseRecipesLoading}
+            pagination={{
+              current: baseRecipesPagination.page,
+              pageSize: baseRecipesPagination.pageSize,
+              total: baseRecipesPagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条基础菜谱`,
+              pageSizeOptions: ['10', '20', '30', '50'],
+              onChange: (page, pageSize) => {
+                setBaseRecipesPagination(prev => ({ ...prev, page, pageSize }))
+                loadBaseRecipes(page)
+              },
+              onShowSizeChange: (current, size) => {
+                setBaseRecipesPagination(prev => ({ ...prev, page: 1, pageSize: size }))
+                loadBaseRecipes(1)
+              },
+            }}
+            size="middle"
+            scroll={{ y: 400 }}
+            locale={{
+              emptyText: baseRecipeSearchKeyword || baseRecipeCategoryFilter !== 'all'
+                ? '未找到匹配的基础菜谱，请尝试调整搜索条件'
+                : '暂无基础菜谱',
+            }}
+            rowClassName={(record) => {
+              return addedBaseRecipeIds.has(record._id) ? 'recipe-row-added' : ''
+            }}
+          />
+
+        {/* 选择菜谱后的表单 */}
+        {selectedBaseRecipe && (
+          <>
+            <Divider style={{ margin: '16px 0' }} />
+            <Card
+              title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ShoppingCartOutlined style={{ color: '#1890ff' }} />
+                  <span>添加 "{selectedBaseRecipe.name}" 到菜单</span>
+                </div>
+              }
+              style={{ marginTop: 16, backgroundColor: '#f9f9f9' }}
+              extra={
+                <Button
+                  type="link"
+                  onClick={() => {
+                    try {
+                      addToMenuForm.resetFields()
+                    } catch (error) {
+                      // 忽略表单重置错误
+                      console.warn('重置表单失败:', error)
+                    }
+                    setSelectedBaseRecipe(null)
+                  }}
+                >
+                  取消选择
                 </Button>
-              </Space>
+              }
+            >
+              {/* 菜谱基本信息展示 */}
+              <Row gutter={16} style={{ marginBottom: 20 }}>
+                <Col span={12}>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ color: '#666', marginRight: 8 }}>菜谱名称：</span>
+                    <span style={{ fontWeight: 500 }}>{selectedBaseRecipe.name}</span>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ color: '#666', marginRight: 8 }}>分类：</span>
+                    <Tag color="blue">{getCategoryText(selectedBaseRecipe.category)}</Tag>
+                  </div>
+                  <div>
+                    <span style={{ color: '#666', marginRight: 8 }}>烹饪方式：</span>
+                    <span>{getCookingMethodText(selectedBaseRecipe.cookingMethod)}</span>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ color: '#666', marginRight: 8 }}>碳足迹：</span>
+                    <span style={{ fontWeight: 500, color: '#1890ff' }}>
+                      {(() => {
+                        const footprint = selectedBaseRecipe.carbonFootprint
+                        if (footprint === undefined || footprint === null) return '0.00'
+                        if (typeof footprint === 'object' && footprint.value !== undefined) {
+                          return footprint.value.toFixed(2)
+                        }
+                        if (typeof footprint === 'number') {
+                          return footprint.toFixed(2)
+                        }
+                        return '0.00'
+                      })()} kg CO₂e
+                    </span>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ color: '#666', marginRight: 8 }}>碳标签：</span>
+                    <Tag color={getCarbonLabelColor(selectedBaseRecipe.carbonLabel)}>
+                      {getCarbonLabelText(selectedBaseRecipe.carbonLabel)}
+                    </Tag>
+                  </div>
+                  <div>
+                    <span style={{ color: '#666', marginRight: 8 }}>食材数量：</span>
+                    <span>
+                      {Array.isArray(selectedBaseRecipe.ingredients) 
+                        ? selectedBaseRecipe.ingredients.length 
+                        : 0} 种
+                    </span>
+                  </div>
+                </Col>
+              </Row>
+
+              {/* 添加表单 */}
+              <Form form={addToMenuForm} layout="vertical">
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="price"
+                      label="价格（元）"
+                      rules={[
+                        { required: true, message: '请输入价格' },
+                        { type: 'number', min: 0, message: '价格必须大于等于0' },
+                      ]}
+                    >
+                      <InputNumber
+                        style={{ width: '100%' }}
+                        placeholder="请输入菜品价格"
+                        min={0}
+                        precision={2}
+                        prefix="¥"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="isAvailable"
+                      label="是否可用"
+                      valuePropName="checked"
+                      initialValue={true}
+                    >
+                      <Switch checkedChildren="可用" unCheckedChildren="不可用" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Form>
+              <div style={{ marginTop: 20, textAlign: 'right' }}>
+                <Space>
+                  <Button
+                    onClick={() => {
+                      try {
+                        addToMenuForm.resetFields()
+                      } catch (error) {
+                        // 忽略表单重置错误
+                        console.warn('重置表单失败:', error)
+                      }
+                      setSelectedBaseRecipe(null)
+                    }}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    type="primary"
+                    size="large"
+                    loading={addingToMenu}
+                    onClick={handleAddToMenuSubmit}
+                    icon={<ShoppingCartOutlined />}
+                  >
+                    确认添加到菜单
+                  </Button>
+                </Space>
+              </div>
+            </Card>
+          </>
+        )}
+      </Modal>
+
+      {/* 编辑菜单项Modal */}
+      <Modal
+        title={
+          <div style={{ fontSize: 18, fontWeight: 500 }}>
+            编辑菜单项
+            {editingMenuItem && (
+              <span style={{ fontSize: 14, fontWeight: 400, color: '#666', marginLeft: 8 }}>
+                {editingMenuItem.name}
+              </span>
+            )}
+          </div>
+        }
+        open={editModalVisible}
+        onCancel={() => {
+          setEditModalVisible(false)
+          setEditingMenuItem(null)
+          editForm.resetFields()
+        }}
+        onOk={handleUpdateMenuItem}
+        confirmLoading={updating}
+        width={600}
+        destroyOnClose={true}
+        maskClosable={false}
+        centered={true}
+        style={{ marginLeft: 200 }}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="菜品名称"
+            rules={[{ required: true, message: '请输入菜品名称' }]}
+          >
+            <Input placeholder="请输入菜品名称" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="菜品描述"
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="请输入菜品描述（可选）"
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="price"
+                label="价格（元）"
+                rules={[
+                  { required: true, message: '请输入价格' },
+                  { type: 'number', min: 0, message: '价格必须大于等于0' },
+                ]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  placeholder="请输入价格"
+                  min={0}
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="category"
+                label="分类"
+              >
+                <Select placeholder="请选择分类" allowClear>
+                  <Select.Option value="hot">热菜</Select.Option>
+                  <Select.Option value="cold">凉菜</Select.Option>
+                  <Select.Option value="soup">汤品</Select.Option>
+                  <Select.Option value="staple">主食</Select.Option>
+                  <Select.Option value="dessert">甜品</Select.Option>
+                  <Select.Option value="drink">饮品</Select.Option>
+                  <Select.Option value="asian_fusion">亚洲融合</Select.Option>
+                  <Select.Option value="western">西式</Select.Option>
+                  <Select.Option value="other">其他</Select.Option>
+                </Select>
+              </Form.Item>
             </Col>
           </Row>
-        </div>
 
-        <Table
-          columns={columns}
-          dataSource={recipes}
-          rowKey="_id"
-          loading={loading}
-          pagination={{
-            current: pagination.page,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => t('pages.recipe.list.pagination.total', { total }),
-            onChange: (page, pageSize) => {
-              dispatch(
-                fetchRecipes({
-                  keyword: searchKeyword || undefined,
-                  restaurantId: currentRestaurantId || undefined,
-                  status: statusFilter !== 'all' ? statusFilter : undefined,
-                  category: categoryFilter !== 'all' ? categoryFilter : undefined,
-                  carbonLabel: carbonLabelFilter !== 'all' ? carbonLabelFilter : undefined,
-                  page,
-                  pageSize,
-                })
-              )
-            },
-          }}
-        />
-      </Card>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="status"
+                label="状态"
+              >
+                <Select placeholder="请选择状态">
+                  <Select.Option value="active">可用</Select.Option>
+                  <Select.Option value="inactive">不可用</Select.Option>
+                  <Select.Option value="available">上架</Select.Option>
+                  <Select.Option value="unavailable">下架</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="isAvailable"
+                label="是否可用"
+                valuePropName="checked"
+              >
+                <Switch checkedChildren="可用" unCheckedChildren="不可用" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   )
 }
 
 export default RecipeList
+
 

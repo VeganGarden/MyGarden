@@ -558,25 +558,37 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
       status: _.neq('archived') // 排除已归档的菜谱
     })
 
-    // 多租户隔离：只查询当前餐厅的菜谱
-    // 优先使用 restaurantId 进行精确查询（避免同一租户下多个餐厅的数据混淆）
-    // 如果没有 restaurantId，才使用 tenantId 查询
+    // 多租户隔离：查询菜谱
+    // 当选择餐厅时，应该同时显示：
+    // 1. 基础菜谱（isBaseRecipe: true，restaurantId 为 null 或不存在）
+    // 2. 该餐厅的菜谱（restaurantId 匹配）
     if (queryRestaurantId) {
-      // 如果提供了 restaurantId，优先使用它进行精确查询
-      query = query.where({
-        restaurantId: queryRestaurantId
-      })
-      console.log('添加餐厅过滤条件（精确）: restaurantId =', queryRestaurantId)
+      // 如果提供了 restaurantId，使用 $or 条件同时查询基础菜谱和该餐厅的菜谱
+      query = query.where(_.or([
+        {
+          isBaseRecipe: true // 基础菜谱（平台级，所有餐厅可用）
+        },
+        {
+          restaurantId: queryRestaurantId // 该餐厅的菜谱
+        }
+      ]))
+      console.log('添加餐厅过滤条件（包含基础菜谱）: restaurantId =', queryRestaurantId)
     } else if (actualTenantId) {
       // 如果没有 restaurantId，使用 tenantId 查询（可能返回多个餐厅的数据）
-      query = query.where({
-        tenantId: actualTenantId
-      })
-      console.log('添加租户过滤条件: tenantId =', actualTenantId)
+      // 同时也包含基础菜谱
+      query = query.where(_.or([
+        {
+          isBaseRecipe: true // 基础菜谱
+        },
+        {
+          tenantId: actualTenantId // 该租户的菜谱
+        }
+      ]))
+      console.log('添加租户过滤条件（包含基础菜谱）: tenantId =', actualTenantId)
     } else {
-      console.warn('未提供 tenantId 或 restaurantId，将查询所有餐厅的菜谱')
+      // 如果没有提供 tenantId 或 restaurantId，查询所有菜谱（包括基础菜谱和所有餐厅的菜谱）
+      console.warn('未提供 tenantId 或 restaurantId，将查询所有菜谱（包括基础菜谱）')
     }
-    // 如果没有提供tenantId，查询所有餐厅的菜谱（不添加餐厅过滤）
 
     // 添加状态筛选
     if (filters.status && filters.status !== 'all') {

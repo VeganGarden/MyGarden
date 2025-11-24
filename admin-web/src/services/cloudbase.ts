@@ -389,22 +389,6 @@ export const certificationAPI = {
       action: 'uploadFile',
       data,
     }),
-
-  // 获取认证申请列表（平台运营）
-  listApplications: (data: {
-    status?: string
-    currentStage?: string
-    restaurantId?: string
-    tenantId?: string
-    page?: number
-    pageSize?: number
-    startDate?: string
-    endDate?: string
-  }) =>
-    callCloudFunction('restaurant-certification', {
-      action: 'listApplications',
-      data,
-    }),
 }
 
 /**
@@ -423,13 +407,6 @@ export const carbonFootprintAPI = {
     callCloudFunction('restaurant-carbon-calculator', {
       action: 'batchCalculateMenu',
       menuItems,
-    }),
-
-  // 获取菜单列表（根据restaurantId）
-  getMenuList: (params?: { restaurantId?: string; page?: number; pageSize?: number }) =>
-    callCloudFunction('tenant', {
-      action: 'getMenuList',
-      ...params,
     }),
 
   // 获取订单碳足迹统计
@@ -778,11 +755,61 @@ export const tenantAPI = {
       data,
     }),
 
-  // 更新菜谱
-  updateMenuItem: (menuItemId: string, data: any) =>
+  // 从基础菜谱创建餐厅菜单项
+  createMenuItemFromRecipe: (params: {
+    recipeId: string
+    restaurantId: string
+    customFields?: {
+      name?: string
+      description?: string
+      category?: string
+      cuisine?: string
+      price?: number
+      nutrition?: any
+      mealType?: string
+      energyType?: string
+      tags?: any
+      isAvailable?: boolean
+      status?: string
+    }
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'createMenuItemFromRecipe',
+      data: params,
+    }),
+
+  // 查询已添加到菜单的基础菜谱ID列表
+  getAddedBaseRecipeIds: (params: { restaurantId: string }) =>
+    callCloudFunction('tenant', {
+      action: 'getAddedBaseRecipeIds',
+      data: params,
+    }),
+
+  // 从餐厅菜单中移出基础菜谱
+  removeRecipeFromMenu: (params: { recipeId: string; restaurantId: string }) =>
+    callCloudFunction('tenant', {
+      action: 'removeRecipeFromMenu',
+      data: params,
+    }),
+
+  // 更新菜单项
+  updateMenuItem: (params: {
+    menuItemId: string
+    restaurantId: string
+    updateData: {
+      name?: string
+      description?: string
+      price?: number
+      category?: string
+      status?: string
+      isAvailable?: boolean
+      nutrition?: any
+      tags?: any
+    }
+  }) =>
     callCloudFunction('tenant', {
       action: 'updateMenuItem',
-      data: { menuItemId, ...data },
+      data: params,
     }),
 
   // 根据restaurantId获取餐厅相关数据
@@ -796,6 +823,13 @@ export const tenantAPI = {
   }) =>
     callCloudFunction('tenant', {
       action: 'getRestaurantData',
+      data: params,
+    }),
+
+  // 获取菜单列表（根据restaurantId）
+  getMenuList: (params?: { restaurantId?: string; page?: number; pageSize?: number }) =>
+    callCloudFunction('tenant', {
+      action: 'getMenuList',
       data: params,
     }),
 }

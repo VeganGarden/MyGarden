@@ -158,6 +158,38 @@ exports.main = async (event, context) => {
       // 菜单管理
       case 'getMenuList':
         return await getMenuList(data)
+      
+      case 'createMenuItemFromRecipe':
+        // 从基础菜谱创建餐厅菜单项
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await createMenuItemFromRecipe(data, gate.user, context)
+        }
+
+      case 'getAddedBaseRecipeIds':
+        // 查询已添加到菜单的基础菜谱ID列表
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await getAddedBaseRecipeIds(data)
+        }
+
+      case 'removeRecipeFromMenu':
+        // 从餐厅菜单中移出基础菜谱
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await removeRecipeFromMenu(data, gate.user, context)
+        }
+
+      case 'updateMenuItem':
+        // 更新餐厅菜单项
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await updateMenuItem(data, gate.user, context)
+        }
 
       case 'getDashboard':
         // 获取数据看板统计数据
@@ -2804,23 +2836,47 @@ async function getMenuList(data) {
       }
     }
 
+    // 获取总数
+    let total = 0
+    try {
+      const countResult = await db.collection('restaurant_menu_items')
+        .where({
+          restaurantId: restaurantId,
+        })
+        .count()
+      total = countResult.total || 0
+    } catch (error) {
+      // 如果计数失败，使用当前数据长度
+      total = menus.length
+    }
+
     // 格式化菜单数据
     const formattedMenus = menus.map((menu) => ({
       id: menu._id || '',
       _id: menu._id,
       name: menu.name || menu.dishName || menu.menuName || '',
-      carbonFootprint: menu.carbonFootprint || menu.carbon_footprint || menu.totalCarbonFootprint || 0,
+      price: menu.price || 0,
+      carbonFootprint: menu.carbonFootprint || (menu.carbonFootprint && typeof menu.carbonFootprint === 'object' ? menu.carbonFootprint.value : undefined) || menu.carbon_footprint || menu.totalCarbonFootprint || 0,
+      carbonLabel: menu.carbonLabel || (menu.carbonData && menu.carbonData.carbonLabel) || menu.carbonLevel || menu.carbon_level || 'medium',
       carbonLevel: menu.carbonLevel || menu.carbon_level || 'medium',
       carbonScore: menu.carbonScore || menu.carbon_score || 0,
-      ingredients: menu.ingredients || menu.ingredient_list || menu.ingredientList || '',
-      status: menu.status || 'draft',
+      ingredients: menu.ingredients || menu.ingredient_list || menu.ingredientList || [],
+      status: menu.status || 'active',
+      isAvailable: menu.isAvailable !== undefined ? menu.isAvailable : true,
       restaurantId: menu.restaurantId || restaurantId,
+      baseRecipeId: menu.baseRecipeId || undefined,
+      category: menu.category || '',
     }))
 
     return {
       code: 0,
       message: '获取成功',
-      data: formattedMenus,
+      data: {
+        menus: formattedMenus,
+        menuItems: formattedMenus, // 兼容字段
+        total: total,
+        totalCount: total, // 兼容字段
+      },
     }
   } catch (error) {
     console.error('获取菜单列表失败:', error)
@@ -2828,6 +2884,499 @@ async function getMenuList(data) {
       code: 500,
       message: '获取菜单列表失败',
       error: error.message,
+    }
+  }
+}
+
+/**
+ * 从基础菜谱创建餐厅菜单项
+ * @param {Object} data - 请求数据 { recipeId, restaurantId, customFields }
+ * @param {Object} user - 当前用户
+ * @param {Object} context - 上下文
+ */
+async function createMenuItemFromRecipe(data, user, context) {
+  const { recipeId, restaurantId, customFields = {} } = data || {}
+
+  if (!recipeId) {
+    return {
+      code: 400,
+      message: '菜谱ID不能为空'
+    }
+  }
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空'
+    }
+  }
+
+  try {
+    // 1. 获取基础菜谱信息
+    const recipeResult = await db.collection('recipes').doc(recipeId).get()
+    if (!recipeResult.data) {
+      return {
+        code: 404,
+        message: '基础菜谱不存在'
+      }
+    }
+
+    const recipe = recipeResult.data
+
+    // 2. 验证是否为基础菜谱
+    if (!recipe.isBaseRecipe) {
+      return {
+        code: 400,
+        message: '只能从基础菜谱创建菜单项'
+      }
+    }
+
+    // 3. 获取餐厅信息（用于获取地区等信息）
+    const restaurantResult = await db.collection('restaurants').doc(restaurantId).get()
+    if (!restaurantResult.data) {
+      return {
+        code: 404,
+        message: '餐厅不存在'
+      }
+    }
+
+    const restaurant = restaurantResult.data
+    const tenantId = restaurant.tenantId || restaurantId
+    const restaurantRegion = restaurant.region || 'national_average'
+
+    // 4. 转换 ingredients 结构
+    // recipes 的 ingredients 可能是简单数组或对象数组
+    // restaurant_menu_items 需要详细结构：{ ingredientName, quantity, unit, isMainIngredient }
+    let formattedIngredients = []
+    if (Array.isArray(recipe.ingredients)) {
+      formattedIngredients = recipe.ingredients.map((ing, index) => {
+        if (typeof ing === 'string') {
+          // 简单字符串格式
+          return {
+            ingredientName: ing,
+            quantity: 100, // 默认值，需要餐厅填写
+            unit: 'g',
+            isMainIngredient: index === 0 // 第一个作为主食材
+          }
+        } else if (typeof ing === 'object' && ing !== null) {
+          // 对象格式，尝试提取信息
+          return {
+            ingredientName: ing.name || ing.ingredientName || ing.ingredient || String(ing),
+            quantity: ing.quantity || ing.amount || 100,
+            unit: ing.unit || 'g',
+            isMainIngredient: ing.isMainIngredient !== undefined ? ing.isMainIngredient : (index === 0)
+          }
+        } else {
+          return {
+            ingredientName: String(ing),
+            quantity: 100,
+            unit: 'g',
+            isMainIngredient: index === 0
+          }
+        }
+      })
+    }
+
+    // 5. 转换 carbonFootprint
+    // recipes 的 carbonFootprint 是简单数字
+    // restaurant_menu_items 需要扩展结构
+    const baseCarbonFootprint = recipe.carbonFootprint || 0
+    const carbonData = {
+      carbonFootprint: baseCarbonFootprint,
+      calculationMethod: 'lca_simplified',
+      comparedToMeat: {
+        meatType: '猪肉', // 默认值
+        meatCarbonFootprint: 7.2, // 默认值
+        carbonSavings: Math.max(0, 7.2 - baseCarbonFootprint),
+        savingsPercent: baseCarbonFootprint > 0 ? Math.round((1 - baseCarbonFootprint / 7.2) * 100) : 0
+      },
+      carbonLabel: recipe.carbonLabel || (baseCarbonFootprint < 0.5 ? 'ultra_low' : baseCarbonFootprint < 1.0 ? 'low' : baseCarbonFootprint < 2.0 ? 'medium' : 'high'),
+      carbonScore: recipe.carbonScore || (baseCarbonFootprint < 0.5 ? 95 : baseCarbonFootprint < 1.0 ? 85 : baseCarbonFootprint < 2.0 ? 70 : 50),
+      sustainabilityRating: {
+        overall: 4.0,
+        localSourcing: 4.0,
+        organicRatio: 4.0,
+        seasonality: 4.0,
+        waterFootprint: 4.0
+      }
+    }
+
+    // 6. 构建菜单项数据
+    const menuItemData = {
+      // 基础信息（从菜谱复制）
+      name: customFields.name || recipe.name,
+      description: customFields.description || recipe.description || '',
+      category: customFields.category || recipe.category || '其他',
+      cuisine: customFields.cuisine || '中餐',
+      cookingMethod: recipe.cookingMethod || 'steamed',
+      
+      // 食材信息（已转换）
+      ingredients: formattedIngredients,
+      
+      // 价格（需要餐厅填写）
+      price: customFields.price || 0,
+      
+      // 营养信息（需要餐厅填写，这里设置默认值）
+      nutrition: customFields.nutrition || {
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbohydrate: 0,
+        fiber: 0,
+        sodium: 0,
+        servingSize: '1份'
+      },
+      
+      // 碳足迹信息（已转换）
+      carbonData: carbonData,
+      carbonFootprint: {
+        value: baseCarbonFootprint,
+        baseline: baseCarbonFootprint * 1.2, // 默认基准值
+        reduction: baseCarbonFootprint * 0.2, // 默认减排量
+        ingredients: baseCarbonFootprint * 0.7, // 食材碳足迹占比
+        cookingEnergy: baseCarbonFootprint * 0.2, // 烹饪能源占比
+        packaging: baseCarbonFootprint * 0.1, // 包装占比
+        other: 0
+      },
+      
+      // 餐食类型和用能方式（需要餐厅填写，这里设置默认值）
+      mealType: customFields.mealType || 'meat_simple',
+      energyType: customFields.energyType || 'electric',
+      restaurantRegion: restaurantRegion,
+      
+      // 基准值信息（初始化）
+      baselineInfo: null,
+      
+      // 优化标识（初始化）
+      optimizationFlag: {
+        needsOptimization: false,
+        warningMessage: null
+      },
+      
+      // 计算时间
+      calculatedAt: new Date(),
+      
+      // 标签（从菜谱复制，如果有）
+      tags: customFields.tags || recipe.tags || {
+        dietTypes: [],
+        healthBenefits: [],
+        suitableBodyTypes: [],
+        solarTerms: [],
+        occasions: [],
+        specialTags: []
+      },
+      
+      // 可用性（默认可用）
+      availability: {
+        isAvailable: customFields.isAvailable !== undefined ? customFields.isAvailable : true
+      },
+      
+      // 销售数据（初始化）
+      salesData: {
+        totalSales: 0,
+        monthSales: 0,
+        rating: 0,
+        reviewCount: 0
+      },
+      
+      // 关联字段
+      baseRecipeId: recipeId, // 关键：关联基础菜谱
+      
+      // 系统字段
+      restaurantId: restaurantId,
+      tenantId: tenantId,
+      status: customFields.status || 'available',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    // 7. 检查是否已存在相同的菜单项（基于 baseRecipeId 和 restaurantId）
+    const existingItem = await db.collection('restaurant_menu_items')
+      .where({
+        baseRecipeId: recipeId,
+        restaurantId: restaurantId
+      })
+      .get()
+
+    if (existingItem.data && existingItem.data.length > 0) {
+      return {
+        code: 409,
+        message: '该菜谱已添加到菜单中',
+        data: {
+          existingMenuItemId: existingItem.data[0]._id
+        }
+      }
+    }
+
+    // 8. 创建菜单项
+    const result = await db.collection('restaurant_menu_items').add({
+      data: menuItemData
+    })
+
+    console.log(`成功从基础菜谱创建菜单项: recipeId=${recipeId}, restaurantId=${restaurantId}, menuItemId=${result._id}`)
+
+    return {
+      code: 0,
+      message: '菜单项创建成功',
+      data: {
+        _id: result._id,
+        ...menuItemData
+      }
+    }
+  } catch (error) {
+    console.error('从基础菜谱创建菜单项失败:', error)
+    return {
+      code: 500,
+      message: '创建菜单项失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 查询已添加到菜单的基础菜谱ID列表
+ * @param {Object} data - 查询参数 { restaurantId }
+ */
+async function getAddedBaseRecipeIds(data) {
+  const { restaurantId } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空'
+    }
+  }
+
+  try {
+    // 查询 restaurant_menu_items 集合，找出所有 baseRecipeId 不为空且 restaurantId 匹配的菜单项
+    const menuItemsResult = await db.collection('restaurant_menu_items')
+      .where({
+        restaurantId: restaurantId,
+        baseRecipeId: _.neq(null) // baseRecipeId 不为空
+      })
+      .field({
+        baseRecipeId: true,
+        _id: false
+      })
+      .get()
+
+    // 提取所有 baseRecipeId，去重
+    const baseRecipeIds = [...new Set(
+      (menuItemsResult.data || [])
+        .map(item => item.baseRecipeId)
+        .filter(id => id) // 过滤掉空值
+    )]
+
+    return {
+      code: 0,
+      message: '查询成功',
+      data: {
+        baseRecipeIds: baseRecipeIds
+      }
+    }
+  } catch (error) {
+    console.error('查询已添加到菜单的基础菜谱ID列表失败:', error)
+    return {
+      code: 500,
+      message: '查询失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 从餐厅菜单中移出基础菜谱
+ * @param {Object} data - 参数 { recipeId, restaurantId }
+ * @param {Object} user - 当前用户
+ * @param {Object} context - 上下文
+ */
+async function removeRecipeFromMenu(data, user, context) {
+  const { recipeId, restaurantId } = data || {}
+
+  if (!recipeId) {
+    return {
+      code: 400,
+      message: '菜谱ID不能为空'
+    }
+  }
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空'
+    }
+  }
+
+  try {
+    // 查找对应的菜单项
+    const menuItemsResult = await db.collection('restaurant_menu_items')
+      .where({
+        baseRecipeId: recipeId,
+        restaurantId: restaurantId
+      })
+      .get()
+
+    if (!menuItemsResult.data || menuItemsResult.data.length === 0) {
+      return {
+        code: 404,
+        message: '该菜谱未添加到菜单中'
+      }
+    }
+
+    // 删除所有匹配的菜单项（理论上应该只有一个）
+    const deletePromises = menuItemsResult.data.map(item => 
+      db.collection('restaurant_menu_items').doc(item._id).remove()
+    )
+    await Promise.all(deletePromises)
+
+    // 记录操作日志
+    await addAudit(db, {
+      module: 'tenant',
+      action: 'removeRecipeFromMenu',
+      resource: 'restaurant_menu_item',
+      resourceId: recipeId,
+      description: `从餐厅菜单中移出基础菜谱 ${recipeId}`,
+      restaurantId: restaurantId,
+      status: 'success',
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+    })
+
+    return {
+      code: 0,
+      message: '已成功从菜单中移出',
+      data: {
+        removedCount: menuItemsResult.data.length
+      }
+    }
+  } catch (error) {
+    console.error('从菜单中移出菜谱失败:', error)
+    return {
+      code: 500,
+      message: '移出失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 更新餐厅菜单项
+ * @param {Object} data - 参数 { menuItemId, restaurantId, updateData }
+ * @param {Object} user - 当前用户
+ * @param {Object} context - 上下文
+ */
+async function updateMenuItem(data, user, context) {
+  const { menuItemId, restaurantId, updateData = {} } = data || {}
+
+  if (!menuItemId) {
+    return {
+      code: 400,
+      message: '菜单项ID不能为空'
+    }
+  }
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空'
+    }
+  }
+
+  try {
+    // 1. 验证菜单项是否存在且属于该餐厅
+    const menuItemResult = await db.collection('restaurant_menu_items').doc(menuItemId).get()
+    if (!menuItemResult.data) {
+      return {
+        code: 404,
+        message: '菜单项不存在'
+      }
+    }
+
+    const menuItem = menuItemResult.data
+    if (menuItem.restaurantId !== restaurantId) {
+      return {
+        code: 403,
+        message: '无权修改其他餐厅的菜单项'
+      }
+    }
+
+    // 2. 构建更新数据（只更新允许的字段）
+    const allowedFields = [
+      'name',
+      'description',
+      'price',
+      'category',
+      'status',
+      'tags'
+    ]
+    
+    const updateFields = {}
+    
+    // 更新基础字段
+    if (updateData.name !== undefined) {
+      updateFields.name = updateData.name
+    }
+    if (updateData.description !== undefined) {
+      updateFields.description = updateData.description
+    }
+    if (updateData.price !== undefined) {
+      updateFields.price = Number(updateData.price) || 0
+    }
+    if (updateData.category !== undefined) {
+      updateFields.category = updateData.category
+    }
+    if (updateData.status !== undefined) {
+      updateFields.status = updateData.status
+    }
+    if (updateData.tags !== undefined) {
+      updateFields.tags = updateData.tags
+    }
+
+    // 更新可用性（通过availability字段）
+    if (updateData.isAvailable !== undefined) {
+      updateFields['availability.isAvailable'] = Boolean(updateData.isAvailable)
+    }
+
+    // 更新营养信息（如果提供）
+    if (updateData.nutrition !== undefined) {
+      updateFields.nutrition = updateData.nutrition
+    }
+
+    // 添加更新时间
+    updateFields.updatedAt = db.serverDate()
+
+    // 3. 执行更新
+    await db.collection('restaurant_menu_items').doc(menuItemId).update({
+      data: updateFields
+    })
+
+    // 4. 记录操作日志
+    await addAudit(db, {
+      module: 'tenant',
+      action: 'updateMenuItem',
+      resource: 'restaurant_menu_item',
+      resourceId: menuItemId,
+      description: `更新餐厅菜单项 ${menuItem.name || menuItemId}`,
+      restaurantId: restaurantId,
+      status: 'success',
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+    })
+
+    // 5. 获取更新后的数据
+    const updatedResult = await db.collection('restaurant_menu_items').doc(menuItemId).get()
+
+    return {
+      code: 0,
+      message: '更新成功',
+      data: updatedResult.data
+    }
+  } catch (error) {
+    console.error('更新菜单项失败:', error)
+    return {
+      code: 500,
+      message: '更新失败',
+      error: error.message
     }
   }
 }
