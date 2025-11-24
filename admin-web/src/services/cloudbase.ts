@@ -609,6 +609,11 @@ export const operationAPI = {
         action: 'listCoupons',
         data: params,
       }),
+    getDetail: (couponId: string) =>
+      callCloudFunction('tenant', {
+        action: 'getCouponDetail',
+        data: { couponId },
+      }),
     create: (data: any) =>
       callCloudFunction('tenant', {
         action: 'createCoupon',
@@ -624,6 +629,21 @@ export const operationAPI = {
         action: 'deleteCoupon',
         data: { id },
       }),
+    distribute: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'distributeCoupon',
+        data: params,
+      }),
+    getStats: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'getCouponStats',
+        data: params,
+      }),
+    analyze: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'analyzeCouponEffect',
+        data: params,
+      }),
   },
 
   // 用户评价
@@ -633,10 +653,25 @@ export const operationAPI = {
         action: 'listReviews',
         data: params,
       }),
+    getDetail: (reviewId: string) =>
+      callCloudFunction('tenant', {
+        action: 'getReviewDetail',
+        data: { reviewId },
+      }),
     reply: (reviewId: string, reply: string) =>
       callCloudFunction('tenant', {
         action: 'replyReview',
         data: { reviewId, reply },
+      }),
+    getStats: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'getReviewStats',
+        data: params,
+      }),
+    analyze: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'analyzeReviews',
+        data: params,
       }),
   },
 }
