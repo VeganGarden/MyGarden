@@ -28,7 +28,7 @@ import {
   message,
 } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -50,7 +50,8 @@ interface MenuItem {
 const CertificationApply: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { currentRestaurantId, restaurants, currentTenantId } = useAppSelector((state: any) => state.tenant)
+  const { currentRestaurantId, restaurants, currentTenant } = useAppSelector((state: any) => state.tenant)
+  const currentTenantId = currentTenant?.id || null
   const [currentStep, setCurrentStep] = useState(0)
   const [form] = Form.useForm()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
@@ -81,19 +82,203 @@ const CertificationApply: React.FC = () => {
     }
   }, [currentRestaurantId, selectedRestaurantId])
 
+  // 加载草稿数据
+  // restoreStep: 是否恢复保存的步骤，默认为true（页面初始化时恢复），false（切换餐厅时不恢复）
+  const loadDraft = useCallback(async (restoreStep = true) => {
+    const restaurantId = selectedRestaurantId || currentRestaurantId
+    // 从currentTenant获取tenantId
+    let tenantId = currentTenantId
+    if (!tenantId && currentTenant) {
+      tenantId = currentTenant.id
+    }
+
+    if (!restaurantId || !tenantId) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await certificationAPI.getDraft({
+        restaurantId,
+        tenantId,
+      })
+
+      if (result.code === 0 && result.data) {
+        const draft = result.data
+        
+        console.log('加载草稿数据:', {
+          restaurantId,
+          restoreStep,
+          draftCurrentStep: draft.currentStep,
+          hasBasicInfo: !!draft.basicInfo,
+        })
+        
+        // 恢复步骤：只有在restoreStep为true时才恢复，否则保持当前步骤（第一步）
+        if (restoreStep && draft.currentStep !== undefined && draft.currentStep !== null) {
+          setCurrentStep(draft.currentStep)
+        } else {
+          // 如果不恢复步骤，确保显示第一步
+          setCurrentStep(0)
+        }
+
+        // 恢复基本信息
+        if (draft.basicInfo) {
+          const basicInfoValues = {
+            restaurantName: draft.basicInfo.restaurantName,
+            address: draft.basicInfo.address,
+            contactPhone: draft.basicInfo.contactPhone,
+            contactEmail: draft.basicInfo.contactEmail,
+            legalPerson: draft.basicInfo.legalPerson,
+          }
+          console.log('恢复基本信息:', basicInfoValues)
+          form.setFieldsValue(basicInfoValues)
+          // 恢复上传的文件
+          if (draft.basicInfo.businessLicense) {
+            setUploadedFiles(prev => ({
+              ...prev,
+              businessLicense: draft.basicInfo.businessLicense
+            }))
+          }
+        } else {
+          console.log('草稿中没有基本信息')
+        }
+
+        // 恢复菜单信息
+        if (draft.menuInfo && draft.menuInfo.menuItems) {
+          const formattedMenuItems: MenuItem[] = draft.menuInfo.menuItems.map((item: any) => {
+            // 处理食材：转换为字符串格式
+            let ingredientsStr = ''
+            if (item.ingredients) {
+              if (Array.isArray(item.ingredients)) {
+                // 处理数组格式：可能是字符串数组，也可能是对象数组
+                ingredientsStr = item.ingredients
+                  .map((ing: any) => {
+                    if (typeof ing === 'string') {
+                      return ing.trim()
+                    }
+                    if (ing && typeof ing === 'object' && ing !== null) {
+                      // 处理对象格式：尝试多种可能的字段名
+                      const name = ing.name || ing.ingredientName || ing.ingredient || ing.ingredientName
+                      return name ? String(name).trim() : ''
+                    }
+                    return String(ing || '').trim()
+                  })
+                  .filter(Boolean)
+                  .join(', ')
+              } else if (typeof item.ingredients === 'string') {
+                ingredientsStr = item.ingredients.trim()
+              } else if (typeof item.ingredients === 'object' && item.ingredients !== null) {
+                // 处理单个对象格式
+                const name = item.ingredients.name || item.ingredients.ingredientName || item.ingredients.ingredient
+                ingredientsStr = name ? String(name).trim() : ''
+              } else {
+                ingredientsStr = String(item.ingredients || '').trim()
+              }
+            }
+            
+            // 调试日志：检查转换结果
+            if (item.ingredients && typeof item.ingredients !== 'string') {
+              console.log('加载草稿 - 食材格式转换:', {
+                original: item.ingredients,
+                converted: ingredientsStr,
+                itemName: item.name,
+              })
+            }
+            
+            return {
+              id: item.originalId || `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: item.name,
+              ingredients: ingredientsStr,
+              quantity: item.quantity,
+              unit: item.unit,
+              cookingMethod: item.cookingMethod,
+            }
+          })
+          setMenuItems(formattedMenuItems)
+        }
+
+        // 恢复供应链信息
+        if (draft.supplyChainInfo) {
+          form.setFieldsValue({
+            supplierInfo: draft.supplyChainInfo.suppliers?.[0]?.name || '',
+            localIngredientRatio: draft.supplyChainInfo.localIngredientRatio || 0,
+            ingredientSource: draft.supplyChainInfo.traceabilityInfo || '',
+          })
+        }
+
+        // 恢复运营数据
+        if (draft.operationData) {
+          form.setFieldsValue({
+            energyUsage: draft.operationData.energyUsage || '',
+            wasteReduction: draft.operationData.wasteReduction || '',
+            socialInitiatives: draft.operationData.socialInitiatives?.join('\n') || '',
+          })
+        }
+
+        // 恢复文档
+        if (draft.documents && draft.documents.length > 0) {
+          const files: Record<string, string> = {}
+          draft.documents.forEach((doc: any) => {
+            if (doc.fileId) {
+              files[doc.type] = doc.fileId
+            }
+          })
+          setUploadedFiles(prev => ({ ...prev, ...files }))
+        }
+
+        message.success('已加载草稿数据')
+      } else if (result.code === 404) {
+        // 没有草稿，这是正常的，不显示错误
+        console.log('未找到草稿，开始新的申请')
+      }
+    } catch (error: any) {
+      console.error('加载草稿失败:', error)
+      // 不显示错误，因为可能是第一次申请
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedRestaurantId, currentRestaurantId, currentTenantId, form])
+
+  // 页面初始化时加载草稿（只在首次加载时执行，避免与餐厅切换逻辑冲突）
+  useEffect(() => {
+    const restaurantId = selectedRestaurantId || currentRestaurantId
+    // 从currentTenant获取tenantId
+    let tenantId = currentTenantId
+    if (!tenantId && currentTenant) {
+      tenantId = currentTenant.id
+    }
+
+    // 只在有餐厅ID和租户ID时加载草稿
+    // 注意：这个useEffect会在组件首次挂载时执行，但餐厅切换的逻辑已经在另一个useEffect中处理
+    if (restaurantId && tenantId) {
+      // 延迟加载，确保表单已经初始化
+      // 页面初始化时，恢复保存的步骤（restoreStep = true）
+      const timer = setTimeout(() => {
+        loadDraft(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, []) // 只在组件首次挂载时执行一次
+
   const currentRestaurant = selectedRestaurantId
     ? restaurants.find((r: any) => r.id === selectedRestaurantId)
     : null
 
   // 加载试运营数据并自动填充
   const loadTrialData = async () => {
-    if (!selectedRestaurantId || !currentTenantId) return
+    // 从currentTenant获取tenantId
+    let tenantId = currentTenantId
+    if (!tenantId && currentTenant) {
+      tenantId = currentTenant.id
+    }
+    
+    if (!selectedRestaurantId || !tenantId) return
 
     try {
       setLoading(true)
       const result = await certificationAPI.getTrialData({
         restaurantId: selectedRestaurantId,
-        tenantId: currentTenantId,
+        tenantId: tenantId,
       })
 
       if (result.code === 0 && result.data) {
@@ -102,14 +287,39 @@ const CertificationApply: React.FC = () => {
 
         // 自动填充菜单信息
         if (trialDataResult.menuInfo && trialDataResult.menuInfo.menuItems) {
-          const formattedMenuItems: MenuItem[] = trialDataResult.menuInfo.menuItems.map((item: any) => ({
-            id: `trial_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: item.name,
-            ingredients: item.ingredients,
-            quantity: item.quantity,
-            unit: item.unit,
-            cookingMethod: item.cookingMethod,
-          }))
+          const formattedMenuItems: MenuItem[] = trialDataResult.menuInfo.menuItems.map((item: any) => {
+            // 处理食材：确保转换为字符串格式
+            let ingredientsStr = ''
+            if (item.ingredients) {
+              if (Array.isArray(item.ingredients)) {
+                ingredientsStr = item.ingredients
+                  .map((ing: any) => {
+                    if (typeof ing === 'string') return ing
+                    if (ing && typeof ing === 'object') {
+                      return ing.name || ing.ingredientName || ing.ingredient || String(ing)
+                    }
+                    return String(ing || '')
+                  })
+                  .filter(Boolean)
+                  .join(', ')
+              } else if (typeof item.ingredients === 'string') {
+                ingredientsStr = item.ingredients
+              } else if (typeof item.ingredients === 'object' && item.ingredients !== null) {
+                ingredientsStr = item.ingredients.name || item.ingredients.ingredientName || String(item.ingredients)
+              } else {
+                ingredientsStr = String(item.ingredients || '')
+              }
+            }
+            
+            return {
+              id: `trial_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: item.name,
+              ingredients: ingredientsStr,
+              quantity: item.quantity,
+              unit: item.unit,
+              cookingMethod: item.cookingMethod,
+            }
+          })
           setMenuItems(formattedMenuItems)
           message.success(`已自动填充 ${formattedMenuItems.length} 个菜品`)
         }
@@ -117,12 +327,69 @@ const CertificationApply: React.FC = () => {
         // 自动填充供应链信息
         if (trialDataResult.supplyChainInfo) {
           const suppliers = trialDataResult.supplyChainInfo.suppliers || []
+          const supplyChainValues: any = {}
+          
+          console.log('试运营数据 - 供应链信息:', {
+            hasSupplyChainInfo: !!trialDataResult.supplyChainInfo,
+            suppliersCount: suppliers.length,
+            suppliers: suppliers,
+            localIngredientRatio: trialDataResult.supplyChainInfo.localIngredientRatio
+          })
+          
+          // 填充供应商信息
           if (suppliers.length > 0) {
-            form.setFieldsValue({
-              supplierInfo: suppliers.map((s: any) => s.name).join('、'),
-              localIngredientRatio: trialDataResult.supplyChainInfo.localIngredientRatio || 0,
+            // 构建供应商信息字符串，包含名称、联系方式、认证信息等
+            const supplierInfoParts = suppliers.map((s: any) => {
+              const parts = [s.name || '未命名供应商']
+              if (s.contact) parts.push(`联系方式: ${s.contact}`)
+              if (s.certifications && s.certifications.length > 0) {
+                parts.push(`认证: ${s.certifications.join(', ')}`)
+              }
+              return parts.filter(Boolean).join('；')
             })
+            supplyChainValues.supplierInfo = supplierInfoParts.join('、')
+            console.log('填充供应商信息:', supplyChainValues.supplierInfo)
+          } else {
+            console.warn('试运营数据中没有供应商信息')
           }
+          
+          // 填充本地食材占比
+          if (trialDataResult.supplyChainInfo.localIngredientRatio !== undefined) {
+            supplyChainValues.localIngredientRatio = trialDataResult.supplyChainInfo.localIngredientRatio || 0
+            console.log('填充本地食材占比:', supplyChainValues.localIngredientRatio)
+          }
+          
+          // 填充食材来源/可追溯性信息
+          // 从供应商信息中提取可追溯性信息（产地、距离、地址等）
+          if (suppliers.length > 0) {
+            const traceabilityInfoParts = suppliers
+              .map((s: any) => {
+                const parts = []
+                if (s.address) parts.push(`地址: ${s.address}`)
+                if (s.distance !== undefined && s.distance !== null) parts.push(`距离: ${s.distance}km`)
+                if (s.isLocal) parts.push('本地供应商')
+                // 如果有其他可追溯性字段，也可以添加
+                return parts.length > 0 ? `${s.name || '供应商'}: ${parts.join('，')}` : null
+              })
+              .filter(Boolean)
+            
+            if (traceabilityInfoParts.length > 0) {
+              supplyChainValues.ingredientSource = traceabilityInfoParts.join('\n')
+              console.log('填充食材来源信息:', supplyChainValues.ingredientSource)
+            }
+          }
+          
+          // 如果有任何供应链信息，填充表单
+          if (Object.keys(supplyChainValues).length > 0) {
+            form.setFieldsValue(supplyChainValues)
+            console.log('已自动填充供应链信息:', supplyChainValues)
+            message.success(`已自动填充 ${suppliers.length} 个供应商信息`)
+          } else {
+            console.warn('没有可填充的供应链信息')
+            message.warning('试运营数据中没有供应商信息，请手动填写')
+          }
+        } else {
+          console.warn('试运营数据中没有 supplyChainInfo 字段')
         }
 
         // 自动填充运营数据
@@ -144,8 +411,15 @@ const CertificationApply: React.FC = () => {
     }
   }
 
-  // 当餐厅切换时，重置页面数据
+  // 当餐厅切换时，重置页面数据并加载对应餐厅的草稿
   useEffect(() => {
+    const restaurantId = selectedRestaurantId || currentRestaurantId
+    // 从currentTenant获取tenantId
+    let tenantId = currentTenantId
+    if (!tenantId && currentTenant) {
+      tenantId = currentTenant.id
+    }
+
     // 清空表单数据
     form.resetFields()
     // 清空菜单项列表
@@ -155,7 +429,7 @@ const CertificationApply: React.FC = () => {
     setUploadedFiles({})
     // 清空试运营数据
     setTrialData(null)
-    // 重置步骤到第一步
+    // 切换餐厅时，统一重置到第一步（不恢复保存的步骤，让用户从第一步开始）
     setCurrentStep(0)
 
     // 如果当前选中的餐厅有信息，自动填充表单
@@ -171,8 +445,17 @@ const CertificationApply: React.FC = () => {
         loadTrialData()
       }
     }
+
+    // 加载对应餐厅的草稿数据（恢复表单数据，但不恢复步骤）
+    // 使用setTimeout确保表单重置完成后再加载草稿
+    if (restaurantId && tenantId) {
+      const timer = setTimeout(() => {
+        loadDraft(false) // 传入false，表示不恢复步骤
+      }, 100)
+      return () => clearTimeout(timer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRestaurantId])
+  }, [selectedRestaurantId, currentRestaurantId])
 
   const steps = [
     {
@@ -210,7 +493,41 @@ const CertificationApply: React.FC = () => {
   }
 
   const handlePrev = () => {
-    setCurrentStep(currentStep - 1)
+    const newStep = currentStep - 1
+    setCurrentStep(newStep)
+    
+    // 如果回到第一步，确保表单数据正确显示
+    // 表单数据应该已经在loadDraft中恢复，但为了确保显示正确，重新触发一次表单更新
+    if (newStep === 0) {
+      // 使用setTimeout确保步骤切换完成后再更新表单
+      setTimeout(() => {
+        // 重新从草稿加载基本信息，确保表单显示正确
+        const restaurantId = selectedRestaurantId || currentRestaurantId
+        let tenantId = currentTenantId
+        if (!tenantId && currentTenant) {
+          tenantId = currentTenant.id
+        }
+        if (restaurantId && tenantId) {
+          // 只重新加载基本信息部分，不改变步骤
+          certificationAPI.getDraft({
+            restaurantId,
+            tenantId,
+          }).then((result: any) => {
+            if (result.code === 0 && result.data && result.data.basicInfo) {
+              form.setFieldsValue({
+                restaurantName: result.data.basicInfo.restaurantName,
+                address: result.data.basicInfo.address,
+                contactPhone: result.data.basicInfo.contactPhone,
+                contactEmail: result.data.basicInfo.contactEmail,
+                legalPerson: result.data.basicInfo.legalPerson,
+              })
+            }
+          }).catch((error: any) => {
+            console.error('重新加载基本信息失败:', error)
+          })
+        }
+      }, 100)
+    }
   }
 
   const handleSaveDraft = async () => {
@@ -223,14 +540,36 @@ const CertificationApply: React.FC = () => {
       setLoading(true)
       const values = form.getFieldsValue()
       const restaurantId = selectedRestaurantId || currentRestaurantId
-      const tenantId = currentTenantId
+      // 从currentTenant获取tenantId，如果没有则尝试从餐厅信息获取
+      let tenantId = currentTenantId
+      
+      // 如果tenantId不存在，尝试从currentTenant获取
+      if (!tenantId && currentTenant) {
+        tenantId = currentTenant.id
+      }
 
-      if (!restaurantId || !tenantId) {
-        message.error('餐厅ID或租户ID缺失')
+      // 调试日志
+      console.log('保存草稿 - 参数检查:', {
+        selectedRestaurantId,
+        currentRestaurantId,
+        restaurantId,
+        currentTenant,
+        currentTenantId,
+        tenantId,
+      })
+
+      if (!restaurantId) {
+        message.error('餐厅ID缺失，请先选择餐厅')
+        return
+      }
+
+      if (!tenantId) {
+        message.error('租户ID缺失，请先选择租户或餐厅')
         return
       }
 
       const draftData = {
+        currentStep: currentStep, // 保存当前步骤
         basicInfo: {
           restaurantName: values.restaurantName,
           address: values.address,
@@ -240,13 +579,56 @@ const CertificationApply: React.FC = () => {
           businessLicense: uploadedFiles.businessLicense
         },
         menuInfo: {
-          menuItems: menuItems.map(item => ({
-            name: item.name,
-            ingredients: item.ingredients.split(',').map(i => i.trim()),
-            quantity: item.quantity,
-            unit: item.unit,
-            cookingMethod: item.cookingMethod || 'steamed'
-          }))
+          menuItems: menuItems.map(item => {
+            // 处理食材：确保转换为数组格式，用于保存
+            let ingredientsArray: string[] = []
+            if (item.ingredients) {
+              if (typeof item.ingredients === 'string') {
+                // 字符串格式：用逗号分隔（但需要处理可能包含逗号的字符串）
+                // 先检查是否是有效的逗号分隔字符串（不是 [object Object] 这样的）
+                if (item.ingredients.includes('[object Object]')) {
+                  // 如果包含 [object Object]，说明数据有问题，记录日志但不处理
+                  console.warn('保存草稿 - 检测到异常食材数据:', {
+                    itemName: item.name,
+                    ingredients: item.ingredients,
+                  })
+                  ingredientsArray = []
+                } else {
+                  // 正常的分隔字符串
+                  ingredientsArray = item.ingredients.split(',').map(i => i.trim()).filter(Boolean)
+                }
+              } else if (Array.isArray(item.ingredients)) {
+                // 数组格式：直接使用，但需要确保每个元素都是字符串
+                ingredientsArray = item.ingredients.map((ing: any) => {
+                  if (typeof ing === 'string') {
+                    return ing.trim()
+                  }
+                  if (ing && typeof ing === 'object' && ing !== null) {
+                    // 处理对象格式
+                    const name = ing.name || ing.ingredientName || ing.ingredient
+                    return name ? String(name).trim() : ''
+                  }
+                  return String(ing || '').trim()
+                }).filter(Boolean)
+              } else if (typeof item.ingredients === 'object' && item.ingredients !== null) {
+                // 单个对象格式
+                const name = item.ingredients.name || item.ingredients.ingredientName || item.ingredients.ingredient
+                if (name) {
+                  ingredientsArray = [String(name).trim()]
+                }
+              }
+            }
+            
+            return {
+              name: item.name,
+              ingredients: ingredientsArray, // 保存为数组格式
+              quantity: item.quantity || 1,
+              unit: item.unit || '份',
+              cookingMethod: item.cookingMethod || 'steamed',
+              originalId: item.id,
+            }
+          }),
+          totalDishes: menuItems.length,
         },
         supplyChainInfo: {
           suppliers: values.supplierInfo ? [{ name: values.supplierInfo }] : [],
@@ -296,10 +678,26 @@ const CertificationApply: React.FC = () => {
       setLoading(true)
       const values = form.getFieldsValue()
       const restaurantId = selectedRestaurantId || currentRestaurantId
-      const tenantId = currentTenantId
+      // 从currentTenant获取tenantId，如果没有则尝试从餐厅信息获取
+      let tenantId = currentTenantId
+      
+      // 如果tenantId不存在，尝试从餐厅信息获取
+      if (!tenantId && restaurantId) {
+        const restaurant = restaurants.find((r: any) => r.id === restaurantId)
+        // 如果餐厅信息中有tenantId，使用它
+        // 否则，尝试从currentTenant获取
+        if (!tenantId && currentTenant) {
+          tenantId = currentTenant.id
+        }
+      }
 
-      if (!restaurantId || !tenantId) {
-        message.error('餐厅ID或租户ID缺失')
+      if (!restaurantId) {
+        message.error('餐厅ID缺失，请先选择餐厅')
+        return
+      }
+
+      if (!tenantId) {
+        message.error('租户ID缺失，请先选择租户或餐厅')
         return
       }
 
@@ -315,13 +713,40 @@ const CertificationApply: React.FC = () => {
           businessLicense: uploadedFiles.businessLicense
         },
         menuInfo: {
-          menuItems: menuItems.map(item => ({
-            name: item.name,
-            ingredients: item.ingredients.split(',').map(i => i.trim()),
-            quantity: item.quantity,
-            unit: item.unit,
-            cookingMethod: item.cookingMethod || 'steamed'
-          }))
+          menuItems: menuItems.map(item => {
+            // 处理食材：确保转换为数组格式，用于保存
+            let ingredientsArray: string[] = []
+            if (item.ingredients) {
+              if (typeof item.ingredients === 'string') {
+                // 字符串格式：用逗号分隔
+                ingredientsArray = item.ingredients.split(',').map(i => i.trim()).filter(Boolean)
+              } else if (Array.isArray(item.ingredients)) {
+                // 数组格式：直接使用
+                ingredientsArray = item.ingredients.map((ing: any) => {
+                  if (typeof ing === 'string') return ing.trim()
+                  if (ing && typeof ing === 'object') {
+                    return (ing.name || ing.ingredientName || ing.ingredient || String(ing)).trim()
+                  }
+                  return String(ing || '').trim()
+                }).filter(Boolean)
+              }
+            }
+            
+            return {
+              name: item.name,
+              ingredients: ingredientsArray, // 保存为数组格式，便于后续查询和分析
+              quantity: item.quantity || 1,
+              unit: item.unit || '份',
+              cookingMethod: item.cookingMethod || 'steamed',
+              // 保存完整信息，包括ID，便于追溯
+              originalId: item.id,
+              // 保存时间戳，便于追溯数据来源
+              addedAt: new Date().toISOString()
+            }
+          }),
+          // 保存菜单统计信息
+          totalDishes: menuItems.length,
+          lastUpdated: new Date().toISOString()
         },
         supplyChainInfo: {
           suppliers: values.supplierInfo ? [{ name: values.supplierInfo }] : [],
@@ -382,49 +807,141 @@ const CertificationApply: React.FC = () => {
       })
 
       if (result.code === 0 && result.data && result.data.menuItems) {
-        const menuItems = result.data.menuItems
-        if (menuItems.length === 0) {
+        // 从API返回的数据
+        const apiMenuItems = result.data.menuItems
+        if (apiMenuItems.length === 0) {
           message.warning('该餐厅暂无菜品数据')
           return
         }
 
         // 将菜单项转换为认证申请所需的格式
-        const importedMenuItems: MenuItem[] = menuItems.map((item: any) => {
+        const importedMenuItems: MenuItem[] = apiMenuItems.map((item: any) => {
           // 处理食材：确保是字符串格式
           let ingredientsStr = ''
           if (item.ingredients) {
             if (Array.isArray(item.ingredients)) {
+              // 处理数组格式的食材
               ingredientsStr = item.ingredients
                 .map((ing: any) => {
                   if (typeof ing === 'string') {
-                    return ing
-                  } else if (ing && ing.name) {
-                    return ing.name
+                    // 检查字符串是否包含 [object Object]
+                    if (ing.includes('[object Object]')) {
+                      console.warn('导入菜品 - 检测到异常字符串:', {
+                        itemName: item.name,
+                        ing,
+                      })
+                      return ''
+                    }
+                    return ing.trim()
+                  } else if (ing && typeof ing === 'object' && ing !== null) {
+                    // 处理对象格式：可能是 { name, quantity, unit } 或 { ingredientName, ... }
+                    // 尝试多种可能的字段名
+                    const name = ing.name || ing.ingredientName || ing.ingredient || ing.ingredientName
+                    if (name) {
+                      return String(name).trim()
+                    }
+                    // 如果所有字段都不存在，记录警告
+                    console.warn('导入菜品 - 无法提取食材名称:', {
+                      itemName: item.name,
+                      ing,
+                    })
+                    return ''
                   }
-                  return ''
+                  // 其他情况：先检查是否是对象
+                  if (typeof ing === 'object' && ing !== null) {
+                    console.warn('导入菜品 - 未处理的食材对象:', {
+                      itemName: item.name,
+                      ing,
+                    })
+                    return ''
+                  }
+                  const str = String(ing || '').trim()
+                  // 检查转换后的字符串是否是 [object Object]
+                  if (str === '[object Object]' || str.includes('[object Object]')) {
+                    console.warn('导入菜品 - 转换失败:', {
+                      itemName: item.name,
+                      ing,
+                      str,
+                    })
+                    return ''
+                  }
+                  return str
                 })
                 .filter(Boolean)
-                .join(',')
+                .join(', ')
+            } else if (typeof item.ingredients === 'string') {
+              // 已经是字符串，直接使用（但需要检查是否包含 [object Object]）
+              if (item.ingredients.includes('[object Object]')) {
+                console.warn('导入菜品 - 检测到异常字符串格式:', {
+                  itemName: item.name,
+                  ingredients: item.ingredients,
+                })
+                ingredientsStr = ''
+              } else {
+                ingredientsStr = item.ingredients.trim()
+              }
+            } else if (typeof item.ingredients === 'object' && item.ingredients !== null) {
+              // 如果ingredients是单个对象，转换为字符串
+              const name = item.ingredients.name || item.ingredients.ingredientName || item.ingredients.ingredient
+              if (name) {
+                ingredientsStr = String(name).trim()
+              } else {
+                console.warn('导入菜品 - 无法提取单个食材对象名称:', {
+                  itemName: item.name,
+                  ingredients: item.ingredients,
+                })
+                ingredientsStr = ''
+              }
             } else {
-              ingredientsStr = String(item.ingredients)
+              // 其他情况直接转换为字符串
+              const str = String(item.ingredients || '').trim()
+              if (str === '[object Object]' || str.includes('[object Object]')) {
+                console.warn('导入菜品 - 转换失败:', {
+                  itemName: item.name,
+                  ingredients: item.ingredients,
+                  str,
+                })
+                ingredientsStr = ''
+              } else {
+                ingredientsStr = str
+              }
             }
+          }
+
+          // 确保最终结果是字符串
+          if (!ingredientsStr || ingredientsStr === 'undefined' || ingredientsStr === 'null' || ingredientsStr.includes('[object Object]')) {
+            ingredientsStr = ''
+          }
+
+          // 调试日志：检查转换后的数据
+          if (item.ingredients && typeof item.ingredients !== 'string') {
+            console.log('导入菜品 - 食材格式转换:', {
+              original: item.ingredients,
+              converted: ingredientsStr,
+              itemName: item.name,
+            })
           }
 
           return {
             id: `menu_item_${item.id || item._id || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name: item.name || '未命名菜品',
-            ingredients: ingredientsStr,
+            ingredients: ingredientsStr, // 确保是字符串
             quantity: item.quantity || 1,
             unit: item.unit || '份',
             cookingMethod: item.cookingMethod || 'steamed',
           }
         })
 
+        // 调试日志：检查转换后的菜单项
+        console.log('导入菜单项 - 转换结果示例:', importedMenuItems.slice(0, 2))
+
         // 添加到菜单列表（如果已有菜单项，询问是否覆盖）
-        if (menuItems.length > 0) {
+        // 注意：这里检查的是当前页面状态中的menuItems（通过useState定义），不是API返回的数据
+        const currentMenuItemsCount = menuItems.length
+        if (currentMenuItemsCount > 0) {
           Modal.confirm({
             title: '确认导入',
-            content: `将导入 ${importedMenuItems.length} 个菜品。当前已有 ${menuItems.length} 个菜品，是否覆盖现有菜品？`,
+            content: `将导入 ${importedMenuItems.length} 个菜品。当前已有 ${currentMenuItemsCount} 个菜品，是否覆盖现有菜品？`,
             onOk: () => {
               setMenuItems(importedMenuItems)
               message.success(`成功导入 ${importedMenuItems.length} 个菜品`)
@@ -461,9 +978,33 @@ const CertificationApply: React.FC = () => {
   // 打开编辑菜品Modal
   const handleEditDish = (dish: MenuItem) => {
     setEditingDish(dish)
+    
+    // 处理食材：确保转换为字符串格式用于表单显示
+    let ingredientsStr = ''
+    if (dish.ingredients) {
+      if (typeof dish.ingredients === 'string') {
+        ingredientsStr = dish.ingredients
+      } else if (Array.isArray(dish.ingredients)) {
+        ingredientsStr = dish.ingredients
+          .map((ing: any) => {
+            if (typeof ing === 'string') return ing
+            if (ing && typeof ing === 'object') {
+              return ing.name || ing.ingredientName || ing.ingredient || String(ing)
+            }
+            return String(ing || '')
+          })
+          .filter(Boolean)
+          .join(', ')
+      } else if (typeof dish.ingredients === 'object' && dish.ingredients !== null) {
+        ingredientsStr = dish.ingredients.name || dish.ingredients.ingredientName || String(dish.ingredients)
+      } else {
+        ingredientsStr = String(dish.ingredients || '')
+      }
+    }
+    
     dishForm.setFieldsValue({
       name: dish.name,
-      ingredients: dish.ingredients,
+      ingredients: ingredientsStr,
       quantity: dish.quantity,
       unit: dish.unit,
       cookingMethod: dish.cookingMethod || 'steamed',
@@ -488,6 +1029,29 @@ const CertificationApply: React.FC = () => {
     try {
       const values = await dishForm.validateFields()
       
+      // 确保ingredients是字符串格式
+      let ingredientsStr = ''
+      if (values.ingredients) {
+        if (typeof values.ingredients === 'string') {
+          ingredientsStr = values.ingredients.trim()
+        } else if (Array.isArray(values.ingredients)) {
+          ingredientsStr = values.ingredients
+            .map((ing: any) => {
+              if (typeof ing === 'string') return ing.trim()
+              if (ing && typeof ing === 'object') {
+                return (ing.name || ing.ingredientName || ing.ingredient || String(ing)).trim()
+              }
+              return String(ing || '').trim()
+            })
+            .filter(Boolean)
+            .join(', ')
+        } else if (typeof values.ingredients === 'object' && values.ingredients !== null) {
+          ingredientsStr = (values.ingredients.name || values.ingredients.ingredientName || String(values.ingredients)).trim()
+        } else {
+          ingredientsStr = String(values.ingredients || '').trim()
+        }
+      }
+      
       if (editingDish) {
         // 编辑模式
         setMenuItems(prev =>
@@ -496,7 +1060,7 @@ const CertificationApply: React.FC = () => {
               ? {
                   ...item,
                   name: values.name,
-                  ingredients: values.ingredients,
+                  ingredients: ingredientsStr, // 使用转换后的字符串
                   quantity: values.quantity,
                   unit: values.unit,
                   cookingMethod: values.cookingMethod,
@@ -510,7 +1074,7 @@ const CertificationApply: React.FC = () => {
         const newDish: MenuItem = {
           id: `dish_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: values.name,
-          ingredients: values.ingredients,
+          ingredients: ingredientsStr, // 使用转换后的字符串
           quantity: values.quantity,
           unit: values.unit,
           cookingMethod: values.cookingMethod,
@@ -671,7 +1235,91 @@ const CertificationApply: React.FC = () => {
                   title: t('pages.certification.apply.menuTable.columns.ingredients'), 
                   dataIndex: 'ingredients', 
                   key: 'ingredients',
-                  render: (text: string) => text || '-'
+                  render: (text: any, record: MenuItem) => {
+                    // 处理食材显示：确保正确格式化
+                    // 优先使用record.ingredients，因为text可能是undefined或dataIndex的值
+                    let ingredients = record.ingredients
+                    
+                    // 如果record.ingredients不存在，尝试使用text
+                    if (!ingredients && text !== undefined && text !== null) {
+                      ingredients = text
+                    }
+                    
+                    // 调试日志：检查数据格式
+                    if (ingredients && typeof ingredients !== 'string') {
+                      console.log('食材列渲染 - 数据格式检查:', {
+                        recordName: record.name,
+                        ingredients,
+                        ingredientsType: typeof ingredients,
+                        isArray: Array.isArray(ingredients),
+                        isObject: typeof ingredients === 'object',
+                      })
+                    }
+                    
+                    // 如果还是没有，返回默认值
+                    if (!ingredients || ingredients === null || ingredients === undefined) {
+                      return <span style={{ color: '#999' }}>-</span>
+                    }
+                    
+                    // 如果是字符串，检查是否包含 [object Object]
+                    if (typeof ingredients === 'string') {
+                      // 如果字符串包含 [object Object]，说明数据有问题，需要重新处理
+                      if (ingredients.includes('[object Object]')) {
+                        console.warn('食材列渲染 - 检测到异常字符串格式:', {
+                          recordName: record.name,
+                          ingredients,
+                        })
+                        // 尝试从record中获取原始数据
+                        // 如果record中有其他字段包含食材信息，可以尝试提取
+                        return <span style={{ color: '#ff4d4f' }}>数据格式异常，请重新导入</span>
+                      }
+                      return ingredients.trim() || <span style={{ color: '#999' }}>-</span>
+                    }
+                    
+                    // 如果是数组，转换为字符串
+                    if (Array.isArray(ingredients)) {
+                      const result = ingredients
+                        .map((ing: any) => {
+                          if (typeof ing === 'string') {
+                            // 检查字符串是否包含 [object Object]
+                            if (ing.includes('[object Object]')) {
+                              return ''
+                            }
+                            return ing.trim()
+                          }
+                          if (ing && typeof ing === 'object' && ing !== null) {
+                            // 尝试多种可能的字段名
+                            const name = ing.name || ing.ingredientName || ing.ingredient
+                            return name ? String(name).trim() : ''
+                          }
+                          return String(ing || '').trim()
+                        })
+                        .filter(Boolean)
+                        .join(', ')
+                      return result || <span style={{ color: '#999' }}>-</span>
+                    }
+                    
+                    // 如果是对象，提取名称
+                    if (typeof ingredients === 'object' && ingredients !== null) {
+                      const name = ingredients.name || ingredients.ingredientName || ingredients.ingredient
+                      return name ? String(name) : <span style={{ color: '#999' }}>-</span>
+                    }
+                    
+                    // 其他情况转换为字符串
+                    const str = String(ingredients)
+                    // 如果转换后的字符串是 [object Object]，说明数据有问题
+                    if (str === '[object Object]' || str.includes('[object Object]')) {
+                      console.warn('食材列渲染 - 无法转换的食材数据:', {
+                        recordName: record.name,
+                        ingredients,
+                        str,
+                      })
+                      return <span style={{ color: '#ff4d4f' }}>数据格式异常</span>
+                    }
+                    return str !== 'undefined' && str !== 'null' 
+                      ? str 
+                      : <span style={{ color: '#999' }}>-</span>
+                  }
                 },
                 { 
                   title: t('pages.certification.apply.menuTable.columns.quantity'), 

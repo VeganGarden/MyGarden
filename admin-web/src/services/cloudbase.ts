@@ -292,6 +292,13 @@ export const certificationAPI = {
       data,
     }),
 
+  // 获取草稿
+  getDraft: (data: { restaurantId: string; tenantId: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'getDraft',
+      data,
+    }),
+
   // 系统评估
   systemEvaluate: (data: { applicationId: string }) =>
     callCloudFunction('restaurant-certification', {

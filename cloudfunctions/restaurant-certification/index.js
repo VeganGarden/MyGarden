@@ -87,6 +87,9 @@ exports.main = async (event, context) => {
       case 'getRestaurantMenuItems':
         return await getRestaurantMenuItems(data)
       
+      case 'getDraft':
+        return await getDraft(data)
+      
       default:
         return {
           code: 400,
@@ -295,6 +298,7 @@ async function saveDraft(data) {
         .update({
           data: {
             ...draftData,
+            currentStep: draftData.currentStep || 0, // 更新当前步骤
             updatedAt: new Date()
           }
         })
@@ -308,6 +312,7 @@ async function saveDraft(data) {
         tenantId,
         status: 'draft',
         currentStage: 'draft',
+        currentStep: draftData.currentStep || 0, // 保存当前步骤
         ...draftData,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -2019,23 +2024,83 @@ async function getTrialData(data) {
     let suppliers = []
     let localIngredientRatio = 0
     try {
-      const suppliersResult = await db.collection('suppliers')
+      // 尝试多种查询方式，兼容不同的数据结构和字段名
+      let suppliersResult = null
+      
+      // 方式1: 使用 restaurantId 查询
+      suppliersResult = await db.collection('suppliers')
         .where({
           restaurantId: restaurantId
         })
         .get()
-      suppliers = suppliersResult.data.map(s => ({
-        name: s.name || s.supplierName,
-        address: s.address,
-        distance: s.distance || 0, // 距离（km）
-        isLocal: s.distance && s.distance <= 100
-      }))
       
-      // 计算本地食材占比（距离<=100km的供应商）
-      const localSuppliers = suppliers.filter(s => s.isLocal)
-      localIngredientRatio = suppliers.length > 0 ? (localSuppliers.length / suppliers.length * 100).toFixed(2) : 0
+      // 如果方式1没有结果，尝试方式2: 使用 restaurant_id 查询（下划线格式）
+      if (!suppliersResult.data || suppliersResult.data.length === 0) {
+        suppliersResult = await db.collection('suppliers')
+          .where({
+            restaurant_id: restaurantId
+          })
+          .get()
+      }
+      
+      // 如果方式2也没有结果，尝试方式3: 使用 tenantId 查询
+      if (!suppliersResult.data || suppliersResult.data.length === 0) {
+        suppliersResult = await db.collection('suppliers')
+          .where({
+            tenantId: tenantId
+          })
+          .get()
+      }
+      
+      // 如果方式3也没有结果，尝试方式4: 使用 cooperation.restaurantIds 数组查询
+      if (!suppliersResult.data || suppliersResult.data.length === 0) {
+        suppliersResult = await db.collection('suppliers')
+          .where({
+            'cooperation.restaurantIds': restaurantId
+          })
+          .get()
+      }
+      
+      console.log('获取供应商数据 - 查询结果:', {
+        restaurantId,
+        tenantId,
+        suppliersCount: suppliersResult.data ? suppliersResult.data.length : 0,
+        suppliers: suppliersResult.data
+      })
+      
+      if (suppliersResult.data && suppliersResult.data.length > 0) {
+        suppliers = suppliersResult.data.map(s => ({
+          name: s.name || s.supplierName || s.supplier_name || '未命名供应商',
+          address: s.address || s.supplierAddress || '',
+          distance: s.distance || s.distance_km || 0, // 距离（km）
+          contact: s.contact || s.contactPhone || s.phone || s.contact_phone || '',
+          certifications: s.certifications || s.certification || [],
+          isLocal: (s.distance || s.distance_km || 0) <= 100
+        }))
+        
+        // 计算本地食材占比（距离<=100km的供应商）
+        const localSuppliers = suppliers.filter(s => s.isLocal)
+        localIngredientRatio = suppliers.length > 0 ? (localSuppliers.length / suppliers.length * 100).toFixed(2) : 0
+        
+        console.log('处理后的供应商数据:', {
+          totalSuppliers: suppliers.length,
+          localSuppliers: localSuppliers.length,
+          localIngredientRatio: localIngredientRatio
+        })
+      } else {
+        console.log('未找到供应商数据，可能原因：')
+        console.log('1. suppliers 集合中不存在该餐厅的供应商数据')
+        console.log('2. 供应商数据的 restaurantId 字段不匹配')
+        console.log('3. 供应商数据可能存储在其他集合中')
+      }
     } catch (error) {
-      console.log('获取供应商数据失败:', error)
+      console.error('获取供应商数据失败:', error)
+      console.error('错误详情:', {
+        message: error.message,
+        stack: error.stack,
+        restaurantId,
+        tenantId
+      })
     }
 
     // 4. 获取运营数据（能源、浪费等，从restaurant_operation_data或相关集合）
@@ -2186,19 +2251,43 @@ async function getRestaurantMenuItems(data) {
       }
     }
 
-    const menuItems = (menuItemsResult.data || []).map(item => ({
-      id: item._id || item.id,
-      name: item.name || item.dishName || '未命名菜品',
-      ingredients: item.ingredients 
-        ? (Array.isArray(item.ingredients) 
-          ? item.ingredients.map((ing) => typeof ing === 'string' ? ing : (ing.name || ing)).join(',')
-          : item.ingredients)
-        : '',
-      quantity: item.quantity || item.portion || 1,
-      unit: item.unit || '份',
-      cookingMethod: item.cookingMethod || 'steamed',
-      carbonFootprint: item.carbonFootprint || 0,
-    }))
+    const menuItems = (menuItemsResult.data || []).map(item => {
+      // 处理食材：确保转换为字符串格式
+      let ingredientsStr = ''
+      if (item.ingredients) {
+        if (Array.isArray(item.ingredients)) {
+          // 处理数组格式
+          ingredientsStr = item.ingredients
+            .map((ing) => {
+              if (typeof ing === 'string') {
+                return ing
+              } else if (ing && typeof ing === 'object') {
+                // 处理对象格式：可能是 { name, ingredientName, ingredient, ... }
+                return ing.name || ing.ingredientName || ing.ingredient || String(ing)
+              }
+              return String(ing || '')
+            })
+            .filter(Boolean)
+            .join(', ')
+        } else if (typeof item.ingredients === 'string') {
+          ingredientsStr = item.ingredients
+        } else if (typeof item.ingredients === 'object' && item.ingredients !== null) {
+          ingredientsStr = item.ingredients.name || item.ingredients.ingredientName || item.ingredients.ingredient || String(item.ingredients)
+        } else {
+          ingredientsStr = String(item.ingredients || '')
+        }
+      }
+      
+      return {
+        id: item._id || item.id,
+        name: item.name || item.dishName || '未命名菜品',
+        ingredients: ingredientsStr, // 确保是字符串格式
+        quantity: item.quantity || item.portion || 1,
+        unit: item.unit || '份',
+        cookingMethod: item.cookingMethod || 'steamed',
+        carbonFootprint: item.carbonFootprint || 0,
+      }
+    })
 
     return {
       code: 0,
@@ -2213,6 +2302,103 @@ async function getRestaurantMenuItems(data) {
     return {
       code: 500,
       message: '获取餐厅菜单项失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 获取草稿
+ * @param {Object} data - 参数 { restaurantId, tenantId }
+ */
+async function getDraft(data) {
+  const { restaurantId, tenantId } = data
+
+  if (!restaurantId && !tenantId) {
+    return {
+      code: 400,
+      message: '餐厅ID或租户ID不能为空'
+    }
+  }
+
+  try {
+    // 优先使用restaurantId查询，确保精确匹配
+    // 如果只有tenantId，则使用tenantId查询（但这种情况应该尽量避免）
+    let query = db.collection('certification_applications')
+      .where({
+        status: 'draft'
+      })
+
+    // 优先使用restaurantId进行精确查询
+    if (restaurantId) {
+      query = query.where({
+        restaurantId: restaurantId
+      })
+    } else if (tenantId) {
+      // 如果没有restaurantId，使用tenantId查询
+      query = query.where({
+        tenantId: tenantId
+      })
+    }
+
+    const drafts = await query
+      .orderBy('updatedAt', 'desc')
+      .limit(1)
+      .get()
+
+    if (!drafts.data || drafts.data.length === 0) {
+      return {
+        code: 404,
+        message: '未找到草稿',
+        data: null
+      }
+    }
+
+    const draft = drafts.data[0]
+    
+    // 检查draft.data是否存在（如果数据存储在data字段中）
+    // 注意：云数据库更新时，数据可能存储在data字段中，也可能直接在draft根级别
+    const draftData = draft.data || draft
+
+    // 处理currentStep：优先从draftData获取，其次从draft获取，最后默认为0
+    let currentStep = 0
+    if (draftData.currentStep !== undefined && draftData.currentStep !== null) {
+      currentStep = draftData.currentStep
+    } else if (draft.currentStep !== undefined && draft.currentStep !== null) {
+      currentStep = draft.currentStep
+    }
+
+    // 调试日志：检查数据结构
+    console.log('获取草稿 - 数据结构检查:', {
+      hasDraftData: !!draft.data,
+      hasBasicInfo: !!(draftData.basicInfo || draft.basicInfo),
+      hasMenuInfo: !!(draftData.menuInfo || draft.menuInfo),
+      currentStep: currentStep,
+    })
+
+    return {
+      code: 0,
+      message: '获取草稿成功',
+      data: {
+        draftId: draft._id,
+        applicationId: draft.applicationId || draftData.applicationId,
+        restaurantId: draft.restaurantId || draftData.restaurantId,
+        tenantId: draft.tenantId || draftData.tenantId,
+        basicInfo: draftData.basicInfo || draft.basicInfo || {},
+        menuInfo: draftData.menuInfo || draft.menuInfo || {},
+        supplyChainInfo: draftData.supplyChainInfo || draft.supplyChainInfo || {},
+        operationData: draftData.operationData || draft.operationData || {},
+        documents: draftData.documents || draft.documents || [],
+        currentStep: currentStep,
+        createdAt: draft.createdAt,
+        updatedAt: draft.updatedAt
+      }
+    }
+  } catch (error) {
+    console.error('获取草稿失败:', error)
+    return {
+      code: 500,
+      message: '获取草稿失败',
       error: error.message
     }
   }
