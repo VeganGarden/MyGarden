@@ -289,6 +289,20 @@ const CertificationApply: React.FC = () => {
       })
 
       if (result.success && result.data && result.data.length > 0) {
+        // 格式化地址对象为字符串
+        const formatAddress = (address: any): string => {
+          if (!address) return ''
+          if (typeof address === 'string') return address
+          
+          const addressParts: string[] = []
+          if (address.province) addressParts.push(address.province)
+          if (address.city) addressParts.push(address.city)
+          if (address.district) addressParts.push(address.district)
+          if (address.detail) addressParts.push(address.detail)
+          
+          return addressParts.join('')
+        }
+
         // 构建供应商信息字符串
         const supplierInfoParts = result.data.map((supplier: any) => {
           const parts = [supplier.name || '未命名供应商']
@@ -297,7 +311,8 @@ const CertificationApply: React.FC = () => {
           if (supplier.contact) {
             if (supplier.contact.phone) parts.push(`电话: ${supplier.contact.phone}`)
             if (supplier.contact.email) parts.push(`邮箱: ${supplier.contact.email}`)
-            if (supplier.contact.address) parts.push(`地址: ${supplier.contact.address}`)
+            const addressStr = formatAddress(supplier.contact.address)
+            if (addressStr) parts.push(`地址: ${addressStr}`)
           }
           
           // 添加认证信息
@@ -340,7 +355,8 @@ const CertificationApply: React.FC = () => {
           .map((supplier: any) => {
             const parts = []
             if (supplier.name) parts.push(`供应商: ${supplier.name}`)
-            if (supplier.contact?.address) parts.push(`地址: ${supplier.contact.address}`)
+            const addressStr = formatAddress(supplier.contact?.address)
+            if (addressStr) parts.push(`地址: ${addressStr}`)
             if (supplier.businessInfo?.location) parts.push(`产地: ${supplier.businessInfo.location}`)
             return parts.length > 0 ? parts.join('，') : null
           })
