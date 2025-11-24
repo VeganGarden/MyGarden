@@ -7,6 +7,7 @@ import './index.scss'
 const Profile: React.FC = () => {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isRestaurantAdmin, setIsRestaurantAdmin] = useState(false)
   const [loading, setLoading] = useState(false)
   const stats = {
     gardenCount: 3,
@@ -34,6 +35,16 @@ const Profile: React.FC = () => {
       const user = Taro.getStorageSync('userInfo')
       setIsLoggedIn(!!token)
       setUserInfo(user || null)
+      
+      // 检查是否是餐厅管理员
+      if (user && (user.role === 'restaurant_admin' || user.role === 'restaurant_manager')) {
+        setIsRestaurantAdmin(true)
+        // 尝试获取当前餐厅ID
+        const restaurantId = Taro.getStorageSync('currentRestaurantId')
+        if (!restaurantId && user.restaurantId) {
+          Taro.setStorageSync('currentRestaurantId', user.restaurantId)
+        }
+      }
     } catch (error) {
       console.error('检查登录状态失败:', error)
     } finally {
@@ -73,6 +84,30 @@ const Profile: React.FC = () => {
   const handleAbout = () => {
     // 关于页面
     console.log('关于页面');
+  };
+
+  const handleRestaurantOrders = () => {
+    Taro.navigateTo({
+      url: '/pages/restaurant/orders/index'
+    });
+  };
+
+  const handleRestaurantData = () => {
+    Taro.navigateTo({
+      url: '/pages/restaurant/data/index'
+    });
+  };
+
+  const handleRestaurantCoupon = () => {
+    Taro.navigateTo({
+      url: '/pages/restaurant/coupon/index'
+    });
+  };
+
+  const handleRestaurantReview = () => {
+    Taro.navigateTo({
+      url: '/pages/restaurant/review/index'
+    });
   };
 
   return (
@@ -133,6 +168,33 @@ const Profile: React.FC = () => {
                 <View className='stat-item'>
                   <Text className='stat-value'>{stats.daysActive}</Text>
                   <Text className='stat-label'>活跃天数</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* 餐厅管理入口 */}
+        {isLoggedIn && isRestaurantAdmin && (
+          <View className='restaurant-section'>
+            <View className='restaurant-card'>
+              <Text className='restaurant-title'>餐厅管理</Text>
+              <View className='restaurant-grid'>
+                <View className='restaurant-item' onClick={handleRestaurantOrders}>
+                  <Text className='restaurant-icon'>📦</Text>
+                  <Text className='restaurant-label'>订单管理</Text>
+                </View>
+                <View className='restaurant-item' onClick={handleRestaurantData}>
+                  <Text className='restaurant-icon'>📊</Text>
+                  <Text className='restaurant-label'>数据查看</Text>
+                </View>
+                <View className='restaurant-item' onClick={handleRestaurantCoupon}>
+                  <Text className='restaurant-icon'>🎫</Text>
+                  <Text className='restaurant-label'>优惠券</Text>
+                </View>
+                <View className='restaurant-item' onClick={handleRestaurantReview}>
+                  <Text className='restaurant-icon'>⭐</Text>
+                  <Text className='restaurant-label'>评价回复</Text>
                 </View>
               </View>
             </View>
