@@ -33,14 +33,23 @@ function generateSupplierId() {
  */
 async function validateRestaurant(restaurantId, tenantId) {
   try {
+    // 餐厅ID是文档的_id，直接通过doc查询
     const restaurantResult = await db.collection('restaurants')
-      .where({
-        restaurantId: restaurantId,
-        tenantId: tenantId
-      })
+      .doc(restaurantId)
       .get()
 
-    return restaurantResult.data.length > 0
+    if (!restaurantResult.data) {
+      return false
+    }
+
+    const restaurant = restaurantResult.data
+    
+    // 验证租户ID是否匹配
+    if (tenantId && restaurant.tenantId !== tenantId) {
+      return false
+    }
+
+    return true
   } catch (error) {
     console.error('验证餐厅失败:', error)
     return false
