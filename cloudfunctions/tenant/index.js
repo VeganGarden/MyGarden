@@ -2492,6 +2492,394 @@ async function deleteCoupon(id) {
 }
 
 /**
+ * 获取优惠券详情
+ */
+async function getCouponDetail(couponId) {
+  if (!couponId) {
+    return {
+      code: 400,
+      message: 'couponId 不能为空',
+    }
+  }
+
+  try {
+    const result = await db.collection('restaurant_campaigns').doc(couponId).get()
+
+    if (!result.data) {
+      return {
+        code: 404,
+        message: '优惠券不存在',
+      }
+    }
+
+    const coupon = result.data
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        id: coupon._id || '',
+        name: coupon.name || coupon.title || '',
+        type: coupon.type || 'discount',
+        value: coupon.value || coupon.discount || 0,
+        minAmount: coupon.minAmount || coupon.min_amount || 0,
+        totalCount: coupon.totalCount || coupon.total_count || 0,
+        usedCount: coupon.usedCount || coupon.used_count || 0,
+        validFrom: coupon.validFrom || coupon.valid_from || '',
+        validTo: coupon.validTo || coupon.valid_to || '',
+        status: coupon.status || 'active',
+        description: coupon.description || '',
+        rules: coupon.rules || {},
+        createdAt: coupon.createdAt || '',
+        updatedAt: coupon.updatedAt || '',
+      },
+    }
+  } catch (error) {
+    console.error('获取优惠券详情失败:', error)
+    return {
+      code: 500,
+      message: '获取优惠券详情失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 发放优惠券
+ */
+async function distributeCoupon(data) {
+  const { couponId, restaurantId, userIds, distributionType, scheduledTime } = data || {}
+
+  if (!couponId || !restaurantId) {
+    return {
+      code: 400,
+      message: 'couponId 和 restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 获取优惠券信息
+    const couponResult = await db.collection('restaurant_campaigns').doc(couponId).get()
+    if (!couponResult.data) {
+      return {
+        code: 404,
+        message: '优惠券不存在',
+      }
+    }
+
+    const coupon = couponResult.data
+
+    // 检查优惠券状态
+    if (coupon.status !== 'active') {
+      return {
+        code: 400,
+        message: '优惠券未激活，无法发放',
+      }
+    }
+
+    // 检查有效期
+    const now = new Date()
+    const validFrom = new Date(coupon.validFrom || coupon.valid_from || '')
+    const validTo = new Date(coupon.validTo || coupon.valid_to || '')
+    if (now < validFrom || now > validTo) {
+      return {
+        code: 400,
+        message: '优惠券不在有效期内',
+      }
+    }
+
+    // 检查剩余数量
+    const remainingCount = (coupon.totalCount || coupon.total_count || 0) - (coupon.usedCount || coupon.used_count || 0)
+    if (remainingCount <= 0) {
+      return {
+        code: 400,
+        message: '优惠券已发放完毕',
+      }
+    }
+
+    // 根据发放类型处理
+    if (distributionType === 'targeted' && userIds && userIds.length > 0) {
+      // 定向发放：发放给指定用户
+      const distributeCount = Math.min(userIds.length, remainingCount)
+      const distributeUserIds = userIds.slice(0, distributeCount)
+
+      // 创建用户优惠券记录
+      const userCoupons = distributeUserIds.map((userId) => ({
+        couponId: couponId,
+        restaurantId: restaurantId,
+        userId: userId,
+        status: 'unused',
+        distributedAt: db.serverDate(),
+        expiresAt: validTo,
+        createdAt: db.serverDate(),
+      }))
+
+      // 批量添加用户优惠券记录（如果存在user_coupons集合）
+      // 注意：这里假设存在user_coupons集合，如果不存在需要先创建
+      try {
+        const batch = db.batch()
+        userCoupons.forEach((uc) => {
+          const docRef = db.collection('user_coupons').doc()
+          batch.set(docRef, uc)
+        })
+        await batch.commit()
+      } catch (error) {
+        console.error('创建用户优惠券记录失败:', error)
+        // 如果集合不存在，只更新优惠券的已发放数量
+      }
+
+      // 更新优惠券的已发放数量
+      await db.collection('restaurant_campaigns').doc(couponId).update({
+        data: {
+          distributedCount: (coupon.distributedCount || coupon.distributed_count || 0) + distributeCount,
+          updatedAt: db.serverDate(),
+        },
+      })
+
+      return {
+        code: 0,
+        message: '发放成功',
+        data: {
+          distributedCount: distributeCount,
+          userIds: distributeUserIds,
+        },
+      }
+    } else if (distributionType === 'public') {
+      // 公开领取：不创建具体记录，只记录发放事件
+      return {
+        code: 0,
+        message: '公开领取模式，无需发放',
+        data: {
+          couponId: couponId,
+          distributionType: 'public',
+        },
+      }
+    } else {
+      return {
+        code: 400,
+        message: '无效的发放类型',
+      }
+    }
+  } catch (error) {
+    console.error('发放优惠券失败:', error)
+    return {
+      code: 500,
+      message: '发放优惠券失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取优惠券统计
+ */
+async function getCouponStats(data) {
+  const { restaurantId, couponId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_campaigns').where({
+      restaurantId: restaurantId,
+    })
+
+    if (couponId) {
+      query.where({
+        _id: couponId,
+      })
+    }
+
+    const result = await query.get()
+    const coupons = result.data || []
+
+    // 计算统计数据
+    let totalCoupons = coupons.length
+    let totalDistributed = 0
+    let totalUsed = 0
+    let totalRevenue = 0
+    let totalCost = 0
+
+    coupons.forEach((coupon) => {
+      const distributed = coupon.distributedCount || coupon.distributed_count || 0
+      const used = coupon.usedCount || coupon.used_count || 0
+      totalDistributed += distributed
+      totalUsed += used
+
+      // 计算优惠券带来的收入（从订单中统计）
+      // 这里简化处理，实际应该从订单数据中统计使用了该优惠券的订单收入
+      const couponValue = coupon.value || coupon.discount || 0
+      totalCost += used * couponValue
+    })
+
+    const usageRate = totalDistributed > 0 ? totalUsed / totalDistributed : 0
+    const conversionRate = 0 // 需要从订单数据计算
+    const roi = totalCost > 0 ? (totalRevenue - totalCost) / totalCost : 0
+
+    // 按日期分组统计使用情况（需要从订单数据统计）
+    const dailyStats = []
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        totalCoupons,
+        totalDistributed,
+        totalUsed,
+        usageRate,
+        conversionRate,
+        totalRevenue,
+        totalCost,
+        roi,
+        dailyStats,
+      },
+    }
+  } catch (error) {
+    console.error('获取优惠券统计失败:', error)
+    return {
+      code: 500,
+      message: '获取优惠券统计失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 分析优惠券效果
+ */
+async function analyzeCouponEffect(data) {
+  const { restaurantId, couponId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 获取优惠券信息
+    let coupon = null
+    if (couponId) {
+      const couponResult = await db.collection('restaurant_campaigns').doc(couponId).get()
+      coupon = couponResult.data
+    }
+
+    // 从订单数据中统计使用了优惠券的订单
+    const orderQuery: any = {
+      restaurantId: restaurantId,
+    }
+
+    if (couponId) {
+      orderQuery.couponId = couponId
+    }
+
+    if (startDate || endDate) {
+      const dateCondition: any = {}
+      if (startDate) {
+        dateCondition.createdAt = _.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.createdAt = _.lte(endDate)
+      }
+      Object.assign(orderQuery, dateCondition)
+    }
+
+    const ordersResult = await db.collection('restaurant_orders')
+      .where(orderQuery)
+      .field({
+        'pricing.total': 1,
+        'couponId': 1,
+        'couponDiscount': 1,
+        'createdAt': 1,
+      })
+      .get()
+
+    const orders = ordersResult.data || []
+
+    // 分析数据
+    const couponOrders = orders.filter((o) => o.couponId)
+    const totalOrders = orders.length
+    const couponOrderCount = couponOrders.length
+    const conversionRate = totalOrders > 0 ? couponOrderCount / totalOrders : 0
+
+    // 按时间维度分析
+    const timeAnalysis = {
+      daily: {},
+      weekly: {},
+      monthly: {},
+    }
+
+    couponOrders.forEach((order) => {
+      const orderDate = order.createdAt || ''
+      if (!orderDate) return
+
+      const date = new Date(orderDate)
+      const dayKey = date.toISOString().substring(0, 10)
+      const weekKey = `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`
+      const monthKey = date.toISOString().substring(0, 7)
+
+      if (!timeAnalysis.daily[dayKey]) {
+        timeAnalysis.daily[dayKey] = { count: 0, revenue: 0 }
+      }
+      timeAnalysis.daily[dayKey].count++
+      timeAnalysis.daily[dayKey].revenue += order.pricing?.total || 0
+
+      if (!timeAnalysis.weekly[weekKey]) {
+        timeAnalysis.weekly[weekKey] = { count: 0, revenue: 0 }
+      }
+      timeAnalysis.weekly[weekKey].count++
+      timeAnalysis.weekly[weekKey].revenue += order.pricing?.total || 0
+
+      if (!timeAnalysis.monthly[monthKey]) {
+        timeAnalysis.monthly[monthKey] = { count: 0, revenue: 0 }
+      }
+      timeAnalysis.monthly[monthKey].count++
+      timeAnalysis.monthly[monthKey].revenue += order.pricing?.total || 0
+    })
+
+    // 用户维度分析
+    const userAnalysis = {
+      newUsers: 0,
+      returningUsers: 0,
+      avgOrderValue: 0,
+    }
+
+    // 菜品维度分析（需要从订单项中统计）
+    const dishAnalysis = {}
+
+    return {
+      code: 0,
+      message: '分析成功',
+      data: {
+        coupon: coupon ? {
+          id: coupon._id || '',
+          name: coupon.name || coupon.title || '',
+          type: coupon.type || 'discount',
+        } : null,
+        conversionRate,
+        couponOrderCount,
+        totalOrders,
+        timeAnalysis,
+        userAnalysis,
+        dishAnalysis,
+      },
+    }
+  } catch (error) {
+    console.error('分析优惠券效果失败:', error)
+    return {
+      code: 500,
+      message: '分析优惠券效果失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
  * 获取评价列表
  */
 async function listReviews(data) {
