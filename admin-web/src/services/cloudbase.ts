@@ -678,6 +678,11 @@ export const reportAPI = {
  * 租户和餐厅管理API
  */
 export const tenantAPI = {
+  getDashboardData: (params?: any) =>
+    callCloudFunction('tenant', {
+      action: 'getDashboardData',
+      data: params,
+    }),
   // 获取租户信息
   getTenant: (tenantId: string) =>
     callCloudFunction('tenant', {
