@@ -2,14 +2,15 @@
  * 运营台账管理页面
  */
 
-import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined, ReloadOutlined } from '@ant-design/icons'
-import { Button, Card, DatePicker, Form, Input, InputNumber, Modal, Select, Space, Table, message, Tag } from 'antd'
+import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined, ReloadOutlined, BarChartOutlined } from '@ant-design/icons'
+import { Button, Card, DatePicker, Form, Input, InputNumber, Modal, Select, Space, Table, message, Tag, Tabs, Row, Col, Statistic } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs, { Dayjs } from 'dayjs'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { operationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
+import { Column, Line } from '@ant-design/charts'
 
 const { RangePicker } = DatePicker
 const { TextArea } = Input
@@ -54,6 +55,9 @@ const OperationLedger: React.FC = () => {
     startDate: undefined as string | undefined,
     endDate: undefined as string | undefined,
   })
+  const [activeTab, setActiveTab] = useState('list')
+  const [statsData, setStatsData] = useState<any>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
 
   // 获取当前餐厅和租户信息
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
@@ -105,6 +109,42 @@ const OperationLedger: React.FC = () => {
   useEffect(() => {
     loadData()
   }, [pagination.page, pagination.pageSize, filters.type, filters.startDate, filters.endDate, restaurantId, tenantId])
+
+  // 加载统计数据
+  const loadStats = async () => {
+    if (!restaurantId || !tenantId) {
+      return
+    }
+
+    setStatsLoading(true)
+    try {
+      const result = await operationAPI.ledger.getStats({
+        restaurantId,
+        tenantId,
+        type: filters.type,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        period: 'monthly',
+      })
+
+      if (result && result.code === 0) {
+        setStatsData(result.data)
+      } else {
+        message.error(result?.message || '加载统计数据失败')
+      }
+    } catch (error: any) {
+      console.error('加载统计数据失败:', error)
+      message.error(error.message || '加载统计数据失败')
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      loadStats()
+    }
+  }, [activeTab, filters.type, filters.startDate, filters.endDate, restaurantId, tenantId])
 
   const columns: ColumnsType<LedgerEntry> = [
     {
@@ -368,66 +408,231 @@ const OperationLedger: React.FC = () => {
     return null
   }
 
+  // 渲染统计视图
+  const renderStatsView = () => {
+    if (!statsData) {
+      return <div style={{ textAlign: 'center', padding: '40px' }}>暂无统计数据</div>
+    }
+
+    const trendConfig = {
+      data: statsData.trend || [],
+      xField: 'period',
+      yField: 'value',
+      point: {
+        size: 5,
+        shape: 'diamond',
+      },
+      label: {
+        style: {
+          fill: '#aaa',
+        },
+      },
+    }
+
+    const distributionConfig = {
+      data: statsData.distribution || [],
+      xField: 'type',
+      yField: 'value',
+      meta: {
+        type: { alias: '类型' },
+        value: { alias: '数值' },
+      },
+      label: {
+        position: 'middle',
+        style: {
+          fill: '#FFFFFF',
+          opacity: 0.6,
+        },
+      },
+    }
+
+    return (
+      <div>
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="总记录数"
+                value={statsData.total || 0}
+                suffix="条"
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="总值"
+                value={statsData.totalValue || 0}
+                suffix={statsData.distribution?.[0]?.unit || ''}
+                precision={2}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="平均值"
+                value={statsData.avgValue || 0}
+                suffix={statsData.distribution?.[0]?.unit || ''}
+                precision={2}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="最大值"
+                value={statsData.maxValue || 0}
+                suffix={statsData.distribution?.[0]?.unit || ''}
+                precision={2}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Card title="趋势分析" loading={statsLoading}>
+              {statsData.trend && statsData.trend.length > 0 ? (
+                <Line {...trendConfig} height={300} />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px' }}>暂无趋势数据</div>
+              )}
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card title="类型分布" loading={statsLoading}>
+              {statsData.distribution && statsData.distribution.length > 0 ? (
+                <Column {...distributionConfig} height={300} />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px' }}>暂无分布数据</div>
+              )}
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    )
+  }
+
   return (
     <div>
       <Card
         title={t('pages.operation.ledger.title')}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
-              {t('common.refresh')}
-            </Button>
-            <Button icon={<UploadOutlined />} onClick={handleBatchImport}>
-              {t('common.batchImport')}
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-              {t('pages.operation.ledger.buttons.addRecord')}
-            </Button>
+            {activeTab === 'list' && (
+              <>
+                <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+                  {t('common.refresh')}
+                </Button>
+                <Button icon={<UploadOutlined />} onClick={handleBatchImport}>
+                  {t('common.batchImport')}
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+                  {t('pages.operation.ledger.buttons.addRecord')}
+                </Button>
+              </>
+            )}
+            {activeTab === 'stats' && (
+              <Button icon={<ReloadOutlined />} onClick={loadStats} loading={statsLoading}>
+                {t('common.refresh')}
+              </Button>
+            )}
           </Space>
         }
       >
-        <Space style={{ marginBottom: 16 }} wrap>
-          <Select
-            placeholder="台账类型"
-            allowClear
-            style={{ width: 150 }}
-            value={filters.type}
-            onChange={(value) => handleFilterChange('type', value)}
-          >
-            <Select.Option value="energy">{t('pages.operation.ledger.types.energy')}</Select.Option>
-            <Select.Option value="waste">{t('pages.operation.ledger.types.waste')}</Select.Option>
-            <Select.Option value="training">{t('pages.operation.ledger.types.training')}</Select.Option>
-            <Select.Option value="other">{t('pages.operation.ledger.types.other')}</Select.Option>
-          </Select>
-          <RangePicker
-            placeholder={['开始日期', '结束日期']}
-            onChange={handleDateRangeChange}
-            value={
-              filters.startDate && filters.endDate
-                ? [dayjs(filters.startDate), dayjs(filters.endDate)]
-                : null
-            }
-          />
-        </Space>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: 'list',
+              label: '台账列表',
+              children: (
+                <>
+                  <Space style={{ marginBottom: 16 }} wrap>
+                    <Select
+                      placeholder="台账类型"
+                      allowClear
+                      style={{ width: 150 }}
+                      value={filters.type}
+                      onChange={(value) => handleFilterChange('type', value)}
+                    >
+                      <Select.Option value="energy">{t('pages.operation.ledger.types.energy')}</Select.Option>
+                      <Select.Option value="waste">{t('pages.operation.ledger.types.waste')}</Select.Option>
+                      <Select.Option value="training">{t('pages.operation.ledger.types.training')}</Select.Option>
+                      <Select.Option value="other">{t('pages.operation.ledger.types.other')}</Select.Option>
+                    </Select>
+                    <RangePicker
+                      placeholder={['开始日期', '结束日期']}
+                      onChange={handleDateRangeChange}
+                      value={
+                        filters.startDate && filters.endDate
+                          ? [dayjs(filters.startDate), dayjs(filters.endDate)]
+                          : null
+                      }
+                    />
+                  </Space>
 
-        <Table
-          columns={columns}
-          dataSource={dataSource}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            current: pagination.page,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
-            onChange: (page, pageSize) => {
-              setPagination(prev => ({
-                ...prev,
-                page,
-                pageSize,
-              }))
+                  <Table
+                    columns={columns}
+                    dataSource={dataSource}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={{
+                      current: pagination.page,
+                      pageSize: pagination.pageSize,
+                      total: pagination.total,
+                      showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
+                      onChange: (page, pageSize) => {
+                        setPagination(prev => ({
+                          ...prev,
+                          page,
+                          pageSize,
+                        }))
+                      },
+                    }}
+                  />
+                </>
+              ),
             },
-          }}
+            {
+              key: 'stats',
+              label: (
+                <span>
+                  <BarChartOutlined /> 统计分析
+                </span>
+              ),
+              children: (
+                <>
+                  <Space style={{ marginBottom: 16 }} wrap>
+                    <Select
+                      placeholder="台账类型"
+                      allowClear
+                      style={{ width: 150 }}
+                      value={filters.type}
+                      onChange={(value) => handleFilterChange('type', value)}
+                    >
+                      <Select.Option value="energy">{t('pages.operation.ledger.types.energy')}</Select.Option>
+                      <Select.Option value="waste">{t('pages.operation.ledger.types.waste')}</Select.Option>
+                      <Select.Option value="training">{t('pages.operation.ledger.types.training')}</Select.Option>
+                      <Select.Option value="other">{t('pages.operation.ledger.types.other')}</Select.Option>
+                    </Select>
+                    <RangePicker
+                      placeholder={['开始日期', '结束日期']}
+                      onChange={handleDateRangeChange}
+                      value={
+                        filters.startDate && filters.endDate
+                          ? [dayjs(filters.startDate), dayjs(filters.endDate)]
+                          : null
+                      }
+                    />
+                  </Space>
+                  {renderStatsView()}
+                </>
+              ),
+            },
+          ]}
         />
       </Card>
 
