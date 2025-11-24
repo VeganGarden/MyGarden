@@ -2770,7 +2770,7 @@ async function analyzeCouponEffect(data) {
     }
 
     // 从订单数据中统计使用了优惠券的订单
-    const orderQuery: any = {
+    const orderQuery = {
       restaurantId: restaurantId,
     }
 
