@@ -2206,6 +2206,104 @@ async function getBehaviorMetrics(data) {
 }
 
 /**
+ * 生成行为指标快照
+ * 根据策划方案，定期生成行为指标快照（日/周/月）
+ */
+async function generateBehaviorSnapshot(data) {
+  const { restaurantId, tenantId, period = 'daily', snapshotDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 1. 获取当前行为指标数据
+    const metricsResult = await getBehaviorMetrics({
+      restaurantId,
+      tenantId,
+      period,
+    })
+
+    if (metricsResult.code !== 0) {
+      return metricsResult
+    }
+
+    const metricsData = metricsResult.data
+
+    // 2. 确定快照日期
+    const targetDate = snapshotDate || new Date().toISOString().substring(0, 10)
+
+    // 3. 检查是否已存在该日期的快照
+    const existingSnapshot = await db.collection('restaurant_behavior_metrics')
+      .where({
+        restaurantId: restaurantId,
+        snapshotDate: targetDate,
+        period: period,
+      })
+      .get()
+
+    if (existingSnapshot.data && existingSnapshot.data.length > 0) {
+      // 更新现有快照
+      const snapshotId = existingSnapshot.data[0]._id
+      await db.collection('restaurant_behavior_metrics').doc(snapshotId).update({
+        data: {
+          restaurantMetrics: metricsData.restaurantMetrics || {},
+          customerMetrics: metricsData.customerMetrics || {},
+          updatedAt: db.serverDate(),
+        },
+      })
+
+      return {
+        code: 0,
+        message: '快照更新成功',
+        data: {
+          metricId: snapshotId,
+          snapshotDate: targetDate,
+          period: period,
+        },
+      }
+    } else {
+      // 创建新快照
+      const snapshot = {
+        metricId: `metric_${restaurantId}_${targetDate}_${period}`,
+        restaurantId: restaurantId,
+        tenantId: tenantId || '',
+        snapshotDate: targetDate,
+        period: period,
+        restaurantMetrics: metricsData.restaurantMetrics || {},
+        customerMetrics: metricsData.customerMetrics || {},
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      }
+
+      const result = await db.collection('restaurant_behavior_metrics').add({
+        data: snapshot,
+      })
+
+      return {
+        code: 0,
+        message: '快照生成成功',
+        data: {
+          metricId: result._id,
+          snapshotDate: targetDate,
+          period: period,
+        },
+      }
+    }
+  } catch (error) {
+    console.error('生成行为指标快照失败:', error)
+    return {
+      code: 500,
+      message: '生成行为指标快照失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
  * 获取优惠券列表
  */
 async function listCoupons(data) {
