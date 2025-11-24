@@ -3,7 +3,8 @@
  */
 
 import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined, ReloadOutlined, BarChartOutlined } from '@ant-design/icons'
-import { Button, Card, DatePicker, Form, Input, InputNumber, Modal, Select, Space, Table, message, Tag, Tabs, Row, Col, Statistic } from 'antd'
+import { Button, Card, DatePicker, Form, Input, InputNumber, Modal, Select, Space, Table, message, Tag, Tabs, Row, Col, Statistic, Upload, Alert } from 'antd'
+import type { UploadProps } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs, { Dayjs } from 'dayjs'
 import React, { useEffect, useState, useRef } from 'react'
@@ -58,6 +59,9 @@ const OperationLedger: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list')
   const [statsData, setStatsData] = useState<any>(null)
   const [statsLoading, setStatsLoading] = useState(false)
+  const [importModalVisible, setImportModalVisible] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importLoading, setImportLoading] = useState(false)
 
   // 获取当前餐厅和租户信息
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
@@ -307,7 +311,80 @@ const OperationLedger: React.FC = () => {
   }
 
   const handleBatchImport = () => {
-    message.info(t('pages.operation.ledger.messages.batchImportInProgress'))
+    setImportModalVisible(true)
+  }
+
+  const handleImportFileChange: UploadProps['beforeUpload'] = (file) => {
+    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                    file.type === 'application/vnd.ms-excel' ||
+                    file.name.endsWith('.xlsx') ||
+                    file.name.endsWith('.xls')
+    const isCSV = file.type === 'text/csv' || file.name.endsWith('.csv')
+    
+    if (!isExcel && !isCSV) {
+      message.error('只能上传 Excel 或 CSV 文件')
+      return false
+    }
+    
+    setImportFile(file)
+    return false // 阻止自动上传
+  }
+
+  const handleImportSubmit = async () => {
+    if (!importFile || !restaurantId || !tenantId) {
+      message.warning('请先选择文件')
+      return
+    }
+
+    setImportLoading(true)
+    try {
+      // 读取文件内容
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        try {
+          const fileData = e.target?.result as string
+          // 转换为Base64
+          const base64Data = fileData.split(',')[1] || btoa(fileData)
+          
+          const result = await operationAPI.ledger.batchImport({
+            restaurantId,
+            tenantId,
+            fileData: base64Data,
+            fileName: importFile.name,
+            fileType: importFile.name.endsWith('.csv') ? 'csv' : 'excel',
+          })
+
+          if (result && result.code === 0) {
+            const { successCount, failCount, errors } = result.data || {}
+            if (failCount > 0) {
+              message.warning(`导入完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+              if (errors && errors.length > 0) {
+                console.error('导入错误:', errors)
+              }
+            } else {
+              message.success(`成功导入 ${successCount} 条记录`)
+            }
+            setImportModalVisible(false)
+            setImportFile(null)
+            loadData()
+          } else {
+            message.error(result?.message || '导入失败')
+          }
+        } catch (error: any) {
+          console.error('处理文件失败:', error)
+          message.error(error.message || '处理文件失败')
+        } finally {
+          setImportLoading(false)
+        }
+      }
+      
+      // 读取为Data URL（Base64）
+      reader.readAsDataURL(importFile)
+    } catch (error: any) {
+      console.error('导入失败:', error)
+      message.error(error.message || '导入失败')
+      setImportLoading(false)
+    }
   }
 
   const handleFilterChange = (key: string, value: any) => {
@@ -710,7 +787,53 @@ const OperationLedger: React.FC = () => {
           >
             <Input placeholder={t('pages.operation.ledger.form.placeholders.unit')} />
           </Form.Item>
-        </Form>
+          </Form>
+      </Modal>
+
+      {/* 批量导入Modal */}
+      <Modal
+        title="批量导入运营台账"
+        open={importModalVisible}
+        onOk={handleImportSubmit}
+        onCancel={() => {
+          setImportModalVisible(false)
+          setImportFile(null)
+        }}
+        confirmLoading={importLoading}
+        width={600}
+      >
+        <Alert
+          message="导入说明"
+          description={
+            <div>
+              <p>1. 支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式</p>
+              <p>2. 文件必须包含以下列：日期、类型、数值、单位、说明</p>
+              <p>3. 日期格式：YYYY-MM-DD</p>
+              <p>4. 类型：energy（能源）、waste（浪费）、training（培训）、other（其他）</p>
+              <p>5. 批量导入功能开发中，当前仅支持占位提示</p>
+            </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Upload
+          beforeUpload={handleImportFileChange}
+          accept=".xlsx,.xls,.csv"
+          maxCount={1}
+          onRemove={() => {
+            setImportFile(null)
+            return true
+          }}
+        >
+          <Button icon={<UploadOutlined />}>选择文件</Button>
+        </Upload>
+        {importFile && (
+          <div style={{ marginTop: 16 }}>
+            <p>已选择文件：{importFile.name}</p>
+            <p>文件大小：{(importFile.size / 1024).toFixed(2)} KB</p>
+          </div>
+        )}
       </Modal>
     </div>
   )
