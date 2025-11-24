@@ -679,102 +679,6 @@ async function updateRestaurants(supplierId, tenantId, restaurantIds, user) {
 }
 
 /**
- * 批量迁移：将所有供应商关联到指定餐厅
- * 这是一个一次性数据迁移函数
- */
-async function batchAssociateRestaurant(restaurantId) {
-  try {
-    const now = new Date()
-    const suppliersCollection = db.collection('suppliers')
-
-    // 1. 查询所有未删除的供应商
-    const suppliersResult = await suppliersCollection
-      .where({
-        isDeleted: false
-      })
-      .get()
-
-    if (suppliersResult.data.length === 0) {
-      return {
-        code: 0,
-        message: '没有找到供应商',
-        data: {
-          total: 0,
-          updated: 0,
-          skipped: 0
-        }
-      }
-    }
-
-    const suppliers = suppliersResult.data
-    let updatedCount = 0
-    let skippedCount = 0
-    const errors = []
-
-    // 2. 批量更新每个供应商
-    for (const supplier of suppliers) {
-      try {
-        const currentRestaurantIds = supplier.cooperation?.restaurantIds || []
-        
-        // 如果已经包含该餐厅ID，跳过
-        if (currentRestaurantIds.includes(restaurantId)) {
-          skippedCount++
-          continue
-        }
-
-        // 准备更新数据
-        const newRestaurantIds = [...currentRestaurantIds, restaurantId]
-        const updateData = {
-          'cooperation.restaurantIds': newRestaurantIds,
-          updatedAt: now,
-          updatedBy: 'system_migration'
-        }
-
-        // 如果之前没有餐厅关联，设置合作开始日期和状态
-        if (currentRestaurantIds.length === 0) {
-          updateData['cooperation.startDate'] = now
-          updateData['cooperation.status'] = 'active'
-        }
-
-        // 执行更新
-        await suppliersCollection
-          .doc(supplier._id)
-          .update({
-            data: updateData
-          })
-
-        updatedCount++
-        console.log(`已更新供应商: ${supplier.supplierId || supplier._id}`)
-      } catch (error) {
-        console.error(`更新供应商失败: ${supplier.supplierId || supplier._id}`, error)
-        errors.push({
-          supplierId: supplier.supplierId || supplier._id,
-          error: error.message
-        })
-      }
-    }
-
-    return {
-      code: 0,
-      message: '批量关联餐厅完成',
-      data: {
-        total: suppliers.length,
-        updated: updatedCount,
-        skipped: skippedCount,
-        errors: errors.length > 0 ? errors : undefined
-      }
-    }
-  } catch (error) {
-    console.error('批量关联餐厅失败:', error)
-    return {
-      code: 500,
-      message: '批量关联餐厅失败',
-      error: error.message
-    }
-  }
-}
-
-/**
  * 主函数
  */
 exports.main = async (event, context) => {
@@ -782,28 +686,8 @@ exports.main = async (event, context) => {
     const { action } = event
 
     // 权限验证（除了list和get，其他操作都需要登录）
-    // batchAssociateRestaurant是特殊的数据迁移操作，需要单独处理权限
     let user = null
-    if (action === 'batchAssociateRestaurant') {
-      // 批量迁移：允许通过特殊标志绕过权限检查（仅用于数据迁移）
-      // 在生产环境中，应该通过环境变量或管理后台调用
-      if (event.bypassAuth === true || process.env.ALLOW_BATCH_MIGRATION === 'true') {
-        // 创建虚拟系统管理员用户用于迁移
-        user = {
-          role: 'system_admin',
-          username: 'system_migration',
-          tenantId: null
-        }
-        console.log('批量迁移：使用系统迁移模式（已绕过权限检查）')
-      } else {
-        // 正常权限检查
-        try {
-          user = await checkPermission(event, context, 'traceability:manage', 'all')
-        } catch (permissionError) {
-          return permissionError
-        }
-      }
-    } else if (action !== 'list' && action !== 'get') {
+    if (action !== 'list' && action !== 'get') {
       try {
         user = await checkPermission(event, context, 'traceability:manage', 'tenant')
       } catch (permissionError) {
@@ -916,20 +800,11 @@ exports.main = async (event, context) => {
           }
         }
         return await updateRestaurants(event.supplierId, event.tenantId || user.tenantId, event.restaurantIds, user)
-      case 'batchAssociateRestaurant':
-        // 批量迁移：允许系统管理员、平台运营或系统迁移模式执行
-        if (user.role !== 'system_admin' && user.role !== 'platform_operator' && user.username !== 'system_migration') {
-          return {
-            code: 403,
-            message: '只有系统管理员或平台运营可以执行批量迁移'
-          }
-        }
-        return await batchAssociateRestaurant(event.restaurantId)
       default:
         return {
           code: 400,
           message: '未知的 action 参数',
-          supportedActions: ['create', 'list', 'get', 'update', 'audit', 'delete', 'addRestaurant', 'removeRestaurant', 'updateRestaurants', 'batchAssociateRestaurant']
+          supportedActions: ['create', 'list', 'get', 'update', 'audit', 'delete', 'addRestaurant', 'removeRestaurant', 'updateRestaurants']
         }
     }
   } catch (error) {
