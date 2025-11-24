@@ -2,9 +2,9 @@
  * 供应商编辑页
  */
 
+import RestaurantSelector from '@/components/traceability/RestaurantSelector'
 import { supplierAPI } from '@/services/traceability'
 import { useAppSelector } from '@/store/hooks'
-import RestaurantSelector from '@/components/traceability/RestaurantSelector'
 import type { Supplier, SupplierFormData } from '@/types/traceability'
 import { RiskLevel, SupplierType } from '@/types/traceability'
 import { ArrowLeftOutlined } from '@ant-design/icons'
