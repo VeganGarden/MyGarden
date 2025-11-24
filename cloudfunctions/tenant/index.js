@@ -5054,7 +5054,7 @@ async function getDashboardData(data, currentUser) {
       charts.push({
         type: 'line',
         title: '订单趋势',
-        data: trends.map((t: any) => ({
+        data: trends.map((t) => ({
           date: t.date,
           value: t.orderCount,
           type: '订单数',
@@ -5065,7 +5065,7 @@ async function getDashboardData(data, currentUser) {
       charts.push({
         type: 'line',
         title: '收入趋势',
-        data: trends.map((t: any) => ({
+        data: trends.map((t) => ({
           date: t.date,
           value: t.revenue,
           type: '收入',
@@ -5076,7 +5076,7 @@ async function getDashboardData(data, currentUser) {
       charts.push({
         type: 'line',
         title: '碳减排趋势',
-        data: trends.map((t: any) => ({
+        data: trends.map((t) => ({
           date: t.date,
           value: t.carbonReduction,
           type: '碳减排',
@@ -5089,7 +5089,7 @@ async function getDashboardData(data, currentUser) {
       charts.push({
         type: 'bar',
         title: '热门菜谱',
-        data: baseData.topRecipes.map((recipe: any) => ({
+        data: baseData.topRecipes.map((recipe) => ({
           name: recipe.recipeName,
           value: recipe.orders,
         })),
