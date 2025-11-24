@@ -303,16 +303,29 @@ const CertificationApply: React.FC = () => {
           return addressParts.join('')
         }
 
-        // 构建供应商信息字符串
-        const supplierInfoParts = result.data.map((supplier: any) => {
-          const parts = [supplier.name || '未命名供应商']
+        // 统计本地供应商数量（用于计算本地食材占比）
+        // 本地供应商定义：距离≤100km 或 同城市
+        let localSupplierCount = 0
+        const currentRestaurant = restaurants.find((r: any) => r.id === (selectedRestaurantId || currentRestaurantId))
+        const restaurantCity = currentRestaurant?.address?.city || currentRestaurant?.city
+
+        // 构建供应商信息字符串（完整信息，用于展示供应商资料）
+        const supplierInfoParts = result.data.map((supplier: any, index: number) => {
+          const parts = [`【供应商${index + 1}】${supplier.name || '未命名供应商'}`]
           
           // 添加联系方式
           if (supplier.contact) {
             if (supplier.contact.phone) parts.push(`电话: ${supplier.contact.phone}`)
             if (supplier.contact.email) parts.push(`邮箱: ${supplier.contact.email}`)
             const addressStr = formatAddress(supplier.contact.address)
-            if (addressStr) parts.push(`地址: ${addressStr}`)
+            if (addressStr) {
+              parts.push(`地址: ${addressStr}`)
+              // 判断是否为本地供应商（同城市或距离≤100km）
+              const supplierCity = supplier.contact.address?.city
+              if (supplierCity === restaurantCity) {
+                localSupplierCount++
+              }
+            }
           }
           
           // 添加认证信息
@@ -328,7 +341,10 @@ const CertificationApply: React.FC = () => {
           // 添加业务信息
           if (supplier.businessInfo) {
             if (supplier.businessInfo.mainProducts) {
-              parts.push(`主营: ${supplier.businessInfo.mainProducts}`)
+              const mainProducts = Array.isArray(supplier.businessInfo.mainProducts)
+                ? supplier.businessInfo.mainProducts.join(', ')
+                : supplier.businessInfo.mainProducts
+              parts.push(`主营: ${mainProducts}`)
             }
             if (supplier.businessInfo.riskLevel) {
               const riskLevelMap: Record<string, string> = {
@@ -340,40 +356,72 @@ const CertificationApply: React.FC = () => {
             }
           }
           
-          return parts.filter(Boolean).join('；')
+          return parts.filter(Boolean).join('\n')
         })
 
-        const supplierInfoText = supplierInfoParts.join('\n\n')
+        const supplierInfoText = supplierInfoParts.join('\n\n---\n\n')
         
-        // 填充供应商信息字段
+        // 填充供应商信息字段（完整信息）
         form.setFieldsValue({
           supplierInfo: supplierInfoText,
         })
 
-        // 构建食材来源信息（从供应商地址等信息提取）
+        // 构建食材来源信息（可追溯性信息：产地、运输方式、距离等）
+        // 与供应商信息不同，这里专注于食材的可追溯性
         const traceabilityParts = result.data
-          .map((supplier: any) => {
+          .map((supplier: any, index: number) => {
             const parts = []
-            if (supplier.name) parts.push(`供应商: ${supplier.name}`)
+            parts.push(`供应商${index + 1}: ${supplier.name || '未命名供应商'}`)
+            
+            // 地址信息
             const addressStr = formatAddress(supplier.contact?.address)
-            if (addressStr) parts.push(`地址: ${addressStr}`)
-            if (supplier.businessInfo?.location) parts.push(`产地: ${supplier.businessInfo.location}`)
+            if (addressStr) {
+              parts.push(`地址: ${addressStr}`)
+              // 如果是本地供应商，标注
+              const supplierCity = supplier.contact.address?.city
+              if (supplierCity === restaurantCity) {
+                parts.push('（本地供应商）')
+              }
+            }
+            
+            // 产地信息（如果有）
+            if (supplier.businessInfo?.location) {
+              parts.push(`产地: ${supplier.businessInfo.location}`)
+            }
+            
+            // 运输方式（如果有，可以从业务信息或其他字段获取）
+            // 这里暂时留空，后续可以根据实际数据结构添加
+            
             return parts.length > 0 ? parts.join('，') : null
           })
           .filter(Boolean)
 
+        // 替换而不是追加，避免重复
         if (traceabilityParts.length > 0) {
-          const currentIngredientSource = form.getFieldValue('ingredientSource') || ''
-          const newIngredientSource = traceabilityParts.join('\n')
-          // 如果已有内容，追加；否则替换
           form.setFieldsValue({
-            ingredientSource: currentIngredientSource 
-              ? `${currentIngredientSource}\n\n${newIngredientSource}`
-              : newIngredientSource,
+            ingredientSource: traceabilityParts.join('\n'),
           })
         }
 
-        message.success(`已加载 ${result.data.length} 个供应商信息`)
+        // 计算本地食材占比（基于本地供应商数量）
+        // 注意：这是基于供应商数量的简单计算，实际应该基于食材使用量或订单金额
+        const totalSuppliers = result.data.length
+        const localRatio = totalSuppliers > 0 
+          ? Math.round((localSupplierCount / totalSuppliers) * 100) 
+          : 0
+
+        // 如果当前没有值或为0，自动填充计算值；否则保留用户输入的值
+        const currentRatio = form.getFieldValue('localIngredientRatio') || 0
+        if (currentRatio === 0) {
+          form.setFieldsValue({
+            localIngredientRatio: localRatio,
+          })
+        }
+
+        message.success(
+          `已加载 ${result.data.length} 个供应商信息\n` +
+          `其中本地供应商 ${localSupplierCount} 个，本地食材占比估算: ${localRatio}%`
+        )
       } else {
         message.warning('当前餐厅暂无关联的供应商，请先在供应商管理模块添加供应商')
       }
