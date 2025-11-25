@@ -39,12 +39,46 @@ function generateLedgerId() {
 async function initOperationSampleData(data) {
   console.log('===== 开始初始化餐厅运营台账测试样例数据 =====');
   
-  const { restaurantId, tenantId } = data || {};
+  let { restaurantId, tenantId, restaurantName } = data || {};
+  
+  // 如果没有提供restaurantId，尝试查找"素开心"或"素欢乐"餐厅
+  if (!restaurantId) {
+    console.log('\n未提供restaurantId，尝试查找测试餐厅...');
+    const restaurantNames = restaurantName ? [restaurantName] : ['素开心', '素欢乐'];
+    
+    try {
+      const restaurants = await db.collection('restaurants')
+        .where({
+          name: _.in(restaurantNames)
+        })
+        .get();
+      
+      if (restaurants.data.length === 0) {
+        return {
+          code: 404,
+          message: `未找到餐厅（${restaurantNames.join('或')}），请先创建餐厅或提供restaurantId和tenantId`
+        };
+      }
+      
+      // 使用找到的第一个餐厅
+      const restaurant = restaurants.data[0];
+      restaurantId = restaurant._id;
+      tenantId = restaurant.tenantId;
+      
+      console.log(`✓ 找到餐厅: ${restaurant.name} (ID: ${restaurantId}, Tenant: ${tenantId})`);
+    } catch (error) {
+      return {
+        code: 500,
+        message: '查找餐厅失败',
+        error: error.message
+      };
+    }
+  }
   
   if (!restaurantId || !tenantId) {
     return {
       code: 400,
-      message: 'restaurantId 和 tenantId 不能为空'
+      message: 'restaurantId 和 tenantId 不能为空（如果未提供，脚本会尝试查找"素开心"或"素欢乐"餐厅）'
     };
   }
 
@@ -247,7 +281,17 @@ async function initOperationSampleData(data) {
     console.log(`   - 培训活动: ${sampleData.filter(d => d.type === 'training').length} 条`);
     console.log(`\n📅 时间范围: 最近30天`);
     console.log(`\n🏪 餐厅ID: ${restaurantId}`);
-    console.log(`🏢 租户ID: ${tenantId}\n`);
+    console.log(`🏢 租户ID: ${tenantId}`);
+    
+    // 尝试获取餐厅名称
+    try {
+      const restaurant = await db.collection('restaurants').doc(restaurantId).get();
+      if (restaurant.data) {
+        console.log(`🏷️  餐厅名称: ${restaurant.data.name || '未知'}\n`);
+      }
+    } catch (error) {
+      console.log(`\n`);
+    }
 
     return {
       code: 0,
