@@ -17,6 +17,7 @@ const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-
 const { main: initCertificationCollections } = require('./init-certification-collections');
 const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
 const { initOperationCollections } = require('./init-operation-collections');
+const { initOperationSampleData } = require('./init-operation-sample-data');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -119,6 +120,8 @@ exports.main = async (event) => {
         return await migrateRestaurantsAddCertificationFields(event);
       case 'initOperationCollections':
         return await initOperationCollections(event);
+      case 'initOperationSampleData':
+        return await initOperationSampleData(event.data || event);
       default:
         return await initCollectionsV1(event);
     }
