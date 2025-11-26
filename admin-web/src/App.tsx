@@ -181,6 +181,10 @@ const App: React.FC = () => {
           {/* 餐厅管理（仅餐厅管理员可见） */}
           <Route path="restaurant/manage" element={<RestaurantManage />} />
           
+          {/* 餐厅认证路由（兼容旧路径） */}
+          <Route path="admin/restaurants/:restaurantId/certification" element={<CertificationApply />} />
+          <Route path="restaurants/:restaurantId/certification" element={<CertificationApply />} />
+          
           {/* 平台管理模块（仅平台管理员可见） */}
           <Route path="platform/tenants" element={<TenantList />} />
           <Route path="platform/restaurants" element={<PlatformRestaurantList />} />
