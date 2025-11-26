@@ -90,6 +90,9 @@ exports.main = async (event, context) => {
       case 'getDraft':
         return await getDraft(data)
       
+      case 'fixReviewData':
+        return await fixReviewData(data)
+      
       default:
         return {
           code: 400,
@@ -155,11 +158,11 @@ async function applyCertification(data) {
       }
     }
 
-    // 检查是否已有待审核的申请
+    // 检查是否已有待审核的申请（不包括草稿，草稿可以在提交时覆盖）
     const existingApplication = await db.collection('certification_applications')
       .where({
         restaurantId: restaurantId,
-        status: _.in(['draft', 'submitted', 'reviewing'])
+        status: _.in(['submitted', 'reviewing'])
       })
       .get()
 
@@ -167,6 +170,65 @@ async function applyCertification(data) {
       return {
         code: 400,
         message: '该餐厅已有待审核的认证申请，请先完成或取消现有申请'
+      }
+    }
+
+    // 如果存在草稿，先保存草稿历史，然后删除草稿
+    const existingDraft = await db.collection('certification_applications')
+      .where({
+        restaurantId: restaurantId,
+        status: 'draft'
+      })
+      .orderBy('updatedAt', 'desc')
+      .get()
+
+    let draftHistory = []
+    if (existingDraft.data && existingDraft.data.length > 0) {
+      // 保存草稿历史信息（用于追溯和审计）
+      // 保存完整的草稿数据，以备后查
+      draftHistory = existingDraft.data.map(draft => ({
+        draftId: draft._id,
+        draftApplicationId: draft.applicationId,
+        createdAt: draft.createdAt,
+        updatedAt: draft.updatedAt,
+        currentStep: draft.currentStep || 0,
+        // 保存完整的草稿数据，以便后续查看和审计
+        draftData: {
+          basicInfo: draft.basicInfo || {},
+          menuInfo: draft.menuInfo || {},
+          supplyChainInfo: draft.supplyChainInfo || {},
+          operationData: draft.operationData || {},
+          documents: draft.documents || []
+        },
+        // 同时保存数据摘要，便于快速查看
+        draftSummary: {
+          hasBasicInfo: !!(draft.basicInfo && Object.keys(draft.basicInfo).length > 0),
+          hasMenuInfo: !!(draft.menuInfo && draft.menuInfo.menuItems && draft.menuInfo.menuItems.length > 0),
+          menuItemsCount: draft.menuInfo?.menuItems?.length || 0,
+          hasSupplyChainInfo: !!(draft.supplyChainInfo && Object.keys(draft.supplyChainInfo).length > 0),
+          hasOperationData: !!(draft.operationData && Object.keys(draft.operationData).length > 0),
+          hasDocuments: !!(draft.documents && draft.documents.length > 0),
+          documentsCount: draft.documents?.length || 0
+        }
+      }))
+      
+      console.log('保存草稿历史:', {
+        restaurantId,
+        draftsCount: draftHistory.length,
+        draftHistory: draftHistory
+      })
+
+      // 删除所有草稿（在保存历史后）
+      for (const draft of existingDraft.data) {
+        try {
+          await db.collection('certification_applications')
+            .doc(draft._id)
+            .remove()
+          console.log('删除草稿:', draft._id)
+        } catch (error) {
+          console.error('删除草稿失败:', error)
+          // 继续执行，不中断流程
+        }
       }
     }
 
@@ -185,6 +247,8 @@ async function applyCertification(data) {
       supplyChainInfo: supplyChainInfo || {},
       operationData: operationData || {},
       documents: documents || [],
+      // 保存草稿历史（如果有）
+      draftHistory: draftHistory.length > 0 ? draftHistory : undefined,
       submittedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -748,7 +812,8 @@ async function getStatus(data) {
       startTime: stage.startTime,
       endTime: stage.endTime,
       result: stage.result,
-      comment: stage.comment
+      comment: stage.comment,
+      operatorName: stage.operatorName
     }))
 
     // 计算预计完成时间（根据当前阶段）
@@ -758,6 +823,68 @@ async function getStatus(data) {
       const estimated = new Date()
       estimated.setDate(estimated.getDate() + 7)
       estimatedCompletion = estimated
+    } else if (appData.status === 'approved') {
+      // 已通过，使用证书颁发时间
+      estimatedCompletion = appData.updatedAt || appData.submittedAt
+    }
+
+    // 获取证书信息（如果已通过认证）
+    let certificateInfo = null
+    let certificationLevel = null
+    
+    if (appData.status === 'approved') {
+      try {
+        // 从餐厅信息中获取证书信息
+        const restaurant = await db.collection('restaurants')
+          .doc(appData.restaurantId)
+          .get()
+        
+        if (restaurant.data) {
+          certificationLevel = restaurant.data.certificationLevel || 'bronze'
+          
+          // 如果有证书ID，获取证书详细信息
+          if (restaurant.data.certificateId) {
+            const certificate = await db.collection('certification_badges')
+              .doc(restaurant.data.certificateId)
+              .get()
+            
+            if (certificate.data) {
+              certificateInfo = {
+                certificateId: certificate.data._id,
+                certificateNumber: certificate.data.certificateId || certificate.data.certificateNumber,
+                level: certificate.data.certLevel || certificate.data.level || certificationLevel,
+                issuedAt: certificate.data.issueDate || certificate.data.issuedAt || certificate.data.createdAt,
+                expiryDate: certificate.data.expiryDate,
+                status: certificate.data.status || 'valid'
+              }
+            }
+          } else {
+            // 如果没有证书ID，尝试通过申请ID查找证书
+            const certificateResult = await db.collection('certification_badges')
+              .where({
+                applicationId: application.data._id
+              })
+              .orderBy('issueDate', 'desc')
+              .limit(1)
+              .get()
+            
+            if (certificateResult.data && certificateResult.data.length > 0) {
+              const certificate = certificateResult.data[0]
+              certificateInfo = {
+                certificateId: certificate._id,
+                certificateNumber: certificate.certificateId || certificate.certificateNumber,
+                level: certificate.certLevel || certificate.level || certificationLevel,
+                issuedAt: certificate.issueDate || certificate.issuedAt || certificate.createdAt,
+                expiryDate: certificate.expiryDate,
+                status: certificate.status || 'valid'
+              }
+            }
+          }
+        }
+      } catch (certError) {
+        console.error('获取证书信息失败:', certError)
+        // 不影响主流程，继续执行
+      }
     }
 
     return {
@@ -769,7 +896,9 @@ async function getStatus(data) {
         stages: formattedStages,
         estimatedCompletion,
         applicationId: appData.applicationId,
-        submittedAt: appData.submittedAt
+        submittedAt: appData.submittedAt,
+        certificationLevel: certificationLevel || (appData.status === 'approved' ? 'bronze' : null),
+        certificateInfo: certificateInfo
       }
     }
   } catch (error) {
@@ -1066,6 +1195,14 @@ async function review(data) {
     }
   }
 
+  // systemEvaluation 阶段是系统自动完成的，不允许人工审核
+  if (stage === 'systemEvaluation') {
+    return {
+      code: 400,
+      message: '系统评估阶段由系统自动完成，不允许人工审核'
+    }
+  }
+
   try {
     // 获取认证申请
     const application = await db.collection('certification_applications')
@@ -1102,69 +1239,119 @@ async function review(data) {
     let nextStage = null
     let newStatus = application.data.status
 
+    // 准备审核记录
+    const reviewRecord = {
+      stage: stage,
+      reviewerId: data.reviewerId || 'system',
+      reviewerName: data.reviewerName || '系统',
+      reviewResult: result,
+      reviewComment: comment || '',
+      reviewedAt: new Date()
+    }
+
     if (result === 'approved') {
+      // 根据当前阶段决定下一阶段
+      // 注意：systemEvaluation 阶段不应该进入这里，因为已经在函数开头被拦截
       if (stage === 'documentReview') {
-        // 资料审查通过，进入现场核查或复评
-        nextStage = 'onSiteInspection' // 或直接进入复评
+        // 资料审查通过，进入现场核查
+        nextStage = 'onSiteInspection'
         newStatus = 'reviewing'
       } else if (stage === 'onSiteInspection') {
         // 现场核查通过，进入复评
         nextStage = 'review'
         newStatus = 'reviewing'
       } else if (stage === 'review') {
-        // 复评通过，生成证书
+        // 复评通过，生成证书并完成认证
         newStatus = 'approved'
+        nextStage = null // 没有下一阶段
         // 自动生成证书
-        await generateCertificate({ applicationId })
+        try {
+          await generateCertificate({ applicationId })
+        } catch (certError) {
+          console.error('生成证书失败:', certError)
+          // 不影响审核流程，继续执行
+        }
       }
     } else if (result === 'rejected') {
+      // 拒绝后，状态变为已拒绝，保持当前阶段不变
       newStatus = 'rejected'
+      nextStage = null
     }
 
-    // 更新申请记录
+    // 合并所有更新到一次操作
     const updateData = {
       status: newStatus,
       updatedAt: new Date()
     }
 
+    // 如果有下一阶段，更新当前阶段并创建下一阶段记录
     if (nextStage) {
       updateData.currentStage = nextStage
       // 创建下一阶段记录
-      await db.collection('certification_stages')
-        .add({
-          data: {
-            applicationId: applicationId,
-            stageType: nextStage,
-            stageName: getStageName(nextStage),
-            status: 'pending',
-            startTime: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        })
+      try {
+        await db.collection('certification_stages')
+          .add({
+            data: {
+              applicationId: applicationId,
+              stageType: nextStage,
+              stageName: getStageName(nextStage),
+              status: 'pending',
+              startTime: new Date(),
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          })
+      } catch (stageError) {
+        console.error('创建下一阶段记录失败:', stageError)
+        // 不影响主流程，继续执行
+      }
     }
 
+    // 添加审核记录到更新数据中
+    const existingReviewRecords = application.data.reviewRecords || []
+    updateData.reviewRecords = [...existingReviewRecords, reviewRecord]
+
+    // 一次性更新申请记录
     await db.collection('certification_applications')
       .doc(applicationId)
       .update({
         data: updateData
       })
 
-    // 添加审核记录
-    await db.collection('certification_applications')
-      .doc(applicationId)
-      .update({
-        data: {
-          reviewRecords: _.push([{
-            stage: stage,
-            reviewerId: data.reviewerId || 'system',
-            reviewerName: data.reviewerName || '系统',
-            reviewResult: result,
-            reviewComment: comment || '',
-            reviewedAt: new Date()
-          }])
+    // 如果状态变为已通过或已拒绝，更新餐厅的认证状态
+    if (newStatus === 'approved' || newStatus === 'rejected') {
+      try {
+        const restaurantUpdateData = {
+          certificationStatus: newStatus === 'approved' ? 'certified' : 'rejected',
+          updatedAt: new Date()
         }
-      })
+        
+        if (newStatus === 'approved') {
+          // 如果通过，还需要获取证书信息并更新到餐厅
+          const certificateResult = await db.collection('certification_badges')
+            .where({
+              applicationId: applicationId
+            })
+            .get()
+          
+          if (certificateResult.data && certificateResult.data.length > 0) {
+            const certificate = certificateResult.data[0]
+            restaurantUpdateData.certificateId = certificate._id
+            restaurantUpdateData.certificationLevel = certificate.level || 'bronze'
+            restaurantUpdateData.certifiedAt = certificate.issuedAt || new Date()
+          }
+        }
+        
+        await db.collection('restaurants')
+          .doc(application.data.restaurantId)
+          .update({
+            data: restaurantUpdateData
+          })
+      } catch (restaurantError) {
+        console.error('更新餐厅认证状态失败:', restaurantError)
+        // 不影响审核流程，继续执行
+      }
+    }
 
     return {
       code: 0,
@@ -2103,18 +2290,72 @@ async function getTrialData(data) {
       })
     }
 
-    // 4. 获取运营数据（能源、浪费等，从restaurant_operation_data或相关集合）
+    // 4. 获取运营数据（能源、浪费等）
+    // 优先从最近的认证申请中获取，如果没有则从草稿中获取
     let energyUsage = ''
     let wasteReduction = ''
     let socialInitiatives = []
     try {
-      // 这里假设有运营数据集合，实际需要根据数据库结构调整
-      // const operationDataResult = await db.collection('restaurant_operation_data')
-      //   .where({ restaurantId: restaurantId })
-      //   .get()
-      // 暂时返回空数据，后续可以根据实际数据结构补充
+      // 方式1: 从最近的已提交或已认证的申请中获取运营数据
+      const recentApplication = await db.collection('certification_applications')
+        .where({
+          restaurantId: restaurantId,
+          status: _.in(['submitted', 'reviewing', 'certified', 'approved'])
+        })
+        .orderBy('submittedAt', 'desc')
+        .limit(1)
+        .get()
+      
+      if (recentApplication.data && recentApplication.data.length > 0) {
+        const app = recentApplication.data[0]
+        if (app.operationData) {
+          energyUsage = app.operationData.energyUsage || ''
+          wasteReduction = app.operationData.wasteReduction || ''
+          socialInitiatives = app.operationData.socialInitiatives || []
+          console.log('从最近的认证申请中获取运营数据:', {
+            applicationId: app._id,
+            status: app.status,
+            hasEnergyUsage: !!energyUsage,
+            hasWasteReduction: !!wasteReduction,
+            hasSocialInitiatives: socialInitiatives.length > 0
+          })
+        }
+      }
+      
+      // 方式2: 如果方式1没有数据，尝试从最近的草稿中获取
+      if (!energyUsage && !wasteReduction && socialInitiatives.length === 0) {
+        const recentDraft = await db.collection('certification_applications')
+          .where({
+            restaurantId: restaurantId,
+            status: 'draft'
+          })
+          .orderBy('updatedAt', 'desc')
+          .limit(1)
+          .get()
+        
+        if (recentDraft.data && recentDraft.data.length > 0) {
+          const draft = recentDraft.data[0]
+          if (draft.operationData) {
+            energyUsage = draft.operationData.energyUsage || ''
+            wasteReduction = draft.operationData.wasteReduction || ''
+            socialInitiatives = draft.operationData.socialInitiatives || []
+            console.log('从最近的草稿中获取运营数据:', {
+              draftId: draft._id,
+              hasEnergyUsage: !!energyUsage,
+              hasWasteReduction: !!wasteReduction,
+              hasSocialInitiatives: socialInitiatives.length > 0
+            })
+          }
+        }
+      }
+      
+      // 如果仍然没有数据，记录日志但不报错
+      if (!energyUsage && !wasteReduction && socialInitiatives.length === 0) {
+        console.log('未找到运营数据，将返回空值')
+      }
     } catch (error) {
-      console.log('获取运营数据失败:', error)
+      console.error('获取运营数据失败:', error)
+      // 不抛出错误，继续执行，返回空值
     }
 
     // 5. 计算碳足迹统计
@@ -2399,6 +2640,79 @@ async function getDraft(data) {
     return {
       code: 500,
       message: '获取草稿失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 修复审核数据
+ * 清理 systemEvaluation 阶段的人工审核记录
+ */
+async function fixReviewData(data) {
+  const { applicationId } = data
+
+  try {
+    let query = db.collection('certification_applications')
+    
+    // 如果指定了 applicationId，只修复该申请
+    if (applicationId) {
+      query = query.where({ _id: applicationId })
+    } else {
+      // 否则修复所有申请
+      query = query.where({})
+    }
+
+    const applications = await query.get()
+    
+    let fixedCount = 0
+    const results = []
+
+    for (const app of applications.data) {
+      if (!app.reviewRecords || !Array.isArray(app.reviewRecords)) {
+        continue
+      }
+
+      // 过滤掉 systemEvaluation 阶段的审核记录
+      const originalCount = app.reviewRecords.length
+      const filteredRecords = app.reviewRecords.filter(
+        record => record.stage !== 'systemEvaluation'
+      )
+
+      if (filteredRecords.length < originalCount) {
+        // 有需要清理的记录
+        await db.collection('certification_applications')
+          .doc(app._id)
+          .update({
+            data: {
+              reviewRecords: filteredRecords,
+              updatedAt: new Date()
+            }
+          })
+
+        fixedCount++
+        results.push({
+          applicationId: app._id,
+          applicationNumber: app.applicationNumber,
+          removedCount: originalCount - filteredRecords.length,
+          remainingCount: filteredRecords.length
+        })
+      }
+    }
+
+    return {
+      code: 0,
+      message: `数据修复完成，共修复 ${fixedCount} 个申请`,
+      data: {
+        fixedCount,
+        results
+      }
+    }
+  } catch (error) {
+    console.error('修复审核数据失败:', error)
+    return {
+      code: 500,
+      message: '修复数据失败',
       error: error.message
     }
   }

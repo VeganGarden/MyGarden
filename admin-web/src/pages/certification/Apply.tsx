@@ -394,11 +394,32 @@ const CertificationApply: React.FC = () => {
 
         // 自动填充运营数据
         if (trialDataResult.operationData) {
-          form.setFieldsValue({
-            energyUsage: trialDataResult.operationData.energyUsage || '',
-            wasteReduction: trialDataResult.operationData.wasteReduction || '',
-            socialInitiatives: trialDataResult.operationData.socialInitiatives?.join('\n') || '',
-          })
+          const operationValues: any = {}
+          
+          if (trialDataResult.operationData.energyUsage) {
+            operationValues.energyUsage = trialDataResult.operationData.energyUsage
+          }
+          if (trialDataResult.operationData.wasteReduction) {
+            operationValues.wasteReduction = trialDataResult.operationData.wasteReduction
+          }
+          if (trialDataResult.operationData.socialInitiatives) {
+            // 处理数组格式或字符串格式
+            if (Array.isArray(trialDataResult.operationData.socialInitiatives)) {
+              operationValues.socialInitiatives = trialDataResult.operationData.socialInitiatives.join('\n')
+            } else if (typeof trialDataResult.operationData.socialInitiatives === 'string') {
+              operationValues.socialInitiatives = trialDataResult.operationData.socialInitiatives
+            }
+          }
+          
+          if (Object.keys(operationValues).length > 0) {
+            form.setFieldsValue(operationValues)
+            console.log('已自动填充运营数据:', operationValues)
+            message.success('已自动填充运营数据')
+          } else {
+            console.log('试运营数据中没有运营数据')
+          }
+        } else {
+          console.log('试运营数据中没有 operationData 字段')
         }
 
         message.success('试运营数据已自动填充，请检查并补充缺失信息')
@@ -442,7 +463,10 @@ const CertificationApply: React.FC = () => {
 
       // 如果是试运营状态，自动加载试运营数据
       if (currentRestaurant.certificationStatus === 'trial') {
-        loadTrialData()
+        // 延迟加载试运营数据，确保表单已重置
+        setTimeout(() => {
+          loadTrialData()
+        }, 200)
       }
     }
 

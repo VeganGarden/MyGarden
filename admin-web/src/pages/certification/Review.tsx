@@ -247,7 +247,8 @@ const CertificationReview: React.FC = () => {
           >
             查看详情
           </Button>
-          {(record.status === 'submitted' || record.status === 'reviewing') && (
+          {(record.status === 'submitted' || record.status === 'reviewing') && 
+           record.currentStage !== 'systemEvaluation' && (
             <Button
               type="link"
               icon={<CheckCircleOutlined />}
@@ -468,7 +469,9 @@ const CertificationReview: React.FC = () => {
           <Button key="close" onClick={() => setDetailModalVisible(false)}>
             关闭
           </Button>,
-          selectedApplication && (selectedApplication.status === 'submitted' || selectedApplication.status === 'reviewing') && (
+          selectedApplication && 
+          (selectedApplication.status === 'submitted' || selectedApplication.status === 'reviewing') &&
+          selectedApplication.currentStage !== 'systemEvaluation' && (
             <Button
               key="review"
               type="primary"

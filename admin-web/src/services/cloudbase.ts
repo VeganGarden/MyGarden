@@ -334,6 +334,13 @@ export const certificationAPI = {
       data,
     }),
 
+  // 修复审核数据（清理错误的审核记录）
+  fixReviewData: (data?: { applicationId?: string }) =>
+    callCloudFunction('restaurant-certification', {
+      action: 'fixReviewData',
+      data: data || {},
+    }),
+
   // 生成证书
   generateCertificate: (data: { applicationId: string }) =>
     callCloudFunction('restaurant-certification', {

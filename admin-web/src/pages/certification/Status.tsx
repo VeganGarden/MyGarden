@@ -1,8 +1,7 @@
 import { certificationAPI } from '@/services/cloudbase'
-import { useAppSelector, useAppDispatch } from '@/store/hooks'
-import { setCurrentRestaurant } from '@/store/slices/tenantSlice'
+import { useAppSelector } from '@/store/hooks'
 import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
-import { Button, Card, Descriptions, Select, Spin, Tag, Timeline, message, Empty, Alert } from 'antd'
+import { Button, Card, Descriptions, Spin, Tag, Timeline, message, Alert } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -17,40 +16,22 @@ interface AuditRecord {
 
 const CertificationStatus: React.FC = () => {
   const { t } = useTranslation()
-  const dispatch = useAppDispatch()
-  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  const { currentRestaurantId, currentRestaurant } = useAppSelector((state: any) => state.tenant)
   const [auditRecords, setAuditRecords] = useState<AuditRecord[]>([])
   const [currentStatus, setCurrentStatus] = useState<'pending' | 'reviewing' | 'approved' | 'rejected'>('reviewing')
   const [loading, setLoading] = useState(true)
   const [statusData, setStatusData] = useState<any>(null)
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(currentRestaurantId)
 
   useEffect(() => {
-    // 如果只有一个餐厅，自动选择它
-    if (restaurants.length === 1 && !currentRestaurantId) {
-      const restaurant = restaurants[0]
-      setSelectedRestaurantId(restaurant.id)
-      dispatch(setCurrentRestaurant(restaurant.id))
-    } else if (currentRestaurantId) {
-      setSelectedRestaurantId(currentRestaurantId)
-    }
-  }, [restaurants, currentRestaurantId, dispatch])
-
-  useEffect(() => {
-    if (selectedRestaurantId) {
+    if (currentRestaurantId) {
       loadStatus()
     } else {
       setLoading(false)
     }
-  }, [selectedRestaurantId])
-
-  const handleRestaurantChange = (value: string) => {
-    setSelectedRestaurantId(value)
-    dispatch(setCurrentRestaurant(value))
-  }
+  }, [currentRestaurantId])
 
   const loadStatus = async () => {
-    if (!selectedRestaurantId) {
+    if (!currentRestaurantId) {
       setLoading(false)
       return
     }
@@ -58,15 +39,17 @@ const CertificationStatus: React.FC = () => {
     try {
       setLoading(true)
       const result = await certificationAPI.getStatus({
-        restaurantId: selectedRestaurantId
+        restaurantId: currentRestaurantId
       })
 
       if (result.code === 0 && result.data) {
         const data = result.data
         setStatusData(data)
         
-        // 更新状态
-        if (data.status === 'submitted' || data.status === 'reviewing') {
+        // 更新状态 - 优先检查餐厅的认证状态
+        if (currentRestaurant?.certificationStatus === 'certified') {
+          setCurrentStatus('approved')
+        } else if (data.status === 'submitted' || data.status === 'reviewing') {
           setCurrentStatus('reviewing')
         } else if (data.status === 'approved') {
           setCurrentStatus('approved')
@@ -80,7 +63,12 @@ const CertificationStatus: React.FC = () => {
         const records: AuditRecord[] = data.stages?.map((stage: any, index: number) => {
           let status: 'pending' | 'approved' | 'rejected' = 'pending'
           if (stage.status === 'completed') {
-            status = stage.result === 'pass' ? 'approved' : 'rejected'
+            // 处理不同的结果格式
+            if (stage.result === 'pass' || stage.result === 'approved') {
+              status = 'approved'
+            } else if (stage.result === 'fail' || stage.result === 'rejected') {
+              status = 'rejected'
+            }
           }
 
           return {
@@ -95,6 +83,11 @@ const CertificationStatus: React.FC = () => {
         }) || []
 
         setAuditRecords(records)
+      } else if (result.code === 404) {
+        // 没有找到申请，可能是新餐厅或未提交申请
+        setStatusData(null)
+        setCurrentStatus('pending')
+        setAuditRecords([])
       } else {
         message.error(result.message || '获取状态失败')
       }
@@ -143,38 +136,16 @@ const CertificationStatus: React.FC = () => {
   }
 
   // 如果没有选择餐厅，显示空状态
-  if (!selectedRestaurantId) {
+  if (!currentRestaurantId) {
     return (
       <div>
         <Card title={t('pages.certification.status.title')}>
-          {restaurants.length > 0 ? (
-            <div>
-              <Alert
-                message="请选择餐厅"
-                description="请先选择要查看认证进度的餐厅"
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-              />
-              <Select
-                placeholder={t('pages.certification.apply.placeholders.selectRestaurant')}
-                style={{ width: '100%' }}
-                value={selectedRestaurantId}
-                onChange={handleRestaurantChange}
-              >
-                {restaurants.map((restaurant: any) => (
-                  <Select.Option key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </div>
-          ) : (
-            <Empty
-              description="暂无餐厅数据"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
+          <Alert
+            message="请选择餐厅"
+            description="请先在顶部标题栏选择要查看认证进度的餐厅"
+            type="info"
+            showIcon
+          />
         </Card>
       </div>
     )
@@ -182,24 +153,6 @@ const CertificationStatus: React.FC = () => {
 
   return (
     <div>
-      {restaurants.length > 1 && (
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>选择餐厅：</span>
-            <Select
-              style={{ flex: 1, maxWidth: 300 }}
-              value={selectedRestaurantId}
-              onChange={handleRestaurantChange}
-            >
-              {restaurants.map((restaurant: any) => (
-                <Select.Option key={restaurant.id} value={restaurant.id}>
-                  {restaurant.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Card>
-      )}
       <Card title={t('pages.certification.status.title')} style={{ marginBottom: 16 }}>
         <Descriptions column={2}>
           <Descriptions.Item label={t('pages.certification.status.fields.currentStatus')}>
@@ -212,10 +165,32 @@ const CertificationStatus: React.FC = () => {
             {statusData?.estimatedCompletion ? new Date(statusData.estimatedCompletion).toLocaleString() : '-'}
           </Descriptions.Item>
           <Descriptions.Item label={t('pages.certification.status.fields.certificationLevel')}>
-            <Tag color="blue">
-              {statusData?.certificationLevel || t('pages.certification.status.pendingEvaluation')}
+            <Tag color={currentStatus === 'approved' ? 'success' : 'default'}>
+              {statusData?.certificationLevel 
+                ? (statusData.certificationLevel === 'bronze' ? '铜牌' : 
+                   statusData.certificationLevel === 'silver' ? '银牌' : 
+                   statusData.certificationLevel === 'gold' ? '金牌' : 
+                   statusData.certificationLevel)
+                : (currentStatus === 'approved' ? '待评估' : t('pages.certification.status.pendingEvaluation'))}
             </Tag>
           </Descriptions.Item>
+          {statusData?.certificateInfo && (
+            <>
+              <Descriptions.Item label="证书编号">
+                {statusData.certificateInfo.certificateNumber}
+              </Descriptions.Item>
+              <Descriptions.Item label="证书颁发时间">
+                {statusData.certificateInfo.issuedAt 
+                  ? new Date(statusData.certificateInfo.issuedAt).toLocaleString() 
+                  : '-'}
+              </Descriptions.Item>
+              {statusData.certificateInfo.expiryDate && (
+                <Descriptions.Item label="证书有效期至">
+                  {new Date(statusData.certificateInfo.expiryDate).toLocaleString()}
+                </Descriptions.Item>
+              )}
+            </>
+          )}
         </Descriptions>
       </Card>
 
