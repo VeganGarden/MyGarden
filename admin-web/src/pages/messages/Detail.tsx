@@ -47,18 +47,39 @@ const MessageDetailPage: React.FC = () => {
   }, [messageId, user?.id])
 
   const loadMessage = async () => {
-    if (!messageId) return
+    if (!messageId) {
+      console.error('消息ID为空')
+      message.error('消息ID不能为空')
+      setTimeout(() => {
+        navigate('/messages')
+      }, 1500)
+      return
+    }
 
     setLoading(true)
     try {
+      console.log('加载消息详情，messageId:', messageId)
       const result = await messageAPI.getMessage(messageId)
-      if (result.code === 0) {
+      console.log('消息详情API返回:', result)
+      
+      if (result.code === 0 && result.data) {
         setMessageData(result.data)
+        console.log('消息数据已设置:', result.data)
       } else {
-        message.error(result.message || t('common.loadFailed'))
+        console.error('消息不存在或加载失败:', result.message)
+        message.error(result.message || t('common.loadFailed') || '加载失败')
+        // 如果消息不存在，跳转回列表页
+        setTimeout(() => {
+          navigate('/messages')
+        }, 2000)
       }
     } catch (error: any) {
-      message.error(error.message || t('common.loadFailed'))
+      console.error('加载消息详情失败:', error)
+      message.error(error.message || t('common.loadFailed') || '加载失败')
+      // 发生错误时，跳转回列表页
+      setTimeout(() => {
+        navigate('/messages')
+      }, 2000)
     } finally {
       setLoading(false)
     }
@@ -135,10 +156,27 @@ const MessageDetailPage: React.FC = () => {
     }
   }
 
+  // 如果正在加载，显示加载状态
+  if (loading) {
+    return (
+      <Card loading={true}>
+        <div style={{ minHeight: '400px' }} />
+      </Card>
+    )
+  }
+
+  // 如果消息数据不存在，显示空状态
   if (!messageData) {
     return (
-      <Card loading={loading}>
-        <Empty description={t('messages.notFound')} />
+      <Card>
+        <Empty 
+          description={t('messages.notFound') || '消息不存在'}
+          style={{ padding: '60px 0' }}
+        >
+          <Button type="primary" onClick={() => navigate('/messages')}>
+            返回消息列表
+          </Button>
+        </Empty>
       </Card>
     )
   }

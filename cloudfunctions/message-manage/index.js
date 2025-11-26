@@ -35,6 +35,9 @@ exports.main = async (event, context) => {
       case 'getMessage':
         return await getMessage(data, wxContext);
       
+      case 'markAllAsRead':
+        return await markAllAsRead(data, wxContext);
+      
       default:
         return {
           code: 400,
@@ -334,6 +337,50 @@ async function sendMessage(data, wxContext) {
     return {
       code: 500,
       message: '发送消息失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 批量标记全部为已读
+ */
+async function markAllAsRead(data, wxContext) {
+  const { userId } = data;
+  const targetUserId = userId || wxContext.OPENID;
+
+  if (!targetUserId) {
+    return {
+      code: 400,
+      message: '用户ID不能为空'
+    };
+  }
+
+  try {
+    const result = await db.collection('user_messages')
+      .where({
+        userId: targetUserId,
+        status: 'sent'
+      })
+      .update({
+        data: {
+          status: 'read',
+          readAt: new Date()
+        }
+      });
+
+    return {
+      code: 0,
+      message: '全部标记为已读成功',
+      data: {
+        updated: result.stats.updated
+      }
+    };
+  } catch (error) {
+    console.error('批量标记已读失败:', error);
+    return {
+      code: 500,
+      message: '批量标记已读失败',
       error: error.message
     };
   }

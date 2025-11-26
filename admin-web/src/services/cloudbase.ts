@@ -1188,6 +1188,13 @@ export const messageAPI = {
       data,
     }),
 
+  // 批量标记全部为已读
+  markAllAsRead: (data: { userId: string }) =>
+    callCloudFunction('message-manage', {
+      action: 'markAllAsRead',
+      data,
+    }),
+
   // 获取消息详情
   getMessage: (messageId: string) =>
     callCloudFunction('message-manage', {

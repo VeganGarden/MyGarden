@@ -140,6 +140,7 @@ const NotificationCenter: React.FC = () => {
         await messageAPI.markAsRead({
           userMessageId: userMessage._id,
           messageId: userMessage.messageId,
+          userId: user?.id || user?._id, // 确保传递userId
         })
         // 更新本地状态
         setNotifications((prev) =>
@@ -150,15 +151,25 @@ const NotificationCenter: React.FC = () => {
           )
         )
       } catch (error) {
-        // 静默处理
+        console.error('标记已读失败:', error)
+        // 静默处理，继续跳转
       }
     }
 
-    // 跳转
+    // 跳转逻辑
     if (userMessage.message?.link) {
+      // 如果有link，直接跳转
       navigate(userMessage.message.link)
-    } else {
+    } else if (userMessage.messageId) {
+      // 如果有messageId，跳转到消息详情页
       navigate(`/messages/${userMessage.messageId}`)
+    } else if (userMessage.message?._id) {
+      // 如果message对象有_id，使用它
+      navigate(`/messages/${userMessage.message._id}`)
+    } else {
+      // 如果都没有，跳转到消息列表页
+      antdMessage.warning('消息链接无效，已跳转到消息列表')
+      navigate('/messages')
     }
   }
 
@@ -166,28 +177,28 @@ const NotificationCenter: React.FC = () => {
   const handleMarkAllAsRead = async () => {
     if (unreadCount === 0) return
 
+    if (!user?.id && !user?._id) {
+      antdMessage.error('用户信息缺失，无法标记已读')
+      return
+    }
+
     setLoading(true)
     try {
-      const unreadMessages = notifications.filter((n) => n.status === 'sent')
-      const promises = unreadMessages.map((msg) =>
-        messageAPI.markAsRead({
-          userMessageId: msg._id,
-          messageId: msg.messageId,
-        })
-      )
-      await Promise.all(promises)
+      // 使用批量标记API
+      const result = await messageAPI.markAllAsRead({
+        userId: user?.id || user?._id,
+      })
 
-      // 更新本地状态
-      setNotifications((prev) =>
-        prev.map((msg) =>
-          msg.status === 'sent'
-            ? { ...msg, status: 'read' as const, readAt: new Date() }
-            : msg
-        )
-      )
-      antdMessage.success(t('notification.markAllReadSuccess'))
-    } catch (error) {
-      antdMessage.error(t('common.updateFailed'))
+      if (result.code === 0) {
+        // 重新加载消息列表以确保数据同步
+        await loadMessages()
+        antdMessage.success(t('notification.markAllReadSuccess'))
+      } else {
+        antdMessage.error(result.message || t('common.updateFailed'))
+      }
+    } catch (error: any) {
+      console.error('标记全部已读失败:', error)
+      antdMessage.error(error.message || t('common.updateFailed'))
     } finally {
       setLoading(false)
     }

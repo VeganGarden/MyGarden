@@ -146,6 +146,7 @@ const MessageListPage: React.FC = () => {
       const result = await messageAPI.markAsRead({
         userMessageId: userMessage._id,
         messageId: userMessage.messageId,
+        userId: user?.id || user?._id, // 确保传递userId
       })
 
       if (result.code === 0) {
@@ -162,6 +163,7 @@ const MessageListPage: React.FC = () => {
         message.error(result.message || t('common.updateFailed'))
       }
     } catch (error: any) {
+      console.error('标记已读失败:', error)
       message.error(error.message || t('common.updateFailed'))
     }
   }
@@ -172,11 +174,19 @@ const MessageListPage: React.FC = () => {
       await handleMarkAsRead(userMessage)
     }
 
-    // 跳转到详情页或相关页面
+    // 跳转逻辑
     if (userMessage.message?.link) {
+      // 如果有link，直接跳转
       navigate(userMessage.message.link)
-    } else {
+    } else if (userMessage.messageId) {
+      // 如果有messageId，跳转到消息详情页
       navigate(`/messages/${userMessage.messageId}`)
+    } else if (userMessage.message?._id) {
+      // 如果message对象有_id，使用它
+      navigate(`/messages/${userMessage.message._id}`)
+    } else {
+      // 如果都没有，显示错误提示
+      message.error('消息链接无效')
     }
   }
 

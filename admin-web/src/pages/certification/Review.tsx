@@ -208,7 +208,12 @@ const CertificationReview: React.FC = () => {
       dataIndex: 'currentStage',
       key: 'currentStage',
       width: 120,
-      render: (stage: string) => getStageTag(stage),
+      render: (stage: string, record: Application) => {
+        if (record.status === 'approved' || record.status === 'rejected') {
+          return <Tag color="default">已完成</Tag>
+        }
+        return getStageTag(stage)
+      },
     },
     {
       title: '提交时间',
@@ -405,7 +410,9 @@ const CertificationReview: React.FC = () => {
                 {selectedApplication.restaurantName}
               </Descriptions.Item>
               <Descriptions.Item label="当前阶段">
-                {getStageTag(selectedApplication.currentStage)}
+                {selectedApplication.status === 'approved' || selectedApplication.status === 'rejected' 
+                  ? <Tag color="default">已完成</Tag>
+                  : getStageTag(selectedApplication.currentStage)}
               </Descriptions.Item>
               {selectedApplication.systemEvaluation && (
                 <>
@@ -499,7 +506,9 @@ const CertificationReview: React.FC = () => {
                 {getStatusTag(selectedApplication.status)}
               </Descriptions.Item>
               <Descriptions.Item label="当前阶段">
-                {getStageTag(selectedApplication.currentStage)}
+                {selectedApplication.status === 'approved' || selectedApplication.status === 'rejected' 
+                  ? <Tag color="default">已完成</Tag>
+                  : getStageTag(selectedApplication.currentStage)}
               </Descriptions.Item>
               <Descriptions.Item label="提交时间">
                 {selectedApplication.submittedAt

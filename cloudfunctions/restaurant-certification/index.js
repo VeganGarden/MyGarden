@@ -93,6 +93,9 @@ exports.main = async (event, context) => {
       case 'fixReviewData':
         return await fixReviewData(data)
       
+      case 'fixApplicationStages':
+        return await fixApplicationStages(data)
+      
       default:
         return {
           code: 400,
@@ -1305,6 +1308,9 @@ async function review(data) {
         console.error('创建下一阶段记录失败:', stageError)
         // 不影响主流程，继续执行
       }
+    } else if (newStatus === 'approved' || newStatus === 'rejected') {
+      // 如果状态变为已通过或已拒绝，清除当前阶段（流程已完成）
+      updateData.currentStage = null
     }
 
     // 添加审核记录到更新数据中
@@ -2640,6 +2646,72 @@ async function getDraft(data) {
     return {
       code: 500,
       message: '获取草稿失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 修复申请阶段数据
+ * 清除已通过或已拒绝申请的currentStage
+ */
+async function fixApplicationStages(data) {
+  const { applicationId } = data
+
+  try {
+    let query = db.collection('certification_applications')
+    
+    // 如果指定了 applicationId，只修复该申请
+    if (applicationId) {
+      query = query.where({ _id: applicationId })
+    } else {
+      // 否则修复所有已通过或已拒绝的申请
+      query = query.where({
+        status: _.in(['approved', 'rejected'])
+      })
+    }
+
+    const applications = await query.get()
+    
+    let fixedCount = 0
+    const results = []
+
+    for (const app of applications.data) {
+      // 如果状态是已通过或已拒绝，但currentStage不为null，需要修复
+      if ((app.status === 'approved' || app.status === 'rejected') && app.currentStage) {
+        await db.collection('certification_applications')
+          .doc(app._id)
+          .update({
+            data: {
+              currentStage: null,
+              updatedAt: new Date()
+            }
+          })
+
+        fixedCount++
+        results.push({
+          applicationId: app._id,
+          applicationNumber: app.applicationNumber,
+          status: app.status,
+          oldStage: app.currentStage,
+          newStage: null
+        })
+      }
+    }
+
+    return {
+      code: 0,
+      message: `阶段数据修复完成，共修复 ${fixedCount} 个申请`,
+      data: {
+        fixedCount,
+        results
+      }
+    }
+  } catch (error) {
+    console.error('修复申请阶段数据失败:', error)
+    return {
+      code: 500,
+      message: '修复数据失败',
       error: error.message
     }
   }
