@@ -1,34 +1,34 @@
 import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
-  CheckOutlined,
-  ImportOutlined,
-  InfoCircleOutlined,
-  SaveOutlined,
-  UploadOutlined,
+    CheckOutlined,
+    ImportOutlined,
+    InfoCircleOutlined,
+    SaveOutlined,
+    UploadOutlined,
 } from '@ant-design/icons'
 import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Collapse,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Row,
-  Select,
-  Space,
-  Steps,
-  Table,
-  Tag,
-  Typography,
-  Upload,
-  message,
+    Alert,
+    Button,
+    Card,
+    Col,
+    Collapse,
+    Form,
+    Input,
+    InputNumber,
+    Modal,
+    Row,
+    Select,
+    Space,
+    Steps,
+    Table,
+    Tag,
+    Typography,
+    Upload,
+    message,
 } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
