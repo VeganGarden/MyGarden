@@ -1190,7 +1190,7 @@ async function exportMaterials(data) {
     }
 
     // 根据fields参数过滤数据
-    const exportData: any = {
+    const exportData = {
       applicationId: application.applicationId,
       applicationNumber: application.applicationNumber,
       restaurantId: application.restaurantId,
