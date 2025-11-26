@@ -899,9 +899,17 @@ async function getStatus(data) {
         stages: formattedStages,
         estimatedCompletion,
         applicationId: appData.applicationId,
+        applicationNumber: appData.applicationNumber,
         submittedAt: appData.submittedAt,
         certificationLevel: certificationLevel || (appData.status === 'approved' ? 'bronze' : null),
-        certificateInfo: certificateInfo
+        certificateInfo: certificateInfo,
+        // 添加完整的申请数据，供资料维护页面使用
+        basicInfo: appData.basicInfo || {},
+        menuInfo: appData.menuInfo || {},
+        supplyChainInfo: appData.supplyChainInfo || {},
+        operationData: appData.operationData || {},
+        documents: appData.documents || [],
+        reviewRecords: appData.reviewRecords || []
       }
     }
   } catch (error) {
@@ -958,25 +966,42 @@ async function getCertificate(data) {
 
     const certData = certificate.data
 
+    // 获取餐厅信息
+    let restaurantName = null
+    if (restaurantId) {
+      try {
+        const restaurant = await db.collection('restaurants')
+          .doc(restaurantId)
+          .get()
+        if (restaurant.data) {
+          restaurantName = restaurant.data.name
+        }
+      } catch (err) {
+        console.error('获取餐厅信息失败:', err)
+      }
+    }
+
     // 计算距离到期天数
     const now = new Date()
-    const expiryDate = new Date(certData.expiryDate)
-    const daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24))
+    const expiryDate = certData.expiryDate ? new Date(certData.expiryDate) : null
+    const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
 
     return {
       code: 0,
       message: '获取成功',
       data: {
         certificateId: certData._id,
-        certificateNumber: certData.certificateId,
-        certLevel: certData.certLevel || 'certified',
-        issueDate: certData.issueDate,
+        certificateNumber: certData.certificateId || certData.certificateNumber,
+        certLevel: certData.certLevel || certData.level || 'certified',
+        restaurantName: restaurantName || certData.restaurantName,
+        issueDate: certData.issueDate || certData.issuedAt,
         expiryDate: certData.expiryDate,
-        status: certData.status,
+        status: certData.status || 'valid',
         certificateFile: certData.certificateFile,
         shareLink: certData.shareLink,
         renewalRecords: certData.renewalRecords || [],
-        daysUntilExpiry
+        daysUntilExpiry,
+        issuedBy: certData.issuedBy || '我的花园平台'
       }
     }
   } catch (error) {
@@ -1151,28 +1176,73 @@ async function exportMaterials(data) {
 
     const application = applications.data[0]
 
-    // 这里应该生成PDF或Excel文件
-    // 由于需要文件生成库，暂时返回数据，后续实现文件生成
-    const exportData = {
+    // 获取餐厅信息
+    let restaurantName = null
+    try {
+      const restaurant = await db.collection('restaurants')
+        .doc(restaurantId)
+        .get()
+      if (restaurant.data) {
+        restaurantName = restaurant.data.name
+      }
+    } catch (err) {
+      console.error('获取餐厅信息失败:', err)
+    }
+
+    // 根据fields参数过滤数据
+    const exportData: any = {
       applicationId: application.applicationId,
+      applicationNumber: application.applicationNumber,
       restaurantId: application.restaurantId,
-      basicInfo: application.basicInfo,
-      menuInfo: application.menuInfo,
-      supplyChainInfo: application.supplyChainInfo,
-      operationData: application.operationData,
-      systemEvaluation: application.systemEvaluation,
+      restaurantName: restaurantName,
       exportedAt: new Date()
     }
 
-    // TODO: 实现PDF/Excel文件生成并上传到云存储
-    // 暂时返回数据
-    return {
-      code: 0,
-      message: '导出成功（待实现文件生成）',
-      data: {
-        exportData,
-        format,
-        note: '文件生成功能待实现'
+    // 根据选择的字段添加数据
+    if (!fields || fields.length === 0 || fields.includes('basicInfo')) {
+      exportData.basicInfo = application.basicInfo || {}
+    }
+    if (!fields || fields.length === 0 || fields.includes('menuInfo')) {
+      exportData.menuInfo = application.menuInfo || {}
+    }
+    if (!fields || fields.length === 0 || fields.includes('supplyChainInfo')) {
+      exportData.supplyChainInfo = application.supplyChainInfo || {}
+    }
+    if (!fields || fields.length === 0 || fields.includes('operationData')) {
+      exportData.operationData = application.operationData || {}
+    }
+    if (!fields || fields.length === 0 || fields.includes('systemEvaluation')) {
+      exportData.systemEvaluation = application.systemEvaluation || {}
+    }
+    if (!fields || fields.length === 0 || fields.includes('reviewRecords')) {
+      exportData.reviewRecords = application.reviewRecords || []
+    }
+    if (!fields || fields.length === 0 || fields.includes('documents')) {
+      exportData.documents = application.documents || []
+    }
+
+    // 根据格式返回数据
+    if (format === 'json') {
+      // JSON格式直接返回数据
+      return {
+        code: 0,
+        message: '导出成功',
+        data: {
+          exportData,
+          format: 'json'
+        }
+      }
+    } else {
+      // PDF和Excel格式暂时返回数据，提示用户
+      // TODO: 实现PDF/Excel文件生成并上传到云存储
+      return {
+        code: 0,
+        message: '导出成功（JSON格式）',
+        data: {
+          exportData,
+          format: 'json',
+          note: 'PDF和Excel文件生成功能待实现，当前返回JSON格式数据'
+        }
       }
     }
   } catch (error) {

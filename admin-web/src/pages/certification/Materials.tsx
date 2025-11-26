@@ -1,21 +1,19 @@
 import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
-  EditOutlined,
   HistoryOutlined,
-  ReloadOutlined,
   SaveOutlined,
 } from '@ant-design/icons'
 import {
+  Alert,
   Button,
   Card,
   Form,
   Input,
   message,
-  Select,
   Space,
+  Spin,
   Tabs,
-  Upload,
 } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,35 +25,108 @@ const { TabPane } = Tabs
 const CertificationMaterials: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  const { currentRestaurantId, currentRestaurant } = useAppSelector((state: any) => state.tenant)
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('basicInfo')
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(currentRestaurantId)
+  const [loadingData, setLoadingData] = useState(false)
 
   useEffect(() => {
-    if (restaurants.length === 1 && !currentRestaurantId) {
-      setSelectedRestaurantId(restaurants[0].id)
-    } else if (currentRestaurantId) {
-      setSelectedRestaurantId(currentRestaurantId)
+    if (currentRestaurantId) {
+      loadCurrentMaterials()
     }
-  }, [restaurants, currentRestaurantId])
+  }, [currentRestaurantId, activeTab])
+
+  const loadCurrentMaterials = async () => {
+    if (!currentRestaurantId) return
+
+    try {
+      setLoadingData(true)
+      // 获取当前认证申请的最新资料
+      const statusResult = await certificationAPI.getStatus({
+        restaurantId: currentRestaurantId
+      })
+
+      if (statusResult.code === 0 && statusResult.data) {
+        // 根据当前标签页填充表单数据
+        const appData = statusResult.data
+        const formData: any = {}
+
+        if (activeTab === 'basicInfo' && appData.basicInfo) {
+          // 基本信息
+          Object.assign(formData, {
+            restaurantName: appData.basicInfo.restaurantName,
+            address: appData.basicInfo.address,
+            contactPhone: appData.basicInfo.contactPhone,
+            contactEmail: appData.basicInfo.contactEmail,
+            legalPerson: appData.basicInfo.legalPerson,
+          })
+        } else if (activeTab === 'menuInfo' && appData.menuInfo) {
+          // 菜单信息：将菜单项数组转换为JSON字符串
+          if (appData.menuInfo.menuItems && Array.isArray(appData.menuInfo.menuItems)) {
+            formData.menuItems = JSON.stringify(appData.menuInfo.menuItems, null, 2)
+          } else if (appData.menuInfo.menuItems) {
+            formData.menuItems = typeof appData.menuInfo.menuItems === 'string' 
+              ? appData.menuInfo.menuItems 
+              : JSON.stringify(appData.menuInfo.menuItems, null, 2)
+          }
+        } else if (activeTab === 'supplyChainInfo' && appData.supplyChainInfo) {
+          // 供应链信息
+          Object.assign(formData, {
+            suppliers: appData.supplyChainInfo.suppliers 
+              ? (Array.isArray(appData.supplyChainInfo.suppliers) 
+                  ? JSON.stringify(appData.supplyChainInfo.suppliers, null, 2)
+                  : appData.supplyChainInfo.suppliers)
+              : '',
+            localIngredientRatio: appData.supplyChainInfo.localIngredientRatio,
+            traceabilityInfo: appData.supplyChainInfo.traceabilityInfo || appData.supplyChainInfo.ingredientSource,
+          })
+        } else if (activeTab === 'operationData' && appData.operationData) {
+          // 运营数据
+          Object.assign(formData, {
+            energyUsage: appData.operationData.energyUsage,
+            wasteReduction: appData.operationData.wasteReduction,
+            socialInitiatives: appData.operationData.socialInitiatives,
+          })
+        }
+
+        form.setFieldsValue(formData)
+      } else if (statusResult.code === 404) {
+        // 没有找到申请，清空表单
+        form.resetFields()
+      }
+    } catch (error) {
+      console.error('加载当前资料失败:', error)
+    } finally {
+      setLoadingData(false)
+    }
+  }
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
       
-      if (!selectedRestaurantId) {
-        message.warning('请先选择餐厅')
+      if (!currentRestaurantId) {
+        message.warning('请先在顶部标题栏选择餐厅')
         return
       }
 
       setLoading(true)
 
+      // 处理菜单信息：如果是JSON字符串，尝试解析
+      let processedValues = { ...values }
+      if (activeTab === 'menuInfo' && values.menuItems) {
+        try {
+          processedValues.menuItems = JSON.parse(values.menuItems)
+        } catch {
+          // 如果不是有效的JSON，保持原样
+        }
+      }
+
       const materialData = {
-        restaurantId: selectedRestaurantId,
+        restaurantId: currentRestaurantId,
         materialType: activeTab,
-        materialData: values,
+        materialData: processedValues,
         changeReason: values.changeReason || '资料更新',
       }
 
@@ -63,7 +134,8 @@ const CertificationMaterials: React.FC = () => {
 
       if (result.code === 0) {
         message.success('资料更新成功')
-        form.resetFields()
+        // 重新加载当前资料
+        await loadCurrentMaterials()
       } else {
         message.error(result.message || '更新失败')
       }
@@ -79,55 +151,28 @@ const CertificationMaterials: React.FC = () => {
   }
 
   const handleViewHistory = () => {
-    if (!selectedRestaurantId) {
-      message.warning('请先选择餐厅')
+    if (!currentRestaurantId) {
+      message.warning('请先在顶部标题栏选择餐厅')
       return
     }
-    navigate(`/certification/materials/history?restaurantId=${selectedRestaurantId}&materialType=${activeTab}`)
+    navigate(`/certification/materials/history?restaurantId=${currentRestaurantId}&materialType=${activeTab}`)
   }
 
-  if (!selectedRestaurantId && restaurants.length > 0) {
+  if (!currentRestaurantId) {
     return (
       <Card title="认证资料维护">
-        <div style={{ textAlign: 'center', padding: 50 }}>
-          <p style={{ color: '#999', marginBottom: 16 }}>请先选择餐厅</p>
-          <Select
-            placeholder="选择餐厅"
-            style={{ width: 300 }}
-            value={selectedRestaurantId}
-            onChange={setSelectedRestaurantId}
-          >
-            {restaurants.map((restaurant: any) => (
-              <Select.Option key={restaurant.id} value={restaurant.id}>
-                {restaurant.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
+        <Alert
+          message="请选择餐厅"
+          description="请先在顶部标题栏选择要维护资料的餐厅"
+          type="info"
+          showIcon
+        />
       </Card>
     )
   }
 
   return (
     <div>
-      {restaurants.length > 1 && (
-        <Card style={{ marginBottom: 16 }}>
-          <Space>
-            <span>选择餐厅：</span>
-            <Select
-              style={{ width: 300 }}
-              value={selectedRestaurantId}
-              onChange={setSelectedRestaurantId}
-            >
-              {restaurants.map((restaurant: any) => (
-                <Select.Option key={restaurant.id} value={restaurant.id}>
-                  {restaurant.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Space>
-        </Card>
-      )}
 
       <Card
         title="认证资料维护"
@@ -147,6 +192,11 @@ const CertificationMaterials: React.FC = () => {
           </Space>
         }
       >
+        {loadingData && (
+          <div style={{ textAlign: 'center', padding: 20 }}>
+            <Spin tip="加载当前资料..." />
+          </div>
+        )}
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane tab="基本信息" key="basicInfo">
             <Form form={form} layout="vertical">

@@ -1,9 +1,8 @@
 import { certificationAPI } from '@/services/cloudbase'
-import { useAppSelector, useAppDispatch } from '@/store/hooks'
-import { setCurrentRestaurant } from '@/store/slices/tenantSlice'
+import { useAppSelector } from '@/store/hooks'
 import { getCloudbaseApp } from '@/utils/cloudbase-init'
 import { CopyOutlined, DownloadOutlined, EyeOutlined, ReloadOutlined, ShareAltOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Descriptions, Empty, List, Modal, Progress, QRCode, Select, Space, Spin, Tag, message } from 'antd'
+import { Alert, Button, Card, Descriptions, Empty, List, Modal, Progress, QRCode, Space, Spin, Tag, message } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -11,42 +10,24 @@ import { useNavigate } from 'react-router-dom'
 const CertificationCertificate: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const dispatch = useAppDispatch()
-  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  const { currentRestaurantId, currentRestaurant } = useAppSelector((state: any) => state.tenant)
   const [certificateData, setCertificateData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [previewVisible, setPreviewVisible] = useState(false)
   const [renewalReminder, setRenewalReminder] = useState<{ daysLeft: number; showReminder: boolean } | null>(null)
   const [upgradeTasks, setUpgradeTasks] = useState<any[]>([])
   const [loadingTasks, setLoadingTasks] = useState(false)
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(currentRestaurantId)
 
   useEffect(() => {
-    // 如果只有一个餐厅，自动选择它
-    if (restaurants.length === 1 && !currentRestaurantId) {
-      const restaurant = restaurants[0]
-      setSelectedRestaurantId(restaurant.id)
-      dispatch(setCurrentRestaurant(restaurant.id))
-    } else if (currentRestaurantId) {
-      setSelectedRestaurantId(currentRestaurantId)
-    }
-  }, [restaurants, currentRestaurantId, dispatch])
-
-  useEffect(() => {
-    if (selectedRestaurantId) {
+    if (currentRestaurantId) {
       loadCertificate()
     } else {
       setLoading(false)
     }
-  }, [selectedRestaurantId])
-
-  const handleRestaurantChange = (value: string) => {
-    setSelectedRestaurantId(value)
-    dispatch(setCurrentRestaurant(value))
-  }
+  }, [currentRestaurantId])
 
   const loadCertificate = async () => {
-    if (!selectedRestaurantId) {
+    if (!currentRestaurantId) {
       setLoading(false)
       return
     }
@@ -54,7 +35,7 @@ const CertificationCertificate: React.FC = () => {
     try {
       setLoading(true)
       const result = await certificationAPI.getCertificate({
-        restaurantId: selectedRestaurantId
+        restaurantId: currentRestaurantId
       })
 
       if (result.code === 0 && result.data) {
@@ -202,38 +183,16 @@ const CertificationCertificate: React.FC = () => {
   }
 
   // 如果没有选择餐厅，显示空状态
-  if (!selectedRestaurantId) {
+  if (!currentRestaurantId) {
     return (
       <div>
         <Card title={t('pages.certification.certificate.title')}>
-          {restaurants.length > 0 ? (
-            <div>
-              <Alert
-                message="请选择餐厅"
-                description="请先选择要查看证书的餐厅"
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-              />
-              <Select
-                placeholder={t('pages.certification.apply.placeholders.selectRestaurant')}
-                style={{ width: '100%' }}
-                value={selectedRestaurantId}
-                onChange={handleRestaurantChange}
-              >
-                {restaurants.map((restaurant: any) => (
-                  <Select.Option key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </div>
-          ) : (
-            <Empty
-              description="暂无餐厅数据"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
+          <Alert
+            message="请选择餐厅"
+            description="请先在顶部标题栏选择要查看证书的餐厅"
+            type="info"
+            showIcon
+          />
         </Card>
       </div>
     )
@@ -242,30 +201,22 @@ const CertificationCertificate: React.FC = () => {
   if (!certificateData) {
     return (
       <div>
-        {restaurants.length > 1 && (
-          <Card style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>选择餐厅：</span>
-              <Select
-                style={{ flex: 1, maxWidth: 300 }}
-                value={selectedRestaurantId}
-                onChange={handleRestaurantChange}
-              >
-                {restaurants.map((restaurant: any) => (
-                  <Select.Option key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </div>
-          </Card>
-        )}
         <Card title={t('pages.certification.certificate.title')}>
           <div style={{ textAlign: 'center', padding: 50 }}>
-            <p style={{ color: '#999', marginBottom: 16 }}>暂无证书信息</p>
-            <p style={{ color: '#999', fontSize: 12 }}>
-              请先完成认证申请并通过审核
-            </p>
+            <Empty
+              description={
+                <div>
+                  <p style={{ color: '#999', marginBottom: 8 }}>暂无证书信息</p>
+                  <p style={{ color: '#999', fontSize: 12 }}>
+                    {currentRestaurant?.name || '当前餐厅'} 尚未获得认证证书
+                  </p>
+                  <p style={{ color: '#999', fontSize: 12, marginTop: 8 }}>
+                    请先完成认证申请并通过审核
+                  </p>
+                </div>
+              }
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
           </div>
         </Card>
       </div>
@@ -274,24 +225,6 @@ const CertificationCertificate: React.FC = () => {
 
   return (
     <div>
-      {restaurants.length > 1 && (
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>选择餐厅：</span>
-            <Select
-              style={{ flex: 1, maxWidth: 300 }}
-              value={selectedRestaurantId}
-              onChange={handleRestaurantChange}
-            >
-              {restaurants.map((restaurant: any) => (
-                <Select.Option key={restaurant.id} value={restaurant.id}>
-                  {restaurant.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Card>
-      )}
       <Card
         title={t('pages.certification.certificate.title')}
         extra={
@@ -313,7 +246,7 @@ const CertificationCertificate: React.FC = () => {
             {certificateData.certificateNumber || certificateData.certificateId}
           </Descriptions.Item>
           <Descriptions.Item label={t('pages.certification.certificate.fields.restaurantName')}>
-            {certificateData.restaurantName || '-'}
+            {certificateData.restaurantName || currentRestaurant?.name || '-'}
           </Descriptions.Item>
           <Descriptions.Item label={t('pages.certification.certificate.fields.certificationLevel')}>
             <Tag color="green">{certificateData.certLevel || 'Climate Restaurant Certified'}</Tag>
@@ -341,7 +274,7 @@ const CertificationCertificate: React.FC = () => {
             }}
           >
             <h2 style={{ marginBottom: 16 }}>Climate Restaurant Certified</h2>
-            <h3 style={{ marginBottom: 24 }}>{certificateData.restaurantName || '-'}</h3>
+            <h3 style={{ marginBottom: 24 }}>{certificateData.restaurantName || currentRestaurant?.name || '-'}</h3>
             <p style={{ color: '#666', marginBottom: 16 }}>
               {t('pages.certification.certificate.certificateDisplay.certificateNo')}: {certificateData.certificateNumber || certificateData.certificateId}
             </p>
@@ -478,7 +411,7 @@ const CertificationCertificate: React.FC = () => {
                 {certificateData.certificateNumber || certificateData.certificateId}
               </Descriptions.Item>
               <Descriptions.Item label="餐厅名称">
-                {certificateData.restaurantName}
+                {certificateData.restaurantName || currentRestaurant?.name || '-'}
               </Descriptions.Item>
               <Descriptions.Item label="认证等级">
                 <Tag color="green">{certificateData.certLevel}</Tag>

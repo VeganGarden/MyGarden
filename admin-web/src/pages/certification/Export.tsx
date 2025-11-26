@@ -1,25 +1,16 @@
 import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
-import { Button, Card, Checkbox, Form, message, Select, Space, Spin } from 'antd'
+import { Alert, Button, Card, Checkbox, Form, message, Space } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const CertificationExport: React.FC = () => {
   const { t } = useTranslation()
-  const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
+  const { currentRestaurantId, currentRestaurant } = useAppSelector((state: any) => state.tenant)
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(currentRestaurantId)
   const [exportFields, setExportFields] = useState<string[]>([])
-
-  useEffect(() => {
-    if (restaurants.length === 1 && !currentRestaurantId) {
-      setSelectedRestaurantId(restaurants[0].id)
-    } else if (currentRestaurantId) {
-      setSelectedRestaurantId(currentRestaurantId)
-    }
-  }, [restaurants, currentRestaurantId])
 
   const allFields = [
     { key: 'basicInfo', label: '基本信息' },
@@ -35,8 +26,8 @@ const CertificationExport: React.FC = () => {
     try {
       const values = await form.validateFields()
       
-      if (!selectedRestaurantId) {
-        message.warning('请先选择餐厅')
+      if (!currentRestaurantId) {
+        message.warning('请先在顶部标题栏选择餐厅')
         return
       }
 
@@ -48,24 +39,43 @@ const CertificationExport: React.FC = () => {
       setLoading(true)
 
       const result = await certificationAPI.exportMaterials({
-        restaurantId: selectedRestaurantId,
+        restaurantId: currentRestaurantId,
         format: values.format || 'pdf',
         fields: exportFields,
       })
 
       if (result.code === 0) {
-        if (result.data.exportData) {
-          // 如果返回了数据，创建下载
+        const format = values.format || 'pdf'
+        const restaurantName = currentRestaurant?.name || currentRestaurantId
+        const timestamp = new Date().getTime()
+        
+        if (format === 'json' && result.data.exportData) {
+          // JSON格式：直接下载JSON文件
           const dataStr = JSON.stringify(result.data.exportData, null, 2)
           const dataBlob = new Blob([dataStr], { type: 'application/json' })
           const url = URL.createObjectURL(dataBlob)
           const link = document.createElement('a')
           link.href = url
-          link.download = `认证资料_${selectedRestaurantId}_${new Date().getTime()}.json`
+          link.download = `认证资料_${restaurantName}_${timestamp}.json`
           link.click()
           URL.revokeObjectURL(url)
+          message.success('导出成功')
+        } else if (result.data.fileUrl) {
+          // PDF或Excel格式：下载文件
+          const link = document.createElement('a')
+          link.href = result.data.fileUrl
+          link.download = `认证资料_${restaurantName}_${timestamp}.${format}`
+          link.target = '_blank'
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          message.success('导出成功')
+        } else if (result.data.exportData) {
+          // 如果没有文件URL，但有数据，提示用户
+          message.warning('文件生成功能待完善，当前仅支持JSON格式导出')
+        } else {
+          message.success('导出请求已提交')
         }
-        message.success('导出成功')
       } else {
         message.error(result.message || '导出失败')
       }
@@ -80,48 +90,21 @@ const CertificationExport: React.FC = () => {
     }
   }
 
-  if (!selectedRestaurantId && restaurants.length > 0) {
+  if (!currentRestaurantId) {
     return (
       <Card title="认证资料导出">
-        <div style={{ textAlign: 'center', padding: 50 }}>
-          <p style={{ color: '#999', marginBottom: 16 }}>请先选择餐厅</p>
-          <Select
-            placeholder="选择餐厅"
-            style={{ width: 300 }}
-            value={selectedRestaurantId}
-            onChange={setSelectedRestaurantId}
-          >
-            {restaurants.map((restaurant: any) => (
-              <Select.Option key={restaurant.id} value={restaurant.id}>
-                {restaurant.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
+        <Alert
+          message="请选择餐厅"
+          description="请先在顶部标题栏选择要导出资料的餐厅"
+          type="info"
+          showIcon
+        />
       </Card>
     )
   }
 
   return (
     <div>
-      {restaurants.length > 1 && (
-        <Card style={{ marginBottom: 16 }}>
-          <Space>
-            <span>选择餐厅：</span>
-            <Select
-              style={{ width: 300 }}
-              value={selectedRestaurantId}
-              onChange={setSelectedRestaurantId}
-            >
-              {restaurants.map((restaurant: any) => (
-                <Select.Option key={restaurant.id} value={restaurant.id}>
-                  {restaurant.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Space>
-        </Card>
-      )}
 
       <Card
         title="认证资料导出"
