@@ -626,6 +626,467 @@ async function getCustomerStats(params, user) {
 }
 
 /**
+ * 生成统计数据快照
+ */
+async function generateStatsSnapshot(params, user) {
+  try {
+    const { restaurantId, tenantId, statDate, statType = 'daily' } = params
+    
+    const queryTenantId = tenantId || user.tenantId
+    const snapshotDate = statDate ? new Date(statDate) : new Date()
+    
+    // 获取员工统计
+    const staffStatsResult = await getStaffStats({ restaurantId, tenantId: queryTenantId }, user)
+    if (staffStatsResult.code !== 0) {
+      throw new Error('获取员工统计失败')
+    }
+    
+    // 获取客户统计
+    const customerStatsResult = await getCustomerStats({ restaurantId, tenantId: queryTenantId }, user)
+    if (customerStatsResult.code !== 0) {
+      throw new Error('获取客户统计失败')
+    }
+    
+    // 构建快照数据
+    const snapshot = {
+      restaurantId: restaurantId || null,
+      tenantId: queryTenantId,
+      statDate: snapshotDate,
+      statType: statType, // daily, monthly, yearly
+      staffStats: staffStatsResult.data,
+      customerStats: customerStatsResult.data,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    // 检查是否已存在同一天/月的快照
+    const existingQuery = {
+      tenantId: queryTenantId,
+      statType: statType
+    }
+    
+    if (restaurantId) {
+      existingQuery.restaurantId = restaurantId
+    }
+    
+    // 根据统计类型设置日期查询范围
+    const dateStr = snapshotDate.toISOString().slice(0, statType === 'daily' ? 10 : (statType === 'monthly' ? 7 : 4))
+    const existingResult = await db.collection('vegetarian_personnel_stats')
+      .where(existingQuery)
+      .get()
+    
+    const existing = existingResult.data.find(item => {
+      const itemDateStr = new Date(item.statDate).toISOString().slice(0, statType === 'daily' ? 10 : (statType === 'monthly' ? 7 : 4))
+      return itemDateStr === dateStr
+    })
+    
+    if (existing) {
+      // 更新现有快照
+      await db.collection('vegetarian_personnel_stats').doc(existing._id).update({
+        data: {
+          staffStats: snapshot.staffStats,
+          customerStats: snapshot.customerStats,
+          updatedAt: new Date()
+        }
+      })
+      
+      return {
+        code: 0,
+        message: '统计数据快照更新成功',
+        data: {
+          _id: existing._id,
+          statDate: snapshotDate,
+          statType: statType
+        }
+      }
+    } else {
+      // 创建新快照
+      const result = await db.collection('vegetarian_personnel_stats').add({
+        data: snapshot
+      })
+      
+      return {
+        code: 0,
+        message: '统计数据快照生成成功',
+        data: {
+          _id: result._id,
+          statDate: snapshotDate,
+          statType: statType
+        }
+      }
+    }
+  } catch (error) {
+    console.error('生成统计数据快照失败:', error)
+    return {
+      code: 500,
+      message: '生成快照失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 获取减碳效应分析
+ */
+async function getCarbonEffectAnalysis(params, user) {
+  try {
+    const { restaurantId, tenantId, startDate, endDate } = params
+    
+    const queryTenantId = tenantId || user.tenantId
+    
+    // 获取员工统计
+    const staffStatsResult = await getStaffStats({ restaurantId, tenantId: queryTenantId }, user)
+    if (staffStatsResult.code !== 0) {
+      throw new Error('获取员工统计失败')
+    }
+    
+    // 获取客户统计
+    const customerStatsResult = await getCustomerStats({ restaurantId, tenantId: queryTenantId }, user)
+    if (customerStatsResult.code !== 0) {
+      throw new Error('获取客户统计失败')
+    }
+    
+    const staffStats = staffStatsResult.data
+    const customerStats = customerStatsResult.data
+    
+    // 减碳计算参数
+    // 参考：一个素食者每天可减少约 1.5-2.5 kg CO2e 的碳排放
+    const DAILY_CARBON_REDUCTION_PER_VEGETARIAN = 2.0 // kg CO2e/天/人
+    
+    // 计算员工减碳效应
+    const staffCarbonEffect = {
+      totalReduction: 0,
+      averageReduction: 0,
+      description: ''
+    }
+    
+    if (staffStats.vegetarianStaff > 0) {
+      // 基于素食年限计算总减碳量
+      const currentYear = new Date().getFullYear()
+      
+      // 获取员工列表计算总减碳天数
+      let query = db.collection('restaurant_staff').where({
+        isDeleted: false,
+        tenantId: queryTenantId,
+        'vegetarianInfo.isVegetarian': true
+      })
+      
+      if (restaurantId) {
+        query = query.where({ restaurantId: restaurantId })
+      }
+      
+      const staffResult = await query.get()
+      const vegetarianStaffList = staffResult.data
+      
+      let totalReductionDays = 0
+      vegetarianStaffList.forEach(staff => {
+        if (staff.vegetarianInfo.vegetarianStartYear) {
+          const vegetarianYears = currentYear - staff.vegetarianInfo.vegetarianStartYear
+          totalReductionDays += vegetarianYears * 365
+        } else {
+          // 如果没有起始年份，假设为1年
+          totalReductionDays += 365
+        }
+      })
+      
+      staffCarbonEffect.totalReduction = Math.round(totalReductionDays * DAILY_CARBON_REDUCTION_PER_VEGETARIAN * 100) / 100
+      staffCarbonEffect.averageReduction = staffStats.vegetarianStaff > 0 
+        ? Math.round((staffCarbonEffect.totalReduction / staffStats.vegetarianStaff) * 100) / 100
+        : 0
+      staffCarbonEffect.description = `${staffStats.vegetarianStaff} 名素食员工累计减碳 ${staffCarbonEffect.totalReduction.toFixed(2)} kg CO₂e`
+    }
+    
+    // 计算客户减碳效应
+    const customerCarbonEffect = {
+      totalReduction: 0,
+      averageReduction: 0,
+      description: ''
+    }
+    
+    if (customerStats.vegetarianCustomers > 0) {
+      // 获取客户列表计算减碳量
+      let query = db.collection('restaurant_customers').where({
+        isDeleted: false,
+        tenantId: queryTenantId,
+        'vegetarianInfo.isVegetarian': true
+      })
+      
+      if (restaurantId) {
+        query = query.where({ restaurantId: restaurantId })
+      }
+      
+      const customerResult = await query.get()
+      const vegetarianCustomerList = customerResult.data
+      
+      // 基于素食年限和订单数量计算减碳量
+      let totalReduction = 0
+      const currentYear = new Date().getFullYear()
+      
+      vegetarianCustomerList.forEach(customer => {
+        let reductionDays = 0
+        
+        // 根据素食年限范围估算天数
+        if (customer.vegetarianInfo.vegetarianYears) {
+          const yearsRange = customer.vegetarianInfo.vegetarianYears
+          if (yearsRange === '0_1') {
+            reductionDays = 180 // 约6个月
+          } else if (yearsRange === '1_3') {
+            reductionDays = 730 // 约2年
+          } else if (yearsRange === '3_5') {
+            reductionDays = 1460 // 约4年
+          } else if (yearsRange === '5_10') {
+            reductionDays = 2555 // 约7年
+          } else if (yearsRange === '10_plus') {
+            reductionDays = 5475 // 约15年
+          } else if (customer.vegetarianInfo.vegetarianStartYear) {
+            reductionDays = (currentYear - customer.vegetarianInfo.vegetarianStartYear) * 365
+          } else {
+            reductionDays = 365 // 默认1年
+          }
+        } else if (customer.vegetarianInfo.vegetarianStartYear) {
+          reductionDays = (currentYear - customer.vegetarianInfo.vegetarianStartYear) * 365
+        } else {
+          reductionDays = 365 // 默认1年
+        }
+        
+        // 根据订单数量调整（客户可能不是每天在餐厅就餐）
+        const orderCount = customer.vegetarianInfo.totalVegetarianOrders || 0
+        const orderAdjustedDays = Math.min(reductionDays, orderCount * 30) // 假设每次订单影响30天
+        
+        totalReduction += orderAdjustedDays * DAILY_CARBON_REDUCTION_PER_VEGETARIAN * 0.5 // 客户减碳贡献按50%计算（非全职素食）
+      })
+      
+      customerCarbonEffect.totalReduction = Math.round(totalReduction * 100) / 100
+      customerCarbonEffect.averageReduction = customerStats.vegetarianCustomers > 0
+        ? Math.round((customerCarbonEffect.totalReduction / customerStats.vegetarianCustomers) * 100) / 100
+        : 0
+      customerCarbonEffect.description = `${customerStats.vegetarianCustomers} 名素食客户累计减碳 ${customerCarbonEffect.totalReduction.toFixed(2)} kg CO₂e`
+    }
+    
+    // 总减碳量
+    const totalCarbonEffect = Math.round((staffCarbonEffect.totalReduction + customerCarbonEffect.totalReduction) * 100) / 100
+    
+    // 生成分析报告
+    const report = {
+      summary: {
+        totalCarbonEffect: totalCarbonEffect,
+        staffContribution: staffCarbonEffect.totalReduction,
+        customerContribution: customerCarbonEffect.totalReduction,
+        staffContributionRatio: totalCarbonEffect > 0 
+          ? Math.round((staffCarbonEffect.totalReduction / totalCarbonEffect) * 100)
+          : 0,
+        customerContributionRatio: totalCarbonEffect > 0
+          ? Math.round((customerCarbonEffect.totalReduction / totalCarbonEffect) * 100)
+          : 0
+      },
+      staffAnalysis: {
+        vegetarianCount: staffStats.vegetarianStaff,
+        vegetarianRatio: staffStats.vegetarianRatio,
+        averageYears: staffStats.averageVegetarianYears,
+        carbonReduction: staffCarbonEffect.totalReduction,
+        description: staffCarbonEffect.description
+      },
+      customerAnalysis: {
+        vegetarianCount: customerStats.vegetarianCustomers,
+        vegetarianRatio: customerStats.vegetarianRatio,
+        carbonReduction: customerCarbonEffect.totalReduction,
+        description: customerCarbonEffect.description
+      },
+      insights: [
+        `素食人员总数：${staffStats.vegetarianStaff + customerStats.vegetarianCustomers} 人`,
+        `员工素食比例：${staffStats.vegetarianRatio.toFixed(1)}%`,
+        `客户素食比例：${customerStats.vegetarianRatio.toFixed(1)}%`,
+        `累计减碳总量：${totalCarbonEffect.toFixed(2)} kg CO₂e`,
+        `相当于种植树木：${Math.round(totalCarbonEffect / 18)} 棵（每棵树每年吸收约 18 kg CO₂）`,
+        `相当于节省电力：${Math.round(totalCarbonEffect / 0.5)} 度（每度电约产生 0.5 kg CO₂）`
+      ],
+      generatedAt: new Date().toISOString()
+    }
+    
+    return {
+      code: 0,
+      data: {
+        staffCarbonEffect: staffCarbonEffect,
+        customerCarbonEffect: customerCarbonEffect,
+        totalCarbonEffect: totalCarbonEffect,
+        report: JSON.stringify(report)
+      }
+    }
+  } catch (error) {
+    console.error('获取减碳效应分析失败:', error)
+    return {
+      code: 500,
+      message: '分析失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 导出员工数据
+ */
+async function exportStaffData(params, user) {
+  try {
+    const { restaurantId, format = 'excel', filters } = params
+    const tenantId = params.tenantId || user.tenantId
+
+    // 获取员工列表
+    const listResult = await listStaff({ restaurantId, tenantId, ...filters }, user)
+    if (listResult.code !== 0) {
+      throw new Error('获取员工列表失败')
+    }
+
+    const staffList = listResult.data || []
+
+    // 根据格式返回数据
+    if (format === 'excel' || format === 'pdf') {
+      // TODO: 实现 Excel/PDF 文件生成并上传到云存储
+      // 目前先返回 JSON 数据
+      return {
+        code: 0,
+        message: '导出成功（JSON格式）',
+        data: {
+          exportData: staffList,
+          format: 'json',
+          total: listResult.total || 0,
+          note: 'Excel/PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+        }
+      }
+    } else {
+      return {
+        code: 0,
+        message: '导出成功',
+        data: {
+          exportData: staffList,
+          format: 'json',
+          total: listResult.total || 0
+        }
+      }
+    }
+  } catch (error) {
+    console.error('导出员工数据失败:', error)
+    return {
+      code: 500,
+      message: '导出失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 导出客户数据
+ */
+async function exportCustomerData(params, user) {
+  try {
+    const { restaurantId, format = 'excel', filters } = params
+    const tenantId = params.tenantId || user.tenantId
+
+    // 获取客户列表
+    const listResult = await listCustomers({ restaurantId, tenantId, ...filters }, user)
+    if (listResult.code !== 0) {
+      throw new Error('获取客户列表失败')
+    }
+
+    const customerList = listResult.data || []
+
+    // 根据格式返回数据
+    if (format === 'excel' || format === 'pdf') {
+      // TODO: 实现 Excel/PDF 文件生成并上传到云存储
+      // 目前先返回 JSON 数据
+      return {
+        code: 0,
+        message: '导出成功（JSON格式）',
+        data: {
+          exportData: customerList,
+          format: 'json',
+          total: listResult.total || 0,
+          note: 'Excel/PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+        }
+      }
+    } else {
+      return {
+        code: 0,
+        message: '导出成功',
+        data: {
+          exportData: customerList,
+          format: 'json',
+          total: listResult.total || 0
+        }
+      }
+    }
+  } catch (error) {
+    console.error('导出客户数据失败:', error)
+    return {
+      code: 500,
+      message: '导出失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 导出 ESG 报告
+ */
+async function exportESGReport(params, user) {
+  try {
+    const { restaurantId, startDate, endDate, format = 'excel' } = params
+    const tenantId = params.tenantId || user.tenantId
+
+    // 获取统计数据
+    const staffStatsResult = await getStaffStats({ restaurantId, tenantId, startDate, endDate }, user)
+    const customerStatsResult = await getCustomerStats({ restaurantId, tenantId, startDate, endDate }, user)
+    const carbonEffectResult = await getCarbonEffectAnalysis({ restaurantId, tenantId, startDate, endDate }, user)
+
+    if (staffStatsResult.code !== 0 || customerStatsResult.code !== 0 || carbonEffectResult.code !== 0) {
+      throw new Error('获取统计数据失败')
+    }
+
+    // 构建 ESG 报告数据
+    const esgReportData = {
+      period: {
+        startDate: startDate ? new Date(startDate).toISOString().slice(0, 10) : '',
+        endDate: endDate ? new Date(endDate).toISOString().slice(0, 10) : ''
+      },
+      staffStats: staffStatsResult.data,
+      customerStats: customerStatsResult.data,
+      carbonEffect: carbonEffectResult.data,
+      generatedAt: new Date().toISOString()
+    }
+
+    // 根据格式返回数据
+    if (format === 'excel' || format === 'pdf') {
+      // TODO: 实现 Excel/PDF 文件生成并上传到云存储
+      // 目前先返回 JSON 数据
+      return {
+        code: 0,
+        message: 'ESG 报告导出成功（JSON格式）',
+        data: {
+          exportData: esgReportData,
+          format: 'json',
+          note: 'Excel/PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+        }
+      }
+    } else {
+      return {
+        code: 0,
+        message: 'ESG 报告导出成功',
+        data: {
+          exportData: esgReportData,
+          format: 'json'
+        }
+      }
+    }
+  } catch (error) {
+    console.error('导出 ESG 报告失败:', error)
+    return {
+      code: 500,
+      message: '导出失败',
+      error: error.message
+    }
+  }
+}
+
+/**
  * 主函数
  */
 exports.main = async (event, context) => {
@@ -634,7 +1095,7 @@ exports.main = async (event, context) => {
   try {
     // 大部分操作需要权限验证（除了C端客户录入）
     let user = null
-    if (action !== 'submitVegetarianInfo' && action !== 'getMyVegetarianInfo') {
+    if (action !== 'submitVegetarianInfo' && action !== 'getMyVegetarianInfo' && action !== 'generateStatsSnapshot') {
       try {
         user = await checkPermission(event, context)
       } catch (error) {
@@ -693,6 +1154,27 @@ exports.main = async (event, context) => {
 
       case 'getCustomerStats':
         return await getCustomerStats(data, user)
+
+      case 'getCarbonEffectAnalysis':
+        return await getCarbonEffectAnalysis(data, user)
+
+      // 统计数据快照
+      case 'generateStatsSnapshot':
+        // 定时任务调用时可能没有用户，需要传入 tenantId
+        if (!user && data.tenantId) {
+          user = { tenantId: data.tenantId }
+        }
+        return await generateStatsSnapshot(data, user || {})
+
+      // 报表导出接口
+      case 'exportStaffData':
+        return await exportStaffData(data, user)
+
+      case 'exportCustomerData':
+        return await exportCustomerData(data, user)
+
+      case 'exportESGReport':
+        return await exportESGReport(data, user)
 
       // C端接口（客户自助录入）
       case 'submitVegetarianInfo':
