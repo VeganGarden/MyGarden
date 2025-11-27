@@ -1314,6 +1314,9 @@ export const systemAPI = {
     }),
 }
 
+// 导出素食人员API
+export { staffAPI, customerAPI, vegetarianPersonnelStatsAPI } from './vegetarianPersonnel'
+
 export default {
   callCloudFunction,
   authAPI,

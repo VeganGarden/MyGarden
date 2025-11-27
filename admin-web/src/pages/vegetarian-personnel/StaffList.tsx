@@ -6,28 +6,10 @@ import React, { useEffect, useState } from 'react'
 import { Button, Card, Input, Select, Table, Space, Tag, message, Modal } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { callCloudFunction } from '@/utils/cloudFunction'
+import { staffAPI } from '@/services/vegetarianPersonnel'
+import type { Staff } from '@/types/vegetarianPersonnel'
 
 const { Search } = Input
-
-interface Staff {
-  _id: string
-  staffId: string
-  basicInfo: {
-    name: string
-    position: string
-    joinDate: string
-    phone?: string
-    email?: string
-  }
-  vegetarianInfo: {
-    isVegetarian: boolean
-    vegetarianType: string
-    vegetarianStartYear?: number
-    vegetarianReason?: string
-  }
-  createdAt: string
-}
 
 const StaffListPage: React.FC = () => {
   const navigate = useNavigate()
@@ -38,33 +20,36 @@ const StaffListPage: React.FC = () => {
     pageSize: 20,
     total: 0
   })
+  const [searchKeyword, setSearchKeyword] = useState('')
 
   // 加载数据
   const loadData = async () => {
     setLoading(true)
     try {
-      const result = await callCloudFunction('vegetarian-personnel', {
-        action: 'listStaff',
-        data: {
-          page: pagination.current,
-          pageSize: pagination.pageSize,
-          restaurantId: '', // TODO: 从用户信息获取
-          tenantId: '', // TODO: 从用户信息获取
-        }
+      const result = await staffAPI.list({
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        restaurantId: '', // TODO: 从用户信息获取
+        tenantId: '', // TODO: 从用户信息获取
+        search: searchKeyword || undefined
       })
 
-      if (result.code === 0) {
+      if (result.success && result.data) {
         setStaffList(result.data.list || [])
         setPagination(prev => ({
           ...prev,
-          total: result.data.total || 0
+          total: result.data!.total || 0
         }))
       } else {
-        message.error(result.message || '加载失败')
+        message.error(result.error || '加载失败')
+        setStaffList([])
+        setPagination(prev => ({ ...prev, total: 0 }))
       }
     } catch (error: any) {
       console.error('加载员工数据失败:', error)
       message.error(error.message || '网络错误')
+      setStaffList([])
+      setPagination(prev => ({ ...prev, total: 0 }))
     } finally {
       setLoading(false)
     }
@@ -80,21 +65,12 @@ const StaffListPage: React.FC = () => {
       title: '确认删除',
       content: `确定要删除员工"${staff.basicInfo.name}"吗？`,
       onOk: async () => {
-        try {
-          const result = await callCloudFunction('vegetarian-personnel', {
-            action: 'deleteStaff',
-            data: {
-              staffId: staff.staffId
-            }
-          })
-          if (result.code === 0) {
-            message.success('删除成功')
-            loadData()
-          } else {
-            message.error(result.message || '删除失败')
-          }
-        } catch (error: any) {
-          message.error(error.message || '删除失败')
+        const result = await staffAPI.delete(staff.staffId)
+        if (result.success) {
+          message.success('删除成功')
+          loadData()
+        } else {
+          message.error(result.error || '删除失败')
         }
       }
     })
@@ -133,13 +109,14 @@ const StaffListPage: React.FC = () => {
           flexible: '弹性素',
           other: '其他'
         }
-        return typeMap[type] || type
+        return typeMap[type] || type || '-'
       }
     },
     {
       title: '素食开始年份',
       dataIndex: ['vegetarianInfo', 'vegetarianStartYear'],
-      key: 'vegetarianStartYear'
+      key: 'vegetarianStartYear',
+      render: (year: number) => year || '-'
     },
     {
       title: '操作',
@@ -173,19 +150,27 @@ const StaffListPage: React.FC = () => {
           <Search
             placeholder="搜索姓名或员工ID"
             style={{ width: 300 }}
-            onSearch={(value) => {
-              // TODO: 实现搜索
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onSearch={() => {
+              setPagination(prev => ({ ...prev, current: 1 }))
               loadData()
             }}
+            allowClear
           />
         </Space>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/vegetarian-personnel/staff/add')}
-        >
-          添加员工
-        </Button>
+        <Space>
+          <Button onClick={() => navigate('/vegetarian-personnel/staff/stats')}>
+            统计
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/vegetarian-personnel/staff/add')}
+          >
+            添加员工
+          </Button>
+        </Space>
       </div>
 
       <Table
@@ -194,7 +179,9 @@ const StaffListPage: React.FC = () => {
         rowKey="_id"
         loading={loading}
         pagination={{
-          ...pagination,
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
           showTotal: (total) => `共 ${total} 条`,
           onChange: (page, pageSize) => {
             setPagination(prev => ({ ...prev, current: page, pageSize }))

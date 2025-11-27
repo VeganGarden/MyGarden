@@ -70,3 +70,6 @@ export interface PaginatedResponse<T> {
   pagination: Pagination
 }
 
+// 导出素食人员类型
+export * from './vegetarianPersonnel'
+
