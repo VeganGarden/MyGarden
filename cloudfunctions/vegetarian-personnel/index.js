@@ -1152,6 +1152,348 @@ async function generateESGExcel(esgReportData) {
 }
 
 /**
+ * 生成员工数据 PDF 文件
+ */
+async function generateStaffPDF(staffList) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+      })
+
+      const buffers = []
+      doc.on('data', buffers.push.bind(buffers))
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers)
+        resolve(pdfBuffer)
+      })
+      doc.on('error', reject)
+
+      // 标题
+      doc.fontSize(20)
+        .font('Helvetica-Bold')
+        .text('员工素食情况数据', { align: 'center' })
+        .moveDown()
+
+      // 生成时间
+      doc.fontSize(10)
+        .font('Helvetica')
+        .fillColor('#666666')
+        .text(`生成时间：${new Date().toLocaleString('zh-CN')}`, { align: 'right' })
+        .moveDown(0.5)
+
+      // 表格
+      const tableTop = doc.y
+      const itemHeight = 25
+      const colWidths = {
+        name: 80,
+        position: 80,
+        phone: 100,
+        isVegetarian: 70,
+        type: 100,
+        startYear: 80
+      }
+
+      // 表头
+      doc.fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor('#000000')
+      doc.text('姓名', 50, tableTop, { width: colWidths.name })
+      doc.text('职位', 50 + colWidths.name, tableTop, { width: colWidths.position })
+      doc.text('电话', 50 + colWidths.name + colWidths.position, tableTop, { width: colWidths.phone })
+      doc.text('是否素食', 50 + colWidths.name + colWidths.position + colWidths.phone, tableTop, { width: colWidths.isVegetarian })
+      doc.text('素食类型', 50 + colWidths.name + colWidths.position + colWidths.phone + colWidths.isVegetarian, tableTop, { width: colWidths.type })
+      doc.text('起始年份', 50 + colWidths.name + colWidths.position + colWidths.phone + colWidths.isVegetarian + colWidths.type, tableTop, { width: colWidths.startYear })
+
+      // 表头下划线
+      doc.moveTo(50, tableTop + 20)
+        .lineTo(550, tableTop + 20)
+        .stroke()
+
+      // 数据行
+      doc.fontSize(9)
+        .font('Helvetica')
+      let currentY = tableTop + 30
+      staffList.forEach((staff, index) => {
+        if (currentY > 750) {
+          // 新页面
+          doc.addPage()
+          currentY = 50
+        }
+
+        const name = (staff.basicInfo && staff.basicInfo.name) || '-'
+        const position = (staff.basicInfo && staff.basicInfo.position) || '-'
+        const phone = (staff.basicInfo && staff.basicInfo.phone) || '-'
+        const isVegetarian = (staff.vegetarianInfo && staff.vegetarianInfo.isVegetarian) ? '是' : '否'
+        const type = (staff.vegetarianInfo && staff.vegetarianInfo.vegetarianType) || '-'
+        const startYear = (staff.vegetarianInfo && staff.vegetarianInfo.vegetarianStartYear) || '-'
+
+        doc.text(name || '-', 50, currentY, { width: colWidths.name })
+        doc.text(position || '-', 50 + colWidths.name, currentY, { width: colWidths.position })
+        doc.text(phone || '-', 50 + colWidths.name + colWidths.position, currentY, { width: colWidths.phone })
+        doc.text(isVegetarian, 50 + colWidths.name + colWidths.position + colWidths.phone, currentY, { width: colWidths.isVegetarian })
+        doc.text(type || '-', 50 + colWidths.name + colWidths.position + colWidths.phone + colWidths.isVegetarian, currentY, { width: colWidths.type })
+        doc.text(startYear ? startYear.toString() : '-', 50 + colWidths.name + colWidths.position + colWidths.phone + colWidths.isVegetarian + colWidths.type, currentY, { width: colWidths.startYear })
+
+        currentY += itemHeight
+      })
+
+      // 统计信息
+      const statsY = currentY + 20
+      doc.fontSize(10)
+        .font('Helvetica-Bold')
+        .text('统计信息', 50, statsY)
+        .moveDown(0.5)
+
+      doc.fontSize(9)
+        .font('Helvetica')
+      const totalStaff = staffList.length
+      const vegetarianStaff = staffList.filter(s => s.vegetarianInfo && s.vegetarianInfo.isVegetarian).length
+      const vegetarianRatio = totalStaff > 0 ? ((vegetarianStaff / totalStaff) * 100).toFixed(2) : 0
+
+      doc.text(`总员工数：${totalStaff}`)
+      doc.text(`素食员工数：${vegetarianStaff}`)
+      doc.text(`素食比例：${vegetarianRatio}%`)
+
+      doc.end()
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+/**
+ * 生成客户数据 PDF 文件
+ */
+async function generateCustomerPDF(customerList) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+      })
+
+      const buffers = []
+      doc.on('data', buffers.push.bind(buffers))
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers)
+        resolve(pdfBuffer)
+      })
+      doc.on('error', reject)
+
+      // 标题
+      doc.fontSize(20)
+        .font('Helvetica-Bold')
+        .text('客户素食情况数据', { align: 'center' })
+        .moveDown()
+
+      // 生成时间
+      doc.fontSize(10)
+        .font('Helvetica')
+        .fillColor('#666666')
+        .text(`生成时间：${new Date().toLocaleString('zh-CN')}`, { align: 'right' })
+        .moveDown(0.5)
+
+      // 表格
+      const tableTop = doc.y
+      const itemHeight = 25
+      const colWidths = {
+        customerId: 100,
+        nickname: 80,
+        phone: 100,
+        isVegetarian: 70,
+        type: 100,
+        years: 80
+      }
+
+      // 表头
+      doc.fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor('#000000')
+      doc.text('客户ID', 50, tableTop, { width: colWidths.customerId })
+      doc.text('昵称', 50 + colWidths.customerId, tableTop, { width: colWidths.nickname })
+      doc.text('电话', 50 + colWidths.customerId + colWidths.nickname, tableTop, { width: colWidths.phone })
+      doc.text('是否素食', 50 + colWidths.customerId + colWidths.nickname + colWidths.phone, tableTop, { width: colWidths.isVegetarian })
+      doc.text('素食类型', 50 + colWidths.customerId + colWidths.nickname + colWidths.phone + colWidths.isVegetarian, tableTop, { width: colWidths.type })
+      doc.text('素食年限', 50 + colWidths.customerId + colWidths.nickname + colWidths.phone + colWidths.isVegetarian + colWidths.type, tableTop, { width: colWidths.years })
+
+      // 表头下划线
+      doc.moveTo(50, tableTop + 20)
+        .lineTo(550, tableTop + 20)
+        .stroke()
+
+      // 数据行
+      doc.fontSize(9)
+        .font('Helvetica')
+      let currentY = tableTop + 30
+      customerList.forEach((customer) => {
+        if (currentY > 750) {
+          doc.addPage()
+          currentY = 50
+        }
+
+        const customerId = customer.customerId || '-'
+        const nickname = (customer.basicInfo && customer.basicInfo.nickname) || '-'
+        const phone = (customer.basicInfo && customer.basicInfo.phone) || '-'
+        const isVegetarian = (customer.vegetarianInfo && customer.vegetarianInfo.isVegetarian) ? '是' : '否'
+        const type = (customer.vegetarianInfo && customer.vegetarianInfo.vegetarianType) || '-'
+        const years = (customer.vegetarianInfo && customer.vegetarianInfo.vegetarianYears) || '-'
+
+        doc.text(customerId, 50, currentY, { width: colWidths.customerId })
+        doc.text(nickname || '-', 50 + colWidths.customerId, currentY, { width: colWidths.nickname })
+        doc.text(phone || '-', 50 + colWidths.customerId + colWidths.nickname, currentY, { width: colWidths.phone })
+        doc.text(isVegetarian, 50 + colWidths.customerId + colWidths.nickname + colWidths.phone, currentY, { width: colWidths.isVegetarian })
+        doc.text(type || '-', 50 + colWidths.customerId + colWidths.nickname + colWidths.phone + colWidths.isVegetarian, currentY, { width: colWidths.type })
+        doc.text(years || '-', 50 + colWidths.customerId + colWidths.nickname + colWidths.phone + colWidths.isVegetarian + colWidths.type, currentY, { width: colWidths.years })
+
+        currentY += itemHeight
+      })
+
+      // 统计信息
+      const statsY = currentY + 20
+      doc.fontSize(10)
+        .font('Helvetica-Bold')
+        .text('统计信息', 50, statsY)
+        .moveDown(0.5)
+
+      doc.fontSize(9)
+        .font('Helvetica')
+      const totalCustomers = customerList.length
+      const vegetarianCustomers = customerList.filter(c => c.vegetarianInfo && c.vegetarianInfo.isVegetarian).length
+      const vegetarianRatio = totalCustomers > 0 ? ((vegetarianCustomers / totalCustomers) * 100).toFixed(2) : 0
+
+      doc.text(`总客户数：${totalCustomers}`)
+      doc.text(`素食客户数：${vegetarianCustomers}`)
+      doc.text(`素食比例：${vegetarianRatio}%`)
+
+      doc.end()
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+/**
+ * 生成 ESG 报告 PDF 文件
+ */
+async function generateESGPDF(esgReportData) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+      })
+
+      const buffers = []
+      doc.on('data', buffers.push.bind(buffers))
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers)
+        resolve(pdfBuffer)
+      })
+      doc.on('error', reject)
+
+      // 标题
+      doc.fontSize(24)
+        .font('Helvetica-Bold')
+        .text('素食人员 ESG 报告', { align: 'center' })
+        .moveDown()
+
+      // 报告期间
+      if (esgReportData.period && (esgReportData.period.startDate || esgReportData.period.endDate)) {
+        doc.fontSize(12)
+          .font('Helvetica')
+          .fillColor('#666666')
+          .text(
+            `报告期间：${esgReportData.period.startDate || '开始'} 至 ${esgReportData.period.endDate || '结束'}`,
+            { align: 'center' }
+          )
+          .moveDown(0.5)
+      }
+
+      // 生成时间
+      doc.fontSize(10)
+        .font('Helvetica')
+        .fillColor('#666666')
+        .text(`生成时间：${new Date().toLocaleString('zh-CN')}`, { align: 'right' })
+        .moveDown()
+
+      // 员工统计
+      doc.fontSize(16)
+        .font('Helvetica-Bold')
+        .fillColor('#000000')
+        .text('一、员工统计', 50, doc.y)
+        .moveDown()
+
+      const staffStats = esgReportData.staffStats || {}
+      doc.fontSize(11)
+        .font('Helvetica')
+      doc.text(`总员工数：${staffStats.totalStaff || 0}`)
+      doc.text(`素食员工数：${staffStats.vegetarianStaff || 0}`)
+      doc.text(`素食比例：${staffStats.vegetarianRatio ? (staffStats.vegetarianRatio * 100).toFixed(2) + '%' : '0%'}`)
+      doc.text(`平均素食年限：${staffStats.averageVegetarianYears ? staffStats.averageVegetarianYears.toFixed(1) + '年' : '0年'}`)
+      doc.moveDown()
+
+      // 客户统计
+      doc.fontSize(16)
+        .font('Helvetica-Bold')
+        .text('二、客户统计', 50, doc.y)
+        .moveDown()
+
+      const customerStats = esgReportData.customerStats || {}
+      doc.fontSize(11)
+        .font('Helvetica')
+      doc.text(`总客户数：${customerStats.totalCustomers || 0}`)
+      doc.text(`素食客户数：${customerStats.vegetarianCustomers || 0}`)
+      doc.text(`素食比例：${customerStats.vegetarianRatio ? (customerStats.vegetarianRatio * 100).toFixed(2) + '%' : '0%'}`)
+      doc.moveDown()
+
+      // 减碳效应
+      doc.fontSize(16)
+        .font('Helvetica-Bold')
+        .text('三、减碳效应分析', 50, doc.y)
+        .moveDown()
+
+      const carbonEffect = esgReportData.carbonEffect || {}
+      doc.fontSize(11)
+        .font('Helvetica')
+      doc.text(`员工减碳总量：${carbonEffect.staffCarbonEffect?.totalReduction || 0} kg CO₂e`)
+      doc.text(`客户减碳总量：${carbonEffect.customerCarbonEffect?.totalReduction || 0} kg CO₂e`)
+      doc.text(`总减碳量：${carbonEffect.totalCarbonEffect || 0} kg CO₂e`)
+      doc.moveDown()
+
+      // 分析报告
+      if (carbonEffect.report) {
+        doc.fontSize(16)
+          .font('Helvetica-Bold')
+          .text('四、分析报告', 50, doc.y)
+          .moveDown()
+
+        doc.fontSize(11)
+          .font('Helvetica')
+        try {
+          const report = JSON.parse(carbonEffect.report)
+          if (report.insights && Array.isArray(report.insights)) {
+            report.insights.forEach((insight) => {
+              doc.text(`• ${insight}`, { indent: 20 })
+              doc.moveDown(0.3)
+            })
+          } else {
+            doc.text(carbonEffect.report, { indent: 20 })
+          }
+        } catch (e) {
+          doc.text(carbonEffect.report, { indent: 20 })
+        }
+      }
+
+      doc.end()
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+/**
  * 上传文件到云存储并返回下载链接
  */
 async function uploadFileToCloudStorage(buffer, fileName, folder = 'vegetarian-personnel') {
@@ -1226,15 +1568,20 @@ async function exportStaffData(params, user) {
         }
       }
     } else if (format === 'pdf') {
-      // PDF 格式暂不支持，返回 JSON 数据
+      // 生成 PDF 文件
+      const pdfBuffer = await generateStaffPDF(staffList)
+      const fileName = `员工数据_${new Date().toISOString().slice(0, 10)}.pdf`
+      const uploadResult = await uploadFileToCloudStorage(pdfBuffer, fileName, 'vegetarian-personnel/exports/staff')
+      
       return {
         code: 0,
-        message: '导出成功（JSON格式）',
+        message: '导出成功',
         data: {
-          exportData: staffList,
-          format: 'json',
-          total: listResult.total || 0,
-          note: 'PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          expiresAt: uploadResult.expiresAt,
+          format: 'pdf',
+          total: listResult.total || 0
         }
       }
     } else {
@@ -1293,15 +1640,20 @@ async function exportCustomerData(params, user) {
         }
       }
     } else if (format === 'pdf') {
-      // PDF 格式暂不支持，返回 JSON 数据
+      // 生成 PDF 文件
+      const pdfBuffer = await generateCustomerPDF(customerList)
+      const fileName = `客户数据_${new Date().toISOString().slice(0, 10)}.pdf`
+      const uploadResult = await uploadFileToCloudStorage(pdfBuffer, fileName, 'vegetarian-personnel/exports/customers')
+      
       return {
         code: 0,
-        message: '导出成功（JSON格式）',
+        message: '导出成功',
         data: {
-          exportData: customerList,
-          format: 'json',
-          total: listResult.total || 0,
-          note: 'PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          expiresAt: uploadResult.expiresAt,
+          format: 'pdf',
+          total: listResult.total || 0
         }
       }
     } else {
@@ -1375,14 +1727,22 @@ async function exportESGReport(params, user) {
         }
       }
     } else if (format === 'pdf') {
-      // PDF 格式暂不支持，返回 JSON 数据
+      // 生成 PDF 文件
+      const pdfBuffer = await generateESGPDF(esgReportData)
+      const dateStr = esgReportData.period.startDate && esgReportData.period.endDate
+        ? `${esgReportData.period.startDate}_${esgReportData.period.endDate}`
+        : new Date().toISOString().slice(0, 10)
+      const fileName = `ESG报告_${dateStr}.pdf`
+      const uploadResult = await uploadFileToCloudStorage(pdfBuffer, fileName, 'vegetarian-personnel/exports/esg')
+      
       return {
         code: 0,
-        message: 'ESG 报告导出成功（JSON格式）',
+        message: '导出成功',
         data: {
-          exportData: esgReportData,
-          format: 'json',
-          note: 'PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          expiresAt: uploadResult.expiresAt,
+          format: 'pdf'
         }
       }
     } else {

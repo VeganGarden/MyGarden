@@ -98,11 +98,11 @@ import BaseStatistics from './pages/base/Statistics'
 // 素食人员管理模块
 import CustomerDetail from './pages/vegetarian-personnel/CustomerDetail'
 import CustomerList from './pages/vegetarian-personnel/CustomerList'
+import VegetarianPersonnelDashboard from './pages/vegetarian-personnel/Dashboard'
 import StaffAdd from './pages/vegetarian-personnel/StaffAdd'
 import StaffEdit from './pages/vegetarian-personnel/StaffEdit'
 import StaffList from './pages/vegetarian-personnel/StaffList'
 import StaffStats from './pages/vegetarian-personnel/StaffStats'
-import VegetarianPersonnelDashboard from './pages/vegetarian-personnel/Dashboard'
 
 const App: React.FC = () => {
   return (
