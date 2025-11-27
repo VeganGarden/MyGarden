@@ -304,9 +304,9 @@ async function createOrUpdateCustomer(customerData, user) {
         restaurantId: customerData.restaurantId,
         tenantId: customerData.tenantId || user.tenantId,
         basicInfo: {
-          nickname: customerData.basicInfo?.nickname || '',
-          avatar: customerData.basicInfo?.avatar || '',
-          phone: customerData.basicInfo?.phone || '',
+          nickname: (customerData.basicInfo && customerData.basicInfo.nickname) || '',
+          avatar: (customerData.basicInfo && customerData.basicInfo.avatar) || '',
+          phone: (customerData.basicInfo && customerData.basicInfo.phone) || '',
         },
         vegetarianInfo: {
           ...vegetarianInfo,
