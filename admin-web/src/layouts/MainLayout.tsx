@@ -23,6 +23,7 @@ import {
   SettingOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
+  TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 import { Avatar, Drawer, Dropdown, Layout, Menu, Space, message } from 'antd'
@@ -303,6 +304,30 @@ const MainLayout: React.FC = () => {
               {
                 key: '/restaurant/manage',
                 label: '我的餐厅',
+              },
+            ],
+          },
+        ]
+      : []),
+    // 素食人员管理（仅餐厅管理员和平台运营可见）
+    ...(isRestaurantAdmin || isPlatformAdmin
+      ? [
+          {
+            key: '/vegetarian-personnel',
+            icon: <TeamOutlined />,
+            label: '素食人员管理',
+            children: [
+              {
+                key: '/vegetarian-personnel/staff',
+                label: '员工管理',
+              },
+              {
+                key: '/vegetarian-personnel/staff/stats',
+                label: '员工统计',
+              },
+              {
+                key: '/vegetarian-personnel/customers',
+                label: '客户管理',
               },
             ],
           },

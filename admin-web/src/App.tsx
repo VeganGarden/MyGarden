@@ -95,6 +95,14 @@ import BaseRecipeEdit from './pages/base/RecipeEdit'
 import BaseRecipeList from './pages/base/RecipeList'
 import BaseStatistics from './pages/base/Statistics'
 
+// 素食人员管理模块
+import StaffList from './pages/vegetarian-personnel/StaffList'
+import StaffAdd from './pages/vegetarian-personnel/StaffAdd'
+import StaffEdit from './pages/vegetarian-personnel/StaffEdit'
+import StaffStats from './pages/vegetarian-personnel/StaffStats'
+import CustomerList from './pages/vegetarian-personnel/CustomerList'
+import CustomerDetail from './pages/vegetarian-personnel/CustomerDetail'
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -220,6 +228,14 @@ const App: React.FC = () => {
           <Route path="base/recipes/:id/edit" element={<BaseRecipeEdit />} />
           <Route path="base/statistics" element={<BaseStatistics />} />
           <Route path="base/import" element={<BaseImport />} />
+          
+          {/* 素食人员管理模块 */}
+          <Route path="vegetarian-personnel/staff" element={<StaffList />} />
+          <Route path="vegetarian-personnel/staff/add" element={<StaffAdd />} />
+          <Route path="vegetarian-personnel/staff/edit/:id" element={<StaffEdit />} />
+          <Route path="vegetarian-personnel/staff/stats" element={<StaffStats />} />
+          <Route path="vegetarian-personnel/customers" element={<CustomerList />} />
+          <Route path="vegetarian-personnel/customers/:id" element={<CustomerDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>
