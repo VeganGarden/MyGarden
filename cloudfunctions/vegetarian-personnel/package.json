@@ -1,0 +1,10 @@
+{
+  "name": "vegetarian-personnel",
+  "version": "1.0.0",
+  "description": "素食人员管理云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

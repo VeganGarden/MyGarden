@@ -46,6 +46,7 @@ const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-re
  * - migrate-ingredients-add-carbon-coefficient: 为所有食材添加初始碳系数（基于分类设置默认值）
  * - migrate-ingredients-force-add-carbon-coefficient: 强制为所有食材补全碳系数（检查所有食材，补全缺失的）
  * - migrate-ingredients-reset-all-carbon-coefficient: 强制重置所有食材的碳系数（即使已有值也重新设置）
+ * - initVegetarianPersonnelCollections: 初始化素食人员管理模块集合（restaurant_staff, restaurant_customers, vegetarian_personnel_stats）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -116,6 +117,9 @@ exports.main = async (event) => {
         return await initCertificationCollections(event);
       case 'migrate-restaurants-add-certification-fields':
         return await migrateRestaurantsAddCertificationFields(event);
+      case 'initVegetarianPersonnelCollections':
+        const { main: initVegetarianPersonnelCollections } = require('./init-vegetarian-personnel-collections');
+        return await initVegetarianPersonnelCollections(event);
       default:
         return await initCollectionsV1(event);
     }
