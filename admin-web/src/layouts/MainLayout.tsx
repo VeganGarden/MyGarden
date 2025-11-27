@@ -318,6 +318,10 @@ const MainLayout: React.FC = () => {
             label: '素食人员管理',
             children: [
               {
+                key: '/vegetarian-personnel/dashboard',
+                label: '综合统计',
+              },
+              {
                 key: '/vegetarian-personnel/staff',
                 label: '员工管理',
               },

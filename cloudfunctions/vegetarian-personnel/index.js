@@ -1059,6 +1059,99 @@ async function generateStaffExcel(staffList) {
 }
 
 /**
+ * 生成客户数据 Excel 文件
+ */
+async function generateCustomerExcel(customerList) {
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('客户数据')
+
+  worksheet.columns = [
+    { header: '客户ID', key: 'customerId', width: 20 },
+    { header: '昵称', key: 'nickname', width: 15 },
+    { header: '电话', key: 'phone', width: 15 },
+    { header: '是否素食', key: 'isVegetarian', width: 12 },
+    { header: '素食类型', key: 'vegetarianType', width: 15 },
+    { header: '素食年限', key: 'vegetarianYears', width: 15 },
+    { header: '总订单数', key: 'totalOrders', width: 12 },
+    { header: '总消费金额', key: 'totalAmount', width: 15 }
+  ]
+
+  worksheet.getRow(1).font = { bold: true }
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  }
+
+  customerList.forEach((customer) => {
+    worksheet.addRow({
+      customerId: customer.customerId || '',
+      nickname: (customer.basicInfo && customer.basicInfo.nickname) || '',
+      phone: (customer.basicInfo && customer.basicInfo.phone) || '',
+      isVegetarian: (customer.vegetarianInfo && customer.vegetarianInfo.isVegetarian) ? '是' : '否',
+      vegetarianType: (customer.vegetarianInfo && customer.vegetarianInfo.vegetarianType) || '',
+      vegetarianYears: (customer.vegetarianInfo && customer.vegetarianInfo.vegetarianYears) || '',
+      totalOrders: (customer.consumptionStats && customer.consumptionStats.totalOrders) || 0,
+      totalAmount: (customer.consumptionStats && customer.consumptionStats.totalAmount) || 0
+    })
+  })
+
+  return await workbook.xlsx.writeBuffer()
+}
+
+/**
+ * 生成 ESG 报告 Excel 文件
+ */
+async function generateESGExcel(esgReportData) {
+  const workbook = new ExcelJS.Workbook()
+
+  // 员工统计
+  const staffSheet = workbook.addWorksheet('员工统计')
+  staffSheet.columns = [
+    { header: '指标', key: 'metric', width: 20 },
+    { header: '数值', key: 'value', width: 20 }
+  ]
+  staffSheet.getRow(1).font = { bold: true }
+  staffSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
+
+  const staffStats = esgReportData.staffStats || {}
+  staffSheet.addRow({ metric: '总员工数', value: staffStats.totalStaff || 0 })
+  staffSheet.addRow({ metric: '素食员工数', value: staffStats.vegetarianStaff || 0 })
+  staffSheet.addRow({ metric: '素食比例', value: staffStats.vegetarianRatio ? `${(staffStats.vegetarianRatio * 100).toFixed(2)}%` : '0%' })
+  staffSheet.addRow({ metric: '平均素食年限', value: staffStats.averageVegetarianYears ? `${staffStats.averageVegetarianYears}年` : '0年' })
+
+  // 客户统计
+  const customerSheet = workbook.addWorksheet('客户统计')
+  customerSheet.columns = [
+    { header: '指标', key: 'metric', width: 20 },
+    { header: '数值', key: 'value', width: 20 }
+  ]
+  customerSheet.getRow(1).font = { bold: true }
+  customerSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
+
+  const customerStats = esgReportData.customerStats || {}
+  customerSheet.addRow({ metric: '总客户数', value: customerStats.totalCustomers || 0 })
+  customerSheet.addRow({ metric: '素食客户数', value: customerStats.vegetarianCustomers || 0 })
+  customerSheet.addRow({ metric: '素食比例', value: customerStats.vegetarianRatio ? `${(customerStats.vegetarianRatio * 100).toFixed(2)}%` : '0%' })
+
+  // 减碳效应
+  const carbonSheet = workbook.addWorksheet('减碳效应')
+  carbonSheet.columns = [
+    { header: '指标', key: 'metric', width: 25 },
+    { header: '数值', key: 'value', width: 20 }
+  ]
+  carbonSheet.getRow(1).font = { bold: true }
+  carbonSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
+
+  const carbonEffect = esgReportData.carbonEffect || {}
+  carbonSheet.addRow({ metric: '员工减碳总量', value: carbonEffect.staffCarbonEffect?.totalReduction || 0 })
+  carbonSheet.addRow({ metric: '客户减碳总量', value: carbonEffect.customerCarbonEffect?.totalReduction || 0 })
+  carbonSheet.addRow({ metric: '总减碳量 (kg CO₂e)', value: carbonEffect.totalCarbonEffect || 0 })
+
+  return await workbook.xlsx.writeBuffer()
+}
+
+/**
  * 上传文件到云存储并返回下载链接
  */
 async function uploadFileToCloudStorage(buffer, fileName, folder = 'vegetarian-personnel') {
@@ -1182,9 +1275,25 @@ async function exportCustomerData(params, user) {
     const customerList = listResult.data || []
 
     // 根据格式返回数据
-    if (format === 'excel' || format === 'pdf') {
-      // TODO: 实现 Excel/PDF 文件生成并上传到云存储
-      // 目前先返回 JSON 数据
+    if (format === 'excel') {
+      // 生成 Excel 文件
+      const excelBuffer = await generateCustomerExcel(customerList)
+      const fileName = `客户数据_${new Date().toISOString().slice(0, 10)}.xlsx`
+      const uploadResult = await uploadFileToCloudStorage(excelBuffer, fileName, 'vegetarian-personnel/exports/customers')
+      
+      return {
+        code: 0,
+        message: '导出成功',
+        data: {
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          expiresAt: uploadResult.expiresAt,
+          format: 'excel',
+          total: listResult.total || 0
+        }
+      }
+    } else if (format === 'pdf') {
+      // PDF 格式暂不支持，返回 JSON 数据
       return {
         code: 0,
         message: '导出成功（JSON格式）',
@@ -1192,7 +1301,7 @@ async function exportCustomerData(params, user) {
           exportData: customerList,
           format: 'json',
           total: listResult.total || 0,
-          note: 'Excel/PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+          note: 'PDF 文件生成功能待实现，当前返回 JSON 格式数据'
         }
       }
     } else {
@@ -1246,16 +1355,34 @@ async function exportESGReport(params, user) {
     }
 
     // 根据格式返回数据
-    if (format === 'excel' || format === 'pdf') {
-      // TODO: 实现 Excel/PDF 文件生成并上传到云存储
-      // 目前先返回 JSON 数据
+    if (format === 'excel') {
+      // 生成 Excel 文件
+      const excelBuffer = await generateESGExcel(esgReportData)
+      const dateStr = esgReportData.period.startDate && esgReportData.period.endDate
+        ? `${esgReportData.period.startDate}_${esgReportData.period.endDate}`
+        : new Date().toISOString().slice(0, 10)
+      const fileName = `ESG报告_${dateStr}.xlsx`
+      const uploadResult = await uploadFileToCloudStorage(excelBuffer, fileName, 'vegetarian-personnel/exports/esg')
+      
+      return {
+        code: 0,
+        message: '导出成功',
+        data: {
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          expiresAt: uploadResult.expiresAt,
+          format: 'excel'
+        }
+      }
+    } else if (format === 'pdf') {
+      // PDF 格式暂不支持，返回 JSON 数据
       return {
         code: 0,
         message: 'ESG 报告导出成功（JSON格式）',
         data: {
           exportData: esgReportData,
           format: 'json',
-          note: 'Excel/PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+          note: 'PDF 文件生成功能待实现，当前返回 JSON 格式数据'
         }
       }
     } else {

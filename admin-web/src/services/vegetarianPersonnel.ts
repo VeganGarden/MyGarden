@@ -12,6 +12,7 @@ import type {
   CustomerQueryParams,
   StaffStats,
   CustomerStats,
+  CarbonEffectAnalysis,
   PaginatedResponse
 } from '@/types/vegetarianPersonnel'
 
@@ -284,21 +285,146 @@ export const vegetarianPersonnelStatsAPI = {
   /**
    * 获取员工统计
    */
-  getStaffStats: async (params: { restaurantId?: string; tenantId?: string; startDate?: Date; endDate?: Date }) => {
-    return staffAPI.getStats(params)
+  getStaffStats: async (tenantId?: string, restaurantId?: string, startDate?: Date, endDate?: Date) => {
+    return staffAPI.getStats({ tenantId, restaurantId, startDate, endDate })
   },
 
   /**
    * 获取客户统计
    */
-  getCustomerStats: async (params: { restaurantId?: string; tenantId?: string; startDate?: Date; endDate?: Date }) => {
-    return customerAPI.getStats(params)
+  getCustomerStats: async (tenantId?: string, restaurantId?: string, startDate?: Date, endDate?: Date) => {
+    return customerAPI.getStats({ tenantId, restaurantId, startDate, endDate })
+  },
+
+  /**
+   * 获取减碳效应分析
+   */
+  getCarbonEffectAnalysis: async (tenantId?: string, restaurantId?: string, startDate?: Date, endDate?: Date): Promise<{ success: boolean; data?: CarbonEffectAnalysis; error?: string }> => {
+    try {
+      const result = await callCloudFunction('vegetarian-personnel', {
+        action: 'getCarbonEffectAnalysis',
+        data: { tenantId, restaurantId, startDate, endDate }
+      })
+      if (result.code === 0) {
+        return {
+          success: true,
+          data: result.data as CarbonEffectAnalysis
+        }
+      }
+      return {
+        success: false,
+        error: result.message || '查询失败'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || '网络错误'
+      }
+    }
   }
+}
+
+/**
+ * 报表导出 API
+ */
+export const exportAPI = {
+  /**
+   * 导出员工数据
+   */
+  exportStaffData: async (params: { restaurantId?: string; tenantId?: string; format?: 'excel' | 'pdf'; filters?: any }) => {
+    try {
+      const result = await callCloudFunction('vegetarian-personnel', {
+        action: 'exportStaffData',
+        data: params
+      })
+      if (result.code === 0) {
+        return {
+          success: true,
+          data: result.data,
+          message: result.message || '导出成功'
+        }
+      }
+      return {
+        success: false,
+        error: result.message || '导出失败'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || '网络错误'
+      }
+    }
+  },
+
+  /**
+   * 导出客户数据
+   */
+  exportCustomerData: async (params: { restaurantId?: string; tenantId?: string; format?: 'excel' | 'pdf'; filters?: any }) => {
+    try {
+      const result = await callCloudFunction('vegetarian-personnel', {
+        action: 'exportCustomerData',
+        data: params
+      })
+      if (result.code === 0) {
+        return {
+          success: true,
+          data: result.data,
+          message: result.message || '导出成功'
+        }
+      }
+      return {
+        success: false,
+        error: result.message || '导出失败'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || '网络错误'
+      }
+    }
+  },
+
+  /**
+   * 导出 ESG 报告
+   */
+  exportESGReport: async (params: { restaurantId?: string; tenantId?: string; startDate?: Date; endDate?: Date; format?: 'excel' | 'pdf' }) => {
+    try {
+      const result = await callCloudFunction('vegetarian-personnel', {
+        action: 'exportESGReport',
+        data: params
+      })
+      if (result.code === 0) {
+        return {
+          success: true,
+          data: result.data,
+          message: result.message || '导出成功'
+        }
+      }
+      return {
+        success: false,
+        error: result.message || '导出失败'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || '网络错误'
+      }
+    }
+  }
+}
+
+export const vegetarianPersonnelAPI = {
+  staff: staffAPI,
+  customer: customerAPI,
+  stats: vegetarianPersonnelStatsAPI,
+  export: exportAPI
 }
 
 export default {
   staffAPI,
   customerAPI,
-  vegetarianPersonnelStatsAPI
+  vegetarianPersonnelStatsAPI,
+  exportAPI,
+  vegetarianPersonnelAPI
 }
 

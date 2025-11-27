@@ -217,3 +217,19 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
+// 减碳效应分析
+export interface CarbonEffectAnalysis {
+  staffCarbonEffect: {
+    totalReduction: number
+    averageReduction: number
+    description: string
+  }
+  customerCarbonEffect: {
+    totalReduction: number
+    averageReduction: number
+    description: string
+  }
+  totalCarbonEffect: number
+  report: string
+}
+
