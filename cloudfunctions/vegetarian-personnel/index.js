@@ -13,6 +13,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 const { checkPermission, checkDataScope } = require('./permission')
+const ExcelJS = require('exceljs')
+const PDFDocument = require('pdfkit')
 
 /**
  * 生成员工ID
@@ -923,6 +925,178 @@ async function getCarbonEffectAnalysis(params, user) {
 }
 
 /**
+ * 生成员工数据 Excel 文件
+ */
+async function generateStaffExcel(staffList) {
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('员工数据')
+
+  // 设置列
+  worksheet.columns = [
+    { header: '员工ID', key: 'staffId', width: 20 },
+    { header: '姓名', key: 'name', width: 15 },
+    { header: '职位', key: 'position', width: 15 },
+    { header: '电话', key: 'phone', width: 15 },
+    { header: '邮箱', key: 'email', width: 25 },
+    { header: '入职日期', key: 'joinDate', width: 15 },
+    { header: '是否素食', key: 'isVegetarian', width: 12 },
+    { header: '素食类型', key: 'vegetarianType', width: 15 },
+    { header: '素食起始年份', key: 'vegetarianStartYear', width: 15 },
+    { header: '创建时间', key: 'createdAt', width: 20 }
+  ]
+
+  // 设置表头样式
+  worksheet.getRow(1).font = { bold: true }
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  }
+
+  // 添加数据行
+  staffList.forEach((staff) => {
+    worksheet.addRow({
+      staffId: staff.staffId || '',
+      name: (staff.basicInfo && staff.basicInfo.name) || '',
+      position: (staff.basicInfo && staff.basicInfo.position) || '',
+      phone: (staff.basicInfo && staff.basicInfo.phone) || '',
+      email: (staff.basicInfo && staff.basicInfo.email) || '',
+      joinDate: (staff.basicInfo && staff.basicInfo.joinDate) ? new Date(staff.basicInfo.joinDate).toISOString().slice(0, 10) : '',
+      isVegetarian: (staff.vegetarianInfo && staff.vegetarianInfo.isVegetarian) ? '是' : '否',
+      vegetarianType: (staff.vegetarianInfo && staff.vegetarianInfo.vegetarianType) || '',
+      vegetarianStartYear: (staff.vegetarianInfo && staff.vegetarianInfo.vegetarianStartYear) || '',
+      createdAt: staff.createdAt ? new Date(staff.createdAt).toISOString().slice(0, 19) : ''
+    })
+  })
+
+  // 生成 buffer
+  const buffer = await workbook.xlsx.writeBuffer()
+  return buffer
+}
+
+/**
+ * 上传文件到云存储并返回下载链接
+ */
+async function uploadFileToCloudStorage(buffer, fileName, folder = 'vegetarian-personnel') {
+  try {
+    const timestamp = Date.now()
+    const cloudPath = `${folder}/${timestamp}_${fileName}`
+    
+    // 上传文件
+    const uploadRes = await cloud.uploadFile({
+      cloudPath: cloudPath,
+      fileContent: buffer
+    })
+
+    const fileID = uploadRes.fileID
+
+    // 获取临时访问URL（有效期24小时）
+    let downloadUrl = fileID
+    try {
+      const urlRes = await cloud.getTempFileURL({ fileList: [fileID] })
+      downloadUrl = urlRes && urlRes.fileList && urlRes.fileList[0] ? urlRes.fileList[0].tempFileURL : fileID
+    } catch (err) {
+      console.warn('获取临时URL失败:', err)
+    }
+
+    // 计算过期时间（24小时后）
+    const expiresAt = new Date()
+    expiresAt.setHours(expiresAt.getHours() + 24)
+
+    return {
+      fileId: fileID,
+      downloadUrl: downloadUrl,
+      expiresAt: expiresAt
+    }
+  } catch (error) {
+    console.error('上传文件到云存储失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 生成员工数据 Excel 文件
+ */
+async function generateStaffExcel(staffList) {
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('员工数据')
+
+  // 设置列
+  worksheet.columns = [
+    { header: '员工ID', key: 'staffId', width: 20 },
+    { header: '姓名', key: 'name', width: 15 },
+    { header: '职位', key: 'position', width: 15 },
+    { header: '电话', key: 'phone', width: 15 },
+    { header: '是否素食', key: 'isVegetarian', width: 12 },
+    { header: '素食类型', key: 'vegetarianType', width: 15 },
+    { header: '素食起始年份', key: 'vegetarianStartYear', width: 15 }
+  ]
+
+  // 设置表头样式
+  worksheet.getRow(1).font = { bold: true }
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  }
+
+  // 添加数据行
+  staffList.forEach((staff) => {
+    worksheet.addRow({
+      staffId: staff.staffId || '',
+      name: (staff.basicInfo && staff.basicInfo.name) || '',
+      position: (staff.basicInfo && staff.basicInfo.position) || '',
+      phone: (staff.basicInfo && staff.basicInfo.phone) || '',
+      isVegetarian: (staff.vegetarianInfo && staff.vegetarianInfo.isVegetarian) ? '是' : '否',
+      vegetarianType: (staff.vegetarianInfo && staff.vegetarianInfo.vegetarianType) || '',
+      vegetarianStartYear: (staff.vegetarianInfo && staff.vegetarianInfo.vegetarianStartYear) || ''
+    })
+  })
+
+  // 生成 buffer
+  const buffer = await workbook.xlsx.writeBuffer()
+  return buffer
+}
+
+/**
+ * 上传文件到云存储并返回下载链接
+ */
+async function uploadFileToCloudStorage(buffer, fileName, folder = 'vegetarian-personnel') {
+  try {
+    const timestamp = Date.now()
+    const cloudPath = `${folder}/${timestamp}_${fileName}`
+    
+    const uploadRes = await cloud.uploadFile({
+      cloudPath: cloudPath,
+      fileContent: buffer
+    })
+
+    const fileID = uploadRes.fileID
+
+    // 获取临时访问URL
+    let downloadUrl = fileID
+    try {
+      const urlRes = await cloud.getTempFileURL({ fileList: [fileID] })
+      downloadUrl = urlRes && urlRes.fileList && urlRes.fileList[0] ? urlRes.fileList[0].tempFileURL : fileID
+    } catch (err) {
+      console.warn('获取临时URL失败:', err)
+    }
+
+    const expiresAt = new Date()
+    expiresAt.setHours(expiresAt.getHours() + 24)
+
+    return {
+      fileId: fileID,
+      downloadUrl: downloadUrl,
+      expiresAt: expiresAt
+    }
+  } catch (error) {
+    console.error('上传文件到云存储失败:', error)
+    throw error
+  }
+}
+
+/**
  * 导出员工数据
  */
 async function exportStaffData(params, user) {
@@ -939,9 +1113,27 @@ async function exportStaffData(params, user) {
     const staffList = listResult.data || []
 
     // 根据格式返回数据
-    if (format === 'excel' || format === 'pdf') {
-      // TODO: 实现 Excel/PDF 文件生成并上传到云存储
-      // 目前先返回 JSON 数据
+    if (format === 'excel') {
+      // 生成 Excel 文件
+      const excelBuffer = await generateStaffExcel(staffList)
+      const fileName = `员工数据_${new Date().toISOString().slice(0, 10)}.xlsx`
+      
+      // 上传到云存储
+      const uploadResult = await uploadFileToCloudStorage(excelBuffer, fileName, 'vegetarian-personnel/exports/staff')
+      
+      return {
+        code: 0,
+        message: '导出成功',
+        data: {
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          expiresAt: uploadResult.expiresAt,
+          format: 'excel',
+          total: listResult.total || 0
+        }
+      }
+    } else if (format === 'pdf') {
+      // PDF 格式暂不支持，返回 JSON 数据
       return {
         code: 0,
         message: '导出成功（JSON格式）',
@@ -949,7 +1141,7 @@ async function exportStaffData(params, user) {
           exportData: staffList,
           format: 'json',
           total: listResult.total || 0,
-          note: 'Excel/PDF 文件生成功能待实现，当前返回 JSON 格式数据'
+          note: 'PDF 文件生成功能待实现，当前返回 JSON 格式数据'
         }
       }
     } else {
