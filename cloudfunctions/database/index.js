@@ -124,6 +124,9 @@ exports.main = async (event) => {
       case 'initVegetarianPersonnelPermissions':
         const { main: initVegetarianPersonnelPermissions } = require('./init-vegetarian-personnel-permissions');
         return await initVegetarianPersonnelPermissions(event);
+      case 'insertVegetarianPersonnelTestData':
+        const { main: insertVegetarianPersonnelTestData } = require('./insert-vegetarian-personnel-test-data');
+        return await insertVegetarianPersonnelTestData(event);
       default:
         return await initCollectionsV1(event);
     }
