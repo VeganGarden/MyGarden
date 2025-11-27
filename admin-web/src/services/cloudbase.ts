@@ -461,6 +461,13 @@ export const carbonFootprintAPI = {
       action: 'recalculateMenuItems',
       data,
     }),
+
+  // 获取菜单列表（含碳足迹信息）
+  getMenuList: (params: { restaurantId: string; page?: number; pageSize?: number }) =>
+    callCloudFunction('tenant', {
+      action: 'getMenuList',
+      data: params,
+    }),
 }
 
 /**
