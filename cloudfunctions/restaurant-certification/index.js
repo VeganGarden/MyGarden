@@ -1,4 +1,6 @@
 const cloud = require('wx-server-sdk')
+const PDFDocument = require('pdfkit')
+const QRCode = require('qrcode')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -95,6 +97,9 @@ exports.main = async (event, context) => {
       
       case 'fixApplicationStages':
         return await fixApplicationStages(data)
+      
+      case 'checkAndGenerateCertificates':
+        return await checkAndGenerateCertificates(data)
       
       default:
         return {
@@ -1464,7 +1469,7 @@ function getStageName(stageType) {
  * 生成证书
  */
 async function generateCertificate(data) {
-  const { applicationId } = data
+  const { applicationId, force = false } = data
 
   if (!applicationId) {
     return {
@@ -1495,12 +1500,47 @@ async function generateCertificate(data) {
       })
       .get()
 
-    if (existingCertificate.data && existingCertificate.data.length > 0) {
+    // 如果证书已存在且不是强制重新生成，返回错误
+    if (existingCertificate.data && existingCertificate.data.length > 0 && !force) {
       return {
         code: 400,
         message: '证书已存在',
         data: {
           certificateId: existingCertificate.data[0]._id
+        }
+      }
+    }
+
+    // 如果强制重新生成，删除旧证书
+    if (force && existingCertificate.data && existingCertificate.data.length > 0) {
+      console.log('强制重新生成：删除旧证书')
+      for (const cert of existingCertificate.data) {
+        try {
+          // 删除云存储中的文件（如果存在）
+          if (cert.certificateFile) {
+            try {
+              await cloud.deleteFile({
+                fileList: [cert.certificateFile]
+              })
+            } catch (err) {
+              console.warn('删除证书PDF文件失败:', err)
+            }
+          }
+          if (cert.certificateQRCode) {
+            try {
+              await cloud.deleteFile({
+                fileList: [cert.certificateQRCode]
+              })
+            } catch (err) {
+              console.warn('删除证书二维码文件失败:', err)
+            }
+          }
+          // 删除数据库记录
+          await db.collection('certification_badges')
+            .doc(cert._id)
+            .remove()
+        } catch (err) {
+          console.error('删除旧证书失败:', err)
         }
       }
     }
@@ -1623,15 +1663,16 @@ async function generateCertificate(data) {
 
 /**
  * 生成证书PDF
+ * 改进版本：支持中文字体，专业设计
  */
 async function generateCertificatePDF(data) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const { certificateNumber, restaurantName, issueDate, expiryDate, qrCodeDataURL } = data
 
       const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        margins: { top: 60, bottom: 60, left: 60, right: 60 }
       })
 
       const buffers = []
@@ -1642,78 +1683,272 @@ async function generateCertificatePDF(data) {
       })
       doc.on('error', reject)
 
-      // 标题
-      doc.fontSize(28)
-        .font('Helvetica-Bold')
-        .text('气候餐厅认证证书', { align: 'center' })
-        .moveDown(1)
-
-      // 证书编号
-      doc.fontSize(12)
-        .font('Helvetica')
-        .text(`证书编号: ${certificateNumber}`, { align: 'center' })
-        .moveDown(2)
-
-      // 正文
-      doc.fontSize(16)
-        .font('Helvetica')
-        .text('兹证明', { align: 'center' })
-        .moveDown(0.5)
-
-      doc.fontSize(24)
-        .font('Helvetica-Bold')
-        .text(restaurantName, { align: 'center' })
-        .moveDown(1)
-
-      doc.fontSize(16)
-        .font('Helvetica')
-        .text('已通过"我的花园"平台气候餐厅认证，符合以下标准：', { align: 'center' })
-        .moveDown(1)
-
-      // 认证标准列表
-      const standards = [
-        '✓ 低碳菜品占比达到40%以上',
-        '✓ 本地食材占比达到30%以上',
-        '✓ 建立能源使用台账或使用绿色能源',
-        '✓ 食物浪费减少15%以上',
-        '✓ 提供社会传播与教育举措'
-      ]
-
-      doc.fontSize(14)
-        .font('Helvetica')
-      standards.forEach(standard => {
-        doc.text(standard, { align: 'left', indent: 50 })
-        doc.moveDown(0.5)
-      })
-
-      doc.moveDown(1)
-
-      // 有效期
-      doc.fontSize(14)
-        .font('Helvetica')
-        .text(`有效期: ${formatDate(issueDate)} 至 ${formatDate(expiryDate)}`, { align: 'center' })
-        .moveDown(2)
-
-      // 二维码
-      if (qrCodeDataURL) {
-        const qrCodeBuffer = Buffer.from(qrCodeDataURL.split(',')[1], 'base64')
-        doc.image(qrCodeBuffer, {
-          fit: [100, 100],
-          align: 'center'
-        })
-        doc.moveDown(0.5)
-        doc.fontSize(10)
-          .font('Helvetica')
-          .text('扫描二维码验证证书', { align: 'center' })
+      // 尝试注册中文字体（如果存在）
+      let hasChineseFont = false
+      try {
+        const fs = require('fs')
+        const path = require('path')
+        
+        // 尝试多个可能的字体路径和格式（只尝试TTF格式，OTF格式PDFKit不支持）
+        const possiblePaths = [
+          path.join(process.cwd(), 'fonts', 'SourceHanSansCN-Regular.ttf'),
+          path.join(__dirname || process.cwd(), 'fonts', 'SourceHanSansCN-Regular.ttf'),
+          '/var/user/fonts/SourceHanSansCN-Regular.ttf'
+        ]
+        
+        let actualFontPath = null
+        for (const fontPath of possiblePaths) {
+          if (fs.existsSync(fontPath)) {
+            actualFontPath = fontPath
+            break
+          }
+        }
+        
+        if (actualFontPath) {
+          try {
+            doc.registerFont('Chinese', actualFontPath)
+            hasChineseFont = true
+            console.log('中文字体加载成功:', actualFontPath)
+          } catch (fontErr) {
+            console.warn('注册中文字体失败，将使用默认字体:', fontErr.message)
+            console.warn('字体路径:', actualFontPath)
+            // 继续执行，使用默认字体
+            hasChineseFont = false
+          }
+        } else {
+          console.warn('中文字体文件未找到，将使用默认字体（中文可能显示为乱码）')
+          console.warn('尝试的路径:', possiblePaths)
+        }
+      } catch (err) {
+        console.warn('中文字体加载失败，将使用默认字体:', err.message)
+        // 继续执行，使用默认字体
+        hasChineseFont = false
       }
 
-      // 签名区域
-      doc.moveDown(2)
-      doc.fontSize(12)
+      // 定义字体函数
+      const chineseFont = hasChineseFont ? 'Chinese' : 'Helvetica'
+      const chineseBoldFont = hasChineseFont ? 'Chinese' : 'Helvetica-Bold'
+
+      // 绘制装饰边框
+      const pageWidth = doc.page.width
+      const pageHeight = doc.page.height
+      const margin = 60
+      
+      // 外边框（金色）
+      doc.lineWidth(3)
+        .strokeColor('#D4AF37')
+        .rect(margin - 10, margin - 10, pageWidth - 2 * (margin - 10), pageHeight - 2 * (margin - 10))
+        .stroke()
+
+      // 内边框（深蓝色）
+      doc.lineWidth(1)
+        .strokeColor('#1E3A8A')
+        .rect(margin, margin, pageWidth - 2 * margin, pageHeight - 2 * margin)
+        .stroke()
+
+      // 顶部装饰线（优化位置，与标题保持合适间距）
+      doc.lineWidth(2)
+        .strokeColor('#D4AF37')
+        .moveTo(margin + 50, margin + 15)
+        .lineTo(pageWidth - margin - 50, margin + 15)
+        .stroke()
+
+      // 标题区域（优化间距，确保视觉平衡）
+      doc.fontSize(36)
+        .font(chineseBoldFont)
+        .fillColor('#1E3A8A')
+        .text('气候餐厅认证证书', { 
+          align: 'center',
+          y: margin + 75  // 优化位置，与顶部横线保持60px间距
+        })
+
+      // 英文标题（优化间距）
+      doc.fontSize(18)
+        .font('Helvetica-Bold')
+        .fillColor('#4A5568')
+        .text('CLIMATE RESTAURANT CERTIFICATION', {
+          align: 'center',
+          y: margin + 125  // 优化位置，与中文标题保持50px间距
+        })
+
+      // 证书编号（右上角，优化位置）
+      doc.fontSize(10)
         .font('Helvetica')
-        .text('我的花园平台', { align: 'right' })
-        .moveDown(0.5)
-        .text(formatDate(issueDate), { align: 'right' })
+        .fillColor('#718096')
+        .text(`Certificate No.: ${certificateNumber}`, {
+          x: pageWidth - margin - 200,
+          y: margin + 15,  // 与顶部横线对齐
+          width: 200,
+          align: 'right'
+        })
+
+      // 分隔线（优化位置，与英文标题保持合适间距）
+      doc.lineWidth(1)
+        .strokeColor('#E2E8F0')
+        .moveTo(margin + 50, margin + 165)  // 优化位置
+        .lineTo(pageWidth - margin - 50, margin + 165)
+        .stroke()
+
+      // 正文区域（优化起始位置）
+      const contentY = margin + 210  // 优化位置，与分隔线保持45px间距
+      
+      // "兹证明"（优化字体大小和间距）
+      doc.fontSize(20)
+        .font(chineseFont)
+        .fillColor('#2D3748')
+        .text('兹证明', {
+          align: 'center',
+          y: contentY
+        })
+
+      // 餐厅名称（突出显示，优化间距）
+      doc.fontSize(34)  // 稍微增大字体，更突出
+        .font(chineseBoldFont)
+        .fillColor('#1E3A8A')
+        .text(restaurantName, {
+          align: 'center',
+          y: contentY + 55  // 优化间距
+        })
+
+      // 认证说明（优化间距和字体大小）
+      doc.fontSize(16)
+        .font(chineseFont)
+        .fillColor('#4A5568')
+        .text('已通过"谷秀"气候餐厅官方认证', {
+          align: 'center',
+          y: contentY + 125  // 优化间距
+        })
+
+      // "符合以下认证标准："（优化间距）
+      doc.fontSize(14)
+        .font(chineseFont)
+        .fillColor('#4A5568')
+        .text('符合以下认证标准：', {
+          align: 'center',
+          y: contentY + 175  // 优化间距
+        })
+
+      // 认证标准列表（优化布局和间距）
+      const standards = [
+        '1. 低碳菜品占比达到40%以上',
+        '2. 本地食材占比达到30%以上',
+        '3. 建立能源使用台账或使用绿色能源',
+        '4. 食物浪费减少15%以上',
+        '5. 提供社会传播与教育举措'
+      ]
+
+      const listStartY = contentY + 215  // 优化起始位置
+      const listItemHeight = 38  // 优化行间距，更舒适
+      
+      standards.forEach((standard, index) => {
+        const y = listStartY + index * listItemHeight
+        
+        // 标准文本（优化位置，确保与边框有足够距离）
+        doc.fontSize(14)  // 稍微增大字体，提高可读性
+          .font(chineseFont)
+          .fillColor('#2D3748')
+          .text(standard, {
+            x: margin + 120,  // 优化位置，与左边框保持合适距离
+            y: y,
+            width: pageWidth - 2 * margin - 120,
+            indent: 0  // 明确设置缩进为0
+          })
+      })
+
+      // 有效期区域（优化间距和布局）
+      const validityY = listStartY + standards.length * listItemHeight + 70  // 优化间距
+      
+      doc.fontSize(14)
+        .font(chineseFont)
+        .fillColor('#4A5568')
+        .text('有效期', {
+          align: 'center',
+          y: validityY
+        })
+
+      doc.fontSize(16)
+        .font(chineseBoldFont)
+        .fillColor('#1E3A8A')
+        .text(`${formatDate(issueDate)} 至 ${formatDate(expiryDate)}`, {
+          align: 'center',
+          y: validityY + 30  // 优化间距
+        })
+
+      // 底部区域（优化布局，确保与有效期区域有合适间距）
+      const bottomY = pageHeight - margin - 100  // 优化位置，向上移动
+
+      // 二维码区域（左侧，优化位置和大小）
+      if (qrCodeDataURL) {
+        const qrCodeBuffer = Buffer.from(qrCodeDataURL.split(',')[1], 'base64')
+        const qrSize = 85  // 稍微增大二维码
+        const qrX = margin + 60  // 优化位置
+        const qrY = bottomY - 10  // 优化位置
+        
+        doc.image(qrCodeBuffer, {
+          x: qrX,
+          y: qrY,
+          fit: [qrSize, qrSize]
+        })
+
+        doc.fontSize(10)  // 稍微增大字体
+          .font(chineseFont)
+          .fillColor('#718096')
+          .text('扫描验证', {
+            x: qrX,
+            y: qrY + qrSize + 8,  // 优化间距
+            width: qrSize,
+            align: 'center'
+          })
+      }
+
+      // 签名区域（右侧，优化布局）
+      const signatureX = pageWidth - margin - 180  // 优化位置
+      const signatureY = bottomY
+
+      // 签名线（优化长度和位置）
+      doc.lineWidth(1.5)  // 稍微加粗
+        .strokeColor('#CBD5E0')
+        .moveTo(signatureX, signatureY + 25)  // 优化位置
+        .lineTo(signatureX + 160, signatureY + 25)  // 优化长度
+        .stroke()
+
+      doc.fontSize(13)  // 稍微增大字体
+        .font(chineseFont)
+        .fillColor('#2D3748')
+        .text('“谷秀”气候餐厅官方认证', {
+          x: signatureX,
+          y: signatureY + 5,
+          width: 160,  // 匹配签名线宽度
+          align: 'center'
+        })
+
+      doc.fontSize(11)  // 稍微增大字体
+        .font(chineseFont)
+        .fillColor('#718096')
+        .text(formatDate(issueDate), {
+          x: signatureX,
+          y: signatureY + 35,  // 优化间距
+          width: 160,
+          align: 'center'
+        })
+
+      // 底部装饰线（优化位置）
+      doc.lineWidth(2)
+        .strokeColor('#D4AF37')
+        .moveTo(margin + 50, pageHeight - margin - 25)  // 优化位置
+        .lineTo(pageWidth - margin - 50, pageHeight - margin - 25)
+        .stroke()
+
+      // 水印文字（背景）
+      doc.fontSize(60)
+        .font('Helvetica-Bold')
+        .fillColor('#F7FAFC')
+        .opacity(0.1)
+        .text('CERTIFIED', {
+          align: 'center',
+          y: pageHeight / 2 - 30,
+          rotate: 45
+        })
 
       doc.end()
     } catch (error) {
@@ -2855,6 +3090,153 @@ async function fixReviewData(data) {
     return {
       code: 500,
       message: '修复数据失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 检查并生成证书
+ * 用于修复已通过审核但缺少证书的申请
+ */
+async function checkAndGenerateCertificates(data) {
+  const { restaurantNames, shouldGenerate = false } = data
+
+  try {
+    console.log('开始检查证书...')
+    
+    // 查找指定的餐厅（默认为"素开心"和"素欢乐"）
+    const namesToCheck = restaurantNames || ['素开心', '素欢乐']
+    
+    const restaurants = await db.collection('restaurants')
+      .where({
+        name: _.in(namesToCheck)
+      })
+      .get()
+
+    if (!restaurants.data || restaurants.data.length === 0) {
+      return {
+        code: 404,
+        message: `未找到指定的餐厅: ${namesToCheck.join(', ')}`
+      }
+    }
+
+    const results = []
+    const missingCertificates = []
+
+    for (const restaurant of restaurants.data) {
+      console.log(`检查餐厅: ${restaurant.name} (ID: ${restaurant._id})`)
+
+      // 查找该餐厅的已通过申请
+      const applications = await db.collection('certification_applications')
+        .where({
+          restaurantId: restaurant._id,
+          status: 'approved'
+        })
+        .orderBy('createdAt', 'desc')
+        .get()
+
+      if (!applications.data || applications.data.length === 0) {
+        results.push({
+          restaurantName: restaurant.name,
+          restaurantId: restaurant._id,
+          status: 'no_approved_application',
+          message: '未找到已通过的申请'
+        })
+        continue
+      }
+
+      // 检查最新的已通过申请
+      const approvedApp = applications.data[0]
+      console.log(`找到已通过的申请: ${approvedApp._id}`)
+
+      // 检查是否已有证书
+      const certificates = await db.collection('certification_badges')
+        .where({
+          applicationId: approvedApp._id
+        })
+        .get()
+
+      if (certificates.data && certificates.data.length > 0) {
+        const cert = certificates.data[0]
+        results.push({
+          restaurantName: restaurant.name,
+          restaurantId: restaurant._id,
+          applicationId: approvedApp._id,
+          status: 'has_certificate',
+          certificateId: cert._id,
+          certificateNumber: cert.certificateId || cert.certificateNumber,
+          message: '证书已存在'
+        })
+      } else {
+        missingCertificates.push({
+          restaurantName: restaurant.name,
+          restaurantId: restaurant._id,
+          applicationId: approvedApp._id
+        })
+
+        if (shouldGenerate) {
+          console.log(`为 ${restaurant.name} 生成证书...`)
+          try {
+            const certResult = await generateCertificate({
+              applicationId: approvedApp._id
+            })
+
+            if (certResult.code === 0) {
+              results.push({
+                restaurantName: restaurant.name,
+                restaurantId: restaurant._id,
+                applicationId: approvedApp._id,
+                status: 'certificate_generated',
+                certificateNumber: certResult.data.certificateNumber || certResult.data.certificateId,
+                message: '证书生成成功'
+              })
+            } else {
+              results.push({
+                restaurantName: restaurant.name,
+                restaurantId: restaurant._id,
+                applicationId: approvedApp._id,
+                status: 'generation_failed',
+                message: `证书生成失败: ${certResult.message}`
+              })
+            }
+          } catch (error) {
+            console.error(`生成证书失败:`, error)
+            results.push({
+              restaurantName: restaurant.name,
+              restaurantId: restaurant._id,
+              applicationId: approvedApp._id,
+              status: 'generation_failed',
+              message: `证书生成失败: ${error.message}`
+            })
+          }
+        } else {
+          results.push({
+            restaurantName: restaurant.name,
+            restaurantId: restaurant._id,
+            applicationId: approvedApp._id,
+            status: 'missing_certificate',
+            message: '缺少证书，需要生成'
+          })
+        }
+      }
+    }
+
+    return {
+      code: 0,
+      message: '检查完成',
+      data: {
+        checkedCount: restaurants.data.length,
+        missingCount: missingCertificates.length,
+        results,
+        missingCertificates: shouldGenerate ? [] : missingCertificates
+      }
+    }
+  } catch (error) {
+    console.error('检查证书失败:', error)
+    return {
+      code: 500,
+      message: '检查失败',
       error: error.message
     }
   }
