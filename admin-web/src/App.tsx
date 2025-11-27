@@ -102,6 +102,7 @@ import StaffAdd from './pages/vegetarian-personnel/StaffAdd'
 import StaffEdit from './pages/vegetarian-personnel/StaffEdit'
 import StaffList from './pages/vegetarian-personnel/StaffList'
 import StaffStats from './pages/vegetarian-personnel/StaffStats'
+import VegetarianPersonnelDashboard from './pages/vegetarian-personnel/Dashboard'
 
 const App: React.FC = () => {
   return (
@@ -230,8 +231,8 @@ const App: React.FC = () => {
           <Route path="base/import" element={<BaseImport />} />
           
           {/* 素食人员管理模块 */}
-          <Route path="vegetarian-personnel" element={<Dashboard />} />
-          <Route path="vegetarian-personnel/dashboard" element={<Dashboard />} />
+          <Route path="vegetarian-personnel" element={<VegetarianPersonnelDashboard />} />
+          <Route path="vegetarian-personnel/dashboard" element={<VegetarianPersonnelDashboard />} />
           <Route path="vegetarian-personnel/staff" element={<StaffList />} />
           <Route path="vegetarian-personnel/staff/add" element={<StaffAdd />} />
           <Route path="vegetarian-personnel/staff/edit/:id" element={<StaffEdit />} />
