@@ -17,17 +17,35 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     // 如果不在登录页，检查认证状态
     if (location.pathname !== '/login') {
+      // 检查是否有token（最基本的认证检查）
+      const token = localStorage.getItem('admin_token')
+      if (!token) {
+        console.log('未找到token，跳转到登录页')
+        navigate('/login')
+        return
+      }
+
       if (!isAuthenticated || !user) {
         // 未登录，跳转到登录页
+        console.log('未认证或用户信息为空，跳转到登录页', { isAuthenticated, hasUser: !!user })
+        navigate('/login')
+        return
+      }
+
+      // 确保用户有必要的字段
+      if (!user.id || !user.role) {
+        console.error('用户信息不完整:', { id: user.id, role: user.role, user })
+        // 用户信息不完整，清除并重新登录
+        dispatch(logout())
         navigate('/login')
         return
       }
 
       // 验证localStorage中的用户信息是否与当前用户一致
-      const isValid = validateUserStorage(user.id || '', user.role || '')
+      const isValid = validateUserStorage(user.id, user.role)
       if (!isValid) {
         // 用户信息不匹配，清除并重新登录
-        console.log('用户信息验证失败，清除登录状态')
+        console.log('用户信息验证失败，清除登录状态', { userId: user.id, userRole: user.role })
         dispatch(logout())
         navigate('/login')
         return
