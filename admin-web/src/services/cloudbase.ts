@@ -59,8 +59,10 @@ export const callCloudFunction = async (
         // 如果云函数返回的是 { code, message, data } 格式
         if (resultData.code !== undefined) {
           // 处理权限错误
-          if (resultData.code === 401 || resultData.code === 403) {
+          if (resultData.code === 401) {
+            // 401认证错误，清除登录状态并重定向
             try {
+              console.error('[cloudbase] 认证失败(401)，清除登录状态', resultData)
               localStorage.removeItem('admin_token')
               localStorage.removeItem('admin_user')
               localStorage.removeItem('admin_permissions')
@@ -69,6 +71,11 @@ export const callCloudFunction = async (
               }
             } catch {}
             throw new Error(resultData.message || '未授权访问，请先登录')
+          }
+          
+          // 403权限不足错误，不重定向，只抛出错误让调用方处理
+          if (resultData.code === 403) {
+            throw new Error(resultData.message || '无权限访问此资源')
           }
           
           // 对于权限错误，不重试
@@ -119,14 +126,20 @@ export const callCloudFunction = async (
     
     // 处理权限错误
     if (isPermissionError(error) || error?.code === 403 || error?.code === 401) {
-      try {
-        localStorage.removeItem('admin_token')
-        localStorage.removeItem('admin_user')
-        localStorage.removeItem('admin_permissions')
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
-      } catch {}
+      // 只在明确是认证错误（401）时才清除登录状态并重定向
+      // 403权限不足错误不应该清除登录状态，应该由调用方处理
+      if (error?.code === 401) {
+        try {
+          console.error('[cloudbase] 认证失败，清除登录状态', error)
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_user')
+          localStorage.removeItem('admin_permissions')
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
+          }
+        } catch {}
+      }
+      // 403权限不足错误，不重定向，只抛出错误让调用方处理
     }
     
     // 处理不同类型的错误
