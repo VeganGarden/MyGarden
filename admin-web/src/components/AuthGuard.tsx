@@ -13,7 +13,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation()
   const dispatch = useAppDispatch()
   const { user, isAuthenticated } = useAppSelector((state: any) => state.auth)
-  const hasCheckedRef = useRef(false)
+  const hasCheckedRef = useRef<string | null>(null) // 存储已验证的用户ID
 
   useEffect(() => {
     // 如果不在登录页，检查认证状态
@@ -51,7 +51,10 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             permissions: storedUser.permissions || [],
           })
         )
-        // 恢复后，继续验证（因为setCredentials是同步的，会立即更新store）
+        // 恢复后，标记为已检查，避免重复验证
+        hasCheckedRef.current = storedUser.id
+        // 恢复后直接返回，等待Redux store更新后再验证
+        return
       }
 
       // 使用Redux store中的user，如果不存在则使用localStorage中的
@@ -64,6 +67,11 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         })
         dispatch(logout())
         navigate('/login', { replace: true })
+        return
+      }
+
+      // 如果已经验证过这个用户，且路径没变，直接通过
+      if (hasCheckedRef.current === currentUser.id && location.pathname !== '/login') {
         return
       }
 
@@ -91,18 +99,16 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         return
       }
 
-      // 验证通过
-      if (!hasCheckedRef.current) {
-        console.log('[AuthGuard] 用户验证通过', {
-          userId: currentUser.id,
-          role: currentUser.role,
-          pathname: location.pathname,
-        })
-        hasCheckedRef.current = true
-      }
+      // 验证通过，标记为已检查
+      hasCheckedRef.current = currentUser.id
+      console.log('[AuthGuard] 用户验证通过', {
+        userId: currentUser.id,
+        role: currentUser.role,
+        pathname: location.pathname,
+      })
     } else {
       // 在登录页时重置检查标志
-      hasCheckedRef.current = false
+      hasCheckedRef.current = null
     }
   }, [location.pathname, isAuthenticated, user, navigate, dispatch])
 
