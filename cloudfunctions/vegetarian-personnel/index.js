@@ -1144,8 +1144,8 @@ async function generateESGExcel(esgReportData) {
   carbonSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
 
   const carbonEffect = esgReportData.carbonEffect || {}
-  carbonSheet.addRow({ metric: '员工减碳总量', value: carbonEffect.staffCarbonEffect?.totalReduction || 0 })
-  carbonSheet.addRow({ metric: '客户减碳总量', value: carbonEffect.customerCarbonEffect?.totalReduction || 0 })
+  carbonSheet.addRow({ metric: '员工减碳总量', value: (carbonEffect.staffCarbonEffect && carbonEffect.staffCarbonEffect.totalReduction) || 0 })
+  carbonSheet.addRow({ metric: '客户减碳总量', value: (carbonEffect.customerCarbonEffect && carbonEffect.customerCarbonEffect.totalReduction) || 0 })
   carbonSheet.addRow({ metric: '总减碳量 (kg CO₂e)', value: carbonEffect.totalCarbonEffect || 0 })
 
   return await workbook.xlsx.writeBuffer()
@@ -1457,8 +1457,8 @@ async function generateESGPDF(esgReportData) {
       const carbonEffect = esgReportData.carbonEffect || {}
       doc.fontSize(11)
         .font('Helvetica')
-      doc.text(`员工减碳总量：${carbonEffect.staffCarbonEffect?.totalReduction || 0} kg CO₂e`)
-      doc.text(`客户减碳总量：${carbonEffect.customerCarbonEffect?.totalReduction || 0} kg CO₂e`)
+      doc.text(`员工减碳总量：${(carbonEffect.staffCarbonEffect && carbonEffect.staffCarbonEffect.totalReduction) || 0} kg CO₂e`)
+      doc.text(`客户减碳总量：${(carbonEffect.customerCarbonEffect && carbonEffect.customerCarbonEffect.totalReduction) || 0} kg CO₂e`)
       doc.text(`总减碳量：${carbonEffect.totalCarbonEffect || 0} kg CO₂e`)
       doc.moveDown()
 
