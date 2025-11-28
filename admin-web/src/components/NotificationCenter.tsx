@@ -325,7 +325,7 @@ const NotificationCenter: React.FC = () => {
 
   return (
     <Dropdown
-      dropdownRender={() => dropdownContent}
+      popupRender={() => dropdownContent}
       trigger={['click']}
       placement="bottomRight"
       overlayClassName={styles.notificationDropdown}

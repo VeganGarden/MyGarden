@@ -4,7 +4,7 @@ import { setCredentials } from '@/store/slices/authSlice'
 import { clearTenant, setTenant } from '@/store/slices/tenantSlice'
 import { validateUserStorage } from '@/utils/storage'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Input, message } from 'antd'
+import { App, Button, Card, Form, Input } from 'antd'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -12,6 +12,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const dispatch = useAppDispatch()

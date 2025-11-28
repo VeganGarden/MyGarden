@@ -194,7 +194,7 @@ const CertificationMaterials: React.FC = () => {
       >
         {loadingData && (
           <div style={{ textAlign: 'center', padding: 20 }}>
-            <Spin tip="加载当前资料..." />
+            <Spin />
           </div>
         )}
         <Tabs activeKey={activeTab} onChange={setActiveTab}>

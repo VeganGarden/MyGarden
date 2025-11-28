@@ -122,7 +122,12 @@ export const callCloudFunction = async (
       }
     }
   ).catch((error: any) => {
-    console.error(`调用云函数 ${functionName} 失败:`, error)
+    // 403权限不足错误是预期的，降级为debug级别，避免控制台噪音
+    if (error?.code === 403) {
+      console.debug(`[cloudbase] 调用云函数 ${functionName} 权限不足:`, error.message || error)
+    } else {
+      console.error(`调用云函数 ${functionName} 失败:`, error)
+    }
     
     // 处理权限错误
     if (isPermissionError(error) || error?.code === 403 || error?.code === 401) {

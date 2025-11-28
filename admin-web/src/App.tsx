@@ -116,7 +116,7 @@ const LoadingFallback: React.FC = () => (
     minHeight: '400px',
     width: '100%'
   }}>
-    <Spin size="large" tip="加载中..." />
+    <Spin size="large" />
   </div>
 )
 
