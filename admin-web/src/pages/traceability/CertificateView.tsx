@@ -333,7 +333,7 @@ const CertificateViewPage: React.FC = () => {
                       position: 'relative', 
                       backgroundColor: '#f5f5f5'
                     }}>
-                    <Spin spinning={pdfLoading} tip={pdfLoading ? t('common.loading') : undefined}>
+                    <Spin spinning={pdfLoading}>
                       {useFallback ? (
                         <div style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
                           {pdfError && (
