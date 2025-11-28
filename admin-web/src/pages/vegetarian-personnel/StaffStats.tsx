@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react'
 import { Card, Row, Col, Statistic, Table, Tag, DatePicker, Button, Space, message } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/store/hooks'
 import { staffAPI } from '@/services/vegetarianPersonnel'
@@ -14,6 +15,7 @@ import dayjs from 'dayjs'
 const { RangePicker } = DatePicker
 
 const StaffStatsPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
@@ -28,7 +30,7 @@ const StaffStatsPage: React.FC = () => {
 
   const loadData = async () => {
     if (!currentRestaurantId || !currentTenant) {
-      message.warning('请先选择餐厅')
+      message.warning(t('pages.vegetarianPersonnel.staffStats.messages.noRestaurant'))
       return
     }
 
@@ -49,10 +51,10 @@ const StaffStatsPage: React.FC = () => {
       if (result.success && result.data) {
         setStats(result.data)
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.vegetarianPersonnel.staffStats.messages.loadFailed'))
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('pages.vegetarianPersonnel.staffStats.messages.networkError'))
     } finally {
       setLoading(false)
     }
@@ -60,26 +62,22 @@ const StaffStatsPage: React.FC = () => {
 
   const vegetarianTypeColumns = [
     {
-      title: '素食类型',
+      title: t('pages.vegetarianPersonnel.staffStats.table.columns.type'),
       dataIndex: 'type',
       key: 'type',
       render: (type: string) => {
-        const typeMap: Record<string, string> = {
-          pure: '纯素',
-          ovo_lacto: '蛋奶素',
-          flexible: '弹性素',
-          other: '其他'
-        }
-        return typeMap[type] || type
+        const typeKey = `pages.vegetarianPersonnel.staffStats.vegetarianTypes.${type}`
+        const translated = t(typeKey)
+        return translated !== typeKey ? translated : type
       }
     },
     {
-      title: '人数',
+      title: t('pages.vegetarianPersonnel.staffStats.table.columns.count'),
       dataIndex: 'count',
       key: 'count'
     },
     {
-      title: '占比',
+      title: t('pages.vegetarianPersonnel.staffStats.table.columns.ratio'),
       dataIndex: 'ratio',
       key: 'ratio',
       render: (ratio: number) => `${(ratio * 100).toFixed(2)}%`
@@ -119,9 +117,9 @@ const StaffStatsPage: React.FC = () => {
         title={
           <Space>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/vegetarian-personnel/staff')}>
-              返回
+              {t('pages.vegetarianPersonnel.staffStats.buttons.back')}
             </Button>
-            <span>员工统计</span>
+            <span>{t('pages.vegetarianPersonnel.staffStats.title')}</span>
           </Space>
         }
         extra={
@@ -132,7 +130,7 @@ const StaffStatsPage: React.FC = () => {
               format="YYYY-MM-DD"
             />
             <Button type="primary" onClick={loadData} loading={loading}>
-              刷新
+              {t('pages.vegetarianPersonnel.staffStats.buttons.refresh')}
             </Button>
           </Space>
         }
@@ -142,7 +140,7 @@ const StaffStatsPage: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="总员工数"
+                title={t('pages.vegetarianPersonnel.staffStats.statistics.totalStaff')}
                 value={stats?.totalStaff || 0}
                 valueStyle={{ color: '#1890ff' }}
               />
@@ -151,7 +149,7 @@ const StaffStatsPage: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="素食员工数"
+                title={t('pages.vegetarianPersonnel.staffStats.statistics.vegetarianStaff')}
                 value={stats?.vegetarianStaff || 0}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -160,9 +158,9 @@ const StaffStatsPage: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="素食比例"
+                title={t('pages.vegetarianPersonnel.staffStats.statistics.vegetarianRatio')}
                 value={stats?.vegetarianRatio ? Number(stats.vegetarianRatio).toFixed(2) : 0}
-                suffix="%"
+                suffix={t('pages.vegetarianPersonnel.staffStats.units.percent')}
                 valueStyle={{ color: '#722ed1' }}
               />
             </Card>
@@ -170,9 +168,9 @@ const StaffStatsPage: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title="平均素食年限"
+                title={t('pages.vegetarianPersonnel.staffStats.statistics.averageVegetarianYears')}
                 value={stats?.averageVegetarianYears || 0}
-                suffix="年"
+                suffix={t('pages.vegetarianPersonnel.staffStats.units.year')}
                 valueStyle={{ color: '#fa8c16' }}
                 precision={1}
               />
@@ -180,7 +178,7 @@ const StaffStatsPage: React.FC = () => {
           </Col>
         </Row>
 
-        <Card title="素食类型分布" style={{ marginTop: 16 }}>
+        <Card title={t('pages.vegetarianPersonnel.staffStats.table.title')} style={{ marginTop: 16 }}>
           <Table
             columns={vegetarianTypeColumns}
             dataSource={vegetarianTypeData}

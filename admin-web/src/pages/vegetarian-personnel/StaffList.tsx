@@ -5,6 +5,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Button, Card, Input, Select, Table, Space, Tag, message, Modal, Skeleton } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/store/hooks'
 import { staffAPI } from '@/services/vegetarianPersonnel'
@@ -13,6 +14,7 @@ import type { Staff } from '@/types/vegetarianPersonnel'
 const { Search } = Input
 
 const StaffListPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
@@ -27,7 +29,7 @@ const StaffListPage: React.FC = () => {
   // 加载数据（使用 useCallback 优化）
   const loadData = useCallback(async () => {
     if (!currentRestaurantId || !currentTenant) {
-      message.warning('请先选择餐厅')
+      message.warning(t('pages.vegetarianPersonnel.staffList.messages.noRestaurant'))
       return
     }
 
@@ -49,19 +51,19 @@ const StaffListPage: React.FC = () => {
           total: result.data!.total || 0
         }))
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.vegetarianPersonnel.staffList.messages.loadFailed'))
         setStaffList([])
         setPagination(prev => ({ ...prev, total: 0 }))
       }
     } catch (error: any) {
       console.error('加载员工数据失败:', error)
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('pages.vegetarianPersonnel.staffList.messages.networkError'))
       setStaffList([])
       setPagination(prev => ({ ...prev, total: 0 }))
     } finally {
       setLoading(false)
     }
-  }, [currentRestaurantId, currentTenant, pagination.current, pagination.pageSize, searchKeyword])
+  }, [currentRestaurantId, currentTenant, pagination.current, pagination.pageSize, searchKeyword, t])
 
   // 搜索防抖
   useEffect(() => {
@@ -84,71 +86,68 @@ const StaffListPage: React.FC = () => {
   // 删除确认（使用 useCallback 优化）
   const handleDelete = useCallback((staff: Staff) => {
     Modal.confirm({
-      title: '确认删除员工',
-      content: `确定要删除员工"${staff.basicInfo.name}"吗？此操作不可恢复。`,
-      okText: '确认删除',
+      title: t('pages.vegetarianPersonnel.staffList.messages.deleteConfirm'),
+      content: t('pages.vegetarianPersonnel.staffList.messages.deleteConfirmMessage', { name: staff.basicInfo.name }),
+      okText: t('pages.vegetarianPersonnel.staffList.buttons.delete'),
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: t('common.cancel'),
       onOk: async () => {
         try {
           const result = await staffAPI.delete(staff.staffId)
           if (result.success) {
-            message.success(`员工"${staff.basicInfo.name}"已删除`)
+            message.success(t('pages.vegetarianPersonnel.staffList.messages.deleteSuccess', { name: staff.basicInfo.name }))
             loadData()
           } else {
-            message.error(result.error || '删除失败，请重试')
+            message.error(result.error || t('pages.vegetarianPersonnel.staffList.messages.deleteFailed'))
           }
         } catch (error: any) {
-          message.error(error.message || '删除失败，请检查网络连接')
+          message.error(error.message || t('pages.vegetarianPersonnel.staffList.messages.deleteFailed'))
         }
       }
     })
-  }, [loadData])
+  }, [loadData, t])
 
   // 表格列定义（使用 useMemo 优化）
   const columns = useMemo(() => [
     {
-      title: '姓名',
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.name'),
       dataIndex: ['basicInfo', 'name'],
       key: 'name'
     },
     {
-      title: '岗位',
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.position'),
       dataIndex: ['basicInfo', 'position'],
       key: 'position'
     },
     {
-      title: '是否素食',
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.isVegetarian'),
       dataIndex: ['vegetarianInfo', 'isVegetarian'],
       key: 'isVegetarian',
       render: (isVegetarian: boolean) => (
         <Tag color={isVegetarian ? 'green' : 'default'}>
-          {isVegetarian ? '是' : '否'}
+          {isVegetarian ? t('pages.vegetarianPersonnel.staffList.yes') : t('pages.vegetarianPersonnel.staffList.no')}
         </Tag>
       )
     },
     {
-      title: '素食类型',
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.vegetarianType'),
       dataIndex: ['vegetarianInfo', 'vegetarianType'],
       key: 'vegetarianType',
       render: (type: string) => {
-        const typeMap: Record<string, string> = {
-          pure: '纯素',
-          ovo_lacto: '蛋奶素',
-          flexible: '弹性素',
-          other: '其他'
-        }
-        return typeMap[type] || type || '-'
+        if (!type) return '-'
+        const typeKey = `pages.vegetarianPersonnel.staffList.vegetarianTypes.${type}`
+        const translated = t(typeKey)
+        return translated !== typeKey ? translated : type
       }
     },
     {
-      title: '素食开始年份',
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.vegetarianStartYear'),
       dataIndex: ['vegetarianInfo', 'vegetarianStartYear'],
       key: 'vegetarianStartYear',
       render: (year: number) => year || '-'
     },
     {
-      title: '操作',
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.actions'),
       key: 'action',
       render: (_: any, record: Staff) => (
         <Space>
@@ -157,7 +156,7 @@ const StaffListPage: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`/vegetarian-personnel/staff/edit/${record.staffId}`)}
           >
-            编辑
+            {t('pages.vegetarianPersonnel.staffList.buttons.edit')}
           </Button>
           <Button
             type="link"
@@ -165,12 +164,12 @@ const StaffListPage: React.FC = () => {
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record)}
           >
-            删除
+            {t('pages.vegetarianPersonnel.staffList.buttons.delete')}
           </Button>
         </Space>
       )
     }
-  ], [navigate, handleDelete])
+  ], [navigate, handleDelete, t])
 
   if (loading && staffList.length === 0 && pagination.total === 0) {
     return (
@@ -185,7 +184,7 @@ const StaffListPage: React.FC = () => {
       <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' }}>
         <Space wrap>
           <Search
-            placeholder="搜索姓名或员工ID"
+            placeholder={t('pages.vegetarianPersonnel.staffList.filters.search')}
             style={{ width: 300, maxWidth: '100%' }}
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
@@ -202,14 +201,14 @@ const StaffListPage: React.FC = () => {
         </Space>
         <Space wrap>
           <Button onClick={() => navigate('/vegetarian-personnel/staff/stats')}>
-            统计
+            {t('pages.vegetarianPersonnel.staffList.buttons.stats')}
           </Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate('/vegetarian-personnel/staff/add')}
           >
-            添加员工
+            {t('pages.vegetarianPersonnel.staffList.buttons.add')}
           </Button>
         </Space>
       </div>
@@ -220,13 +219,15 @@ const StaffListPage: React.FC = () => {
         rowKey="_id"
         loading={loading}
         locale={{
-          emptyText: searchKeyword ? `未找到包含"${searchKeyword}"的员工` : '暂无员工数据，点击"添加员工"开始添加'
+          emptyText: searchKeyword 
+            ? t('pages.vegetarianPersonnel.staffList.messages.emptySearch', { keyword: searchKeyword })
+            : t('pages.vegetarianPersonnel.staffList.messages.empty')
         }}
         pagination={{
           current: pagination.current,
           pageSize: pagination.pageSize,
           total: pagination.total,
-          showTotal: (total) => `共 ${total} 条`,
+          showTotal: (total) => t('common.showTotal', { total }),
           showSizeChanger: true,
           showQuickJumper: true,
           pageSizeOptions: ['10', '20', '50', '100'],

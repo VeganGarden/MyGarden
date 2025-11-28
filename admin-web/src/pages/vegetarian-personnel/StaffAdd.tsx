@@ -6,6 +6,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Form, Input, Select, Button, Space, message, Row, Col, Switch } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
 import { useAppSelector } from '@/store/hooks'
 import { staffAPI } from '@/services/vegetarianPersonnel'
 import type { StaffFormData } from '@/types/vegetarianPersonnel'
@@ -13,6 +14,7 @@ import { StaffVegetarianType, VegetarianReason } from '@/types/vegetarianPersonn
 import dayjs from 'dayjs'
 
 const StaffAddPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [form] = Form.useForm()
@@ -21,7 +23,7 @@ const StaffAddPage: React.FC = () => {
 
   const handleSubmit = async (values: any) => {
     if (!currentRestaurantId || !currentTenant) {
-      message.warning('请先选择餐厅')
+      message.warning(t('pages.vegetarianPersonnel.staffAdd.messages.noRestaurant'))
       return
     }
 
@@ -49,14 +51,14 @@ const StaffAddPage: React.FC = () => {
 
       const result = await staffAPI.create(formData)
       if (result.success) {
-        message.success(`员工"${values.name}"创建成功`)
+        message.success(t('pages.vegetarianPersonnel.staffAdd.messages.createSuccess', { name: values.name }))
         navigate('/vegetarian-personnel/staff')
       } else {
-        message.error(result.error || '创建失败，请重试')
+        message.error(result.error || t('pages.vegetarianPersonnel.staffAdd.messages.createFailed'))
       }
     } catch (error: any) {
       console.error('创建员工异常:', error)
-      message.error(error.message || '网络错误，请检查网络连接后重试')
+      message.error(error.message || t('pages.vegetarianPersonnel.staffAdd.messages.networkError'))
     } finally {
       setLoading(false)
     }
@@ -67,9 +69,9 @@ const StaffAddPage: React.FC = () => {
       title={
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/vegetarian-personnel/staff')}>
-            返回
+            {t('pages.vegetarianPersonnel.staffAdd.buttons.back')}
           </Button>
-          <span>添加员工</span>
+          <span>{t('pages.vegetarianPersonnel.staffAdd.title')}</span>
         </Space>
       }
     >
@@ -86,19 +88,19 @@ const StaffAddPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="name"
-              label="姓名"
-              rules={[{ required: true, message: '请输入姓名' }]}
+              label={t('pages.vegetarianPersonnel.staffAdd.form.fields.name')}
+              rules={[{ required: true, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.nameRequired') }]}
             >
-              <Input placeholder="请输入员工姓名" />
+              <Input placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.name')} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="position"
-              label="岗位"
-              rules={[{ required: true, message: '请输入岗位' }]}
+              label={t('pages.vegetarianPersonnel.staffAdd.form.fields.position')}
+              rules={[{ required: true, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.positionRequired') }]}
             >
-              <Input placeholder="请输入岗位" />
+              <Input placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.position')} />
             </Form.Item>
           </Col>
         </Row>
@@ -107,23 +109,23 @@ const StaffAddPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="phone"
-              label="手机号"
+              label={t('pages.vegetarianPersonnel.staffAdd.form.fields.phone')}
               rules={[
-                { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' }
+                { pattern: /^1[3-9]\d{9}$/, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.phoneInvalid') }
               ]}
             >
-              <Input placeholder="请输入11位手机号" maxLength={11} />
+              <Input placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.phone')} maxLength={11} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="email"
-              label="邮箱"
+              label={t('pages.vegetarianPersonnel.staffAdd.form.fields.email')}
               rules={[
-                { type: 'email', message: '请输入正确的邮箱地址' }
+                { type: 'email', message: t('pages.vegetarianPersonnel.staffAdd.form.rules.emailInvalid') }
               ]}
             >
-              <Input placeholder="请输入邮箱地址" />
+              <Input placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.email')} />
             </Form.Item>
           </Col>
         </Row>
@@ -132,8 +134,8 @@ const StaffAddPage: React.FC = () => {
           <Col span={12}>
             <Form.Item
               name="joinDate"
-              label="入职日期"
-              rules={[{ required: true, message: '请选择入职日期' }]}
+              label={t('pages.vegetarianPersonnel.staffAdd.form.fields.joinDate')}
+              rules={[{ required: true, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.joinDateRequired') }]}
             >
               <Input type="date" />
             </Form.Item>
@@ -144,7 +146,7 @@ const StaffAddPage: React.FC = () => {
           <Col span={24}>
             <Form.Item
               name="isVegetarian"
-              label="是否素食"
+              label={t('pages.vegetarianPersonnel.staffAdd.form.fields.isVegetarian')}
               valuePropName="checked"
             >
               <Switch
@@ -172,29 +174,29 @@ const StaffAddPage: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="vegetarianType"
-                  label="素食类型"
-                  rules={[{ required: true, message: '请选择素食类型' }]}
+                  label={t('pages.vegetarianPersonnel.staffAdd.form.fields.vegetarianType')}
+                  rules={[{ required: true, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.vegetarianTypeRequired') }]}
                 >
-                  <Select placeholder="请选择素食类型">
-                    <Select.Option value={StaffVegetarianType.PURE}>纯素</Select.Option>
-                    <Select.Option value={StaffVegetarianType.OVO_LACTO}>蛋奶素</Select.Option>
-                    <Select.Option value={StaffVegetarianType.FLEXIBLE}>弹性素</Select.Option>
-                    <Select.Option value={StaffVegetarianType.OTHER}>其他</Select.Option>
+                  <Select placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.vegetarianType')}>
+                    <Select.Option value={StaffVegetarianType.PURE}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianTypes.pure')}</Select.Option>
+                    <Select.Option value={StaffVegetarianType.OVO_LACTO}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianTypes.ovo_lacto')}</Select.Option>
+                    <Select.Option value={StaffVegetarianType.FLEXIBLE}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianTypes.flexible')}</Select.Option>
+                    <Select.Option value={StaffVegetarianType.OTHER}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianTypes.other')}</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="vegetarianStartYear"
-                  label="素食开始年份"
+                  label={t('pages.vegetarianPersonnel.staffAdd.form.fields.vegetarianStartYear')}
                   rules={[
-                    { required: true, message: '请输入素食开始年份' },
-                    { type: 'number', min: 1900, max: new Date().getFullYear(), message: `年份应在 1900-${new Date().getFullYear()} 之间` }
+                    { required: true, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.vegetarianStartYearRequired') },
+                    { type: 'number', min: 1900, max: new Date().getFullYear(), message: t('pages.vegetarianPersonnel.staffAdd.form.rules.yearRange', { year: new Date().getFullYear() }) }
                   ]}
                 >
                   <Input 
                     type="number" 
-                    placeholder={`例如：${new Date().getFullYear() - 5}`} 
+                    placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.vegetarianStartYear', { year: new Date().getFullYear() - 5 })} 
                     min={1900} 
                     max={new Date().getFullYear()} 
                   />
@@ -206,13 +208,13 @@ const StaffAddPage: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="vegetarianReason"
-                  label="素食原因"
+                  label={t('pages.vegetarianPersonnel.staffAdd.form.fields.vegetarianReason')}
                 >
-                  <Select placeholder="请选择素食原因" allowClear>
-                    <Select.Option value={VegetarianReason.HEALTH}>健康</Select.Option>
-                    <Select.Option value={VegetarianReason.ENVIRONMENT}>环保</Select.Option>
-                    <Select.Option value={VegetarianReason.FAITH}>信仰</Select.Option>
-                    <Select.Option value={VegetarianReason.OTHER}>其他</Select.Option>
+                  <Select placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.vegetarianReason')} allowClear>
+                    <Select.Option value={VegetarianReason.HEALTH}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianReasons.health')}</Select.Option>
+                    <Select.Option value={VegetarianReason.ENVIRONMENT}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianReasons.environment')}</Select.Option>
+                    <Select.Option value={VegetarianReason.FAITH}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianReasons.faith')}</Select.Option>
+                    <Select.Option value={VegetarianReason.OTHER}>{t('pages.vegetarianPersonnel.staffAdd.form.vegetarianReasons.other')}</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
@@ -222,9 +224,9 @@ const StaffAddPage: React.FC = () => {
               <Col span={24}>
                 <Form.Item
                   name="notes"
-                  label="备注"
+                  label={t('pages.vegetarianPersonnel.staffAdd.form.fields.notes')}
                 >
-                  <Input.TextArea rows={3} placeholder="请输入备注信息" />
+                  <Input.TextArea rows={3} placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.notes')} />
                 </Form.Item>
               </Col>
             </Row>
@@ -234,10 +236,10 @@ const StaffAddPage: React.FC = () => {
         <Form.Item>
           <Space>
             <Button onClick={() => navigate('/vegetarian-personnel/staff')}>
-              取消
+              {t('pages.vegetarianPersonnel.staffAdd.buttons.cancel')}
             </Button>
             <Button type="primary" htmlType="submit" loading={loading}>
-              提交
+              {t('pages.vegetarianPersonnel.staffAdd.buttons.submit')}
             </Button>
           </Space>
         </Form.Item>

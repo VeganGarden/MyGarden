@@ -8,6 +8,7 @@ import { useAppSelector } from '@/store/hooks'
 import type { CarbonEffectAnalysis, CustomerStats, StaffStats } from '@/types/vegetarianPersonnel'
 import { FileExcelOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons'
 import { Button, Card, Col, DatePicker, Divider, Row, Space, Statistic, message } from 'antd'
+import { useTranslation } from 'react-i18next'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -15,6 +16,7 @@ import { useNavigate } from 'react-router-dom'
 const { RangePicker } = DatePicker
 
 const DashboardPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
@@ -31,7 +33,7 @@ const DashboardPage: React.FC = () => {
 
   const loadData = async () => {
     if (!currentRestaurantId || !currentTenant) {
-      message.warning('请先选择餐厅')
+      message.warning(t('pages.vegetarianPersonnel.dashboard.messages.noRestaurant'))
       return
     }
 
@@ -74,13 +76,13 @@ const DashboardPage: React.FC = () => {
 
       // 如果所有请求都失败，显示错误提示
       if (!staffResult.success && !customerResult.success && !carbonResult.success) {
-        message.error('加载统计数据失败，请稍后重试')
+        message.error(t('pages.vegetarianPersonnel.dashboard.messages.loadFailed'))
       } else if (staffResult.success && customerResult.success && carbonResult.success) {
         // 全部成功时不显示消息，避免干扰
       }
     } catch (error: any) {
       console.error('加载统计数据异常:', error)
-      message.error(error.message || '网络错误，请检查网络连接后重试')
+      message.error(error.message || t('pages.vegetarianPersonnel.dashboard.messages.networkError'))
     } finally {
       setLoading(false)
     }
@@ -105,16 +107,17 @@ const DashboardPage: React.FC = () => {
       if (result.success && result.data) {
         if (result.data.downloadUrl) {
           window.open(result.data.downloadUrl, '_blank')
-          message.success(`导出成功！${format === 'excel' ? 'Excel' : 'PDF'} 文件已开始下载`)
+          const formatName = format === 'excel' ? 'Excel' : 'PDF'
+          message.success(t('pages.vegetarianPersonnel.dashboard.messages.exportSuccess', { format: formatName }))
         } else {
-          message.warning(result.data.note || '导出功能待完善')
+          message.warning(result.data.note || t('pages.vegetarianPersonnel.dashboard.messages.exportNote'))
         }
       } else {
-        message.error(result.error || '导出失败，请重试')
+        message.error(result.error || t('pages.vegetarianPersonnel.dashboard.messages.exportFailed'))
       }
     } catch (error: any) {
       console.error('导出ESG报告异常:', error)
-      message.error(error.message || '导出失败，请检查网络连接后重试')
+      message.error(error.message || t('pages.vegetarianPersonnel.dashboard.messages.exportFailed'))
     } finally {
       setLoading(false)
     }
@@ -123,7 +126,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div>
       <Card
-        title="素食人员综合统计看板"
+        title={t('pages.vegetarianPersonnel.dashboard.title')}
         extra={
           <Space wrap>
             <RangePicker
@@ -132,21 +135,21 @@ const DashboardPage: React.FC = () => {
               format="YYYY-MM-DD"
             />
             <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
-              刷新
+              {t('pages.vegetarianPersonnel.dashboard.buttons.refresh')}
             </Button>
             <Button 
               icon={<FileExcelOutlined />} 
               onClick={() => handleExportESG('excel')}
               loading={loading}
             >
-              导出Excel
+              {t('pages.vegetarianPersonnel.dashboard.buttons.exportExcel')}
             </Button>
             <Button 
               icon={<FilePdfOutlined />} 
               onClick={() => handleExportESG('pdf')}
               loading={loading}
             >
-              导出PDF
+              {t('pages.vegetarianPersonnel.dashboard.buttons.exportPdf')}
             </Button>
           </Space>
         }
@@ -157,7 +160,7 @@ const DashboardPage: React.FC = () => {
           <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
-                title="员工总数"
+                title={t('pages.vegetarianPersonnel.dashboard.statistics.totalStaff')}
                 value={staffStats?.totalStaff || 0}
                 valueStyle={{ color: '#1890ff' }}
               />
@@ -166,7 +169,7 @@ const DashboardPage: React.FC = () => {
           <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
-                title="素食员工数"
+                title={t('pages.vegetarianPersonnel.dashboard.statistics.vegetarianStaff')}
                 value={staffStats?.vegetarianStaff || 0}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -175,7 +178,7 @@ const DashboardPage: React.FC = () => {
           <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
-                title="客户总数"
+                title={t('pages.vegetarianPersonnel.dashboard.statistics.totalCustomers')}
                 value={customerStats?.totalCustomers || 0}
                 valueStyle={{ color: '#722ed1' }}
               />
@@ -184,7 +187,7 @@ const DashboardPage: React.FC = () => {
           <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
-                title="素食客户数"
+                title={t('pages.vegetarianPersonnel.dashboard.statistics.vegetarianCustomers')}
                 value={customerStats?.vegetarianCustomers || 0}
                 valueStyle={{ color: '#fa8c16' }}
               />
@@ -195,29 +198,29 @@ const DashboardPage: React.FC = () => {
             {/* 素食比例对比 */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
               <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                <Card title="员工素食比例">
+                <Card title={t('pages.vegetarianPersonnel.dashboard.sections.staffVegetarianRatio')}>
                   <Statistic
-                    title="素食比例"
+                    title={t('pages.vegetarianPersonnel.dashboard.statistics.staffVegetarianRatio')}
                     value={staffStats?.vegetarianRatio ? Number(staffStats.vegetarianRatio).toFixed(2) : 0}
-                    suffix="%"
+                    suffix={t('pages.vegetarianPersonnel.dashboard.units.percent')}
                     valueStyle={{ color: '#52c41a', fontSize: 32 }}
                   />
                   <div style={{ marginTop: 16 }}>
                     <Statistic
-                      title="平均素食年限"
+                      title={t('pages.vegetarianPersonnel.dashboard.statistics.averageVegetarianYears')}
                       value={staffStats?.averageVegetarianYears || 0}
-                      suffix="年"
+                      suffix={t('pages.vegetarianPersonnel.dashboard.units.year')}
                       precision={1}
                     />
                   </div>
                 </Card>
               </Col>
               <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                <Card title="客户素食比例">
+                <Card title={t('pages.vegetarianPersonnel.dashboard.sections.customerVegetarianRatio')}>
                   <Statistic
-                    title="素食比例"
+                    title={t('pages.vegetarianPersonnel.dashboard.statistics.customerVegetarianRatio')}
                     value={customerStats?.vegetarianRatio ? Number(customerStats.vegetarianRatio).toFixed(2) : 0}
-                    suffix="%"
+                    suffix={t('pages.vegetarianPersonnel.dashboard.units.percent')}
                     valueStyle={{ color: '#fa8c16', fontSize: 32 }}
                   />
                 </Card>
@@ -226,14 +229,14 @@ const DashboardPage: React.FC = () => {
 
         {/* 减碳效应分析 */}
         {carbonEffect && (
-          <Card title="减碳效应分析" style={{ marginTop: 16 }}>
+          <Card title={t('pages.vegetarianPersonnel.dashboard.sections.carbonEffectAnalysis')} style={{ marginTop: 16 }}>
             <Row gutter={16}>
               <Col span={8}>
                 <Card>
                   <Statistic
-                    title="员工减碳总量"
+                    title={t('pages.vegetarianPersonnel.dashboard.statistics.staffCarbonEffect')}
                     value={carbonEffect.staffCarbonEffect?.totalReduction || 0}
-                    suffix="kg CO₂e"
+                    suffix={t('pages.vegetarianPersonnel.dashboard.units.carbonUnit')}
                     valueStyle={{ color: '#52c41a' }}
                     precision={2}
                   />
@@ -245,9 +248,9 @@ const DashboardPage: React.FC = () => {
               <Col span={8}>
                 <Card>
                   <Statistic
-                    title="客户减碳总量"
+                    title={t('pages.vegetarianPersonnel.dashboard.statistics.customerCarbonEffect')}
                     value={carbonEffect.customerCarbonEffect?.totalReduction || 0}
-                    suffix="kg CO₂e"
+                    suffix={t('pages.vegetarianPersonnel.dashboard.units.carbonUnit')}
                     valueStyle={{ color: '#fa8c16' }}
                     precision={2}
                   />
@@ -259,9 +262,9 @@ const DashboardPage: React.FC = () => {
               <Col span={8}>
                 <Card>
                   <Statistic
-                    title="总减碳量"
+                    title={t('pages.vegetarianPersonnel.dashboard.statistics.totalCarbonEffect')}
                     value={carbonEffect.totalCarbonEffect || 0}
-                    suffix="kg CO₂e"
+                    suffix={t('pages.vegetarianPersonnel.dashboard.units.carbonUnit')}
                     valueStyle={{ color: '#cf1322', fontSize: 28 }}
                     precision={2}
                   />
@@ -272,7 +275,7 @@ const DashboardPage: React.FC = () => {
             {/* 减碳分析报告 */}
             {carbonEffect.report && (
               <div style={{ marginTop: 16 }}>
-                <Divider>分析报告</Divider>
+                <Divider>{t('pages.vegetarianPersonnel.dashboard.sections.analysisReport')}</Divider>
                 <div style={{ padding: 16, background: '#f5f5f5', borderRadius: 4 }}>
                   {(() => {
                     try {
@@ -295,16 +298,16 @@ const DashboardPage: React.FC = () => {
         )}
 
         {/* 快捷操作 */}
-        <Card title="快捷操作" style={{ marginTop: 16 }}>
+        <Card title={t('pages.vegetarianPersonnel.dashboard.sections.quickActions')} style={{ marginTop: 16 }}>
           <Space>
             <Button onClick={() => navigate('/vegetarian-personnel/staff')}>
-              员工管理
+              {t('pages.vegetarianPersonnel.dashboard.buttons.staffManagement')}
             </Button>
             <Button onClick={() => navigate('/vegetarian-personnel/staff/stats')}>
-              员工统计
+              {t('pages.vegetarianPersonnel.dashboard.buttons.staffStats')}
             </Button>
             <Button onClick={() => navigate('/vegetarian-personnel/customers')}>
-              客户管理
+              {t('pages.vegetarianPersonnel.dashboard.buttons.customerManagement')}
             </Button>
           </Space>
         </Card>

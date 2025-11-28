@@ -101,6 +101,7 @@
     "items": "项",
     "rows": "行",
     "columns": "列",
+    "showTotal": "共 {{total}} 条",
     "noResults": "无结果",
     "searchPlaceholder": "请输入关键词搜索",
     "filterPlaceholder": "请选择",
@@ -181,7 +182,12 @@
     "platformCrossTenant": "跨租户数据查看",
     "platformStatistics": "平台级统计报表",
     "platformAccountApprovals": "入驻申请审批",
-    "platformOperationLog": "操作日志"
+    "platformOperationLog": "操作日志",
+    "vegetarianPersonnel": "素食人员管理",
+    "vegetarianPersonnelDashboard": "综合统计",
+    "vegetarianPersonnelStaff": "员工管理",
+    "vegetarianPersonnelStaffStats": "员工统计",
+    "vegetarianPersonnelCustomers": "客户管理"
   },
   "header": {
     "searchPlaceholder": "搜索菜单、功能...",
@@ -3373,6 +3379,361 @@
           "role": "角色",
           "tenantId": "租户ID",
           "ip": "IP地址"
+        }
+      }
+    },
+    "vegetarianPersonnel": {
+      "staffList": {
+        "title": "员工管理",
+        "buttons": {
+          "add": "添加员工",
+          "stats": "统计",
+          "edit": "编辑",
+          "delete": "删除"
+        },
+        "table": {
+          "columns": {
+            "name": "姓名",
+            "position": "岗位",
+            "isVegetarian": "是否素食",
+            "vegetarianType": "素食类型",
+            "vegetarianStartYear": "素食开始年份",
+            "actions": "操作"
+          }
+        },
+        "filters": {
+          "search": "搜索姓名或员工ID"
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "loadFailed": "加载失败",
+          "networkError": "网络错误",
+          "deleteConfirm": "确认删除员工",
+          "deleteConfirmMessage": "确定要删除员工\"{{name}}\"吗？此操作不可恢复。",
+          "deleteSuccess": "员工\"{{name}}\"已删除",
+          "deleteFailed": "删除失败，请重试",
+          "empty": "暂无员工数据，点击\"添加员工\"开始添加",
+          "emptySearch": "未找到包含\"{{keyword}}\"的员工"
+        },
+        "vegetarianTypes": {
+          "pure": "纯素",
+          "ovo_lacto": "蛋奶素",
+          "flexible": "弹性素",
+          "other": "其他"
+        },
+        "yes": "是",
+        "no": "否"
+      },
+      "staffAdd": {
+        "title": "添加员工",
+        "buttons": {
+          "back": "返回",
+          "cancel": "取消",
+          "submit": "提交"
+        },
+        "form": {
+          "fields": {
+            "name": "姓名",
+            "position": "岗位",
+            "phone": "手机号",
+            "email": "邮箱",
+            "joinDate": "入职日期",
+            "isVegetarian": "是否素食",
+            "vegetarianType": "素食类型",
+            "vegetarianStartYear": "素食开始年份",
+            "vegetarianReason": "素食原因",
+            "notes": "备注"
+          },
+          "placeholders": {
+            "name": "请输入员工姓名",
+            "position": "请输入岗位",
+            "phone": "请输入11位手机号",
+            "email": "请输入邮箱地址",
+            "vegetarianType": "请选择素食类型",
+            "vegetarianStartYear": "例如：{{year}}",
+            "vegetarianReason": "请选择素食原因",
+            "notes": "请输入备注信息"
+          },
+          "rules": {
+            "nameRequired": "请输入姓名",
+            "positionRequired": "请输入岗位",
+            "phoneInvalid": "请输入正确的手机号码",
+            "emailInvalid": "请输入正确的邮箱地址",
+            "joinDateRequired": "请选择入职日期",
+            "vegetarianTypeRequired": "请选择素食类型",
+            "vegetarianStartYearRequired": "请输入素食开始年份",
+            "yearRange": "年份应在 1900-{{year}} 之间"
+          },
+          "vegetarianTypes": {
+            "pure": "纯素",
+            "ovo_lacto": "蛋奶素",
+            "flexible": "弹性素",
+            "other": "其他"
+          },
+          "vegetarianReasons": {
+            "health": "健康",
+            "environment": "环保",
+            "faith": "信仰",
+            "other": "其他"
+          }
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "createSuccess": "员工\"{{name}}\"创建成功",
+          "createFailed": "创建失败，请重试",
+          "networkError": "网络错误，请检查网络连接后重试"
+        }
+      },
+      "staffEdit": {
+        "title": "编辑员工",
+        "buttons": {
+          "back": "返回",
+          "cancel": "取消",
+          "submit": "提交"
+        },
+        "form": {
+          "fields": {
+            "name": "姓名",
+            "position": "岗位",
+            "phone": "手机号",
+            "email": "邮箱",
+            "joinDate": "入职日期",
+            "isVegetarian": "是否素食",
+            "vegetarianType": "素食类型",
+            "vegetarianStartYear": "素食开始年份",
+            "vegetarianReason": "素食原因",
+            "notes": "备注"
+          },
+          "placeholders": {
+            "name": "请输入员工姓名",
+            "position": "请输入岗位",
+            "phone": "请输入11位手机号",
+            "email": "请输入邮箱地址",
+            "vegetarianType": "请选择素食类型",
+            "vegetarianStartYear": "例如：{{year}}",
+            "vegetarianReason": "请选择素食原因",
+            "notes": "请输入备注信息"
+          },
+          "rules": {
+            "nameRequired": "请输入姓名",
+            "nameMaxLength": "姓名不能超过50个字符",
+            "nameWhitespace": "姓名不能为空格",
+            "positionRequired": "请输入岗位",
+            "positionMaxLength": "岗位名称不能超过50个字符",
+            "positionWhitespace": "岗位名称不能为空格",
+            "phoneInvalid": "请输入正确的手机号码",
+            "emailInvalid": "请输入正确的邮箱地址",
+            "joinDateRequired": "请选择入职日期",
+            "vegetarianTypeRequired": "请选择素食类型",
+            "vegetarianStartYearRequired": "请输入素食开始年份",
+            "yearRange": "年份应在 1900-{{year}} 之间"
+          },
+          "vegetarianTypes": {
+            "pure": "纯素",
+            "ovo_lacto": "蛋奶素",
+            "flexible": "弹性素",
+            "other": "其他"
+          },
+          "vegetarianReasons": {
+            "health": "健康",
+            "environment": "环保",
+            "faith": "信仰",
+            "other": "其他"
+          }
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "staffNotFound": "员工不存在",
+          "loadFailed": "加载失败",
+          "updateSuccess": "员工\"{{name}}\"信息更新成功",
+          "updateFailed": "更新失败，请重试",
+          "networkError": "网络错误，请检查网络连接后重试"
+        }
+      },
+      "staffStats": {
+        "title": "员工统计",
+        "buttons": {
+          "back": "返回",
+          "refresh": "刷新"
+        },
+        "statistics": {
+          "totalStaff": "总员工数",
+          "vegetarianStaff": "素食员工数",
+          "vegetarianRatio": "素食比例",
+          "averageVegetarianYears": "平均素食年限"
+        },
+        "table": {
+          "title": "素食类型分布",
+          "columns": {
+            "type": "素食类型",
+            "count": "人数",
+            "ratio": "占比"
+          }
+        },
+        "vegetarianTypes": {
+          "pure": "纯素",
+          "ovo_lacto": "蛋奶素",
+          "flexible": "弹性素",
+          "other": "其他"
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "loadFailed": "加载失败",
+          "networkError": "网络错误"
+        },
+        "units": {
+          "year": "年",
+          "percent": "%"
+        }
+      },
+      "customerList": {
+        "title": "客户管理",
+        "buttons": {
+          "viewDetail": "查看详情"
+        },
+        "table": {
+          "columns": {
+            "customerId": "客户ID",
+            "nickname": "昵称",
+            "phone": "手机号",
+            "isVegetarian": "是否素食",
+            "vegetarianType": "素食类型",
+            "vegetarianYears": "素食年限",
+            "totalOrders": "总订单数",
+            "lastOrderDate": "最后消费日期",
+            "actions": "操作"
+          }
+        },
+        "filters": {
+          "search": "搜索客户ID或手机号",
+          "vegetarian": "筛选素食",
+          "vegetarianCustomer": "素食客户",
+          "nonVegetarianCustomer": "非素食客户"
+        },
+        "vegetarianTypes": {
+          "regular": "常态素食",
+          "occasional": "偶尔素食",
+          "ovo_lacto": "蛋奶素",
+          "pure": "纯素",
+          "other": "其他"
+        },
+        "vegetarianYears": {
+          "less_than_1": "1年以下",
+          "1_2": "1-2年",
+          "3_5": "3-5年",
+          "5_10": "5-10年",
+          "more_than_10": "10年以上"
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "loadFailed": "加载失败",
+          "networkError": "网络错误",
+          "empty": "暂无客户数据",
+          "emptyFilter": "未找到符合条件的客户"
+        },
+        "yes": "是",
+        "no": "否"
+      },
+      "customerDetail": {
+        "title": "客户详情",
+        "buttons": {
+          "back": "返回"
+        },
+        "sections": {
+          "basicInfo": "基本信息",
+          "vegetarianInfo": "素食信息",
+          "consumptionStats": "消费统计",
+          "history": "历史记录"
+        },
+        "fields": {
+          "customerId": "客户ID",
+          "userId": "用户ID",
+          "nickname": "昵称",
+          "phone": "手机号",
+          "isVegetarian": "是否素食",
+          "vegetarianType": "素食类型",
+          "vegetarianYears": "素食年限",
+          "vegetarianStartYear": "素食开始年份",
+          "firstRecordDate": "首次记录日期",
+          "lastUpdateDate": "最后更新日期",
+          "totalOrders": "总订单数",
+          "totalAmount": "总消费金额",
+          "averageOrderAmount": "平均订单金额",
+          "firstOrderDate": "首次消费日期",
+          "lastOrderDate": "最后消费日期",
+          "updatedAt": "更新日期",
+          "updatedBy": "更新人"
+        },
+        "vegetarianTypes": {
+          "regular": "常态素食",
+          "occasional": "偶尔素食",
+          "ovo_lacto": "蛋奶素",
+          "pure": "纯素",
+          "other": "其他"
+        },
+        "vegetarianYears": {
+          "less_than_1": "1年以下",
+          "1_2": "1-2年",
+          "3_5": "3-5年",
+          "5_10": "5-10年",
+          "more_than_10": "10年以上"
+        },
+        "tags": {
+          "vegetarian": "素食",
+          "nonVegetarian": "非素食"
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "customerNotFound": "客户不存在",
+          "loadFailed": "加载失败",
+          "networkError": "网络错误"
+        },
+        "yes": "是",
+        "no": "否",
+        "currency": "¥"
+      },
+      "dashboard": {
+        "title": "素食人员综合统计看板",
+        "buttons": {
+          "refresh": "刷新",
+          "exportExcel": "导出Excel",
+          "exportPdf": "导出PDF",
+          "staffManagement": "员工管理",
+          "staffStats": "员工统计",
+          "customerManagement": "客户管理"
+        },
+        "statistics": {
+          "totalStaff": "员工总数",
+          "vegetarianStaff": "素食员工数",
+          "totalCustomers": "客户总数",
+          "vegetarianCustomers": "素食客户数",
+          "staffVegetarianRatio": "员工素食比例",
+          "customerVegetarianRatio": "客户素食比例",
+          "averageVegetarianYears": "平均素食年限",
+          "staffCarbonEffect": "员工减碳总量",
+          "customerCarbonEffect": "客户减碳总量",
+          "totalCarbonEffect": "总减碳量"
+        },
+        "sections": {
+          "vegetarianRatio": "素食比例对比",
+          "staffVegetarianRatio": "员工素食比例",
+          "customerVegetarianRatio": "客户素食比例",
+          "carbonEffectAnalysis": "减碳效应分析",
+          "analysisReport": "分析报告",
+          "quickActions": "快捷操作"
+        },
+        "units": {
+          "year": "年",
+          "percent": "%",
+          "carbonUnit": "kg CO₂e"
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "loadFailed": "加载统计数据失败，请稍后重试",
+          "networkError": "网络错误，请检查网络连接后重试",
+          "exportSuccess": "导出成功！{{format}} 文件已开始下载",
+          "exportFailed": "导出失败，请重试",
+          "exportNote": "导出功能待完善"
         }
       }
     }

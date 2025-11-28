@@ -7,12 +7,14 @@ import { useAppSelector } from '@/store/hooks'
 import type { Customer } from '@/types/vegetarianPersonnel'
 import { EyeOutlined } from '@ant-design/icons'
 import { Button, Card, Input, Select, Space, Table, Tag, message, Skeleton } from 'antd'
+import { useTranslation } from 'react-i18next'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const { Search } = Input
 
 const CustomerListPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
@@ -28,7 +30,7 @@ const CustomerListPage: React.FC = () => {
   // 加载数据
   const loadData = async () => {
     if (!currentRestaurantId || !currentTenant) {
-      message.warning('请先选择餐厅')
+      message.warning(t('pages.vegetarianPersonnel.customerList.messages.noRestaurant'))
       setLoading(false)
       return
     }
@@ -54,13 +56,13 @@ const CustomerListPage: React.FC = () => {
           total: result.data!.total || 0
         }))
       } else {
-        message.error(result.error || '加载失败')
+        message.error(result.error || t('pages.vegetarianPersonnel.customerList.messages.loadFailed'))
         setCustomerList([])
         setPagination(prev => ({ ...prev, total: 0 }))
       }
     } catch (error: any) {
       console.error('加载客户数据失败:', error)
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('pages.vegetarianPersonnel.customerList.messages.networkError'))
       setCustomerList([])
       setPagination(prev => ({ ...prev, total: 0 }))
     } finally {
@@ -89,73 +91,63 @@ const CustomerListPage: React.FC = () => {
   // 表格列定义
   const columns = [
     {
-      title: '客户ID',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.customerId'),
       dataIndex: 'customerId',
       key: 'customerId',
       width: 150
     },
     {
-      title: '昵称',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.nickname'),
       dataIndex: ['basicInfo', 'nickname'],
       key: 'nickname',
       render: (nickname: string) => nickname || '-'
     },
     {
-      title: '手机号',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.phone'),
       dataIndex: ['basicInfo', 'phone'],
       key: 'phone',
       render: (phone: string) => phone || '-'
     },
     {
-      title: '是否素食',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.isVegetarian'),
       dataIndex: ['vegetarianInfo', 'isVegetarian'],
       key: 'isVegetarian',
       render: (isVegetarian: boolean) => (
         <Tag color={isVegetarian ? 'green' : 'default'}>
-          {isVegetarian ? '是' : '否'}
+          {isVegetarian ? t('pages.vegetarianPersonnel.customerList.yes') : t('pages.vegetarianPersonnel.customerList.no')}
         </Tag>
       )
     },
     {
-      title: '素食类型',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.vegetarianType'),
       dataIndex: ['vegetarianInfo', 'vegetarianType'],
       key: 'vegetarianType',
       render: (type: string) => {
         if (!type) return '-'
-        const typeMap: Record<string, string> = {
-          regular: '常态素食',
-          occasional: '偶尔素食',
-          ovo_lacto: '蛋奶素',
-          pure: '纯素',
-          other: '其他'
-        }
-        return typeMap[type] || type
+        const typeKey = `pages.vegetarianPersonnel.customerList.vegetarianTypes.${type}`
+        const translated = t(typeKey)
+        return translated !== typeKey ? translated : type
       }
     },
     {
-      title: '素食年限',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.vegetarianYears'),
       dataIndex: ['vegetarianInfo', 'vegetarianYears'],
       key: 'vegetarianYears',
       render: (years: string) => {
         if (!years) return '-'
-        const yearsMap: Record<string, string> = {
-          less_than_1: '1年以下',
-          '1_2': '1-2年',
-          '3_5': '3-5年',
-          '5_10': '5-10年',
-          more_than_10: '10年以上'
-        }
-        return yearsMap[years] || years
+        const yearsKey = `pages.vegetarianPersonnel.customerList.vegetarianYears.${years}`
+        const translated = t(yearsKey)
+        return translated !== yearsKey ? translated : years
       }
     },
     {
-      title: '总订单数',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.totalOrders'),
       dataIndex: ['consumptionStats', 'totalOrders'],
       key: 'totalOrders',
       render: (count: number) => count || 0
     },
     {
-      title: '最后消费日期',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.lastOrderDate'),
       dataIndex: ['consumptionStats', 'lastOrderDate'],
       key: 'lastOrderDate',
       render: (date: Date | string) => {
@@ -164,7 +156,7 @@ const CustomerListPage: React.FC = () => {
       }
     },
     {
-      title: '操作',
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.actions'),
       key: 'action',
       render: (_: any, record: Customer) => (
         <Space>
@@ -173,7 +165,7 @@ const CustomerListPage: React.FC = () => {
             icon={<EyeOutlined />}
             onClick={() => navigate(`/vegetarian-personnel/customers/${record.customerId}`)}
           >
-            查看详情
+            {t('pages.vegetarianPersonnel.customerList.buttons.viewDetail')}
           </Button>
         </Space>
       )
@@ -193,7 +185,7 @@ const CustomerListPage: React.FC = () => {
       <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' }}>
         <Space wrap>
           <Search
-            placeholder="搜索客户ID或手机号"
+            placeholder={t('pages.vegetarianPersonnel.customerList.filters.search')}
             style={{ width: 300, maxWidth: '100%' }}
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
@@ -208,7 +200,7 @@ const CustomerListPage: React.FC = () => {
             allowClear
           />
           <Select
-            placeholder="筛选素食"
+            placeholder={t('pages.vegetarianPersonnel.customerList.filters.vegetarian')}
             style={{ width: 150 }}
             allowClear
             value={filterVegetarian}
@@ -217,8 +209,8 @@ const CustomerListPage: React.FC = () => {
               setPagination(prev => ({ ...prev, current: 1 }))
             }}
           >
-            <Select.Option value={true}>素食客户</Select.Option>
-            <Select.Option value={false}>非素食客户</Select.Option>
+            <Select.Option value={true}>{t('pages.vegetarianPersonnel.customerList.filters.vegetarianCustomer')}</Select.Option>
+            <Select.Option value={false}>{t('pages.vegetarianPersonnel.customerList.filters.nonVegetarianCustomer')}</Select.Option>
           </Select>
         </Space>
       </div>
@@ -230,14 +222,14 @@ const CustomerListPage: React.FC = () => {
         loading={loading}
         locale={{
           emptyText: searchKeyword || filterVegetarian !== undefined 
-            ? '未找到符合条件的客户' 
-            : '暂无客户数据'
+            ? t('pages.vegetarianPersonnel.customerList.messages.emptyFilter')
+            : t('pages.vegetarianPersonnel.customerList.messages.empty')
         }}
         pagination={{
           current: pagination.current,
           pageSize: pagination.pageSize,
           total: pagination.total,
-          showTotal: (total) => `共 ${total} 条`,
+          showTotal: (total) => t('common.showTotal', { total }),
           showSizeChanger: true,
           showQuickJumper: true,
           pageSizeOptions: ['10', '20', '50', '100'],

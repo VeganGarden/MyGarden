@@ -99,6 +99,7 @@
     "items": "Items",
     "rows": "Rows",
     "columns": "Columns",
+    "showTotal": "Total {{total}} items",
     "noResults": "No Results",
     "searchPlaceholder": "Enter keywords to search",
     "filterPlaceholder": "Please select",
@@ -178,7 +179,12 @@
     "platformCrossTenant": "Cross-Tenant Data",
     "platformStatistics": "Platform Statistics",
     "platformAccountApprovals": "Account Approvals",
-    "platformOperationLog": "Operation Log"
+    "platformOperationLog": "Operation Log",
+    "vegetarianPersonnel": "Vegetarian Personnel",
+    "vegetarianPersonnelDashboard": "Dashboard",
+    "vegetarianPersonnelStaff": "Staff Management",
+    "vegetarianPersonnelStaffStats": "Staff Statistics",
+    "vegetarianPersonnelCustomers": "Customer Management"
   },
   "header": {
     "searchPlaceholder": "Search menus, features...",
@@ -3112,6 +3118,361 @@
           "status": "Status"
         },
         "notCertified": "Not Certified"
+      }
+    },
+    "vegetarianPersonnel": {
+      "staffList": {
+        "title": "Staff Management",
+        "buttons": {
+          "add": "Add Staff",
+          "stats": "Statistics",
+          "edit": "Edit",
+          "delete": "Delete"
+        },
+        "table": {
+          "columns": {
+            "name": "Name",
+            "position": "Position",
+            "isVegetarian": "Vegetarian",
+            "vegetarianType": "Vegetarian Type",
+            "vegetarianStartYear": "Vegetarian Start Year",
+            "actions": "Actions"
+          }
+        },
+        "filters": {
+          "search": "Search by name or staff ID"
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "loadFailed": "Failed to load",
+          "networkError": "Network error",
+          "deleteConfirm": "Confirm Delete Staff",
+          "deleteConfirmMessage": "Are you sure you want to delete staff \"{{name}}\"? This action cannot be undone.",
+          "deleteSuccess": "Staff \"{{name}}\" has been deleted",
+          "deleteFailed": "Delete failed, please try again",
+          "empty": "No staff data available. Click \"Add Staff\" to start adding",
+          "emptySearch": "No staff found containing \"{{keyword}}\""
+        },
+        "vegetarianTypes": {
+          "pure": "Pure Vegetarian",
+          "ovo_lacto": "Ovo-Lacto Vegetarian",
+          "flexible": "Flexitarian",
+          "other": "Other"
+        },
+        "yes": "Yes",
+        "no": "No"
+      },
+      "staffAdd": {
+        "title": "Add Staff",
+        "buttons": {
+          "back": "Back",
+          "cancel": "Cancel",
+          "submit": "Submit"
+        },
+        "form": {
+          "fields": {
+            "name": "Name",
+            "position": "Position",
+            "phone": "Phone",
+            "email": "Email",
+            "joinDate": "Join Date",
+            "isVegetarian": "Vegetarian",
+            "vegetarianType": "Vegetarian Type",
+            "vegetarianStartYear": "Vegetarian Start Year",
+            "vegetarianReason": "Vegetarian Reason",
+            "notes": "Notes"
+          },
+          "placeholders": {
+            "name": "Enter staff name",
+            "position": "Enter position",
+            "phone": "Enter 11-digit phone number",
+            "email": "Enter email address",
+            "vegetarianType": "Select vegetarian type",
+            "vegetarianStartYear": "e.g., {{year}}",
+            "vegetarianReason": "Select vegetarian reason",
+            "notes": "Enter notes"
+          },
+          "rules": {
+            "nameRequired": "Please enter name",
+            "positionRequired": "Please enter position",
+            "phoneInvalid": "Please enter a valid phone number",
+            "emailInvalid": "Please enter a valid email address",
+            "joinDateRequired": "Please select join date",
+            "vegetarianTypeRequired": "Please select vegetarian type",
+            "vegetarianStartYearRequired": "Please enter vegetarian start year",
+            "yearRange": "Year should be between 1900-{{year}}"
+          },
+          "vegetarianTypes": {
+            "pure": "Pure Vegetarian",
+            "ovo_lacto": "Ovo-Lacto Vegetarian",
+            "flexible": "Flexitarian",
+            "other": "Other"
+          },
+          "vegetarianReasons": {
+            "health": "Health",
+            "environment": "Environmental",
+            "faith": "Faith",
+            "other": "Other"
+          }
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "createSuccess": "Staff \"{{name}}\" created successfully",
+          "createFailed": "Creation failed, please try again",
+          "networkError": "Network error, please check your connection and try again"
+        }
+      },
+      "staffEdit": {
+        "title": "Edit Staff",
+        "buttons": {
+          "back": "Back",
+          "cancel": "Cancel",
+          "submit": "Submit"
+        },
+        "form": {
+          "fields": {
+            "name": "Name",
+            "position": "Position",
+            "phone": "Phone",
+            "email": "Email",
+            "joinDate": "Join Date",
+            "isVegetarian": "Vegetarian",
+            "vegetarianType": "Vegetarian Type",
+            "vegetarianStartYear": "Vegetarian Start Year",
+            "vegetarianReason": "Vegetarian Reason",
+            "notes": "Notes"
+          },
+          "placeholders": {
+            "name": "Enter staff name",
+            "position": "Enter position",
+            "phone": "Enter 11-digit phone number",
+            "email": "Enter email address",
+            "vegetarianType": "Select vegetarian type",
+            "vegetarianStartYear": "e.g., {{year}}",
+            "vegetarianReason": "Select vegetarian reason",
+            "notes": "Enter notes"
+          },
+          "rules": {
+            "nameRequired": "Please enter name",
+            "nameMaxLength": "Name cannot exceed 50 characters",
+            "nameWhitespace": "Name cannot be whitespace only",
+            "positionRequired": "Please enter position",
+            "positionMaxLength": "Position cannot exceed 50 characters",
+            "positionWhitespace": "Position cannot be whitespace only",
+            "phoneInvalid": "Please enter a valid phone number",
+            "emailInvalid": "Please enter a valid email address",
+            "joinDateRequired": "Please select join date",
+            "vegetarianTypeRequired": "Please select vegetarian type",
+            "vegetarianStartYearRequired": "Please enter vegetarian start year",
+            "yearRange": "Year should be between 1900-{{year}}"
+          },
+          "vegetarianTypes": {
+            "pure": "Pure Vegetarian",
+            "ovo_lacto": "Ovo-Lacto Vegetarian",
+            "flexible": "Flexitarian",
+            "other": "Other"
+          },
+          "vegetarianReasons": {
+            "health": "Health",
+            "environment": "Environmental",
+            "faith": "Faith",
+            "other": "Other"
+          }
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "staffNotFound": "Staff not found",
+          "loadFailed": "Failed to load",
+          "updateSuccess": "Staff \"{{name}}\" updated successfully",
+          "updateFailed": "Update failed, please try again",
+          "networkError": "Network error, please check your connection and try again"
+        }
+      },
+      "staffStats": {
+        "title": "Staff Statistics",
+        "buttons": {
+          "back": "Back",
+          "refresh": "Refresh"
+        },
+        "statistics": {
+          "totalStaff": "Total Staff",
+          "vegetarianStaff": "Vegetarian Staff",
+          "vegetarianRatio": "Vegetarian Ratio",
+          "averageVegetarianYears": "Average Vegetarian Years"
+        },
+        "table": {
+          "title": "Vegetarian Type Distribution",
+          "columns": {
+            "type": "Vegetarian Type",
+            "count": "Count",
+            "ratio": "Ratio"
+          }
+        },
+        "vegetarianTypes": {
+          "pure": "Pure Vegetarian",
+          "ovo_lacto": "Ovo-Lacto Vegetarian",
+          "flexible": "Flexitarian",
+          "other": "Other"
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "loadFailed": "Failed to load",
+          "networkError": "Network error"
+        },
+        "units": {
+          "year": "years",
+          "percent": "%"
+        }
+      },
+      "customerList": {
+        "title": "Customer Management",
+        "buttons": {
+          "viewDetail": "View Details"
+        },
+        "table": {
+          "columns": {
+            "customerId": "Customer ID",
+            "nickname": "Nickname",
+            "phone": "Phone",
+            "isVegetarian": "Vegetarian",
+            "vegetarianType": "Vegetarian Type",
+            "vegetarianYears": "Vegetarian Years",
+            "totalOrders": "Total Orders",
+            "lastOrderDate": "Last Order Date",
+            "actions": "Actions"
+          }
+        },
+        "filters": {
+          "search": "Search by customer ID or phone",
+          "vegetarian": "Filter Vegetarian",
+          "vegetarianCustomer": "Vegetarian Customer",
+          "nonVegetarianCustomer": "Non-Vegetarian Customer"
+        },
+        "vegetarianTypes": {
+          "regular": "Regular Vegetarian",
+          "occasional": "Occasional Vegetarian",
+          "ovo_lacto": "Ovo-Lacto Vegetarian",
+          "pure": "Pure Vegetarian",
+          "other": "Other"
+        },
+        "vegetarianYears": {
+          "less_than_1": "Less than 1 year",
+          "1_2": "1-2 years",
+          "3_5": "3-5 years",
+          "5_10": "5-10 years",
+          "more_than_10": "10+ years"
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "loadFailed": "Failed to load",
+          "networkError": "Network error",
+          "empty": "No customer data available",
+          "emptyFilter": "No customers found matching the criteria"
+        },
+        "yes": "Yes",
+        "no": "No"
+      },
+      "customerDetail": {
+        "title": "Customer Details",
+        "buttons": {
+          "back": "Back"
+        },
+        "sections": {
+          "basicInfo": "Basic Information",
+          "vegetarianInfo": "Vegetarian Information",
+          "consumptionStats": "Consumption Statistics",
+          "history": "History"
+        },
+        "fields": {
+          "customerId": "Customer ID",
+          "userId": "User ID",
+          "nickname": "Nickname",
+          "phone": "Phone",
+          "isVegetarian": "Vegetarian",
+          "vegetarianType": "Vegetarian Type",
+          "vegetarianYears": "Vegetarian Years",
+          "vegetarianStartYear": "Vegetarian Start Year",
+          "firstRecordDate": "First Record Date",
+          "lastUpdateDate": "Last Update Date",
+          "totalOrders": "Total Orders",
+          "totalAmount": "Total Amount",
+          "averageOrderAmount": "Average Order Amount",
+          "firstOrderDate": "First Order Date",
+          "lastOrderDate": "Last Order Date",
+          "updatedAt": "Updated At",
+          "updatedBy": "Updated By"
+        },
+        "vegetarianTypes": {
+          "regular": "Regular Vegetarian",
+          "occasional": "Occasional Vegetarian",
+          "ovo_lacto": "Ovo-Lacto Vegetarian",
+          "pure": "Pure Vegetarian",
+          "other": "Other"
+        },
+        "vegetarianYears": {
+          "less_than_1": "Less than 1 year",
+          "1_2": "1-2 years",
+          "3_5": "3-5 years",
+          "5_10": "5-10 years",
+          "more_than_10": "10+ years"
+        },
+        "tags": {
+          "vegetarian": "Vegetarian",
+          "nonVegetarian": "Non-Vegetarian"
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "customerNotFound": "Customer not found",
+          "loadFailed": "Failed to load",
+          "networkError": "Network error"
+        },
+        "yes": "Yes",
+        "no": "No",
+        "currency": "$"
+      },
+      "dashboard": {
+        "title": "Vegetarian Personnel Dashboard",
+        "buttons": {
+          "refresh": "Refresh",
+          "exportExcel": "Export Excel",
+          "exportPdf": "Export PDF",
+          "staffManagement": "Staff Management",
+          "staffStats": "Staff Statistics",
+          "customerManagement": "Customer Management"
+        },
+        "statistics": {
+          "totalStaff": "Total Staff",
+          "vegetarianStaff": "Vegetarian Staff",
+          "totalCustomers": "Total Customers",
+          "vegetarianCustomers": "Vegetarian Customers",
+          "staffVegetarianRatio": "Staff Vegetarian Ratio",
+          "customerVegetarianRatio": "Customer Vegetarian Ratio",
+          "averageVegetarianYears": "Average Vegetarian Years",
+          "staffCarbonEffect": "Staff Carbon Reduction",
+          "customerCarbonEffect": "Customer Carbon Reduction",
+          "totalCarbonEffect": "Total Carbon Reduction"
+        },
+        "sections": {
+          "vegetarianRatio": "Vegetarian Ratio Comparison",
+          "staffVegetarianRatio": "Staff Vegetarian Ratio",
+          "customerVegetarianRatio": "Customer Vegetarian Ratio",
+          "carbonEffectAnalysis": "Carbon Effect Analysis",
+          "analysisReport": "Analysis Report",
+          "quickActions": "Quick Actions"
+        },
+        "units": {
+          "year": "years",
+          "percent": "%",
+          "carbonUnit": "kg CO₂e"
+        },
+        "messages": {
+          "noRestaurant": "Please select a restaurant first",
+          "loadFailed": "Failed to load statistics, please try again later",
+          "networkError": "Network error, please check your connection and try again",
+          "exportSuccess": "Export successful! {{format}} file download started",
+          "exportFailed": "Export failed, please try again",
+          "exportNote": "Export function to be improved"
+        }
       }
     }
   }

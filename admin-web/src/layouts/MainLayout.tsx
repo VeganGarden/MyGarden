@@ -315,23 +315,23 @@ const MainLayout: React.FC = () => {
           {
             key: '/vegetarian-personnel',
             icon: <TeamOutlined />,
-            label: '素食人员管理',
+            label: t('menu.vegetarianPersonnel'),
             children: [
               {
                 key: '/vegetarian-personnel/dashboard',
-                label: '综合统计',
+                label: t('menu.vegetarianPersonnelDashboard'),
               },
               {
                 key: '/vegetarian-personnel/staff',
-                label: '员工管理',
+                label: t('menu.vegetarianPersonnelStaff'),
               },
               {
                 key: '/vegetarian-personnel/staff/stats',
-                label: '员工统计',
+                label: t('menu.vegetarianPersonnelStaffStats'),
               },
               {
                 key: '/vegetarian-personnel/customers',
-                label: '客户管理',
+                label: t('menu.vegetarianPersonnelCustomers'),
               },
             ],
           },
