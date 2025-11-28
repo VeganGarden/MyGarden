@@ -586,74 +586,86 @@ const Dashboard: React.FC = () => {
   // 获取碳核算专员数据
   const fetchCarbonData = async () => {
     try {
+      setLoading(true)
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
       
       // 获取平台碳数据和基准值数据
-      const [statisticsResult, baselineResult, topCarbonResult] = await Promise.all([
+      // 注意：某些API可能需要platform_operator权限，carbon_specialist可能无法访问
+      const [statisticsResult, baselineResult, topCarbonResult] = await Promise.allSettled([
         platformAPI.statistics.getPlatformStatistics({
           startDate,
           endDate,
           period: period as any,
           includeTrends: true,
+        }).catch((error: any) => {
+          console.warn('[Dashboard] 获取平台统计数据失败（可能需要platform_operator权限）:', error)
+          return { code: -1, message: error.message }
         }),
         baselineManageAPI.list({
           page: 1,
           pageSize: 1,
+        }).catch((error: any) => {
+          console.warn('[Dashboard] 获取基准值数据失败:', error)
+          return { code: -1, message: error.message }
         }),
         platformAPI.statistics.getTopRestaurants({
           sortBy: 'carbonReduction',
           limit: 10,
+        }).catch((error: any) => {
+          console.warn('[Dashboard] 获取餐厅排行榜失败（可能需要platform_operator权限）:', error)
+          return { code: -1, message: error.message }
         }),
       ])
+      
+      // 处理结果
+      const stats = statisticsResult.status === 'fulfilled' && statisticsResult.value?.code === 0 
+        ? statisticsResult.value 
+        : null
+      const baseline = baselineResult.status === 'fulfilled' && baselineResult.value?.code === 0
+        ? baselineResult.value
+        : null
+      const topCarbon = topCarbonResult.status === 'fulfilled' && topCarbonResult.value?.code === 0
+        ? topCarbonResult.value
+        : null
 
-      if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
-        const stats = statisticsResult.data
+      if (stats && stats.data) {
+        const statsData = stats.data
         const today = dayjs().format('YYYY-MM-DD')
         const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
         
-        setCarbonData({
-          totalCarbonReduction: stats.totalCarbonReduction || stats.total_carbon_reduction || 0,
-          baselineCount: baselineResult?.pagination?.total || 0,
-          activeBaselineCount: 0, // 需要从基准值列表筛选
-          pendingBaselineCount: 0, // 需要从基准值列表筛选
-          todayCarbonReduction: 0, // 需要从趋势数据中获取
-          monthCarbonReduction: 0, // 需要从趋势数据中计算
-          averageCarbonPerOrder: stats.averageCarbonPerOrder || stats.average_carbon_per_order || 0,
-          carbonLabelDistribution: {
-            ultraLow: 0,
-            low: 0,
-            medium: 0,
-            high: 0,
-          },
-        })
+        setCarbonData(prev => ({
+          ...prev,
+          totalCarbonReduction: statsData.totalCarbonReduction || statsData.total_carbon_reduction || 0,
+          averageCarbonPerOrder: statsData.averageCarbonPerOrder || statsData.average_carbon_per_order || 0,
+        }))
         
         // 保存碳减排趋势数据
-        if (stats.trends && stats.trends.carbonReduction) {
+        if (statsData.trends && statsData.trends.carbonReduction) {
           setTrendsData(prev => ({
             ...prev,
-            carbonReduction: stats.trends.carbonReduction,
+            carbonReduction: statsData.trends.carbonReduction,
           }))
         }
       }
 
       // 获取基准值统计
-      if (baselineResult && baselineResult.success) {
-        const baselines = baselineResult.data || []
+      if (baseline && baseline.data) {
+        const baselines = Array.isArray(baseline.data) ? baseline.data : (baseline.data.list || [])
         const activeBaselines = baselines.filter((b: any) => b.status === 'active').length
         const pendingBaselines = baselines.filter((b: any) => b.status === 'pending').length
         
         setCarbonData(prev => ({
           ...prev,
-          baselineCount: baselineResult.pagination?.total || baselines.length,
+          baselineCount: baseline.pagination?.total || baselines.length,
           activeBaselineCount: activeBaselines,
           pendingBaselineCount: pendingBaselines,
         }))
       }
 
       // 获取碳减排排行榜
-      if (topCarbonResult && topCarbonResult.code === 0 && topCarbonResult.data) {
-        const restaurants = Array.isArray(topCarbonResult.data) ? topCarbonResult.data : []
+      if (topCarbon && topCarbon.data) {
+        const restaurants = Array.isArray(topCarbon.data) ? topCarbon.data : []
         setTopCarbonRestaurants(restaurants.map((restaurant: any, index: number) => ({
           rank: index + 1,
           restaurantName: restaurant.restaurantName || restaurant.name || restaurant.restaurant_name || '',
