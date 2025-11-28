@@ -373,6 +373,9 @@ const TenantList: React.FC = () => {
       if (result && result.code === 0 && result.data) {
         const tenantData = result.data
         
+        // 初始化餐厅数（从restaurants数组计算）
+        tenantData.restaurantCount = tenantData.restaurants?.length || 0
+        
         // 获取统计数据
         try {
           const crossTenantResult = await platformAPI.crossTenant.getData({
@@ -385,6 +388,8 @@ const TenantList: React.FC = () => {
           if (crossTenantResult && crossTenantResult.code === 0 && crossTenantResult.data) {
             const tenantStats = crossTenantResult.data.tenants?.[0]
             if (tenantStats) {
+              // 从统计数据中获取餐厅数（优先使用，更准确）
+              tenantData.restaurantCount = tenantStats.restaurantCount ?? (tenantData.restaurants?.length || 0)
               tenantData.totalOrders = tenantStats.statistics?.orders?.total || 0
               tenantData.totalRevenue = tenantStats.statistics?.revenue?.total || 0
               tenantData.totalUsers = tenantStats.statistics?.users?.total || 0
@@ -393,6 +398,10 @@ const TenantList: React.FC = () => {
           }
         } catch (error) {
           // 获取统计数据失败，使用默认值
+          // 确保restaurantCount至少从restaurants数组计算
+          if (!tenantData.restaurantCount) {
+            tenantData.restaurantCount = tenantData.restaurants?.length || 0
+          }
         }
         
         setSelectedRecord(tenantData)
@@ -970,8 +979,8 @@ const TenantList: React.FC = () => {
             </Card>
 
             {/* 关联餐厅列表 */}
-            {selectedRecord.restaurants && selectedRecord.restaurants.length > 0 && (
-              <Card title={t('pages.platform.tenantList.detail.restaurants.title')} style={{ marginTop: 16 }}>
+            <Card title={t('pages.platform.tenantList.detail.restaurants.title')} style={{ marginTop: 16 }}>
+              {selectedRecord.restaurants && selectedRecord.restaurants.length > 0 ? (
                 <Table
                   dataSource={selectedRecord.restaurants}
                   rowKey="_id"
@@ -1000,8 +1009,12 @@ const TenantList: React.FC = () => {
                     },
                   ]}
                 />
-              </Card>
-            )}
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                  {t('pages.platform.tenantList.detail.restaurants.empty') || '暂无关联餐厅'}
+                </div>
+              )}
+            </Card>
             </Tabs.TabPane>
 
             {/* 操作日志标签页 */}
