@@ -161,7 +161,7 @@ const StaffStatsPage: React.FC = () => {
             <Card>
               <Statistic
                 title="素食比例"
-                value={stats?.vegetarianRatio ? (stats.vegetarianRatio * 100).toFixed(2) : 0}
+                value={stats?.vegetarianRatio ? Number(stats.vegetarianRatio).toFixed(2) : 0}
                 suffix="%"
                 valueStyle={{ color: '#722ed1' }}
               />

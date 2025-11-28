@@ -2,18 +2,19 @@
  * 客户列表页面
  */
 
-import React, { useEffect, useState } from 'react'
-import { Button, Card, Input, Select, Table, Space, Tag, message, Modal } from 'antd'
-import { EyeOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
 import { customerAPI } from '@/services/vegetarianPersonnel'
+import { useAppSelector } from '@/store/hooks'
 import type { Customer } from '@/types/vegetarianPersonnel'
-import { CustomerVegetarianType, VegetarianYears } from '@/types/vegetarianPersonnel'
+import { EyeOutlined } from '@ant-design/icons'
+import { Button, Card, Input, Select, Space, Table, Tag, message } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const { Search } = Input
 
 const CustomerListPage: React.FC = () => {
   const navigate = useNavigate()
+  const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
   const [customerList, setCustomerList] = useState<Customer[]>([])
   const [pagination, setPagination] = useState({
@@ -26,13 +27,20 @@ const CustomerListPage: React.FC = () => {
 
   // 加载数据
   const loadData = async () => {
+    if (!currentRestaurantId || !currentTenant) {
+      message.warning('请先选择餐厅')
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
+      const tenantId = currentTenant.id || currentTenant._id || ''
       const result = await customerAPI.list({
         page: pagination.current,
         pageSize: pagination.pageSize,
-        restaurantId: '', // TODO: 从用户信息获取
-        tenantId: '', // TODO: 从用户信息获取
+        restaurantId: currentRestaurantId,
+        tenantId: tenantId,
         search: searchKeyword || undefined,
         filters: {
           isVegetarian: filterVegetarian
@@ -61,8 +69,10 @@ const CustomerListPage: React.FC = () => {
   }
 
   useEffect(() => {
-    loadData()
-  }, [pagination.current, pagination.pageSize, filterVegetarian])
+    if (currentRestaurantId && currentTenant) {
+      loadData()
+    }
+  }, [pagination.current, pagination.pageSize, currentRestaurantId, filterVegetarian, searchKeyword])
 
   // 表格列定义
   const columns = [

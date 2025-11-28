@@ -3,14 +3,14 @@
  * 展示员工和客户的素食统计数据，以及减碳效应分析
  */
 
-import React, { useEffect, useState } from 'react'
-import { Card, Row, Col, Statistic, Table, Tag, DatePicker, Button, Space, message, Divider } from 'antd'
-import { DownloadOutlined, ReloadOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
-import { useAppSelector } from '@/store/hooks'
 import { vegetarianPersonnelAPI } from '@/services/vegetarianPersonnel'
-import type { StaffStats, CustomerStats, CarbonEffectAnalysis } from '@/types/vegetarianPersonnel'
+import { useAppSelector } from '@/store/hooks'
+import type { CarbonEffectAnalysis, CustomerStats, StaffStats } from '@/types/vegetarianPersonnel'
+import { FileExcelOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Button, Card, Col, DatePicker, Divider, Row, Space, Statistic, message } from 'antd'
 import dayjs from 'dayjs'
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const { RangePicker } = DatePicker
 
@@ -181,7 +181,7 @@ const DashboardPage: React.FC = () => {
             <Card title="员工素食比例">
               <Statistic
                 title="素食比例"
-                value={staffStats?.vegetarianRatio ? (staffStats.vegetarianRatio * 100).toFixed(2) : 0}
+                value={staffStats?.vegetarianRatio ? Number(staffStats.vegetarianRatio).toFixed(2) : 0}
                 suffix="%"
                 valueStyle={{ color: '#52c41a', fontSize: 32 }}
               />
@@ -199,7 +199,7 @@ const DashboardPage: React.FC = () => {
             <Card title="客户素食比例">
               <Statistic
                 title="素食比例"
-                value={customerStats?.vegetarianRatio ? (customerStats.vegetarianRatio * 100).toFixed(2) : 0}
+                value={customerStats?.vegetarianRatio ? Number(customerStats.vegetarianRatio).toFixed(2) : 0}
                 suffix="%"
                 valueStyle={{ color: '#fa8c16', fontSize: 32 }}
               />

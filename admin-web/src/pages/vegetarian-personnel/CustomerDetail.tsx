@@ -2,31 +2,35 @@
  * 客户详情页面
  */
 
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Button, Space, message, Timeline } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
 import { customerAPI } from '@/services/vegetarianPersonnel'
+import { useAppSelector } from '@/store/hooks'
 import type { Customer } from '@/types/vegetarianPersonnel'
-import { CustomerVegetarianType, VegetarianYears } from '@/types/vegetarianPersonnel'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Button, Card, Descriptions, Space, Tag, Timeline, message } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
   const [customer, setCustomer] = useState<Customer | null>(null)
 
   useEffect(() => {
-    if (id) {
+    if (id && currentRestaurantId) {
       loadData()
     }
-  }, [id])
+  }, [id, currentRestaurantId])
 
   const loadData = async () => {
-    if (!id) return
+    if (!id || !currentRestaurantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
     setLoading(true)
     try {
-      const result = await customerAPI.get(id)
+      const result = await customerAPI.get(id, currentRestaurantId)
       if (result.success && result.data) {
         setCustomer(result.data)
       } else {

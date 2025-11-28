@@ -99,6 +99,24 @@ async function updateStaff(staffId, updateData, user) {
   try {
     const now = new Date()
     
+    // 先通过 staffId 查找文档，获取 _id
+    const staffResult = await db.collection('restaurant_staff')
+      .where({
+        staffId: staffId,
+        isDeleted: false
+      })
+      .get()
+    
+    if (!staffResult.data || staffResult.data.length === 0) {
+      return {
+        code: 404,
+        message: '员工不存在'
+      }
+    }
+    
+    const staffDoc = staffResult.data[0]
+    const staffDocId = staffDoc._id
+    
     // 构建更新数据
     const update = {
       updatedAt: now,
@@ -120,7 +138,8 @@ async function updateStaff(staffId, updateData, user) {
       if (updateData.vegetarianInfo.notes !== undefined) update['vegetarianInfo.notes'] = updateData.vegetarianInfo.notes
     }
 
-    await db.collection('restaurant_staff').doc(staffId).update({
+    // 使用 _id 更新文档
+    await db.collection('restaurant_staff').doc(staffDocId).update({
       data: update
     })
 
@@ -221,7 +240,26 @@ async function deleteStaff(staffId, user) {
   try {
     const now = new Date()
     
-    await db.collection('restaurant_staff').doc(staffId).update({
+    // 先通过 staffId 查找文档，获取 _id
+    const staffResult = await db.collection('restaurant_staff')
+      .where({
+        staffId: staffId,
+        isDeleted: false
+      })
+      .get()
+    
+    if (!staffResult.data || staffResult.data.length === 0) {
+      return {
+        code: 404,
+        message: '员工不存在'
+      }
+    }
+    
+    const staffDoc = staffResult.data[0]
+    const staffDocId = staffDoc._id
+    
+    // 使用 _id 更新文档
+    await db.collection('restaurant_staff').doc(staffDocId).update({
       data: {
         isDeleted: true,
         deletedAt: now,
@@ -355,16 +393,20 @@ async function createOrUpdateCustomer(customerData, user) {
  */
 async function getCustomerInfo(customerId, restaurantId) {
   try {
-    let query = db.collection('restaurant_customers').where({
+    // 构建查询条件
+    const queryCondition = {
       customerId: customerId,
       isDeleted: false
-    })
-
-    if (restaurantId) {
-      query = query.where({ restaurantId: restaurantId })
     }
 
-    const result = await query.get()
+    // 如果提供了 restaurantId，添加到查询条件中
+    if (restaurantId) {
+      queryCondition.restaurantId = restaurantId
+    }
+
+    const result = await db.collection('restaurant_customers')
+      .where(queryCondition)
+      .get()
     
     if (result.data.length === 0) {
       return {
@@ -1117,7 +1159,7 @@ async function generateESGExcel(esgReportData) {
   const staffStats = esgReportData.staffStats || {}
   staffSheet.addRow({ metric: '总员工数', value: staffStats.totalStaff || 0 })
   staffSheet.addRow({ metric: '素食员工数', value: staffStats.vegetarianStaff || 0 })
-  staffSheet.addRow({ metric: '素食比例', value: staffStats.vegetarianRatio ? `${(staffStats.vegetarianRatio * 100).toFixed(2)}%` : '0%' })
+  staffSheet.addRow({ metric: '素食比例', value: staffStats.vegetarianRatio ? `${Number(staffStats.vegetarianRatio).toFixed(2)}%` : '0%' })
   staffSheet.addRow({ metric: '平均素食年限', value: staffStats.averageVegetarianYears ? `${staffStats.averageVegetarianYears}年` : '0年' })
 
   // 客户统计
@@ -1132,7 +1174,7 @@ async function generateESGExcel(esgReportData) {
   const customerStats = esgReportData.customerStats || {}
   customerSheet.addRow({ metric: '总客户数', value: customerStats.totalCustomers || 0 })
   customerSheet.addRow({ metric: '素食客户数', value: customerStats.vegetarianCustomers || 0 })
-  customerSheet.addRow({ metric: '素食比例', value: customerStats.vegetarianRatio ? `${(customerStats.vegetarianRatio * 100).toFixed(2)}%` : '0%' })
+  customerSheet.addRow({ metric: '素食比例', value: customerStats.vegetarianRatio ? `${Number(customerStats.vegetarianRatio).toFixed(2)}%` : '0%' })
 
   // 减碳效应
   const carbonSheet = workbook.addWorksheet('减碳效应')
@@ -1162,6 +1204,12 @@ async function generateStaffPDF(staffList) {
         margins: { top: 50, bottom: 50, left: 50, right: 50 }
       })
 
+      // 加载中文字体
+      const { loadChineseFont, getChineseFont, getChineseBoldFont } = require('./font-loader')
+      const hasChineseFont = loadChineseFont(doc)
+      const chineseFont = getChineseFont(hasChineseFont)
+      const chineseBoldFont = getChineseBoldFont(hasChineseFont)
+
       const buffers = []
       doc.on('data', buffers.push.bind(buffers))
       doc.on('end', () => {
@@ -1172,13 +1220,13 @@ async function generateStaffPDF(staffList) {
 
       // 标题
       doc.fontSize(20)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('员工素食情况数据', { align: 'center' })
         .moveDown()
 
       // 生成时间
       doc.fontSize(10)
-        .font('Helvetica')
+        .font(chineseFont)
         .fillColor('#666666')
         .text(`生成时间：${new Date().toLocaleString('zh-CN')}`, { align: 'right' })
         .moveDown(0.5)
@@ -1197,7 +1245,7 @@ async function generateStaffPDF(staffList) {
 
       // 表头
       doc.fontSize(10)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .fillColor('#000000')
       doc.text('姓名', 50, tableTop, { width: colWidths.name })
       doc.text('职位', 50 + colWidths.name, tableTop, { width: colWidths.position })
@@ -1213,7 +1261,7 @@ async function generateStaffPDF(staffList) {
 
       // 数据行
       doc.fontSize(9)
-        .font('Helvetica')
+        .font(chineseFont)
       let currentY = tableTop + 30
       staffList.forEach((staff, index) => {
         if (currentY > 750) {
@@ -1242,12 +1290,12 @@ async function generateStaffPDF(staffList) {
       // 统计信息
       const statsY = currentY + 20
       doc.fontSize(10)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('统计信息', 50, statsY)
         .moveDown(0.5)
 
       doc.fontSize(9)
-        .font('Helvetica')
+        .font(chineseFont)
       const totalStaff = staffList.length
       const vegetarianStaff = staffList.filter(s => s.vegetarianInfo && s.vegetarianInfo.isVegetarian).length
       const vegetarianRatio = totalStaff > 0 ? ((vegetarianStaff / totalStaff) * 100).toFixed(2) : 0
@@ -1274,6 +1322,12 @@ async function generateCustomerPDF(customerList) {
         margins: { top: 50, bottom: 50, left: 50, right: 50 }
       })
 
+      // 加载中文字体
+      const { loadChineseFont, getChineseFont, getChineseBoldFont } = require('./font-loader')
+      const hasChineseFont = loadChineseFont(doc)
+      const chineseFont = getChineseFont(hasChineseFont)
+      const chineseBoldFont = getChineseBoldFont(hasChineseFont)
+
       const buffers = []
       doc.on('data', buffers.push.bind(buffers))
       doc.on('end', () => {
@@ -1284,13 +1338,13 @@ async function generateCustomerPDF(customerList) {
 
       // 标题
       doc.fontSize(20)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('客户素食情况数据', { align: 'center' })
         .moveDown()
 
       // 生成时间
       doc.fontSize(10)
-        .font('Helvetica')
+        .font(chineseFont)
         .fillColor('#666666')
         .text(`生成时间：${new Date().toLocaleString('zh-CN')}`, { align: 'right' })
         .moveDown(0.5)
@@ -1309,7 +1363,7 @@ async function generateCustomerPDF(customerList) {
 
       // 表头
       doc.fontSize(10)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .fillColor('#000000')
       doc.text('客户ID', 50, tableTop, { width: colWidths.customerId })
       doc.text('昵称', 50 + colWidths.customerId, tableTop, { width: colWidths.nickname })
@@ -1325,7 +1379,7 @@ async function generateCustomerPDF(customerList) {
 
       // 数据行
       doc.fontSize(9)
-        .font('Helvetica')
+        .font(chineseFont)
       let currentY = tableTop + 30
       customerList.forEach((customer) => {
         if (currentY > 750) {
@@ -1353,12 +1407,12 @@ async function generateCustomerPDF(customerList) {
       // 统计信息
       const statsY = currentY + 20
       doc.fontSize(10)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('统计信息', 50, statsY)
         .moveDown(0.5)
 
       doc.fontSize(9)
-        .font('Helvetica')
+        .font(chineseFont)
       const totalCustomers = customerList.length
       const vegetarianCustomers = customerList.filter(c => c.vegetarianInfo && c.vegetarianInfo.isVegetarian).length
       const vegetarianRatio = totalCustomers > 0 ? ((vegetarianCustomers / totalCustomers) * 100).toFixed(2) : 0
@@ -1385,6 +1439,12 @@ async function generateESGPDF(esgReportData) {
         margins: { top: 50, bottom: 50, left: 50, right: 50 }
       })
 
+      // 加载中文字体
+      const { loadChineseFont, getChineseFont, getChineseBoldFont } = require('./font-loader')
+      const hasChineseFont = loadChineseFont(doc)
+      const chineseFont = getChineseFont(hasChineseFont)
+      const chineseBoldFont = getChineseBoldFont(hasChineseFont)
+
       const buffers = []
       doc.on('data', buffers.push.bind(buffers))
       doc.on('end', () => {
@@ -1395,14 +1455,14 @@ async function generateESGPDF(esgReportData) {
 
       // 标题
       doc.fontSize(24)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('素食人员 ESG 报告', { align: 'center' })
         .moveDown()
 
       // 报告期间
       if (esgReportData.period && (esgReportData.period.startDate || esgReportData.period.endDate)) {
         doc.fontSize(12)
-          .font('Helvetica')
+          .font(chineseFont)
           .fillColor('#666666')
           .text(
             `报告期间：${esgReportData.period.startDate || '开始'} 至 ${esgReportData.period.endDate || '结束'}`,
@@ -1413,50 +1473,50 @@ async function generateESGPDF(esgReportData) {
 
       // 生成时间
       doc.fontSize(10)
-        .font('Helvetica')
+        .font(chineseFont)
         .fillColor('#666666')
         .text(`生成时间：${new Date().toLocaleString('zh-CN')}`, { align: 'right' })
         .moveDown()
 
       // 员工统计
       doc.fontSize(16)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .fillColor('#000000')
         .text('一、员工统计', 50, doc.y)
         .moveDown()
 
       const staffStats = esgReportData.staffStats || {}
       doc.fontSize(11)
-        .font('Helvetica')
+        .font(chineseFont)
       doc.text(`总员工数：${staffStats.totalStaff || 0}`)
       doc.text(`素食员工数：${staffStats.vegetarianStaff || 0}`)
-      doc.text(`素食比例：${staffStats.vegetarianRatio ? (staffStats.vegetarianRatio * 100).toFixed(2) + '%' : '0%'}`)
+      doc.text(`素食比例：${staffStats.vegetarianRatio ? Number(staffStats.vegetarianRatio).toFixed(2) + '%' : '0%'}`)
       doc.text(`平均素食年限：${staffStats.averageVegetarianYears ? staffStats.averageVegetarianYears.toFixed(1) + '年' : '0年'}`)
       doc.moveDown()
 
       // 客户统计
       doc.fontSize(16)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('二、客户统计', 50, doc.y)
         .moveDown()
 
       const customerStats = esgReportData.customerStats || {}
       doc.fontSize(11)
-        .font('Helvetica')
+        .font(chineseFont)
       doc.text(`总客户数：${customerStats.totalCustomers || 0}`)
       doc.text(`素食客户数：${customerStats.vegetarianCustomers || 0}`)
-      doc.text(`素食比例：${customerStats.vegetarianRatio ? (customerStats.vegetarianRatio * 100).toFixed(2) + '%' : '0%'}`)
+      doc.text(`素食比例：${customerStats.vegetarianRatio ? Number(customerStats.vegetarianRatio).toFixed(2) + '%' : '0%'}`)
       doc.moveDown()
 
       // 减碳效应
       doc.fontSize(16)
-        .font('Helvetica-Bold')
+        .font(chineseBoldFont)
         .text('三、减碳效应分析', 50, doc.y)
         .moveDown()
 
       const carbonEffect = esgReportData.carbonEffect || {}
       doc.fontSize(11)
-        .font('Helvetica')
+        .font(chineseFont)
       doc.text(`员工减碳总量：${carbonEffect.staffCarbonEffect?.totalReduction || 0} kg CO₂e`)
       doc.text(`客户减碳总量：${carbonEffect.customerCarbonEffect?.totalReduction || 0} kg CO₂e`)
       doc.text(`总减碳量：${carbonEffect.totalCarbonEffect || 0} kg CO₂e`)
@@ -1465,12 +1525,12 @@ async function generateESGPDF(esgReportData) {
       // 分析报告
       if (carbonEffect.report) {
         doc.fontSize(16)
-          .font('Helvetica-Bold')
+          .font(chineseBoldFont)
           .text('四、分析报告', 50, doc.y)
           .moveDown()
 
         doc.fontSize(11)
-          .font('Helvetica')
+          .font(chineseFont)
         try {
           const report = JSON.parse(carbonEffect.report)
           if (report.insights && Array.isArray(report.insights)) {
@@ -1790,13 +1850,23 @@ exports.main = async (event, context) => {
       case 'updateStaff':
         {
           // 检查权限：只能更新自己租户的数据
-          const staffResult = await db.collection('restaurant_staff').doc(data.staffId).get()
-          if (!staffResult.data) {
+          // 先通过 staffId 查找文档（获取 _id 和权限信息）
+          const staffResult = await db.collection('restaurant_staff')
+            .where({
+              staffId: data.staffId,
+              isDeleted: false
+            })
+            .get()
+          
+          if (!staffResult.data || staffResult.data.length === 0) {
             return { code: 404, message: '员工不存在' }
           }
-          if (user.role !== 'system_admin' && staffResult.data.tenantId !== user.tenantId) {
+          
+          const staffDoc = staffResult.data[0]
+          if (user.role !== 'system_admin' && staffDoc.tenantId !== user.tenantId) {
             return { code: 403, message: '无权限操作' }
           }
+          
           return await updateStaff(data.staffId, data, user)
         }
 
@@ -1806,13 +1876,23 @@ exports.main = async (event, context) => {
       case 'deleteStaff':
         {
           // 检查权限
-          const staffResult = await db.collection('restaurant_staff').doc(data.staffId).get()
-          if (!staffResult.data) {
+          // 先通过 staffId 查找文档（获取 _id 和权限信息）
+          const staffResult = await db.collection('restaurant_staff')
+            .where({
+              staffId: data.staffId,
+              isDeleted: false
+            })
+            .get()
+          
+          if (!staffResult.data || staffResult.data.length === 0) {
             return { code: 404, message: '员工不存在' }
           }
-          if (user.role !== 'system_admin' && staffResult.data.tenantId !== user.tenantId) {
+          
+          const staffDoc = staffResult.data[0]
+          if (user.role !== 'system_admin' && staffDoc.tenantId !== user.tenantId) {
             return { code: 403, message: '无权限操作' }
           }
+          
           return await deleteStaff(data.staffId, user)
         }
 

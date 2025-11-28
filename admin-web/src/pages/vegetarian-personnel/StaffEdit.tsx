@@ -2,39 +2,45 @@
  * 编辑员工页面
  */
 
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Form, Input, Select, Button, Space, message, Row, Col, Switch } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
 import { staffAPI } from '@/services/vegetarianPersonnel'
+import { useAppSelector } from '@/store/hooks'
 import type { Staff } from '@/types/vegetarianPersonnel'
 import { StaffVegetarianType, VegetarianReason } from '@/types/vegetarianPersonnel'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Button, Card, Col, Form, Input, Row, Select, Space, Switch, message } from 'antd'
 import dayjs from 'dayjs'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const StaffEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [staff, setStaff] = useState<Staff | null>(null)
   const [isVegetarian, setIsVegetarian] = useState(false)
 
   useEffect(() => {
-    if (id) {
+    if (id && currentRestaurantId && currentTenant) {
       loadData()
     }
-  }, [id])
+  }, [id, currentRestaurantId, currentTenant])
 
   const loadData = async () => {
-    if (!id) return
+    if (!id || !currentRestaurantId || !currentTenant) {
+      message.warning('请先选择餐厅')
+      return
+    }
     setLoading(true)
     try {
+      const tenantId = currentTenant.id || currentTenant._id || ''
       const result = await staffAPI.list({
-        restaurantId: '',
-        tenantId: '',
+        restaurantId: currentRestaurantId,
+        tenantId: tenantId,
         search: id,
         page: 1,
-        pageSize: 1
+        pageSize: 20
       })
       if (result.success && result.data && result.data.list.length > 0) {
         const staffData = result.data.list.find((s: Staff) => s.staffId === id) || result.data.list[0]
