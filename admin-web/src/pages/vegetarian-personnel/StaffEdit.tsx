@@ -95,13 +95,14 @@ const StaffEditPage: React.FC = () => {
 
       const result = await staffAPI.update(id, formData)
       if (result.success) {
-        message.success('更新成功')
+        message.success(`员工"${values.name}"信息更新成功`)
         navigate('/vegetarian-personnel/staff')
       } else {
-        message.error(result.error || '更新失败')
+        message.error(result.error || '更新失败，请重试')
       }
     } catch (error: any) {
-      message.error(error.message || '网络错误')
+      console.error('更新员工信息异常:', error)
+      message.error(error.message || '网络错误，请检查网络连接后重试')
     } finally {
       setLoading(false)
     }
@@ -123,24 +124,33 @@ const StaffEditPage: React.FC = () => {
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
+        validateTrigger={['onChange', 'onBlur']}
       >
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="name"
               label="姓名"
-              rules={[{ required: true, message: '请输入姓名' }]}
+              rules={[
+                { required: true, message: '请输入姓名' },
+                { max: 50, message: '姓名不能超过50个字符' },
+                { whitespace: true, message: '姓名不能为空格' }
+              ]}
             >
-              <Input placeholder="请输入员工姓名" />
+              <Input placeholder="请输入员工姓名" maxLength={50} showCount />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="position"
               label="岗位"
-              rules={[{ required: true, message: '请输入岗位' }]}
+              rules={[
+                { required: true, message: '请输入岗位' },
+                { max: 50, message: '岗位名称不能超过50个字符' },
+                { whitespace: true, message: '岗位名称不能为空格' }
+              ]}
             >
-              <Input placeholder="请输入岗位" />
+              <Input placeholder="请输入岗位" maxLength={50} showCount />
             </Form.Item>
           </Col>
         </Row>
@@ -150,16 +160,22 @@ const StaffEditPage: React.FC = () => {
             <Form.Item
               name="phone"
               label="手机号"
+              rules={[
+                { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' }
+              ]}
             >
-              <Input placeholder="请输入手机号" />
+              <Input placeholder="请输入11位手机号" maxLength={11} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="email"
               label="邮箱"
+              rules={[
+                { type: 'email', message: '请输入正确的邮箱地址' }
+              ]}
             >
-              <Input placeholder="请输入邮箱" />
+              <Input placeholder="请输入邮箱地址" />
             </Form.Item>
           </Col>
         </Row>
@@ -219,13 +235,21 @@ const StaffEditPage: React.FC = () => {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+                  <Col span={12}>
                 <Form.Item
                   name="vegetarianStartYear"
                   label="素食开始年份"
-                  rules={[{ required: true, message: '请输入素食开始年份' }]}
+                  rules={[
+                    { required: true, message: '请输入素食开始年份' },
+                    { type: 'number', min: 1900, max: new Date().getFullYear(), message: `年份应在 1900-${new Date().getFullYear()} 之间` }
+                  ]}
                 >
-                  <Input type="number" placeholder="例如：2020" min={1900} max={new Date().getFullYear()} />
+                  <Input 
+                    type="number" 
+                    placeholder={`例如：${new Date().getFullYear() - 5}`} 
+                    min={1900} 
+                    max={new Date().getFullYear()} 
+                  />
                 </Form.Item>
               </Col>
             </Row>

@@ -1,9 +1,12 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Spin } from 'antd'
 import AuthGuard from './components/AuthGuard'
 import MainLayout from './layouts/MainLayout'
-import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
+
+// 懒加载组件
+const Dashboard = lazy(() => import('./pages/Dashboard'))
 import RecipeCategories from './pages/recipe/Categories'
 import RecipeCreate from './pages/recipe/Create'
 import RecipeDetail from './pages/recipe/Detail'
@@ -95,14 +98,27 @@ import BaseRecipeEdit from './pages/base/RecipeEdit'
 import BaseRecipeList from './pages/base/RecipeList'
 import BaseStatistics from './pages/base/Statistics'
 
-// 素食人员管理模块
-import CustomerDetail from './pages/vegetarian-personnel/CustomerDetail'
-import CustomerList from './pages/vegetarian-personnel/CustomerList'
-import VegetarianPersonnelDashboard from './pages/vegetarian-personnel/Dashboard'
-import StaffAdd from './pages/vegetarian-personnel/StaffAdd'
-import StaffEdit from './pages/vegetarian-personnel/StaffEdit'
-import StaffList from './pages/vegetarian-personnel/StaffList'
-import StaffStats from './pages/vegetarian-personnel/StaffStats'
+// 素食人员管理模块（懒加载）
+const CustomerDetail = lazy(() => import('./pages/vegetarian-personnel/CustomerDetail'))
+const CustomerList = lazy(() => import('./pages/vegetarian-personnel/CustomerList'))
+const VegetarianPersonnelDashboard = lazy(() => import('./pages/vegetarian-personnel/Dashboard'))
+const StaffAdd = lazy(() => import('./pages/vegetarian-personnel/StaffAdd'))
+const StaffEdit = lazy(() => import('./pages/vegetarian-personnel/StaffEdit'))
+const StaffList = lazy(() => import('./pages/vegetarian-personnel/StaffList'))
+const StaffStats = lazy(() => import('./pages/vegetarian-personnel/StaffStats'))
+
+// 加载中的占位组件
+const LoadingFallback: React.FC = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    minHeight: '400px',
+    width: '100%'
+  }}>
+    <Spin size="large" tip="加载中..." />
+  </div>
+)
 
 const App: React.FC = () => {
   return (
@@ -124,7 +140,14 @@ const App: React.FC = () => {
             index
             element={<Navigate to="/dashboard" replace />}
           />
-          <Route path="dashboard" element={<Dashboard />} />
+          <Route 
+            path="dashboard" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <Dashboard />
+              </Suspense>
+            } 
+          />
           
           {/* 核心模块1: 气候餐厅认证 */}
           <Route path="certification/apply" element={<CertificationApply />} />
@@ -231,14 +254,70 @@ const App: React.FC = () => {
           <Route path="base/import" element={<BaseImport />} />
           
           {/* 素食人员管理模块 */}
-          <Route path="vegetarian-personnel" element={<VegetarianPersonnelDashboard />} />
-          <Route path="vegetarian-personnel/dashboard" element={<VegetarianPersonnelDashboard />} />
-          <Route path="vegetarian-personnel/staff" element={<StaffList />} />
-          <Route path="vegetarian-personnel/staff/add" element={<StaffAdd />} />
-          <Route path="vegetarian-personnel/staff/edit/:id" element={<StaffEdit />} />
-          <Route path="vegetarian-personnel/staff/stats" element={<StaffStats />} />
-          <Route path="vegetarian-personnel/customers" element={<CustomerList />} />
-          <Route path="vegetarian-personnel/customers/:id" element={<CustomerDetail />} />
+          <Route 
+            path="vegetarian-personnel" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VegetarianPersonnelDashboard />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/dashboard" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VegetarianPersonnelDashboard />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/staff" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <StaffList />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/staff/add" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <StaffAdd />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/staff/edit/:id" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <StaffEdit />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/staff/stats" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <StaffStats />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/customers" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <CustomerList />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel/customers/:id" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <CustomerDetail />
+              </Suspense>
+            } 
+          />
         </Route>
       </Routes>
     </BrowserRouter>

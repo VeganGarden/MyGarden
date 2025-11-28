@@ -6,7 +6,7 @@ import { customerAPI } from '@/services/vegetarianPersonnel'
 import { useAppSelector } from '@/store/hooks'
 import type { Customer } from '@/types/vegetarianPersonnel'
 import { EyeOutlined } from '@ant-design/icons'
-import { Button, Card, Input, Select, Space, Table, Tag, message } from 'antd'
+import { Button, Card, Input, Select, Space, Table, Tag, message, Skeleton } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -68,11 +68,23 @@ const CustomerListPage: React.FC = () => {
     }
   }
 
+  // 搜索防抖
+  useEffect(() => {
+    if (!currentRestaurantId || !currentTenant) return
+
+    const timer = setTimeout(() => {
+      setPagination(prev => ({ ...prev, current: 1 }))
+      loadData()
+    }, 500) // 500ms 防抖
+
+    return () => clearTimeout(timer)
+  }, [searchKeyword])
+
   useEffect(() => {
     if (currentRestaurantId && currentTenant) {
       loadData()
     }
-  }, [pagination.current, pagination.pageSize, currentRestaurantId, filterVegetarian, searchKeyword])
+  }, [pagination.current, pagination.pageSize, currentRestaurantId, filterVegetarian])
 
   // 表格列定义
   const columns = [
@@ -168,16 +180,28 @@ const CustomerListPage: React.FC = () => {
     }
   ]
 
+  if (loading && customerList.length === 0 && pagination.total === 0) {
+    return (
+      <Card>
+        <Skeleton active paragraph={{ rows: 8 }} />
+      </Card>
+    )
+  }
+
   return (
     <Card>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <Space>
+      <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' }}>
+        <Space wrap>
           <Search
             placeholder="搜索客户ID或手机号"
-            style={{ width: 300 }}
+            style={{ width: 300, maxWidth: '100%' }}
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
             onSearch={() => {
+              setPagination(prev => ({ ...prev, current: 1 }))
+              loadData()
+            }}
+            onPressEnter={() => {
               setPagination(prev => ({ ...prev, current: 1 }))
               loadData()
             }}
@@ -204,11 +228,19 @@ const CustomerListPage: React.FC = () => {
         dataSource={customerList}
         rowKey="_id"
         loading={loading}
+        locale={{
+          emptyText: searchKeyword || filterVegetarian !== undefined 
+            ? '未找到符合条件的客户' 
+            : '暂无客户数据'
+        }}
         pagination={{
           current: pagination.current,
           pageSize: pagination.pageSize,
           total: pagination.total,
           showTotal: (total) => `共 ${total} 条`,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
           onChange: (page, pageSize) => {
             setPagination(prev => ({ ...prev, current: page, pageSize }))
           }

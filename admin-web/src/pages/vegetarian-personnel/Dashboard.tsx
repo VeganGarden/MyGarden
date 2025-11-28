@@ -56,15 +56,31 @@ const DashboardPage: React.FC = () => {
 
       if (staffResult.success && staffResult.data) {
         setStaffStats(staffResult.data)
+      } else if (!staffResult.success) {
+        console.error('获取员工统计失败:', staffResult.error)
       }
+
       if (customerResult.success && customerResult.data) {
         setCustomerStats(customerResult.data)
+      } else if (!customerResult.success) {
+        console.error('获取客户统计失败:', customerResult.error)
       }
+
       if (carbonResult.success && carbonResult.data) {
         setCarbonEffect(carbonResult.data)
+      } else if (!carbonResult.success) {
+        console.error('获取减碳效应分析失败:', carbonResult.error)
+      }
+
+      // 如果所有请求都失败，显示错误提示
+      if (!staffResult.success && !customerResult.success && !carbonResult.success) {
+        message.error('加载统计数据失败，请稍后重试')
+      } else if (staffResult.success && customerResult.success && carbonResult.success) {
+        // 全部成功时不显示消息，避免干扰
       }
     } catch (error: any) {
-      message.error(error.message || '加载失败')
+      console.error('加载统计数据异常:', error)
+      message.error(error.message || '网络错误，请检查网络连接后重试')
     } finally {
       setLoading(false)
     }
@@ -89,15 +105,16 @@ const DashboardPage: React.FC = () => {
       if (result.success && result.data) {
         if (result.data.downloadUrl) {
           window.open(result.data.downloadUrl, '_blank')
-          message.success('导出成功，文件已开始下载')
+          message.success(`导出成功！${format === 'excel' ? 'Excel' : 'PDF'} 文件已开始下载`)
         } else {
           message.warning(result.data.note || '导出功能待完善')
         }
       } else {
-        message.error(result.error || '导出失败')
+        message.error(result.error || '导出失败，请重试')
       }
     } catch (error: any) {
-      message.error(error.message || '导出失败')
+      console.error('导出ESG报告异常:', error)
+      message.error(error.message || '导出失败，请检查网络连接后重试')
     } finally {
       setLoading(false)
     }
@@ -108,7 +125,7 @@ const DashboardPage: React.FC = () => {
       <Card
         title="素食人员综合统计看板"
         extra={
-          <Space>
+          <Space wrap>
             <RangePicker
               value={dateRange}
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
@@ -137,7 +154,7 @@ const DashboardPage: React.FC = () => {
       >
         {/* 关键指标卡片 */}
         <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={6}>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
                 title="员工总数"
@@ -146,7 +163,7 @@ const DashboardPage: React.FC = () => {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
                 title="素食员工数"
@@ -155,7 +172,7 @@ const DashboardPage: React.FC = () => {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
                 title="客户总数"
@@ -164,7 +181,7 @@ const DashboardPage: React.FC = () => {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={24} sm={12} md={12} lg={6} xl={6}>
             <Card>
               <Statistic
                 title="素食客户数"
@@ -175,37 +192,37 @@ const DashboardPage: React.FC = () => {
           </Col>
         </Row>
 
-        {/* 素食比例对比 */}
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <Card title="员工素食比例">
-              <Statistic
-                title="素食比例"
-                value={staffStats?.vegetarianRatio ? Number(staffStats.vegetarianRatio).toFixed(2) : 0}
-                suffix="%"
-                valueStyle={{ color: '#52c41a', fontSize: 32 }}
-              />
-              <div style={{ marginTop: 16 }}>
-                <Statistic
-                  title="平均素食年限"
-                  value={staffStats?.averageVegetarianYears || 0}
-                  suffix="年"
-                  precision={1}
-                />
-              </div>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card title="客户素食比例">
-              <Statistic
-                title="素食比例"
-                value={customerStats?.vegetarianRatio ? Number(customerStats.vegetarianRatio).toFixed(2) : 0}
-                suffix="%"
-                valueStyle={{ color: '#fa8c16', fontSize: 32 }}
-              />
-            </Card>
-          </Col>
-        </Row>
+            {/* 素食比例对比 */}
+            <Row gutter={16} style={{ marginBottom: 24 }}>
+              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                <Card title="员工素食比例">
+                  <Statistic
+                    title="素食比例"
+                    value={staffStats?.vegetarianRatio ? Number(staffStats.vegetarianRatio).toFixed(2) : 0}
+                    suffix="%"
+                    valueStyle={{ color: '#52c41a', fontSize: 32 }}
+                  />
+                  <div style={{ marginTop: 16 }}>
+                    <Statistic
+                      title="平均素食年限"
+                      value={staffStats?.averageVegetarianYears || 0}
+                      suffix="年"
+                      precision={1}
+                    />
+                  </div>
+                </Card>
+              </Col>
+              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                <Card title="客户素食比例">
+                  <Statistic
+                    title="素食比例"
+                    value={customerStats?.vegetarianRatio ? Number(customerStats.vegetarianRatio).toFixed(2) : 0}
+                    suffix="%"
+                    valueStyle={{ color: '#fa8c16', fontSize: 32 }}
+                  />
+                </Card>
+              </Col>
+            </Row>
 
         {/* 减碳效应分析 */}
         {carbonEffect && (

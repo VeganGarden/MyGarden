@@ -37,7 +37,7 @@ function loadChineseFont(doc) {
     if (actualFontPath) {
       try {
         doc.registerFont('Chinese', actualFontPath)
-        console.log('中文字体加载成功:', actualFontPath)
+        // 中文字体加载成功
         return true
       } catch (fontErr) {
         console.warn('注册中文字体失败，将使用默认字体:', fontErr.message)

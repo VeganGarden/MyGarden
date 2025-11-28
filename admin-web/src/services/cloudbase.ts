@@ -1,117 +1,144 @@
 import { getAuthInstance, getCloudbaseApp } from '@/utils/cloudbase-init'
+import { retry, isNetworkError, isPermissionError } from '@/utils/retry'
 
 /**
  * 调用云函数（使用腾讯云开发Web SDK）
+ * 支持自动重试机制
  */
 export const callCloudFunction = async (
   functionName: string,
-  data?: any
+  data?: any,
+  retryOptions?: { maxRetries?: number; retryDelay?: number }
 ): Promise<any> => {
-  try {
-    // 确保云开发环境已初始化
-    const app = await getCloudbaseApp()
-    
-    // 确保已登录（匿名登录）
-    // 注意：使用全局的 auth 实例，避免重复创建
-    try {
-      const auth = getAuthInstance()
-      if (auth) {
-        const loginState = await auth.getLoginState()
-        
-        if (!loginState) {
-          try {
-            await auth.signInAnonymously()
-          } catch (signInError: any) {
-            // 忽略重复登录错误
-            if (signInError.code !== 'ALREADY_SIGNED_IN') {
-              // 静默处理登录错误，不阻止云函数调用
+  // 使用重试机制包装云函数调用
+  return retry(
+    async () => {
+      // 确保云开发环境已初始化
+      const app = await getCloudbaseApp()
+      
+      // 确保已登录（匿名登录）
+      // 注意：使用全局的 auth 实例，避免重复创建
+      try {
+        const auth = getAuthInstance()
+        if (auth) {
+          const loginState = await auth.getLoginState()
+          
+          if (!loginState) {
+            try {
+              await auth.signInAnonymously()
+            } catch (signInError: any) {
+              // 忽略重复登录错误
+              if (signInError.code !== 'ALREADY_SIGNED_IN') {
+                // 静默处理登录错误，不阻止云函数调用
+              }
             }
           }
         }
+      } catch (authError: any) {
+        // 静默处理认证错误，不阻止云函数调用
       }
-    } catch (authError: any) {
-      // 静默处理认证错误，不阻止云函数调用
-    }
-    
-    // 使用云开发SDK调用云函数
-    // 透传后端鉴权所需的 token（用于函数内权限校验）
-    const token = (typeof window !== 'undefined' && localStorage.getItem('admin_token')) || ''
-    const payload = { ...(data || {}) }
-    if (token && !payload.token) {
-      payload.token = token
-    }
-    const result = await app.callFunction({
-      name: functionName,
-      data: payload,
-    })
-    
-    // 检查返回结果
-    // 云开发SDK返回格式: { result: {...}, requestId: '...' }
-    if (result && result.result) {
-      const resultData = result.result
       
-      // 如果云函数返回的是 { code, message, data } 格式
-      if (resultData.code !== undefined) {
-        if (resultData.code === 401) {
-          try {
-            localStorage.removeItem('admin_token')
-            localStorage.removeItem('admin_user')
-            localStorage.removeItem('admin_permissions')
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login'
-            }
-          } catch {}
+      // 使用云开发SDK调用云函数
+      // 透传后端鉴权所需的 token（用于函数内权限校验）
+      const token = (typeof window !== 'undefined' && localStorage.getItem('admin_token')) || ''
+      const payload = { ...(data || {}) }
+      if (token && !payload.token) {
+        payload.token = token
+      }
+      
+      const result = await app.callFunction({
+        name: functionName,
+        data: payload,
+      })
+      
+      // 检查返回结果
+      // 云开发SDK返回格式: { result: {...}, requestId: '...' }
+      if (result && result.result) {
+        const resultData = result.result
+        
+        // 如果云函数返回的是 { code, message, data } 格式
+        if (resultData.code !== undefined) {
+          // 处理权限错误
+          if (resultData.code === 401 || resultData.code === 403) {
+            try {
+              localStorage.removeItem('admin_token')
+              localStorage.removeItem('admin_user')
+              localStorage.removeItem('admin_permissions')
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+            } catch {}
+            throw new Error(resultData.message || '未授权访问，请先登录')
+          }
+          
+          // 对于权限错误，不重试
+          if (resultData.code === 403) {
+            const permissionError = new Error(resultData.message || '无权限访问')
+            ;(permissionError as any).code = 403
+            throw permissionError
+          }
+          
+          return resultData
         }
-        return resultData
-      }
-      
-      // 如果直接返回数据对象
-      if (resultData.data !== undefined) {
+        
+        // 如果直接返回数据对象
+        if (resultData.data !== undefined) {
+          return {
+            code: 0,
+            ...resultData,
+          }
+        }
+        
+        // 如果直接返回数据（数组或其他）
         return {
           code: 0,
-          ...resultData,
+          data: resultData,
         }
       }
       
-      // 如果直接返回数据（数组或其他）
+      // 如果没有 result 字段，返回原始结果
       return {
         code: 0,
-        data: resultData,
+        data: result,
+      }
+    },
+    {
+      maxRetries: retryOptions?.maxRetries ?? 3,
+      retryDelay: retryOptions?.retryDelay ?? 1000,
+      retryCondition: (error: any) => {
+        // 权限错误不重试
+        if (isPermissionError(error) || error?.code === 403 || error?.code === 401) {
+          return false
+        }
+        // 网络错误或5xx错误才重试
+        return isNetworkError(error) || error?.code >= 500
       }
     }
-    
-    // 如果没有 result 字段，返回原始结果
-    return {
-      code: 0,
-      data: result,
-    }
-  } catch (error: any) {
+  ).catch((error: any) => {
     console.error(`调用云函数 ${functionName} 失败:`, error)
+    
+    // 处理权限错误
+    if (isPermissionError(error) || error?.code === 403 || error?.code === 401) {
+      try {
+        localStorage.removeItem('admin_token')
+        localStorage.removeItem('admin_user')
+        localStorage.removeItem('admin_permissions')
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+      } catch {}
+    }
     
     // 处理不同类型的错误
     if (error.code) {
-      // 云开发SDK错误
       const errorMessage = error.message || error.code || '未知错误'
-      
-      // 如果是认证错误，尝试重新登录
-      if (error.code === 'AUTH_FAILED' || error.code === 401 || error.code === 'unauthenticated') {
-        try {
-          const auth = getAuthInstance()
-          if (auth) {
-            await auth.signInAnonymously()
-          }
-        } catch (loginError) {
-          // 静默处理登录错误
-        }
-      }
-      
       throw new Error(`云函数 ${functionName} 调用失败: ${errorMessage}`)
     }
     
     // 网络错误或其他错误
     const errorMessage = error.message || '网络错误'
     throw new Error(`云函数 ${functionName} 调用失败: ${errorMessage}`)
-  }
+  })
 }
 
 /**

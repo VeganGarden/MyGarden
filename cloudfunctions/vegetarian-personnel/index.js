@@ -655,8 +655,8 @@ async function getCustomerStats(params, user) {
         vegetarianRatio: parseFloat(vegetarianRatio),
         vegetarianTypeDistribution: vegetarianTypeDistribution,
         vegetarianYearsDistribution: vegetarianYearsDistribution,
-        newCustomers: 0, // TODO: 根据日期范围计算
-        newVegetarianCustomers: 0 // TODO: 根据日期范围计算
+        newCustomers: 0, // 根据日期范围计算（后续扩展功能）
+        newVegetarianCustomers: 0 // 根据日期范围计算（后续扩展功能）
       }
     }
   } catch (error) {
@@ -872,16 +872,16 @@ async function getCarbonEffectAnalysis(params, user) {
         // 根据素食年限范围估算天数
         if (customer.vegetarianInfo.vegetarianYears) {
           const yearsRange = customer.vegetarianInfo.vegetarianYears
-          if (yearsRange === '0_1') {
+          if (yearsRange === 'less_than_1') {
             reductionDays = 180 // 约6个月
-          } else if (yearsRange === '1_3') {
-            reductionDays = 730 // 约2年
+          } else if (yearsRange === '1_2') {
+            reductionDays = 547.5 // 约1.5年（(1+2)/2 * 365）
           } else if (yearsRange === '3_5') {
-            reductionDays = 1460 // 约4年
+            reductionDays = 1460 // 约4年（(3+5)/2 * 365）
           } else if (yearsRange === '5_10') {
-            reductionDays = 2555 // 约7年
-          } else if (yearsRange === '10_plus') {
-            reductionDays = 5475 // 约15年
+            reductionDays = 2737.5 // 约7.5年（(5+10)/2 * 365）
+          } else if (yearsRange === 'more_than_10') {
+            reductionDays = 5475 // 约15年（假设10年以上平均为15年）
           } else if (customer.vegetarianInfo.vegetarianStartYear) {
             reductionDays = (currentYear - customer.vegetarianInfo.vegetarianStartYear) * 365
           } else {
@@ -894,8 +894,20 @@ async function getCarbonEffectAnalysis(params, user) {
         }
         
         // 根据订单数量调整（客户可能不是每天在餐厅就餐）
-        const orderCount = customer.vegetarianInfo.totalVegetarianOrders || 0
-        const orderAdjustedDays = Math.min(reductionDays, orderCount * 30) // 假设每次订单影响30天
+        // 使用 consumptionStats 中的 totalOrders 字段
+        const orderCount = (customer.consumptionStats && customer.consumptionStats.totalOrders) || 0
+        
+        // 如果客户有订单记录，按订单数量调整减碳天数
+        // 假设每次订单影响30天，但不超过素食年限对应的天数
+        // 如果没有订单记录或订单很少，则使用完整的素食年限天数
+        let orderAdjustedDays = reductionDays
+        if (orderCount > 0) {
+          // 订单调整天数：假设每订单影响30天，但不超过素食年限天数
+          const orderBasedDays = orderCount * 30
+          // 如果订单天数较少，使用订单天数；否则使用素食年限天数
+          // 但客户减碳按50%计算（非全职素食），所以最终使用较小的值
+          orderAdjustedDays = Math.min(reductionDays, orderBasedDays)
+        }
         
         totalReduction += orderAdjustedDays * DAILY_CARBON_REDUCTION_PER_VEGETARIAN * 0.5 // 客户减碳贡献按50%计算（非全职素食）
       })
