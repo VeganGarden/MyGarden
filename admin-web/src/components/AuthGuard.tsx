@@ -39,8 +39,11 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
 
       // 如果Redux store中没有用户信息，但localStorage中有，则恢复用户信息
-      if (!user && storedUser) {
-        console.log('[AuthGuard] 从localStorage恢复用户信息到Redux store')
+      if (!user && storedUser && storedUser.id && storedUser.role) {
+        console.log('[AuthGuard] 从localStorage恢复用户信息到Redux store', {
+          userId: storedUser.id,
+          role: storedUser.role,
+        })
         dispatch(
           setCredentials({
             user: storedUser,
@@ -48,8 +51,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             permissions: storedUser.permissions || [],
           })
         )
-        // 恢复后，等待下一个渲染周期再检查
-        return
+        // 恢复后，继续验证（因为setCredentials是同步的，会立即更新store）
       }
 
       // 使用Redux store中的user，如果不存在则使用localStorage中的
