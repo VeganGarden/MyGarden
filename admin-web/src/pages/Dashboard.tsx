@@ -599,7 +599,8 @@ const Dashboard: React.FC = () => {
           period: period as any,
           includeTrends: true,
         }).catch((error: any) => {
-          console.warn('[Dashboard] 获取平台统计数据失败（可能需要platform_operator权限）:', error)
+          // 权限不足是预期的，降级为debug级别
+          console.debug('[Dashboard] 获取平台统计数据失败（carbon_specialist无权限）:', error.message || error)
           return { code: -1, message: error.message }
         }),
         baselineManageAPI.list({
@@ -613,7 +614,8 @@ const Dashboard: React.FC = () => {
           sortBy: 'carbonReduction',
           limit: 10,
         }).catch((error: any) => {
-          console.warn('[Dashboard] 获取餐厅排行榜失败（可能需要platform_operator权限）:', error)
+          // 权限不足是预期的，降级为debug级别
+          console.debug('[Dashboard] 获取餐厅排行榜失败（carbon_specialist无权限）:', error.message || error)
           return { code: -1, message: error.message }
         }),
       ])
