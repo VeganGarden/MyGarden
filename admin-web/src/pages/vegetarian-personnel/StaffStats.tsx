@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react'
 import { Card, Row, Col, Statistic, Table, Tag, DatePicker, Button, Space, message } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { useAppSelector } from '@/store/hooks'
 import { staffAPI } from '@/services/vegetarianPersonnel'
 import type { StaffStats as StaffStatsType } from '@/types/vegetarianPersonnel'
 import dayjs from 'dayjs'
@@ -14,20 +15,29 @@ const { RangePicker } = DatePicker
 
 const StaffStatsPage: React.FC = () => {
   const navigate = useNavigate()
+  const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<StaffStatsType | null>(null)
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (currentRestaurantId && currentTenant) {
+      loadData()
+    }
+  }, [currentRestaurantId, dateRange])
 
   const loadData = async () => {
+    if (!currentRestaurantId || !currentTenant) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
     setLoading(true)
     try {
+      const tenantId = currentTenant.id || currentTenant._id || ''
       const params: any = {
-        restaurantId: '', // TODO: 从用户信息获取
-        tenantId: '' // TODO: 从用户信息获取
+        restaurantId: currentRestaurantId,
+        tenantId: tenantId
       }
 
       if (dateRange) {

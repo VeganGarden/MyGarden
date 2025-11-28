@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react'
 import { Button, Card, Input, Select, Table, Space, Tag, message, Modal } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { useAppSelector } from '@/store/hooks'
 import { staffAPI } from '@/services/vegetarianPersonnel'
 import type { Staff } from '@/types/vegetarianPersonnel'
 
@@ -13,6 +14,7 @@ const { Search } = Input
 
 const StaffListPage: React.FC = () => {
   const navigate = useNavigate()
+  const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
   const [loading, setLoading] = useState(false)
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [pagination, setPagination] = useState({
@@ -24,13 +26,19 @@ const StaffListPage: React.FC = () => {
 
   // 加载数据
   const loadData = async () => {
+    if (!currentRestaurantId || !currentTenant) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
     setLoading(true)
     try {
+      const tenantId = currentTenant.id || currentTenant._id || ''
       const result = await staffAPI.list({
         page: pagination.current,
         pageSize: pagination.pageSize,
-        restaurantId: '', // TODO: 从用户信息获取
-        tenantId: '', // TODO: 从用户信息获取
+        restaurantId: currentRestaurantId,
+        tenantId: tenantId,
         search: searchKeyword || undefined
       })
 
@@ -56,8 +64,10 @@ const StaffListPage: React.FC = () => {
   }
 
   useEffect(() => {
-    loadData()
-  }, [pagination.current, pagination.pageSize])
+    if (currentRestaurantId && currentTenant) {
+      loadData()
+    }
+  }, [pagination.current, pagination.pageSize, currentRestaurantId, searchKeyword])
 
   // 删除确认
   const handleDelete = (staff: Staff) => {
