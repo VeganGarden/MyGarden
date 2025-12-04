@@ -29,6 +29,7 @@ interface MenuItem {
   _id: string
   id: string
   name: string
+  description?: string
   price?: number
   carbonFootprint?: number
   carbonLabel?: string

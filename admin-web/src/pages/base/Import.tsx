@@ -2,8 +2,7 @@ import { ingredientAPI, recipeAPI } from '@/services/cloudbase'
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
-  FileExcelOutlined,
-  UploadOutlined,
+  UploadOutlined
 } from '@ant-design/icons'
 import {
   Button,
@@ -18,8 +17,8 @@ import {
   message,
 } from 'antd'
 import type { UploadFile, UploadProps } from 'antd/es/upload'
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 
 const { Step } = Steps

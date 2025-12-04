@@ -9,12 +9,14 @@ import {
   SearchOutlined,
 } from '@ant-design/icons'
 import {
+  Badge,
   Button,
   Card,
   Col,
   Collapse,
   DatePicker,
   Descriptions,
+  Divider,
   Form,
   Input,
   Modal,
@@ -25,14 +27,12 @@ import {
   Tag,
   Typography,
   message,
-  Badge,
-  Divider,
 } from 'antd'
-import { Link } from 'react-router-dom'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 const { RangePicker } = DatePicker
 const { TextArea } = Input
@@ -49,6 +49,7 @@ interface Application {
   currentStage: string
   submittedAt: string
   systemEvaluation?: any
+  reviewRecords?: any[]
 }
 
 const CertificationReview: React.FC = () => {

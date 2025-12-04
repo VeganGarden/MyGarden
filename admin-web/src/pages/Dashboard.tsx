@@ -621,14 +621,14 @@ const Dashboard: React.FC = () => {
       ])
       
       // 处理结果
-      const stats = statisticsResult.status === 'fulfilled' && statisticsResult.value?.code === 0 
-        ? statisticsResult.value 
+      const stats = statisticsResult.status === 'fulfilled' && (statisticsResult.value as any)?.code === 0 
+        ? statisticsResult.value as any
         : null
-      const baseline = baselineResult.status === 'fulfilled' && baselineResult.value?.code === 0
-        ? baselineResult.value
+      const baseline = baselineResult.status === 'fulfilled' && (baselineResult.value as any)?.code === 0
+        ? baselineResult.value as any
         : null
-      const topCarbon = topCarbonResult.status === 'fulfilled' && topCarbonResult.value?.code === 0
-        ? topCarbonResult.value
+      const topCarbon = topCarbonResult.status === 'fulfilled' && (topCarbonResult.value as any)?.code === 0
+        ? topCarbonResult.value as any
         : null
 
       if (stats && stats.data) {

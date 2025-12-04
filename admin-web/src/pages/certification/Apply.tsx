@@ -1,31 +1,31 @@
 import { certificationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
-    CheckOutlined,
-    ImportOutlined,
-    InfoCircleOutlined,
-    SaveOutlined,
-    UploadOutlined,
+  CheckOutlined,
+  ImportOutlined,
+  InfoCircleOutlined,
+  SaveOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
 import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    Collapse,
-    Form,
-    Input,
-    InputNumber,
-    Modal,
-    Row,
-    Select,
-    Space,
-    Steps,
-    Table,
-    Tag,
-    Typography,
-    Upload,
-    message,
+  Alert,
+  Button,
+  Card,
+  Col,
+  Collapse,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Row,
+  Select,
+  Space,
+  Steps,
+  Table,
+  Tag,
+  Typography,
+  Upload,
+  message,
 } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -41,7 +41,7 @@ const { Text } = Typography
 interface MenuItem {
   id: string
   name: string
-  ingredients: string
+  ingredients: string | string[] | any
   quantity: number
   unit: string
   cookingMethod?: string

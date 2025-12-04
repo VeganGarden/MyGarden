@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>气候餐厅管理后台 - 我的花园</title>
+  <title>正在加载...</title>
   <script>
     // SPA 路由支持：将所有 404 请求重定向到 index.html
     // 保存当前路径，以便 React Router 可以处理
@@ -11,8 +11,14 @@
     var search = window.location.search;
     var hash = window.location.hash;
     
-    // 重定向到 index.html，保留路径信息
-    window.location.replace('/index.html' + path + search + hash);
+    // 如果不是根路径或index.html，重定向到index.html并保留路径
+    if (path !== '/' && path !== '/index.html' && !path.startsWith('/assets/') && !path.startsWith('/static/')) {
+      // 重定向到 index.html，保留路径信息
+      window.location.replace('/index.html' + path + search + hash);
+    } else {
+      // 如果已经是index.html，则说明可能是其他问题，直接跳转到首页
+      window.location.replace('/');
+    }
   </script>
 </head>
 <body>
@@ -21,10 +27,14 @@
     <script>
       // 备用重定向方案
       setTimeout(function() {
-        window.location.href = '/index.html';
+        var path = window.location.pathname;
+        if (path !== '/' && path !== '/index.html') {
+          window.location.href = '/index.html' + path + window.location.search + window.location.hash;
+        } else {
+          window.location.href = '/';
+        }
       }, 500);
     </script>
   </div>
 </body>
 </html>
-

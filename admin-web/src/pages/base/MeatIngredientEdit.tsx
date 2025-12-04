@@ -256,7 +256,7 @@ const MeatIngredientEdit: React.FC = () => {
                   mode="tags"
                   placeholder="输入或选择素食替代品名称（需在基础素食食材中存在）"
                   filterOption={(input, option) => {
-                    const children = option?.children
+                    const children = option?.children as any
                     if (typeof children === 'string') {
                       return children.toLowerCase().includes(input.toLowerCase())
                     }
