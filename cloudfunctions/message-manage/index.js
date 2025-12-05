@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
+const { verifyToken } = require('../common/permission');
 
 /**
  * 消息管理云函数
@@ -24,7 +25,7 @@ exports.main = async (event, context) => {
         return await createMessage(data, wxContext);
       
       case 'getUserMessages':
-        return await getUserMessages(data, wxContext);
+        return await getUserMessages(data, wxContext, event);
       
       case 'markAsRead':
         return await markAsRead(data, wxContext);
@@ -148,7 +149,7 @@ async function createMessage(data, wxContext) {
 /**
  * 获取用户消息列表
  */
-async function getUserMessages(data, wxContext) {
+async function getUserMessages(data, wxContext, event) {
   const { userId, status, page = 1, pageSize = 20 } = data;
   const targetUserId = userId || wxContext.OPENID;
 
@@ -160,6 +161,25 @@ async function getUserMessages(data, wxContext) {
   }
 
   try {
+    // 获取用户角色信息（用于消息过滤）
+    let userRole = null;
+    try {
+      const authHeader = (event && event.headers && (event.headers.authorization || event.headers.Authorization)) 
+        || (event && event.token) 
+        || (data && data.token) 
+        || '';
+      const token = authHeader.replace('Bearer ', '').trim();
+      if (token) {
+        const user = await verifyToken(token, db);
+        if (user && user.role) {
+          userRole = user.role;
+        }
+      }
+    } catch (tokenError) {
+      // 如果token验证失败，静默处理，不影响消息获取
+      console.log('获取用户角色信息失败（可能未登录）:', tokenError.message);
+    }
+
     // 构建查询条件（MongoDB 不支持链式 where，需要合并条件）
     const queryCondition = {
       userId: targetUserId
@@ -187,7 +207,7 @@ async function getUserMessages(data, wxContext) {
       .get();
 
     // 合并数据
-    const messages = result.data.map(userMsg => {
+    let messages = result.data.map(userMsg => {
       const message = messagesResult.data.find(msg => msg._id === userMsg.messageId);
       return {
         ...userMsg,
@@ -195,7 +215,20 @@ async function getUserMessages(data, wxContext) {
       };
     });
 
-    // 获取总数
+    // 根据用户角色过滤消息
+    // 系统管理员不应该看到餐厅认证申请和租户认证申请的消息
+    if (userRole === 'system_admin') {
+      messages = messages.filter(userMsg => {
+        if (!userMsg.message || !userMsg.message.eventType) {
+          return true; // 保留没有eventType的消息
+        }
+        // 过滤掉餐厅认证申请和租户认证申请的消息
+        const eventType = userMsg.message.eventType;
+        return eventType !== 'restaurant_cert_apply' && eventType !== 'tenant_cert_apply';
+      });
+    }
+
+    // 获取总数（需要考虑过滤后的数量）
     const countResult = await db.collection('user_messages')
       .where({
         userId: targetUserId,
@@ -203,12 +236,45 @@ async function getUserMessages(data, wxContext) {
       })
       .count();
 
+    // 如果进行了角色过滤，需要重新计算总数
+    let total = countResult.total;
+    if (userRole === 'system_admin') {
+      // 需要查询所有消息来计算过滤后的总数
+      const allUserMessagesResult = await db.collection('user_messages')
+        .where({
+          userId: targetUserId,
+          ...(status ? { status } : {})
+        })
+        .get();
+
+      const allMessageIds = allUserMessagesResult.data.map(item => item.messageId);
+      if (allMessageIds.length > 0) {
+        const allMessagesResult = await db.collection('messages')
+          .where({
+            _id: _.in(allMessageIds)
+          })
+          .get();
+
+        const filteredCount = allUserMessagesResult.data.filter(userMsg => {
+          const message = allMessagesResult.data.find(msg => msg._id === userMsg.messageId);
+          if (!message || !message.eventType) {
+            return true;
+          }
+          return message.eventType !== 'restaurant_cert_apply' && message.eventType !== 'tenant_cert_apply';
+        }).length;
+
+        total = filteredCount;
+      } else {
+        total = 0;
+      }
+    }
+
     return {
       code: 0,
       message: '获取成功',
       data: {
         messages,
-        total: countResult.total,
+        total: total,
         page,
         pageSize
       }

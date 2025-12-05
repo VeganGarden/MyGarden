@@ -3034,7 +3034,7 @@
       "alerts": {
         "welcomeRestaurant": "欢迎查看{{name}}的运营数据",
         "welcomeTenant": "欢迎查看{{name}}所有餐厅的运营数据",
-        "welcomeSystem": "欢迎使用气候餐厅管理系统",
+        "welcomeSystem": "欢迎使用谷秀气候餐厅平台系统",
         "descriptionRestaurant": "这里是{{name}}的详细运营数据，包括订单、收入、碳减排等关键指标。",
         "descriptionTenant": "这里是{{name}}旗下所有餐厅的汇总数据。您可以在右上角切换查看具体某家餐厅的数据。",
         "descriptionSystem": "这里是系统概览，您可以查看关键业务指标和统计数据。"

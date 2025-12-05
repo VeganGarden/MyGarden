@@ -987,6 +987,13 @@ async function getAuditLogs(params = {}) {
  * 系统指标
  */
 async function getSystemMetrics() {
+  const _ = db.command
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date()
+  todayEnd.setHours(23, 59, 59, 999)
+
+  // 数据库集合统计（保留原有功能，用于系统监控页面）
   const metrics = {}
   const meta = {
     // 系统与平台
@@ -1120,22 +1127,101 @@ async function getSystemMetrics() {
     // 电商域
     'products','shopping_cart','product_reviews','inventory','promotions','coupons','user_coupons',
   ]
-  for (const c of collections) {
+
+  try {
+    // 1. 统计数据库集合数据（保留原有功能）
+    for (const c of collections) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const count = await db.collection(c).count()
+        metrics[c] = count.total
+      } catch {
+        metrics[c] = 0
+      }
+    }
+    const list = collections.map((c) => ({
+      collection: c,
+      count: metrics[c] || 0,
+      domain: meta[c]?.domain || '未知',
+      description: meta[c]?.description || '',
+    }))
+
+    // 2. 统计今日登录次数（从audit_logs查询action='login'的记录）
+    let todayLogins = 0
     try {
-      // eslint-disable-next-line no-await-in-loop
-      const count = await db.collection(c).count()
-      metrics[c] = count.total
-    } catch {
-      metrics[c] = 0
+      const loginCountResult = await db.collection('audit_logs')
+        .where({
+          action: 'login',
+          createdAt: _.and(_.gte(todayStart), _.lte(todayEnd)),
+        })
+        .count()
+      todayLogins = loginCountResult.total || 0
+    } catch (error) {
+      console.error('[getSystemMetrics] 统计今日登录次数失败:', error)
+      todayLogins = 0
+    }
+
+    // 3. 统计今日操作次数（今日所有audit_logs记录）
+    let todayOperations = 0
+    try {
+      const operationCountResult = await db.collection('audit_logs')
+        .where({
+          createdAt: _.and(_.gte(todayStart), _.lte(todayEnd)),
+        })
+        .count()
+      todayOperations = operationCountResult.total || 0
+    } catch (error) {
+      console.error('[getSystemMetrics] 统计今日操作次数失败:', error)
+      todayOperations = 0
+    }
+
+    // 4. 系统告警数（暂时返回0，如果有告警系统可以查询未处理的告警）
+    const systemAlerts = 0
+
+    // 5. 数据备份状态（暂时返回'unknown'，如果实现了备份功能可以查询最后一次备份状态）
+    const backupStatus = 'unknown'
+
+    // 6. 数据库使用率（暂时返回0，云开发可能不提供此API）
+    // 如果将来需要，可以通过云开发API获取数据库使用情况
+    const databaseUsage = 0
+
+    // 7. API调用次数（从audit_logs统计今日的操作，可以作为API调用次数的近似值）
+    // 或者如果系统有专门的API调用统计，可以从那里获取
+    const apiCalls = todayOperations
+
+    // 返回系统指标（包含数据库集合统计和系统指标）
+    return {
+      code: 0,
+      data: {
+        // 数据库集合统计（用于系统监控页面）
+        list,
+        map: metrics,
+        // 系统指标（用于看板页面）
+        todayLogins,
+        todayOperations,
+        alerts: systemAlerts,
+        backupStatus,
+        databaseUsage,
+        apiCalls,
+      },
+    }
+  } catch (error) {
+    console.error('[getSystemMetrics] 获取系统指标失败:', error)
+    return {
+      code: -1,
+      message: error.message || '获取系统指标失败',
+      data: {
+        list: [],
+        map: {},
+        todayLogins: 0,
+        todayOperations: 0,
+        alerts: 0,
+        backupStatus: 'unknown',
+        databaseUsage: 0,
+        apiCalls: 0,
+      },
     }
   }
-  const list = collections.map((c) => ({
-    collection: c,
-    count: metrics[c] || 0,
-    domain: meta[c]?.domain || '未知',
-    description: meta[c]?.description || '',
-  }))
-  return { code: 0, data: { list, map: metrics } }
 }
 
 /**

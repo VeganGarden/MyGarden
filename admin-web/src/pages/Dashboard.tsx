@@ -428,71 +428,97 @@ const Dashboard: React.FC = () => {
   // 获取平台运营数据
   const fetchPlatformData = async () => {
     try {
+      setLoading(true)
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD') || dayjs().subtract(30, 'day').format('YYYY-MM-DD')
       const endDate = dateRange?.[1]?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD')
       
-      // 获取平台统计数据（包含趋势数据）
-      const [statisticsResult, topRestaurantsResult, applicationsResult, tenantsResult] = await Promise.all([
-        platformAPI.statistics.getPlatformStatistics({
+      // 使用Promise.allSettled，确保即使某个API失败，其他API的结果也能正常返回
+      // 为每个API调用添加超时处理（15秒超时，因为统计API可能较慢）
+      const [statisticsResult, topRestaurantsResult, applicationsResult, tenantsResult] = await Promise.allSettled([
+        withTimeout(platformAPI.statistics.getPlatformStatistics({
           startDate,
           endDate,
           period: period as any,
           includeTrends: true,
+        }), 15000, '获取平台统计数据超时').catch((error: any) => {
+          console.error('[Dashboard] 获取平台统计数据失败:', error.message || error)
+          return { code: -1, message: error.message || '获取平台统计数据失败' }
         }),
-        platformAPI.statistics.getTopRestaurants({
+        withTimeout(platformAPI.statistics.getTopRestaurants({
           sortBy: 'orders',
           limit: 10,
+        }), 10000, '获取餐厅排行榜超时').catch((error: any) => {
+          console.error('[Dashboard] 获取餐厅排行榜失败:', error.message || error)
+          return { code: -1, message: error.message || '获取餐厅排行榜失败' }
         }),
-        onboardingAPI.listApplications({
+        withTimeout(onboardingAPI.listApplications({
           status: 'pending',
           page: 1,
           pageSize: 1,
+        }), 10000, '获取待审批申请超时').catch((error: any) => {
+          console.error('[Dashboard] 获取待审批申请失败:', error.message || error)
+          return { code: -1, message: error.message || '获取待审批申请失败' }
         }),
-        tenantAPI.getAllTenants(),
+        withTimeout(tenantAPI.getAllTenants(), 10000, '获取租户列表超时').catch((error: any) => {
+          console.error('[Dashboard] 获取租户列表失败:', error.message || error)
+          return { code: -1, message: error.message || '获取租户列表失败' }
+        }),
       ])
 
-      if (statisticsResult && statisticsResult.code === 0 && statisticsResult.data) {
-        const stats = statisticsResult.data
-        setPlatformData({
-          totalTenants: stats.totalTenants || 0,
-          activeTenants: stats.activeTenants || stats.active_tenants || 0,
+      // 处理平台统计数据结果
+      if (statisticsResult.status === 'fulfilled' && statisticsResult.value && statisticsResult.value.code === 0 && statisticsResult.value.data) {
+        const stats = statisticsResult.value.data
+        setPlatformData(prev => ({
+          ...prev,
           totalRestaurants: stats.totalRestaurants || stats.total_restaurants || 0,
-          pendingApplications: applicationsResult?.data?.total || applicationsResult?.data?.length || 0,
           totalOrders: stats.totalOrders || stats.total_orders || 0,
           totalRevenue: stats.totalRevenue || stats.total_revenue || 0,
           totalCarbonReduction: stats.totalCarbonReduction || stats.total_carbon_reduction || 0,
           totalUsers: stats.totalUsers || stats.total_users || 0,
-        })
+        }))
         
         // 保存趋势数据
         if (stats.trends) {
-          setTrendsData({
+          setTrendsData(prev => ({
+            ...prev,
             orders: stats.trends.orders,
             revenue: stats.trends.revenue,
             carbonReduction: stats.trends.carbonReduction,
             tenantGrowth: stats.trends.tenantGrowth || stats.trends.restaurantGrowth || undefined,
-          })
+          }))
         }
+      } else {
+        // 如果获取平台统计数据失败，设置默认值
+        console.warn('[Dashboard] 平台统计数据加载失败，使用默认值')
+        setPlatformData(prev => ({
+          ...prev,
+          totalRestaurants: 0,
+          totalOrders: 0,
+          totalRevenue: 0,
+          totalCarbonReduction: 0,
+          totalUsers: 0,
+        }))
       }
 
-      // 获取餐厅排行榜
-      if (topRestaurantsResult && topRestaurantsResult.code === 0 && topRestaurantsResult.data) {
-        const restaurants = Array.isArray(topRestaurantsResult.data) ? topRestaurantsResult.data : []
-        setTopRestaurants(restaurants.map((restaurant: any, index: number) => ({
-          rank: index + 1,
-          restaurantName: restaurant.restaurantName || restaurant.name || restaurant.restaurant_name || '',
-          tenantId: restaurant.tenantId || restaurant.tenant_id || '',
-          tenantName: restaurant.tenantName || restaurant.tenant_name || '',
-          orders: restaurant.orders || restaurant.order_count || 0,
-          revenue: restaurant.revenue || restaurant.total_revenue || 0,
-          carbonReduction: restaurant.carbonReduction || restaurant.carbon_reduction || 0,
-          certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
-        })))
+      // 处理待审批申请结果
+      if (applicationsResult.status === 'fulfilled' && applicationsResult.value && applicationsResult.value.code === 0) {
+        const pendingCount = applicationsResult.value.data?.total || applicationsResult.value.data?.length || 0
+        setPlatformData(prev => ({
+          ...prev,
+          pendingApplications: pendingCount,
+        }))
+      } else {
+        // 如果获取待审批申请失败，设置默认值
+        console.warn('[Dashboard] 待审批申请加载失败，使用默认值')
+        setPlatformData(prev => ({
+          ...prev,
+          pendingApplications: 0,
+        }))
       }
 
-      // 获取租户总数和活跃数，并计算增长趋势
-      if (tenantsResult && tenantsResult.code === 0 && tenantsResult.data) {
-        const tenants = tenantsResult.data || []
+      // 处理租户列表结果
+      if (tenantsResult.status === 'fulfilled' && tenantsResult.value && tenantsResult.value.code === 0 && tenantsResult.value.data) {
+        const tenants = Array.isArray(tenantsResult.value.data) ? tenantsResult.value.data : []
         const activeTenants = tenants.filter((t: any) => t.status === 'active').length
         setPlatformData(prev => ({
           ...prev,
@@ -531,43 +557,122 @@ const Dashboard: React.FC = () => {
             }))
           }
         }
+      } else {
+        // 如果获取租户列表失败，设置默认值
+        console.warn('[Dashboard] 租户列表加载失败，使用默认值')
+        setPlatformData(prev => ({
+          ...prev,
+          totalTenants: 0,
+          activeTenants: 0,
+        }))
+      }
+
+      // 处理餐厅排行榜结果
+      if (topRestaurantsResult.status === 'fulfilled' && topRestaurantsResult.value && topRestaurantsResult.value.code === 0 && topRestaurantsResult.value.data) {
+        const restaurants = Array.isArray(topRestaurantsResult.value.data) ? topRestaurantsResult.value.data : []
+        setTopRestaurants(restaurants.map((restaurant: any, index: number) => ({
+          rank: index + 1,
+          restaurantName: restaurant.restaurantName || restaurant.name || restaurant.restaurant_name || '',
+          tenantId: restaurant.tenantId || restaurant.tenant_id || '',
+          tenantName: restaurant.tenantName || restaurant.tenant_name || '',
+          orders: restaurant.orders || restaurant.order_count || 0,
+          revenue: restaurant.revenue || restaurant.total_revenue || 0,
+          carbonReduction: restaurant.carbonReduction || restaurant.carbon_reduction || 0,
+          certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
+        })))
+      } else {
+        // 如果获取餐厅排行榜失败，设置空数组
+        console.warn('[Dashboard] 餐厅排行榜加载失败，使用空数组')
+        setTopRestaurants([])
       }
     } catch (error: any) {
+      console.error('[Dashboard] 获取平台数据失败:', error)
       message.error(error.message || t('common.loadFailed'))
+      // 确保在错误时也设置默认值，避免一直loading
+      setPlatformData({
+        totalTenants: 0,
+        activeTenants: 0,
+        totalRestaurants: 0,
+        pendingApplications: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        totalCarbonReduction: 0,
+        totalUsers: 0,
+      })
+      setTopRestaurants([])
+    } finally {
+      setLoading(false)
     }
   }
 
   // 获取系统管理员数据
+  // 添加超时处理辅助函数
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 10000, errorMessage: string = '请求超时'): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+      ),
+    ])
+  }
+
   const fetchSystemData = async () => {
     try {
-      // 获取用户统计
-      const [usersResult, logsResult, metricsResult] = await Promise.all([
-        adminUsersAPI.list({}),
-        systemAPI.getAuditLogs({
+      setLoading(true)
+      
+      // 使用Promise.allSettled，确保即使某个API失败，其他API的结果也能正常返回
+      // 为每个API调用添加超时处理（10秒超时）
+      const [usersResult, logsResult, metricsResult] = await Promise.allSettled([
+        // 获取所有管理员用户（使用大pageSize以确保获取全部）
+        withTimeout(adminUsersAPI.list({ page: 1, pageSize: 10000 }), 10000, '获取用户列表超时').catch((error: any) => {
+          console.error('[Dashboard] 获取用户列表失败:', error.message || error)
+          return { code: -1, message: error.message || '获取用户列表失败' }
+        }),
+        withTimeout(systemAPI.getAuditLogs({
           page: 1,
           pageSize: 20,
+        }), 10000, '获取审计日志超时').catch((error: any) => {
+          console.error('[Dashboard] 获取审计日志失败:', error.message || error)
+          return { code: -1, message: error.message || '获取审计日志失败' }
         }),
-        systemAPI.getSystemMetrics(),
+        withTimeout(systemAPI.getSystemMetrics(), 10000, '获取系统指标超时').catch((error: any) => {
+          console.error('[Dashboard] 获取系统指标失败:', error.message || error)
+          return { code: -1, message: error.message || '获取系统指标失败' }
+        }),
       ])
 
-      if (usersResult && usersResult.code === 0) {
-        const users = usersResult.data?.list || usersResult.data || []
+      // 处理用户统计结果
+      if (usersResult.status === 'fulfilled' && usersResult.value && usersResult.value.code === 0) {
+        const users = usersResult.value.data?.list || usersResult.value.data || []
+        // 计算活跃用户数（状态为'active'的用户）
         const activeUsers = users.filter((u: any) => u.status === 'active').length
         setSystemData(prev => ({
           ...prev,
-          totalUsers: users.length,
+          totalUsers: users.length, // 使用获取到的所有用户数
           activeUsers: activeUsers,
+        }))
+      } else {
+        // 如果获取用户列表失败，设置默认值
+        console.warn('[Dashboard] 用户列表加载失败，使用默认值')
+        setSystemData(prev => ({
+          ...prev,
+          totalUsers: 0,
+          activeUsers: 0,
         }))
       }
 
-      // 获取最近操作日志
-      if (logsResult && logsResult.code === 0 && logsResult.data) {
-        setRecentLogs(logsResult.data.list || logsResult.data || [])
+      // 处理审计日志结果
+      if (logsResult.status === 'fulfilled' && logsResult.value && logsResult.value.code === 0 && logsResult.value.data) {
+        setRecentLogs(logsResult.value.data.list || logsResult.value.data || [])
+      } else {
+        // 如果获取日志失败，设置空数组
+        console.warn('[Dashboard] 审计日志加载失败，使用空数组')
+        setRecentLogs([])
       }
 
-      // 获取系统指标（如果有）
-      if (metricsResult && metricsResult.code === 0 && metricsResult.data) {
-        const metrics = metricsResult.data
+      // 处理系统指标结果
+      if (metricsResult.status === 'fulfilled' && metricsResult.value && metricsResult.value.code === 0 && metricsResult.value.data) {
+        const metrics = metricsResult.value.data
         setSystemData(prev => ({
           ...prev,
           todayLogins: metrics.todayLogins || 0,
@@ -577,9 +682,36 @@ const Dashboard: React.FC = () => {
           systemAlerts: metrics.alerts || 0,
           backupStatus: metrics.backupStatus || 'unknown',
         }))
+      } else {
+        // 如果获取系统指标失败，设置默认值
+        console.warn('[Dashboard] 系统指标加载失败，使用默认值')
+        setSystemData(prev => ({
+          ...prev,
+          todayLogins: 0,
+          todayOperations: 0,
+          databaseUsage: 0,
+          apiCalls: 0,
+          systemAlerts: 0,
+          backupStatus: 'unknown',
+        }))
       }
     } catch (error: any) {
+      console.error('[Dashboard] 获取系统数据失败:', error)
       message.error(error.message || t('common.loadFailed'))
+      // 确保在错误时也设置默认值，避免一直loading
+      setSystemData({
+        totalUsers: 0,
+        activeUsers: 0,
+        systemAlerts: 0,
+        backupStatus: 'unknown',
+        todayLogins: 0,
+        todayOperations: 0,
+        databaseUsage: 0,
+        apiCalls: 0,
+      })
+      setRecentLogs([])
+    } finally {
+      setLoading(false)
     }
   }
 

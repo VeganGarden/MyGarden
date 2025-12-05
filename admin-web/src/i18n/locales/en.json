@@ -2891,7 +2891,7 @@
       "alerts": {
         "welcomeRestaurant": "Welcome to view {{name}}'s operational data",
         "welcomeTenant": "Welcome to view operational data for all restaurants under {{name}}",
-        "welcomeSystem": "Welcome to Climate Restaurant Management System",
+        "welcomeSystem": "Welcome to Guxiu Climate Restaurant Platform System",
         "descriptionRestaurant": "Here is the detailed operational data for {{name}}, including orders, revenue, carbon reduction and other key indicators.",
         "descriptionTenant": "Here is the aggregated data for all restaurants under {{name}}. You can switch to view data for a specific restaurant in the top right corner.",
         "descriptionSystem": "Here is the system overview, where you can view key business indicators and statistics."
