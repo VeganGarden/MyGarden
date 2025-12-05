@@ -125,6 +125,7 @@
     "confirmActivate": "Confirm Activate",
     "confirmActivateMessage": "Are you sure you want to activate this record?",
     "noPermission": "No Permission",
+    "backToDashboard": "Back to Dashboard",
     "networkError": "Network Error",
     "serverError": "Server Error",
     "unknownError": "Unknown Error",

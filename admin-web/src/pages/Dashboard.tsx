@@ -738,9 +738,20 @@ const Dashboard: React.FC = () => {
         baselineManageAPI.list({
           page: 1,
           pageSize: 1,
+        }).then((result: any) => {
+          // baselineManageAPI.list返回的是{success, data, pagination}格式，需要转换为{code, data}格式
+          if (result && result.success) {
+            return {
+              code: 0,
+              data: result.data || [],
+              pagination: result.pagination,
+              total: result.pagination?.total || 0,
+            }
+          }
+          return { code: -1, message: result?.error || '获取基准值数据失败' }
         }).catch((error: any) => {
           console.warn('[Dashboard] 获取基准值数据失败:', error)
-          return { code: -1, message: error.message }
+          return { code: -1, message: error.message || '获取基准值数据失败' }
         }),
         platformAPI.statistics.getTopRestaurants({
           sortBy: 'carbonReduction',
@@ -811,8 +822,45 @@ const Dashboard: React.FC = () => {
           certificationLevel: restaurant.certificationLevel || restaurant.certification_level || undefined,
         })))
       }
+
+      // 计算今日和本月碳减排量（从趋势数据中提取）
+      if (stats && stats.data && stats.data.trends && stats.data.trends.carbonReduction) {
+        const carbonTrends = stats.data.trends.carbonReduction
+        const today = dayjs().format('YYYY-MM-DD')
+        const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
+        
+        // 从趋势数据中提取今日和本月的数据
+        const todayData = carbonTrends.find((item: any) => item.date === today)
+        const monthData = carbonTrends.filter((item: any) => {
+          const itemDate = dayjs(item.date)
+          return itemDate.isAfter(monthStart) || itemDate.isSame(monthStart, 'day')
+        })
+        
+        const todayCarbon = todayData?.amount || todayData?.value || 0
+        const monthCarbon = monthData.reduce((sum: number, item: any) => {
+          return sum + (item.amount || item.value || 0)
+        }, 0)
+        
+        setCarbonData(prev => ({
+          ...prev,
+          todayCarbonReduction: todayCarbon,
+          monthCarbonReduction: monthCarbon,
+        }))
+      }
+
+      // 获取碳标签分布数据（如果有的话）
+      if (stats && stats.data && stats.data.carbonLabelDistribution) {
+        setCarbonData(prev => ({
+          ...prev,
+          carbonLabelDistribution: stats.data.carbonLabelDistribution,
+        }))
+      }
     } catch (error: any) {
+      console.error('[Dashboard] 获取碳核算专员数据失败:', error)
       message.error(error.message || t('common.loadFailed'))
+    } finally {
+      // 确保在所有情况下都重置loading状态
+      setLoading(false)
     }
   }
 

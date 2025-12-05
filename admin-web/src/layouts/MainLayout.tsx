@@ -178,79 +178,94 @@ const MainLayout: React.FC = () => {
       label: t('menu.dashboard'),
     },
     ...certificationMenu,
-    {
-      key: '/carbon',
-      icon: <CalculatorOutlined />,
-      label: t('menu.carbonCalculator'),
-      children: [
-        {
-          key: '/carbon/menu',
-          label: t('menu.carbonMenu'),
-        },
-        {
-          key: '/carbon/order',
-          label: t('menu.carbonOrder'),
-        },
-        {
-          key: '/carbon/report',
-          label: t('menu.carbonReport'),
-        },
-        {
-          key: '/carbon/baseline',
-          label: t('menu.carbonBaseline'),
-        },
-      ],
-    },
-    {
-      key: '/traceability',
-      icon: <ApartmentOutlined />,
-      label: t('menu.traceability'),
-      children: [
-        {
-          key: '/traceability/suppliers',
-          label: t('menu.traceabilitySuppliers'),
-        },
-        {
-          key: '/traceability/lots',
-          label: t('menu.traceabilityLots'),
-        },
-        {
-          key: '/traceability/chains',
-          label: t('menu.traceabilityChains'),
-        },
-        {
-          key: '/traceability/certificates',
-          label: t('menu.traceabilityCertificates'),
-        },
-      ],
-    },
-    {
-      key: '/operation',
-      icon: <ShoppingCartOutlined />,
-      label: t('menu.operation'),
-      children: [
-        {
-          key: '/operation/order',
-          label: t('menu.operationOrder'),
-        },
-        {
-          key: '/operation/ledger',
-          label: t('menu.operationLedger'),
-        },
-        {
-          key: '/operation/behavior',
-          label: t('menu.operationBehavior'),
-        },
-        {
-          key: '/operation/coupon',
-          label: t('menu.operationCoupon'),
-        },
-        {
-          key: '/operation/review',
-          label: t('menu.operationReview'),
-        },
-      ],
-    },
+    // 碳足迹核算（仅餐厅管理员可见）
+    ...(isRestaurantAdmin
+      ? [
+          {
+            key: '/carbon',
+            icon: <CalculatorOutlined />,
+            label: t('menu.carbonCalculator'),
+            children: [
+              {
+                key: '/carbon/menu',
+                label: t('menu.carbonMenu'),
+              },
+              {
+                key: '/carbon/order',
+                label: t('menu.carbonOrder'),
+              },
+              {
+                key: '/carbon/report',
+                label: t('menu.carbonReport'),
+              },
+              {
+                key: '/carbon/baseline',
+                label: t('menu.carbonBaseline'),
+              },
+            ],
+          },
+        ]
+      : []),
+    // 供应链溯源（仅餐厅管理员可见）
+    ...(isRestaurantAdmin
+      ? [
+          {
+            key: '/traceability',
+            icon: <ApartmentOutlined />,
+            label: t('menu.traceability'),
+            children: [
+              {
+                key: '/traceability/suppliers',
+                label: t('menu.traceabilitySuppliers'),
+              },
+              {
+                key: '/traceability/lots',
+                label: t('menu.traceabilityLots'),
+              },
+              {
+                key: '/traceability/chains',
+                label: t('menu.traceabilityChains'),
+              },
+              {
+                key: '/traceability/certificates',
+                label: t('menu.traceabilityCertificates'),
+              },
+            ],
+          },
+        ]
+      : []),
+    // 餐厅运营（仅餐厅管理员可见）
+    ...(isRestaurantAdmin
+      ? [
+          {
+            key: '/operation',
+            icon: <ShoppingCartOutlined />,
+            label: t('menu.operation'),
+            children: [
+              {
+                key: '/operation/order',
+                label: t('menu.operationOrder'),
+              },
+              {
+                key: '/operation/ledger',
+                label: t('menu.operationLedger'),
+              },
+              {
+                key: '/operation/behavior',
+                label: t('menu.operationBehavior'),
+              },
+              {
+                key: '/operation/coupon',
+                label: t('menu.operationCoupon'),
+              },
+              {
+                key: '/operation/review',
+                label: t('menu.operationReview'),
+              },
+            ],
+          },
+        ]
+      : []),
     {
       key: '/report',
       icon: <BarChartOutlined />,
@@ -274,25 +289,30 @@ const MainLayout: React.FC = () => {
         },
       ],
     },
-    {
-      key: '/recipe',
-      icon: <BookOutlined />,
-      label: t('menu.recipe'),
-      children: [
-        {
-          key: '/recipe/list',
-          label: t('menu.recipeList'),
-        },
-        {
-          key: '/recipe/create',
-          label: t('menu.recipeCreate'),
-        },
-        {
-          key: '/recipe/categories',
-          label: t('menu.recipeCategories'),
-        },
-      ],
-    },
+    // 菜谱管理（仅餐厅管理员可见）
+    ...(isRestaurantAdmin
+      ? [
+          {
+            key: '/recipe',
+            icon: <BookOutlined />,
+            label: t('menu.recipe'),
+            children: [
+              {
+                key: '/recipe/list',
+                label: t('menu.recipeList'),
+              },
+              {
+                key: '/recipe/create',
+                label: t('menu.recipeCreate'),
+              },
+              {
+                key: '/recipe/categories',
+                label: t('menu.recipeCategories'),
+              },
+            ],
+          },
+        ]
+      : []),
     // 餐厅管理（仅餐厅管理员可见）
     ...(isRestaurantAdmin
       ? [
@@ -309,8 +329,8 @@ const MainLayout: React.FC = () => {
           },
         ]
       : []),
-    // 素食人员管理（仅餐厅管理员和平台运营可见）
-    ...(isRestaurantAdmin || isPlatformAdmin
+    // 素食人员管理（仅餐厅管理员可见）
+    ...(isRestaurantAdmin
       ? [
           {
             key: '/vegetarian-personnel',

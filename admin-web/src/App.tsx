@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Spin } from 'antd'
 import AuthGuard from './components/AuthGuard'
+import RouteGuard from './components/RouteGuard'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
 
@@ -161,40 +162,236 @@ const App: React.FC = () => {
           <Route path="certification/export" element={<CertificationExport />} />
           <Route path="certification/inspection" element={<CertificationInspection />} />
           
-          {/* 核心模块2: 碳足迹核算 */}
-          <Route path="carbon/menu" element={<CarbonMenu />} />
-          <Route path="carbon/order" element={<CarbonOrder />} />
-          <Route path="carbon/report" element={<CarbonReport />} />
-          <Route path="carbon/baseline" element={<BaselineList />} />
-          <Route path="carbon/baseline/:baselineId" element={<BaselineDetail />} />
-          <Route path="carbon/baseline/:baselineId/edit" element={<BaselineEdit />} />
-          <Route path="carbon/baseline/add" element={<BaselineAdd />} />
-          <Route path="carbon/baseline/import" element={<BaselineImport />} />
+          {/* 核心模块2: 碳足迹核算（仅餐厅管理员可见） */}
+          <Route 
+            path="carbon/menu" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <CarbonMenu />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/order" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <CarbonOrder />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/report" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <CarbonReport />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/baseline" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <BaselineList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/baseline/:baselineId" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <BaselineDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/baseline/:baselineId/edit" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <BaselineEdit />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/baseline/add" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <BaselineAdd />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/baseline/import" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <BaselineImport />
+              </RouteGuard>
+            } 
+          />
           
-          {/* 核心模块3: 供应链溯源 */}
-          <Route path="traceability/suppliers" element={<TraceabilitySupplier />} />
-          <Route path="traceability/suppliers/:id" element={<SupplierDetail />} />
-          <Route path="traceability/suppliers/:id/edit" element={<SupplierEdit />} />
-          <Route path="traceability/suppliers/add" element={<SupplierAdd />} />
-          <Route path="traceability/lots" element={<IngredientLotList />} />
-          <Route path="traceability/lots/:id" element={<IngredientLotDetail />} />
-          <Route path="traceability/lots/:id/edit" element={<IngredientLotEdit />} />
-          <Route path="traceability/lots/add" element={<IngredientLotAdd />} />
-          <Route path="traceability/chains" element={<TraceChainList />} />
-          <Route path="traceability/chains/build" element={<TraceChainBuild />} />
-          <Route path="traceability/chains/:id" element={<TraceChainView />} />
-          <Route path="traceability/certificates" element={<CertificateList />} />
-          <Route path="traceability/certificates/:id" element={<CertificateView />} />
+          {/* 核心模块3: 供应链溯源（仅餐厅管理员可见） */}
+          <Route 
+            path="traceability/suppliers" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <TraceabilitySupplier />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/suppliers/:id" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <SupplierDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/suppliers/:id/edit" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <SupplierEdit />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/suppliers/add" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <SupplierAdd />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/lots" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <IngredientLotList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/lots/:id" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <IngredientLotDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/lots/:id/edit" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <IngredientLotEdit />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/lots/add" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <IngredientLotAdd />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/chains" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <TraceChainList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/chains/build" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <TraceChainBuild />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/chains/:id" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <TraceChainView />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/certificates" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <CertificateList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/certificates/:id" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <CertificateView />
+              </RouteGuard>
+            } 
+          />
           {/* 兼容旧路由 */}
-          <Route path="traceability/batch" element={<TraceabilityBatch />} />
-          <Route path="traceability/chain" element={<TraceabilityChain />} />
+          <Route 
+            path="traceability/batch" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <TraceabilityBatch />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="traceability/chain" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <TraceabilityChain />
+              </RouteGuard>
+            } 
+          />
           
-          {/* 核心模块4: 餐厅运营 */}
-          <Route path="operation/order" element={<OperationOrder />} />
-          <Route path="operation/ledger" element={<OperationLedger />} />
-          <Route path="operation/behavior" element={<OperationBehavior />} />
-          <Route path="operation/coupon" element={<OperationCoupon />} />
-          <Route path="operation/review" element={<OperationReview />} />
+          {/* 核心模块4: 餐厅运营（仅餐厅管理员可见） */}
+          <Route 
+            path="operation/order" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <OperationOrder />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="operation/ledger" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <OperationLedger />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="operation/behavior" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <OperationBehavior />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="operation/coupon" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <OperationCoupon />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="operation/review" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <OperationReview />
+              </RouteGuard>
+            } 
+          />
           
           {/* 核心模块5: 报表与生态拓展 */}
           <Route path="report/business" element={<ReportBusiness />} />
@@ -202,13 +399,55 @@ const App: React.FC = () => {
           <Route path="report/esg" element={<ReportESG />} />
           <Route path="report/dashboard" element={<ReportDashboard />} />
           
-          {/* 菜谱管理 */}
-          <Route path="recipe" element={<RecipeList />} />
-          <Route path="recipe/list" element={<RecipeList />} />
-          <Route path="recipe/create" element={<RecipeCreate />} />
-          <Route path="recipe/edit/:id" element={<RecipeEdit />} />
-          <Route path="recipe/detail/:id" element={<RecipeDetail />} />
-          <Route path="recipe/categories" element={<RecipeCategories />} />
+          {/* 菜谱管理（仅餐厅管理员可见） */}
+          <Route 
+            path="recipe" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RecipeList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="recipe/list" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RecipeList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="recipe/create" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RecipeCreate />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="recipe/edit/:id" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RecipeEdit />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="recipe/detail/:id" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RecipeDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="recipe/categories" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RecipeCategories />
+              </RouteGuard>
+            } 
+          />
           
           {/* 餐厅管理（仅餐厅管理员可见） */}
           <Route path="restaurant/manage" element={<RestaurantManage />} />
@@ -253,69 +492,85 @@ const App: React.FC = () => {
           <Route path="base/statistics" element={<BaseStatistics />} />
           <Route path="base/import" element={<BaseImport />} />
           
-          {/* 素食人员管理模块 */}
+          {/* 素食人员管理模块（仅餐厅管理员可见） */}
           <Route 
             path="vegetarian-personnel" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VegetarianPersonnelDashboard />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VegetarianPersonnelDashboard />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/dashboard" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VegetarianPersonnelDashboard />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VegetarianPersonnelDashboard />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/staff" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <StaffList />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <StaffList />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/staff/add" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <StaffAdd />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <StaffAdd />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/staff/edit/:id" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <StaffEdit />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <StaffEdit />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/staff/stats" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <StaffStats />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <StaffStats />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/customers" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <CustomerList />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerList />
+                </Suspense>
+              </RouteGuard>
             } 
           />
           <Route 
             path="vegetarian-personnel/customers/:id" 
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <CustomerDetail />
-              </Suspense>
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerDetail />
+                </Suspense>
+              </RouteGuard>
             } 
           />
         </Route>

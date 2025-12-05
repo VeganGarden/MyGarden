@@ -127,6 +127,7 @@
     "confirmActivate": "确认激活",
     "confirmActivateMessage": "确定要激活这条记录吗？",
     "noPermission": "无权限",
+    "backToDashboard": "返回首页",
     "networkError": "网络错误",
     "serverError": "服务器错误",
     "unknownError": "未知错误",

@@ -164,6 +164,7 @@ async function getUserMessages(data, wxContext, event) {
     // 获取用户角色信息（用于消息过滤）
     let userRole = null;
     try {
+      // 方法1: 尝试从token获取角色
       const authHeader = (event && event.headers && (event.headers.authorization || event.headers.Authorization)) 
         || (event && event.token) 
         || (data && data.token) 
@@ -175,8 +176,34 @@ async function getUserMessages(data, wxContext, event) {
           userRole = user.role;
         }
       }
+      
+      // 方法2: 如果token验证失败，直接从数据库查询用户角色（通过userId）
+      if (!userRole && targetUserId) {
+        try {
+          const userResult = await db.collection('admin_users')
+            .doc(targetUserId)
+            .get();
+          if (userResult.data && userResult.data.role) {
+            userRole = userResult.data.role;
+          }
+        } catch (dbError) {
+          console.log('从数据库获取用户角色失败:', dbError.message);
+        }
+      }
     } catch (tokenError) {
-      // 如果token验证失败，静默处理，不影响消息获取
+      // 如果token验证失败，尝试从数据库查询
+      if (!userRole && targetUserId) {
+        try {
+          const userResult = await db.collection('admin_users')
+            .doc(targetUserId)
+            .get();
+          if (userResult.data && userResult.data.role) {
+            userRole = userResult.data.role;
+          }
+        } catch (dbError) {
+          console.log('从数据库获取用户角色失败:', dbError.message);
+        }
+      }
       console.log('获取用户角色信息失败（可能未登录）:', tokenError.message);
     }
 
@@ -218,14 +245,23 @@ async function getUserMessages(data, wxContext, event) {
     // 根据用户角色过滤消息
     // 系统管理员不应该看到餐厅认证申请和租户认证申请的消息
     if (userRole === 'system_admin') {
+      const beforeFilterCount = messages.length;
       messages = messages.filter(userMsg => {
         if (!userMsg.message || !userMsg.message.eventType) {
           return true; // 保留没有eventType的消息
         }
         // 过滤掉餐厅认证申请和租户认证申请的消息
         const eventType = userMsg.message.eventType;
-        return eventType !== 'restaurant_cert_apply' && eventType !== 'tenant_cert_apply';
+        const shouldFilter = eventType === 'restaurant_cert_apply' || eventType === 'tenant_cert_apply';
+        if (shouldFilter) {
+          console.log(`[消息过滤] 系统管理员消息已过滤: eventType=${eventType}, title=${userMsg.message.title}`);
+        }
+        return !shouldFilter;
       });
+      const afterFilterCount = messages.length;
+      if (beforeFilterCount !== afterFilterCount) {
+        console.log(`[消息过滤] 系统管理员消息过滤完成: 过滤前=${beforeFilterCount}, 过滤后=${afterFilterCount}`);
+      }
     }
 
     // 获取总数（需要考虑过滤后的数量）
