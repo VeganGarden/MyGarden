@@ -252,10 +252,7 @@ const FactorLibrary: React.FC = () => {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => {
-              // TODO: 实现查看详情功能
-              message.info('查看详情功能开发中')
-            }}
+            onClick={() => navigate(`/carbon/factor-library/${record.factorId}`)}
           >
             {t('pages.carbon.factorLibrary.table.actions.view')}
           </Button>
@@ -263,10 +260,7 @@ const FactorLibrary: React.FC = () => {
             type="link"
             size="small"
             icon={<EditOutlined />}
-            onClick={() => {
-              // TODO: 实现编辑功能
-              message.info('编辑功能开发中')
-            }}
+            onClick={() => navigate(`/carbon/factor-library/${record.factorId}/edit`)}
             disabled={record.status === FactorStatus.ARCHIVED}
           >
             {t('pages.carbon.factorLibrary.table.actions.edit')}
@@ -305,20 +299,14 @@ const FactorLibrary: React.FC = () => {
           <Space>
             <Button
               icon={<UploadOutlined />}
-              onClick={() => {
-                // TODO: 实现导入功能
-                message.info('批量导入功能开发中')
-              }}
+              onClick={() => navigate('/carbon/factor-library/import')}
             >
               {t('pages.carbon.factorLibrary.buttons.import')}
             </Button>
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => {
-                // TODO: 实现新增功能
-                message.info('新增因子功能开发中')
-              }}
+              onClick={() => navigate('/carbon/factor-library/add')}
             >
               {t('pages.carbon.factorLibrary.buttons.add')}
             </Button>

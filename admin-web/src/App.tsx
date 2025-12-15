@@ -36,6 +36,10 @@ import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
 import FactorLibrary from './pages/carbon/FactorLibrary'
+import FactorAdd from './pages/carbon/FactorAdd'
+import FactorEdit from './pages/carbon/FactorEdit'
+import FactorDetail from './pages/carbon/FactorDetail'
+import FactorImport from './pages/carbon/FactorImport'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
@@ -234,6 +238,38 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <FactorLibrary />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/factor-library/add" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+                <FactorAdd />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/factor-library/:factorId" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+                <FactorDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/factor-library/:factorId/edit" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+                <FactorEdit />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/factor-library/import" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+                <FactorImport />
               </RouteGuard>
             } 
           />

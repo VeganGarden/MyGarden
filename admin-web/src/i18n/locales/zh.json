@@ -421,6 +421,194 @@
           "total": "共 {{total}} 条记录"
         }
       },
+      "factorForm": {
+        "sections": {
+          "basicInfo": "基本信息",
+          "factorValue": "因子数值",
+          "sourceRegion": "适用范围与来源"
+        },
+        "fields": {
+          "name": "标准名称",
+          "factorId": "因子ID",
+          "category": "分类",
+          "subCategory": "子分类",
+          "alias": "别名",
+          "factorValue": "因子值",
+          "unit": "单位",
+          "uncertainty": "不确定性",
+          "region": "适用区域",
+          "source": "数据来源",
+          "year": "年份",
+          "version": "版本号",
+          "boundary": "LCA边界",
+          "status": "状态",
+          "notes": "备注"
+        },
+        "placeholders": {
+          "name": "请输入标准名称",
+          "factorId": "自动生成",
+          "category": "请选择分类",
+          "subCategory": "请输入子分类",
+          "alias": "输入别名后按回车或逗号分隔",
+          "factorValue": "请输入因子值",
+          "unit": "请选择单位",
+          "uncertainty": "请输入不确定性百分比",
+          "region": "请选择适用区域",
+          "source": "请选择数据来源",
+          "year": "请输入年份",
+          "version": "如: v3.0.1",
+          "boundary": "请选择LCA边界",
+          "status": "请选择状态",
+          "notes": "请输入备注信息"
+        },
+        "tooltips": {
+          "factorId": "系统自动生成，格式：ef_名称_子分类_区域_年份",
+          "alias": "别名用于搜索匹配，多个别名用逗号或空格分隔",
+          "uncertainty": "不确定性百分比，用于表示数据的置信度范围"
+        },
+        "options": {
+          "cradleToGate": "从摇篮到大门 (Cradle-to-Gate)",
+          "cradleToFarm": "从摇篮到农场 (Cradle-to-Farm)"
+        },
+        "validation": {
+          "nameRequired": "请输入标准名称",
+          "categoryRequired": "请选择分类",
+          "subCategoryRequired": "请输入子分类",
+          "factorValueRequired": "请输入因子值",
+          "factorValueMin": "因子值必须大于0",
+          "unitRequired": "请选择单位",
+          "regionRequired": "请选择适用区域",
+          "sourceRequired": "请选择数据来源",
+          "yearRequired": "请输入年份",
+          "versionRequired": "请输入版本号",
+          "boundaryRequired": "请选择LCA边界",
+          "statusRequired": "请选择状态"
+        }
+      },
+      "factorAdd": {
+        "title": "添加碳排放因子",
+        "buttons": {
+          "back": "返回列表",
+          "submit": "提交"
+        },
+        "messages": {
+          "createSuccess": "创建成功",
+          "createFailed": "创建失败"
+        }
+      },
+      "factorEdit": {
+        "title": "编辑碳排放因子",
+        "buttons": {
+          "back": "返回详情",
+          "cancel": "取消",
+          "save": "保存"
+        },
+        "messages": {
+          "getDetailFailed": "获取详情失败",
+          "updateSuccess": "更新成功",
+          "updateFailed": "更新失败"
+        }
+      },
+      "factorDetail": {
+        "title": "碳排放因子详情",
+        "buttons": {
+          "back": "返回列表",
+          "edit": "编辑"
+        },
+        "sections": {
+          "basicInfo": "基本信息",
+          "factorValue": "因子数值",
+          "sourceRegion": "适用范围与来源",
+          "notes": "备注",
+          "audit": "审计信息"
+        },
+        "fields": {
+          "factorId": "因子ID",
+          "name": "标准名称",
+          "category": "分类",
+          "subCategory": "子分类",
+          "status": "状态",
+          "alias": "别名",
+          "factorValue": "因子值",
+          "uncertainty": "不确定性",
+          "region": "适用区域",
+          "source": "数据来源",
+          "year": "年份",
+          "version": "版本号",
+          "boundary": "LCA边界"
+        },
+        "messages": {
+          "getDetailFailed": "获取详情失败"
+        }
+      },
+      "factorImport": {
+        "title": "批量导入碳排放因子",
+        "steps": {
+          "upload": "上传文件",
+          "preview": "数据预览",
+          "result": "导入结果"
+        },
+        "buttons": {
+          "back": "返回列表",
+          "selectFile": "选择文件",
+          "downloadTemplate": "下载模板",
+          "reupload": "重新上传",
+          "confirmImport": "确认导入",
+          "continueImport": "继续导入",
+          "complete": "完成"
+        },
+        "upload": {
+          "formats": "支持格式：.xlsx, .xls, .csv",
+          "requiredFields": "必填字段：",
+          "requiredFieldsList": {
+            "name": "名称",
+            "category": "分类、子分类",
+            "factorValue": "因子值、单位",
+            "source": "数据来源、年份、版本",
+            "year": "适用区域、边界"
+          },
+          "templateDownloading": "模板下载功能开发中"
+        },
+        "preview": {
+          "totalData": "总数据量",
+          "fileName": "文件名",
+          "columns": {
+            "name": "名称",
+            "category": "分类",
+            "subCategory": "子分类",
+            "factorValue": "因子值",
+            "source": "数据来源",
+            "year": "年份"
+          }
+        },
+        "result": {
+          "success": "成功",
+          "failed": "失败",
+          "skipped": "跳过",
+          "total": "总计",
+          "errorDetails": "错误详情"
+        },
+        "messages": {
+          "parseSuccess": "解析成功，共 {{count}} 条数据",
+          "parseFailed": "解析失败：{{error}}",
+          "validationFailed": "验证失败，共 {{count}} 条数据有问题",
+          "noValidData": "没有有效数据",
+          "importSuccess": "导入成功，共 {{count}} 条数据",
+          "importPartial": "部分导入成功：成功 {{success}} 条，失败 {{failed}} 条",
+          "importFailed": "导入失败：{{error}}"
+        },
+        "validation": {
+          "nameRequired": "名称不能为空",
+          "categoryRequired": "分类不能为空",
+          "subCategoryRequired": "子分类不能为空",
+          "factorValueRequired": "因子值必须大于0",
+          "unitRequired": "单位不能为空",
+          "regionRequired": "适用区域不能为空",
+          "sourceRequired": "数据来源不能为空",
+          "yearRequired": "年份必须在2000-2100之间",
+          "versionRequired": "版本号不能为空"
+        }
+      },
       "baselineAdd": {
         "title": "添加基准值",
         "buttons": {
