@@ -203,6 +203,10 @@ const MainLayout: React.FC = () => {
                 key: '/carbon/baseline',
                 label: t('menu.carbonBaseline'),
               },
+              {
+                key: '/carbon/factor-library',
+                label: t('menu.carbonFactorLibrary'),
+              },
             ],
           },
         ]

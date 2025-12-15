@@ -35,6 +35,7 @@ import BaselineList from './pages/carbon/BaselineList'
 import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
+import FactorLibrary from './pages/carbon/FactorLibrary'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
@@ -225,6 +226,14 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <BaselineImport />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/factor-library" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+                <FactorLibrary />
               </RouteGuard>
             } 
           />
