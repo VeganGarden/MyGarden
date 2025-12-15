@@ -95,6 +95,7 @@ import BaseIngredientEdit from './pages/base/IngredientEdit'
 import BaseIngredientList from './pages/base/IngredientList'
 import BaseMeatIngredientEdit from './pages/base/MeatIngredientEdit'
 import BaseMeatIngredientList from './pages/base/MeatIngredientList'
+import BaseRecipeDetail from './pages/base/RecipeDetail'
 import BaseRecipeEdit from './pages/base/RecipeEdit'
 import BaseRecipeList from './pages/base/RecipeList'
 import BaseStatistics from './pages/base/Statistics'
@@ -489,6 +490,7 @@ const App: React.FC = () => {
           <Route path="base/recipes" element={<BaseRecipeList />} />
           <Route path="base/recipes/add" element={<BaseRecipeEdit />} />
           <Route path="base/recipes/:id/edit" element={<BaseRecipeEdit />} />
+          <Route path="base/recipes/:id" element={<BaseRecipeDetail />} />
           <Route path="base/statistics" element={<BaseStatistics />} />
           <Route path="base/import" element={<BaseImport />} />
           
