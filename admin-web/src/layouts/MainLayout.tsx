@@ -98,6 +98,7 @@ const MainLayout: React.FC = () => {
   const isPlatformAdmin = userRole === 'platform_operator'
   const isSystemAdmin = userRole === 'system_admin'
   const isRestaurantAdmin = userRole === 'restaurant_admin'
+  const isCarbonSpecialist = userRole === 'carbon_specialist'
   // 明确判断是否为认证相关角色（仅餐厅管理员和平台运营）
   const canAccessCertification = isRestaurantAdmin || isPlatformAdmin
 
@@ -178,8 +179,8 @@ const MainLayout: React.FC = () => {
       label: t('menu.dashboard'),
     },
     ...certificationMenu,
-    // 碳足迹核算（仅餐厅管理员可见）
-    ...(isRestaurantAdmin
+    // 碳足迹核算（餐厅管理员和碳核算专员可见）
+    ...(isRestaurantAdmin || isCarbonSpecialist
       ? [
           {
             key: '/carbon',
@@ -428,7 +429,7 @@ const MainLayout: React.FC = () => {
           },
         ]
       : []),
-  ]}, [isPlatformAdmin, isSystemAdmin, isRestaurantAdmin, canAccessCertification, t])
+  ]}, [isPlatformAdmin, isSystemAdmin, isRestaurantAdmin, isCarbonSpecialist, canAccessCertification, t])
 
   const handleLogout = () => {
     dispatch(logout())

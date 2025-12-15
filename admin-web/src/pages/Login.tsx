@@ -1,3 +1,4 @@
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { authAPI } from '@/services/cloudbase'
 import { useAppDispatch } from '@/store/hooks'
 import { setCredentials } from '@/store/slices/authSlice'
@@ -8,7 +9,6 @@ import { App, Button, Card, Form, Input } from 'antd'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
@@ -48,8 +48,8 @@ const Login: React.FC = () => {
         })
       )
 
-      // 如果是餐厅管理员且有租户ID，从云函数加载租户数据
-      if (user.tenantId && user.role === 'restaurant_admin') {
+      // 如果是餐厅管理员或碳核算专员且有租户ID，从云函数加载租户数据
+      if (user.tenantId && (user.role === 'restaurant_admin' || user.role === 'carbon_specialist')) {
         try {
           // 从云函数获取租户信息（getTenant已包含餐厅列表，无需单独调用getRestaurants）
           const { tenantAPI } = await import('@/services/cloudbase')
@@ -82,8 +82,47 @@ const Login: React.FC = () => {
           // 如果加载失败，清空租户信息
           dispatch(clearTenant())
         }
+      } else if (user.role === 'carbon_specialist' && !user.tenantId) {
+        // 碳核算专员如果没有租户ID，尝试获取所有租户列表并加载第一个租户的数据
+        try {
+          const { tenantAPI } = await import('@/services/cloudbase')
+          const tenantsResult = await tenantAPI.getAllTenants()
+          
+          if (tenantsResult.code === 0 && tenantsResult.data && tenantsResult.data.length > 0) {
+            // 获取第一个租户的详细信息
+            const firstTenant = tenantsResult.data[0]
+            const tenantResult = await tenantAPI.getTenant(firstTenant._id || firstTenant.id)
+            
+            if (tenantResult.code === 0 && tenantResult.data) {
+              const restaurantsList = tenantResult.data.restaurants || []
+              
+              const tenantData = {
+                id: tenantResult.data._id || tenantResult.data.id,
+                name: tenantResult.data.name,
+                restaurants: restaurantsList.map((r: any) => ({
+                  id: r._id || r.id,
+                  name: r.name,
+                  address: r.address,
+                  phone: r.phone,
+                  status: r.status || 'active',
+                  certificationLevel: r.certificationLevel,
+                  certificationStatus: r.certificationStatus,
+                  createdAt: r.createdAt || r.created_at,
+                })),
+              }
+              dispatch(setTenant(tenantData))
+            } else {
+              dispatch(clearTenant())
+            }
+          } else {
+            dispatch(clearTenant())
+          }
+        } catch (error) {
+          console.error('加载租户数据失败:', error)
+          dispatch(clearTenant())
+        }
       } else {
-        // 非餐厅管理员：清空本地租户态，避免顶栏显示租户切换器
+        // 其他角色：清空本地租户态，避免顶栏显示租户切换器
         dispatch(clearTenant())
       }
 

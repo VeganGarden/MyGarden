@@ -5,6 +5,8 @@ import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+const { Compact } = Space
+
 const { TextArea } = Input
 const { Option } = Select
 const { Panel } = Collapse
@@ -454,23 +456,23 @@ const RecipeEdit: React.FC = () => {
                 name={['carbonFootprint', 'value']}
                 label="参考碳足迹值 (kg CO₂e/份)"
               >
-                <InputNumber
-                  min={0}
-                  step={0.01}
-                  placeholder="自动计算"
-                  style={{ width: '100%' }}
-                  readOnly
-                  addonAfter={
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={handleCalculateCarbon}
-                      style={{ padding: 0 }}
-                    >
-                      自动计算
-                    </Button>
-                  }
-                />
+                <Compact style={{ width: '100%' }}>
+                  <InputNumber
+                    min={0}
+                    step={0.01}
+                    placeholder="自动计算"
+                    style={{ flex: 1 }}
+                    readOnly
+                  />
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={handleCalculateCarbon}
+                    style={{ padding: '0 8px' }}
+                  >
+                    自动计算
+                  </Button>
+                </Compact>
               </Form.Item>
               <Form.Item
                 name={['carbonFootprint', 'ingredients']}

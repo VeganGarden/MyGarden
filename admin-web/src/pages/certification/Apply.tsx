@@ -1412,13 +1412,23 @@ const CertificationApply: React.FC = () => {
               label={t('pages.certification.apply.fields.localIngredientRatio')}
               rules={[{ required: true, message: t('pages.certification.apply.messages.localIngredientRatioRequired') }]}
             >
-              <Input
-                type="number"
-                placeholder={t('pages.certification.apply.placeholders.percentage')}
-                addonAfter="%"
-                min={0}
-                max={100}
-              />
+              <Space.Compact style={{ width: '100%' }}>
+                <InputNumber
+                  placeholder={t('pages.certification.apply.placeholders.percentage')}
+                  min={0}
+                  max={100}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  padding: '0 11px', 
+                  background: '#fafafa', 
+                  border: '1px solid #d9d9d9',
+                  borderLeft: 'none',
+                  borderRadius: '0 6px 6px 0'
+                }}>%</span>
+              </Space.Compact>
             </Form.Item>
           </Form>
         )

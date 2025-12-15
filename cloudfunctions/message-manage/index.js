@@ -2,7 +2,6 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
-const { verifyToken } = require('../common/permission');
 
 /**
  * 消息管理云函数
@@ -171,6 +170,8 @@ async function getUserMessages(data, wxContext, event) {
         || '';
       const token = authHeader.replace('Bearer ', '').trim();
       if (token) {
+        // 使用本地的 permission 模块
+        const { verifyToken } = require('./permission');
         const user = await verifyToken(token, db);
         if (user && user.role) {
           userRole = user.role;

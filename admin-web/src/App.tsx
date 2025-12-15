@@ -1,18 +1,18 @@
+import { Spin } from 'antd'
 import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { Spin } from 'antd'
 import AuthGuard from './components/AuthGuard'
 import RouteGuard from './components/RouteGuard'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
-
-// 懒加载组件
-const Dashboard = lazy(() => import('./pages/Dashboard'))
 import RecipeCategories from './pages/recipe/Categories'
 import RecipeCreate from './pages/recipe/Create'
 import RecipeDetail from './pages/recipe/Detail'
 import RecipeEdit from './pages/recipe/Edit'
 import RecipeList from './pages/recipe/List'
+
+// 懒加载组件
+const Dashboard = lazy(() => import('./pages/Dashboard'))
 
 // 核心模块1: 气候餐厅认证
 import CertificationApply from './pages/certification/Apply'
@@ -163,11 +163,11 @@ const App: React.FC = () => {
           <Route path="certification/export" element={<CertificationExport />} />
           <Route path="certification/inspection" element={<CertificationInspection />} />
           
-          {/* 核心模块2: 碳足迹核算（仅餐厅管理员可见） */}
+          {/* 核心模块2: 碳足迹核算（餐厅管理员和碳核算专员可见） */}
           <Route 
             path="carbon/menu" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <CarbonMenu />
               </RouteGuard>
             } 
@@ -175,7 +175,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/order" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <CarbonOrder />
               </RouteGuard>
             } 
@@ -183,7 +183,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/report" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <CarbonReport />
               </RouteGuard>
             } 
@@ -191,7 +191,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <BaselineList />
               </RouteGuard>
             } 
@@ -199,7 +199,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/:baselineId" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <BaselineDetail />
               </RouteGuard>
             } 
@@ -207,7 +207,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/:baselineId/edit" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <BaselineEdit />
               </RouteGuard>
             } 
@@ -215,7 +215,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/add" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <BaselineAdd />
               </RouteGuard>
             } 
@@ -223,7 +223,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/import" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
+              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
                 <BaselineImport />
               </RouteGuard>
             } 

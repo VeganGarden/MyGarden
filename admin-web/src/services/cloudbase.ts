@@ -1,5 +1,5 @@
-import { getAuthInstance, getCloudbaseApp } from '@/utils/cloudbase-init'
-import { retry, isNetworkError, isPermissionError } from '@/utils/retry'
+import { getAuthInstance, getCloudbaseApp } from '@/utils/cloudbase-init';
+import { isNetworkError, isPermissionError, retry } from '@/utils/retry';
 
 /**
  * 调用云函数（使用腾讯云开发Web SDK）
@@ -479,7 +479,58 @@ export const carbonFootprintAPI = {
   generateReport: (params: { restaurantId?: string; type: 'monthly' | 'yearly' | 'esg'; period: string }) =>
     callCloudFunction('tenant', {
       action: 'generateCarbonReport',
-      ...params,
+      data: {
+        restaurantId: params.restaurantId,
+        type: params.type,
+        period: params.period,
+      },
+    }),
+
+  // 保存碳报告
+  saveReport: (params: {
+    restaurantId: string
+    type: 'monthly' | 'yearly' | 'esg'
+    period: string
+    reportData: any
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'saveCarbonReport',
+      data: {
+        restaurantId: params.restaurantId,
+        type: params.type,
+        period: params.period,
+        reportData: params.reportData,
+      },
+    }),
+
+  // 获取历史报告列表
+  getReports: (params: {
+    restaurantId: string
+    page?: number
+    pageSize?: number
+    type?: 'monthly' | 'yearly' | 'esg'
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'getCarbonReports',
+      data: {
+        restaurantId: params.restaurantId,
+        page: params.page || 1,
+        pageSize: params.pageSize || 20,
+        type: params.type,
+      },
+    }),
+
+  // 删除碳报告
+  deleteReport: (params: {
+    reportId: string
+    restaurantId: string
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'deleteCarbonReport',
+      data: {
+        reportId: params.reportId,
+        restaurantId: params.restaurantId,
+      },
     }),
 
   // 计算菜谱碳足迹（含基准值）
@@ -875,6 +926,16 @@ export const tenantAPI = {
   }) =>
     callCloudFunction('tenant', {
       action: 'updateMenuItem',
+      data: params,
+    }),
+
+  // 删除菜单项
+  deleteMenuItem: (params: {
+    menuItemId: string
+    restaurantId: string
+  }) =>
+    callCloudFunction('tenant', {
+      action: 'deleteMenuItem',
       data: params,
     }),
 
@@ -1360,7 +1421,7 @@ export const systemAPI = {
 }
 
 // 导出素食人员API
-export { staffAPI, customerAPI, vegetarianPersonnelStatsAPI } from './vegetarianPersonnel'
+export { customerAPI, staffAPI, vegetarianPersonnelStatsAPI } from './vegetarianPersonnel';
 
 export default {
   callCloudFunction,

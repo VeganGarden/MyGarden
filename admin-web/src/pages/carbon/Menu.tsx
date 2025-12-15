@@ -1,26 +1,13 @@
 import { carbonFootprintAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import {
-    CalculatorOutlined,
-    DeleteOutlined,
-    EditOutlined,
-    PlusOutlined,
-    UploadOutlined,
+  CalculatorOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
-import {
-    Button,
-    Card,
-    Form,
-    Input,
-    InputNumber,
-    Modal,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Upload,
-    message,
-} from 'antd'
+import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Upload } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +24,7 @@ interface MenuItem {
 
 const CarbonMenu: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   const [dataSource, setDataSource] = useState<MenuItem[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -46,6 +34,7 @@ const CarbonMenu: React.FC = () => {
   useEffect(() => {
     // 当餐厅切换时，重新加载数据
     fetchMenuData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRestaurantId])
 
   const fetchMenuData = async () => {
@@ -68,19 +57,34 @@ const CarbonMenu: React.FC = () => {
       console.log('📥 菜单碳足迹 - API 返回结果:', result)
       
       if (result && result.code === 0 && result.data) {
-        // API 返回格式: { menus: [], menuItems: [], total: number }
-        const menus = result.data.menus || result.data.menuItems || (Array.isArray(result.data) ? result.data : [])
-        setDataSource(menus.map((menu: any) => ({
-          id: menu.id || menu._id || '',
-          name: menu.name || menu.dishName || '',
-          carbonFootprint: menu.carbonFootprint || menu.carbon_footprint || 0,
-          carbonLevel: menu.carbonLevel || menu.carbon_level || 'medium',
-          carbonScore: menu.carbonScore || menu.carbon_score || 0,
-          ingredients: Array.isArray(menu.ingredients) 
-            ? menu.ingredients.map((ing: any) => typeof ing === 'string' ? ing : ing.name || ing.ingredientName || '').join(', ')
-            : (menu.ingredients || menu.ingredient_list || ''),
-          status: menu.status || 'draft',
-        })))
+        try {
+          // API 返回格式: { menus: [], menuItems: [], total: number }
+          const menus = result.data.menus || result.data.menuItems || (Array.isArray(result.data) ? result.data : [])
+          if (Array.isArray(menus)) {
+            setDataSource(menus.map((menu: any) => ({
+              id: menu.id || menu._id || '',
+              name: menu.name || menu.dishName || '',
+              carbonFootprint: typeof menu.carbonFootprint === 'number' 
+                ? menu.carbonFootprint 
+                : typeof menu.carbon_footprint === 'number'
+                ? menu.carbon_footprint
+                : parseFloat(menu.carbonFootprint || menu.carbon_footprint || '0') || 0,
+              carbonLevel: menu.carbonLevel || menu.carbon_level || 'medium',
+              carbonScore: menu.carbonScore || menu.carbon_score || 0,
+              ingredients: Array.isArray(menu.ingredients) 
+                ? menu.ingredients.map((ing: any) => typeof ing === 'string' ? ing : ing.name || ing.ingredientName || '').join(', ')
+                : (menu.ingredients || menu.ingredient_list || ''),
+              status: menu.status || 'draft',
+            })))
+          } else {
+            setDataSource([])
+            console.warn('API返回的数据格式不正确，menus不是数组:', menus)
+          }
+        } catch (parseError: any) {
+          console.error('解析菜单数据失败:', parseError)
+          setDataSource([])
+          message.warning('数据格式错误，请稍后重试')
+        }
       } else {
         setDataSource([])
         if (result && result.message) {
@@ -106,7 +110,16 @@ const CarbonMenu: React.FC = () => {
       title: '碳足迹',
       dataIndex: 'carbonFootprint',
       key: 'carbonFootprint',
-      render: (value: number) => `${value.toFixed(2)} kg CO₂e`,
+      render: (value: number | string | null | undefined) => {
+        if (value === null || value === undefined || value === '') {
+          return '-'
+        }
+        const numValue = typeof value === 'string' ? parseFloat(value) : Number(value)
+        if (isNaN(numValue)) {
+          return '-'
+        }
+        return `${numValue.toFixed(2)} kg CO₂e`
+      },
     },
     {
       title: '碳标签',
@@ -127,7 +140,16 @@ const CarbonMenu: React.FC = () => {
       title: '碳积分',
       dataIndex: 'carbonScore',
       key: 'carbonScore',
-      render: (score: number) => `${score} 分`,
+      render: (score: number | string | null | undefined) => {
+        if (score === null || score === undefined || score === '') {
+          return '-'
+        }
+        const numScore = typeof score === 'string' ? parseFloat(score) : Number(score)
+        if (isNaN(numScore)) {
+          return '-'
+        }
+        return `${numScore} 分`
+      },
     },
     {
       title: '状态',
@@ -167,9 +189,31 @@ const CarbonMenu: React.FC = () => {
     },
   ]
 
-  const handleCalculate = (id: string) => {
-    message.info('正在重新计算碳足迹...')
-    // TODO: 调用碳足迹计算API
+  const handleCalculate = async (id: string) => {
+    if (!currentRestaurantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
+    try {
+      message.loading({ content: '正在重新计算碳足迹...', key: 'calculate', duration: 0 })
+      
+      const result = await carbonFootprintAPI.recalculateMenuItems({
+        restaurantId: currentRestaurantId,
+        menuItemIds: [id],
+      })
+
+      if (result && result.code === 0) {
+        message.success({ content: '重新计算成功', key: 'calculate' })
+        // 刷新列表
+        fetchMenuData()
+      } else {
+        message.error({ content: result?.message || '重新计算失败', key: 'calculate' })
+      }
+    } catch (error: any) {
+      console.error('重新计算碳足迹失败:', error)
+      message.error({ content: error.message || '重新计算失败，请稍后重试', key: 'calculate' })
+    }
   }
 
   const handleEdit = (record: MenuItem) => {
@@ -177,13 +221,33 @@ const CarbonMenu: React.FC = () => {
     setIsModalVisible(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!currentRestaurantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
     Modal.confirm({
       title: '确认删除',
-      content: '确定要删除这个菜品吗？',
-      onOk: () => {
-        setDataSource(dataSource.filter((item) => item.id !== id))
-        message.success('删除成功')
+      content: '确定要删除这个菜品吗？删除后无法恢复。',
+      onOk: async () => {
+        try {
+          const { tenantAPI } = await import('@/services/cloudbase')
+          const result = await tenantAPI.deleteMenuItem({
+            menuItemId: id,
+            restaurantId: currentRestaurantId,
+          })
+
+          if (result && result.code === 0) {
+            message.success('删除成功')
+            fetchMenuData() // 刷新列表
+          } else {
+            throw new Error(result?.message || '删除失败')
+          }
+        } catch (error: any) {
+          console.error('删除菜单项失败:', error)
+          message.error(error.message || '删除失败，请稍后重试')
+        }
       },
     })
   }
@@ -199,13 +263,60 @@ const CarbonMenu: React.FC = () => {
     setIsModalVisible(true)
   }
 
-  const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      console.log('提交数据:', values)
-      message.success('保存成功')
-      setIsModalVisible(false)
-      fetchMenuData() // 刷新列表
-    })
+  const handleSubmit = async () => {
+    if (!currentRestaurantId) {
+      message.warning('请先选择餐厅')
+      return
+    }
+
+    try {
+      const values = await form.validateFields()
+      const record = form.getFieldsValue()
+      const menuItemId = record.id
+
+      if (!menuItemId) {
+        message.error('菜单项ID不存在，无法更新')
+        return
+      }
+
+      // 构建更新数据
+      const updateData: any = {
+        name: values.name,
+        description: values.description || '',
+        category: values.category || 'dish',
+        status: values.status || 'draft',
+      }
+
+      // 如果有食材信息，需要处理
+      if (values.ingredients) {
+        // 将字符串格式的食材转换为数组格式（如果需要）
+        // 这里暂时保留为字符串，实际应该根据API要求处理
+        updateData.description = values.ingredients
+      }
+
+      // 调用更新API
+      const { tenantAPI } = await import('@/services/cloudbase')
+      const result = await tenantAPI.updateMenuItem({
+        menuItemId,
+        restaurantId: currentRestaurantId,
+        updateData,
+      })
+
+      if (result && result.code === 0) {
+        message.success('保存成功')
+        setIsModalVisible(false)
+        fetchMenuData() // 刷新列表
+      } else {
+        throw new Error(result?.message || '保存失败')
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        // 表单验证错误
+        return
+      }
+      console.error('保存菜单项失败:', error)
+      message.error(error.message || '保存失败，请稍后重试')
+    }
   }
 
   // 如果没有选择餐厅，显示提示
@@ -249,10 +360,7 @@ const CarbonMenu: React.FC = () => {
         </Space>
 
         <Table
-          columns={columns.map(col => ({
-            ...col,
-            title: typeof col.title === 'function' ? col.title : (col.title || ''),
-          }))}
+          columns={columns}
           dataSource={dataSource}
           rowKey="id"
           loading={loading}

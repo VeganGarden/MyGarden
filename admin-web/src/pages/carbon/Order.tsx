@@ -64,39 +64,48 @@ const CarbonOrder: React.FC = () => {
       console.log('📥 订单碳足迹 - API 返回结果:', result)
       
       if (result && result.code === 0 && result.data) {
-        const data = result.data
-        
-        // 设置统计数据
-        if (data.statistics) {
-          setStatistics({
-            todayCarbon: data.statistics.todayCarbon || data.statistics.today_carbon || 0,
-            todayReduction: data.statistics.todayReduction || data.statistics.today_reduction || 0,
-            totalReduction: data.statistics.totalReduction || data.statistics.total_reduction || 0,
-            totalOrders: data.statistics.totalOrders || data.statistics.total_orders || 0,
-          })
-        }
-        
-        // 设置图表数据
-        if (data.chartData && Array.isArray(data.chartData)) {
-          setChartData(data.chartData.map((item: any) => ({
-            date: item.date || '',
-            carbon: item.carbon || item.totalCarbon || 0,
-          })))
-        }
-        
-        // 设置订单列表
-        if (data.orders && Array.isArray(data.orders)) {
-          setDataSource(data.orders.map((order: any) => ({
-            id: order.id || order._id || order.orderNo || '',
-            orderNo: order.orderNo || order.order_id || '',
-            orderDate: order.orderDate || order.createTime || order.createdAt || '',
-            totalCarbon: order.totalCarbon || order.total_carbon || 0,
-            carbonReduction: order.carbonReduction || order.carbon_reduction || 0,
-            orderAmount: order.orderAmount || order.totalAmount || order.total_amount || 0,
-            status: order.status || '',
-          })))
-        } else {
+        try {
+          const data = result.data
+          
+          // 设置统计数据
+          if (data.statistics) {
+            setStatistics({
+              todayCarbon: data.statistics.todayCarbon || data.statistics.today_carbon || 0,
+              todayReduction: data.statistics.todayReduction || data.statistics.today_reduction || 0,
+              totalReduction: data.statistics.totalReduction || data.statistics.total_reduction || 0,
+              totalOrders: data.statistics.totalOrders || data.statistics.total_orders || 0,
+            })
+          }
+          
+          // 设置图表数据
+          if (data.chartData && Array.isArray(data.chartData)) {
+            setChartData(data.chartData.map((item: any) => ({
+              date: item.date || '',
+              carbon: item.carbon || item.totalCarbon || 0,
+            })))
+          } else {
+            setChartData([])
+          }
+          
+          // 设置订单列表
+          if (data.orders && Array.isArray(data.orders)) {
+            setDataSource(data.orders.map((order: any) => ({
+              id: order.id || order._id || order.orderNo || '',
+              orderNo: order.orderNo || order.order_id || '',
+              orderDate: order.orderDate || order.createTime || order.createdAt || '',
+              totalCarbon: order.totalCarbon || order.total_carbon || 0,
+              carbonReduction: order.carbonReduction || order.carbon_reduction || 0,
+              orderAmount: order.orderAmount || order.totalAmount || order.total_amount || 0,
+              status: order.status || '',
+            })))
+          } else {
+            setDataSource([])
+          }
+        } catch (parseError: any) {
+          console.error('解析订单数据失败:', parseError)
           setDataSource([])
+          setChartData([])
+          message.warning('数据格式错误，请稍后重试')
         }
       } else {
         setDataSource([])
@@ -168,6 +177,19 @@ const CarbonOrder: React.FC = () => {
     console.log('导出数据')
   }
 
+  // 如果没有选择餐厅，显示提示
+  if (!currentRestaurantId) {
+    return (
+      <Card title={t('pages.carbon.order.title')}>
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <p style={{ color: '#666', fontSize: 14 }}>
+            请先在顶部标题栏选择餐厅
+          </p>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <div>
       <Card title={t('pages.carbon.order.title')} style={{ marginBottom: 16 }}>
@@ -222,7 +244,13 @@ const CarbonOrder: React.FC = () => {
         }
         style={{ marginBottom: 16 }}
       >
-        <Line {...chartConfig} height={300} />
+        {chartData && chartData.length > 0 ? (
+          <Line {...chartConfig} height={300} />
+        ) : (
+          <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>
+            暂无图表数据
+          </div>
+        )}
       </Card>
 
       <Card title={t('pages.carbon.order.table.title')}>

@@ -32,8 +32,8 @@ async function requireAuth(event, context) {
 async function requirePlatformAdmin(event, context) {
   try {
     const user = await checkPermission(event, context)
-    // 平台运营和系统管理员都可以进行平台管理操作
-    if (user && (user.role === 'platform_operator' || user.role === 'system_admin')) {
+    // 平台运营、系统管理员和碳核算专员都可以进行平台管理操作
+    if (user && (user.role === 'platform_operator' || user.role === 'system_admin' || user.role === 'carbon_specialist')) {
       return { ok: true, user }
     }
     return { ok: false, error: { code: 403, message: '仅平台管理员可操作' } }
@@ -154,6 +154,30 @@ exports.main = async (event, context) => {
       // 碳报告
       case 'generateCarbonReport':
         return await generateCarbonReport(data)
+      
+      case 'saveCarbonReport':
+        // 保存碳报告
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await saveCarbonReport(data, gate.user, context)
+        }
+      
+      case 'getCarbonReports':
+        // 获取历史报告列表
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await getCarbonReports(data, gate.user)
+        }
+      
+      case 'deleteCarbonReport':
+        // 删除碳报告
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await deleteCarbonReport(data, gate.user, context)
+        }
 
       // 菜单管理
       case 'getMenuList':
@@ -189,6 +213,14 @@ exports.main = async (event, context) => {
           const gate = await requireAuth(event, context)
           if (!gate.ok) return gate.error
           return await updateMenuItem(data, gate.user, context)
+        }
+
+      case 'deleteMenuItem':
+        // 删除餐厅菜单项
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await deleteMenuItem(data, gate.user, context)
         }
 
       case 'getDashboard':
@@ -2722,50 +2754,114 @@ async function generateCarbonReport(data) {
     }
   }
 
+  if (!type || !['monthly', 'yearly', 'esg'].includes(type)) {
+    return {
+      code: 400,
+      message: '报告类型无效，支持: monthly, yearly, esg',
+    }
+  }
+
   try {
     // 解析日期范围
-    let startDate = ''
-    let endDate = ''
+    let startDate = null
+    let endDate = null
     if (period) {
       const [start, end] = period.split('_')
-      startDate = start
-      endDate = end
+      if (start && end) {
+        startDate = new Date(start)
+        endDate = new Date(end)
+        // 设置结束日期为当天的23:59:59
+        endDate.setHours(23, 59, 59, 999)
+      }
+    }
+
+    // 构建查询条件
+    const queryCondition = {
+      restaurantId: restaurantId,
+    }
+
+    // 添加日期筛选条件
+    if (startDate && endDate) {
+      queryCondition.orderDate = db.command.gte(startDate).and(db.command.lte(endDate))
+    } else if (startDate) {
+      queryCondition.orderDate = db.command.gte(startDate)
+    } else if (endDate) {
+      queryCondition.orderDate = db.command.lte(endDate)
     }
 
     // 查询订单数据
-    const query = db.collection('restaurant_orders').where({
-      restaurantId: restaurantId,
-    })
-
-    if (startDate && endDate) {
-      query.where({
-        orderDate: db.command.gte(startDate).and(db.command.lte(endDate)),
-      })
+    let query = db.collection('restaurant_orders').where(queryCondition)
+    
+    // 如果指定了日期范围，按日期排序
+    if (startDate || endDate) {
+      query = query.orderBy('orderDate', 'desc')
     }
 
     const result = await query.get()
     const orders = result.data || []
 
+    console.log(`生成${type}报告: 查询到 ${orders.length} 条订单数据`)
+
     // 根据报告类型生成数据
     if (type === 'monthly') {
       const monthlyMap = new Map()
+      
       orders.forEach((order) => {
-        const orderDate = order.orderDate || order.order_date || ''
-        const month = orderDate.substring(0, 7) // YYYY-MM
+        // 处理日期字段（可能是 Date 对象或字符串）
+        let orderDateStr = ''
+        if (order.orderDate) {
+          if (order.orderDate instanceof Date) {
+            orderDateStr = order.orderDate.toISOString().substring(0, 10)
+          } else if (typeof order.orderDate === 'string') {
+            orderDateStr = order.orderDate.substring(0, 10)
+          }
+        } else if (order.order_date) {
+          if (order.order_date instanceof Date) {
+            orderDateStr = order.order_date.toISOString().substring(0, 10)
+          } else if (typeof order.order_date === 'string') {
+            orderDateStr = order.order_date.substring(0, 10)
+          }
+        } else if (order.createdAt) {
+          // 如果没有订单日期，使用创建时间
+          const createdAt = order.createdAt instanceof Date 
+            ? order.createdAt 
+            : new Date(order.createdAt)
+          orderDateStr = createdAt.toISOString().substring(0, 10)
+        }
+
+        if (!orderDateStr) {
+          return // 跳过没有日期的订单
+        }
+
+        const month = orderDateStr.substring(0, 7) // YYYY-MM
+        
         if (!monthlyMap.has(month)) {
           monthlyMap.set(month, {
             month: month,
             carbon: 0,
             reduction: 0,
+            orderCount: 0,
           })
         }
+        
         const item = monthlyMap.get(month)
-        item.carbon += order.totalCarbon || order.total_carbon || 0
-        item.reduction += order.carbonReduction || order.carbon_reduction || 0
+        const carbon = parseFloat(order.totalCarbon || order.total_carbon || order.carbonFootprint?.value || 0)
+        const reduction = parseFloat(order.carbonReduction || order.carbon_reduction || order.carbonFootprint?.reduction || 0)
+        
+        item.carbon += isNaN(carbon) ? 0 : carbon
+        item.reduction += isNaN(reduction) ? 0 : reduction
+        item.orderCount += 1
       })
 
       const monthlyData = Array.from(monthlyMap.values())
         .sort((a, b) => a.month.localeCompare(b.month))
+        .map(item => ({
+          month: item.month,
+          monthName: `${item.month}月`,
+          carbon: Number(item.carbon.toFixed(2)),
+          reduction: Number(item.reduction.toFixed(2)),
+          orderCount: item.orderCount,
+        }))
 
       return {
         code: 0,
@@ -2773,27 +2869,71 @@ async function generateCarbonReport(data) {
         data: {
           type: 'monthly',
           monthlyData: monthlyData,
+          summary: {
+            totalCarbon: monthlyData.reduce((sum, item) => sum + item.carbon, 0),
+            totalReduction: monthlyData.reduce((sum, item) => sum + item.reduction, 0),
+            totalOrders: monthlyData.reduce((sum, item) => sum + item.orderCount, 0),
+          },
         },
       }
     } else if (type === 'yearly') {
       const yearlyMap = new Map()
+      
       orders.forEach((order) => {
-        const orderDate = order.orderDate || order.order_date || ''
-        const year = orderDate.substring(0, 4) // YYYY
+        // 处理日期字段
+        let orderDateStr = ''
+        if (order.orderDate) {
+          if (order.orderDate instanceof Date) {
+            orderDateStr = order.orderDate.toISOString().substring(0, 10)
+          } else if (typeof order.orderDate === 'string') {
+            orderDateStr = order.orderDate.substring(0, 10)
+          }
+        } else if (order.order_date) {
+          if (order.order_date instanceof Date) {
+            orderDateStr = order.order_date.toISOString().substring(0, 10)
+          } else if (typeof order.order_date === 'string') {
+            orderDateStr = order.order_date.substring(0, 10)
+          }
+        } else if (order.createdAt) {
+          const createdAt = order.createdAt instanceof Date 
+            ? order.createdAt 
+            : new Date(order.createdAt)
+          orderDateStr = createdAt.toISOString().substring(0, 10)
+        }
+
+        if (!orderDateStr) {
+          return
+        }
+
+        const year = orderDateStr.substring(0, 4) // YYYY
+        
         if (!yearlyMap.has(year)) {
           yearlyMap.set(year, {
             year: year,
             carbon: 0,
             reduction: 0,
+            orderCount: 0,
           })
         }
+        
         const item = yearlyMap.get(year)
-        item.carbon += order.totalCarbon || order.total_carbon || 0
-        item.reduction += order.carbonReduction || order.carbon_reduction || 0
+        const carbon = parseFloat(order.totalCarbon || order.total_carbon || order.carbonFootprint?.value || 0)
+        const reduction = parseFloat(order.carbonReduction || order.carbon_reduction || order.carbonFootprint?.reduction || 0)
+        
+        item.carbon += isNaN(carbon) ? 0 : carbon
+        item.reduction += isNaN(reduction) ? 0 : reduction
+        item.orderCount += 1
       })
 
       const yearlyData = Array.from(yearlyMap.values())
         .sort((a, b) => a.year.localeCompare(b.year))
+        .map(item => ({
+          year: item.year,
+          yearName: `${item.year}年`,
+          carbon: Number(item.carbon.toFixed(2)),
+          reduction: Number(item.reduction.toFixed(2)),
+          orderCount: item.orderCount,
+        }))
 
       return {
         code: 0,
@@ -2801,6 +2941,11 @@ async function generateCarbonReport(data) {
         data: {
           type: 'yearly',
           yearlyData: yearlyData,
+          summary: {
+            totalCarbon: yearlyData.reduce((sum, item) => sum + item.carbon, 0),
+            totalReduction: yearlyData.reduce((sum, item) => sum + item.reduction, 0),
+            totalOrders: yearlyData.reduce((sum, item) => sum + item.orderCount, 0),
+          },
         },
       }
     } else if (type === 'esg') {
@@ -2808,11 +2953,38 @@ async function generateCarbonReport(data) {
       let totalCarbon = 0
       let totalReduction = 0
       let totalOrders = orders.length
+      let avgOrderCarbon = 0
+      let avgOrderReduction = 0
 
       orders.forEach((order) => {
-        totalCarbon += order.totalCarbon || order.total_carbon || 0
-        totalReduction += order.carbonReduction || order.carbon_reduction || 0
+        const carbon = parseFloat(order.totalCarbon || order.total_carbon || order.carbonFootprint?.value || 0)
+        const reduction = parseFloat(order.carbonReduction || order.carbon_reduction || order.carbonFootprint?.reduction || 0)
+        
+        totalCarbon += isNaN(carbon) ? 0 : carbon
+        totalReduction += isNaN(reduction) ? 0 : reduction
       })
+
+      if (totalOrders > 0) {
+        avgOrderCarbon = totalCarbon / totalOrders
+        avgOrderReduction = totalReduction / totalOrders
+      }
+
+      const reductionRate = totalCarbon > 0 ? (totalReduction / totalCarbon) * 100 : 0
+
+      // 获取餐厅信息（用于ESG报告）
+      let restaurantInfo = null
+      try {
+        const restaurantResult = await db.collection('restaurants').doc(restaurantId).get()
+        if (restaurantResult.data) {
+          restaurantInfo = {
+            name: restaurantResult.data.name || '',
+            address: restaurantResult.data.address || '',
+            region: restaurantResult.data.region || '',
+          }
+        }
+      } catch (error) {
+        console.warn('获取餐厅信息失败:', error)
+      }
 
       return {
         code: 0,
@@ -2820,10 +2992,35 @@ async function generateCarbonReport(data) {
         data: {
           type: 'esg',
           esgData: {
-            totalCarbon: totalCarbon,
-            totalReduction: totalReduction,
-            totalOrders: totalOrders,
-            reductionRate: totalCarbon > 0 ? (totalReduction / totalCarbon) * 100 : 0,
+            // Environmental (环境)
+            environmental: {
+              totalCarbonReduction: Number(totalReduction.toFixed(2)),
+              totalCarbonFootprint: Number(totalCarbon.toFixed(2)),
+              avgOrderCarbon: Number(avgOrderCarbon.toFixed(2)),
+              avgOrderReduction: Number(avgOrderReduction.toFixed(2)),
+              reductionRate: Number(reductionRate.toFixed(2)),
+              energyReduction: '优化中', // 能源消耗优化
+              wasteManagement: '进行中', // 废物处理
+            },
+            // Social (社会)
+            social: {
+              totalOrders: totalOrders,
+              employment: 0, // 就业人数（需要从其他数据源获取）
+              communityContribution: '进行中', // 社区贡献
+              userSatisfaction: 4.5, // 用户满意度（需要从评价数据获取）
+            },
+            // Governance (治理)
+            governance: {
+              compliance: '进行中', // 合规性
+              transparency: '进行中', // 透明度
+              management: '进行中', // 责任管理
+            },
+            // 汇总信息
+            summary: {
+              restaurantName: restaurantInfo?.name || '',
+              reportPeriod: period || '全部',
+              generatedAt: new Date().toISOString(),
+            },
           },
         },
       }
@@ -2838,6 +3035,224 @@ async function generateCarbonReport(data) {
     return {
       code: 500,
       message: '生成碳报告失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 保存碳报告
+ * @param {Object} data - 参数 { restaurantId, type, period, reportData }
+ * @param {Object} user - 当前用户
+ * @param {Object} context - 云函数上下文
+ */
+async function saveCarbonReport(data, user, context) {
+  const { restaurantId, type, period, reportData } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  if (!type || !['monthly', 'yearly', 'esg'].includes(type)) {
+    return {
+      code: 400,
+      message: '报告类型无效',
+    }
+  }
+
+  if (!reportData) {
+    return {
+      code: 400,
+      message: '报告数据不能为空',
+    }
+  }
+
+  try {
+    // 保存报告到 carbon_reports 集合
+    const reportDoc = {
+      restaurantId: restaurantId,
+      type: type,
+      period: period || '',
+      reportData: reportData,
+      generatedAt: db.serverDate(),
+      createdBy: user.userId || user._id || '',
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+    }
+
+    const result = await db.collection('carbon_reports').add({
+      data: reportDoc,
+    })
+
+    // 记录操作日志
+    await addAudit(db, {
+      module: 'tenant',
+      action: 'saveCarbonReport',
+      resource: 'carbon_report',
+      resourceId: result._id,
+      description: `保存${type === 'monthly' ? '月度' : type === 'yearly' ? '年度' : 'ESG'}碳报告`,
+      restaurantId: restaurantId,
+      status: 'success',
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+    })
+
+    return {
+      code: 0,
+      message: '保存成功',
+      data: {
+        reportId: result._id,
+      },
+    }
+  } catch (error) {
+    console.error('保存碳报告失败:', error)
+    return {
+      code: 500,
+      message: '保存失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取历史报告列表
+ * @param {Object} data - 参数 { restaurantId, page, pageSize, type }
+ * @param {Object} user - 当前用户
+ */
+async function getCarbonReports(data, user) {
+  const { restaurantId, page = 1, pageSize = 20, type } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 构建查询条件
+    const queryCondition = {
+      restaurantId: restaurantId,
+    }
+
+    // 如果指定了报告类型，添加类型筛选
+    if (type && ['monthly', 'yearly', 'esg'].includes(type)) {
+      queryCondition.type = type
+    }
+
+    // 查询报告列表
+    let query = db.collection('carbon_reports').where(queryCondition)
+
+    // 获取总数
+    const countResult = await query.count()
+    const total = countResult.total
+
+    // 分页查询
+    query = query.orderBy('generatedAt', 'desc').skip((page - 1) * pageSize).limit(pageSize)
+
+    const result = await query.get()
+    const reports = result.data || []
+
+    // 格式化返回数据
+    const formattedReports = reports.map((report) => ({
+      _id: report._id,
+      id: report._id,
+      type: report.type,
+      period: report.period,
+      generatedAt: report.generatedAt,
+      createdAt: report.createdAt,
+      data: report.reportData,
+    }))
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        reports: formattedReports,
+        total: total,
+        page: page,
+        pageSize: pageSize,
+      },
+    }
+  } catch (error) {
+    console.error('获取历史报告失败:', error)
+    return {
+      code: 500,
+      message: '获取失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 删除碳报告
+ * @param {Object} data - 参数 { reportId, restaurantId }
+ * @param {Object} user - 当前用户
+ * @param {Object} context - 云函数上下文
+ */
+async function deleteCarbonReport(data, user, context) {
+  const { reportId, restaurantId } = data || {}
+
+  if (!reportId) {
+    return {
+      code: 400,
+      message: '报告ID不能为空',
+    }
+  }
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 验证报告是否存在且属于该餐厅
+    const reportResult = await db.collection('carbon_reports').doc(reportId).get()
+    if (!reportResult.data) {
+      return {
+        code: 404,
+        message: '报告不存在',
+      }
+    }
+
+    const report = reportResult.data
+    if (report.restaurantId !== restaurantId) {
+      return {
+        code: 403,
+        message: '无权删除其他餐厅的报告',
+      }
+    }
+
+    // 删除报告
+    await db.collection('carbon_reports').doc(reportId).remove()
+
+    // 记录操作日志
+    await addAudit(db, {
+      module: 'tenant',
+      action: 'deleteCarbonReport',
+      resource: 'carbon_report',
+      resourceId: reportId,
+      description: `删除${report.type === 'monthly' ? '月度' : report.type === 'yearly' ? '年度' : 'ESG'}碳报告`,
+      restaurantId: restaurantId,
+      status: 'success',
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+    })
+
+    return {
+      code: 0,
+      message: '删除成功',
+    }
+  } catch (error) {
+    console.error('删除碳报告失败:', error)
+    return {
+      code: 500,
+      message: '删除失败',
       error: error.message,
     }
   }
@@ -3462,6 +3877,77 @@ async function updateMenuItem(data, user, context) {
     return {
       code: 500,
       message: '更新失败',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * 删除餐厅菜单项
+ * @param {Object} data - 参数 { menuItemId, restaurantId }
+ * @param {Object} user - 当前用户
+ * @param {Object} context - 云函数上下文
+ */
+async function deleteMenuItem(data, user, context) {
+  const { menuItemId, restaurantId } = data || {}
+
+  if (!menuItemId) {
+    return {
+      code: 400,
+      message: '菜单项ID不能为空'
+    }
+  }
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: '餐厅ID不能为空'
+    }
+  }
+
+  try {
+    // 1. 验证菜单项是否存在且属于该餐厅
+    const menuItemResult = await db.collection('restaurant_menu_items').doc(menuItemId).get()
+    if (!menuItemResult.data) {
+      return {
+        code: 404,
+        message: '菜单项不存在'
+      }
+    }
+
+    const menuItem = menuItemResult.data
+    if (menuItem.restaurantId !== restaurantId) {
+      return {
+        code: 403,
+        message: '无权删除其他餐厅的菜单项'
+      }
+    }
+
+    // 2. 执行删除
+    await db.collection('restaurant_menu_items').doc(menuItemId).remove()
+
+    // 3. 记录操作日志
+    await addAudit(db, {
+      module: 'tenant',
+      action: 'deleteMenuItem',
+      resource: 'restaurant_menu_item',
+      resourceId: menuItemId,
+      description: `删除餐厅菜单项 ${menuItem.name || menuItemId}`,
+      restaurantId: restaurantId,
+      status: 'success',
+      ip: context.requestIp || '',
+      userAgent: context.userAgent || '',
+    })
+
+    return {
+      code: 0,
+      message: '删除成功'
+    }
+  } catch (error) {
+    console.error('删除菜单项失败:', error)
+    return {
+      code: 500,
+      message: '删除失败',
       error: error.message
     }
   }

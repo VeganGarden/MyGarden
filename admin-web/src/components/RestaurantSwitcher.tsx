@@ -9,17 +9,16 @@ import styles from './RestaurantSwitcher.module.css'
  * 餐厅切换器组件
  * 
  * 功能说明：
- * - 仅对餐厅管理员（restaurant_admin）角色显示
- * - 允许餐厅管理员在同一租户下的多个餐厅之间切换查看数据
- * - 其他角色（平台运营、系统管理员、碳核算专员）不显示此组件
+ * - 对餐厅管理员（restaurant_admin）和碳核算专员（carbon_specialist）角色显示
+ * - 允许用户在同一租户下的多个餐厅之间切换查看数据
+ * - 其他角色（平台运营、系统管理员）不显示此组件
  *   原因：
  *   1. 平台运营：查看全平台汇总数据，不需要切换餐厅
  *   2. 系统管理员：关注系统级指标，不需要切换餐厅
- *   3. 碳核算专员：查看全平台碳数据，不需要切换餐厅
- *   4. 特定筛选需求可在各自的功能页面实现（如租户管理、碳数据报表等）
+ *   3. 特定筛选需求可在各自的功能页面实现（如租户管理、碳数据报表等）
  * 
  * 显示条件：
- * - 用户角色必须是 restaurant_admin
+ * - 用户角色必须是 restaurant_admin 或 carbon_specialist
  * - 必须存在当前租户信息（currentTenant）
  */
 const RestaurantSwitcher: React.FC = () => {
@@ -27,9 +26,10 @@ const RestaurantSwitcher: React.FC = () => {
   const { currentTenant, currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   const { user } = useAppSelector((state: any) => state.auth)
 
-  // 仅餐厅管理员显示；其余角色隐藏
+  // 餐厅管理员和碳核算专员显示；其余角色隐藏
   // 即使餐厅列表为空，只要有租户信息就显示（但会提示没有餐厅）
-  if (user?.role !== 'restaurant_admin' || !currentTenant) {
+  const canShowSwitcher = (user?.role === 'restaurant_admin' || user?.role === 'carbon_specialist') && currentTenant
+  if (!canShowSwitcher) {
     return null
   }
   
