@@ -17,6 +17,7 @@ const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-
 const { main: initCertificationCollections } = require('./init-certification-collections');
 const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
 const { main: initCarbonFactorCollections } = require('./init-carbon-factor-collections');
+const { main: initFactorDataFromAuthoritativeSources } = require('./init-factor-data-from-authoritative-sources');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -41,6 +42,8 @@ const { main: initCarbonFactorCollections } = require('./init-carbon-factor-coll
  * - initCertificationCollections: 初始化认证域集合（certification_applications, certification_stages, certification_badges, certification_documents, certification_materials）
  * - migrate-restaurants-add-certification-fields: 为 restaurants 集合添加完整的 climateCertification 字段结构
  * - initCarbonFactorCollections: 初始化碳排放因子集合（carbon_emission_factors）
+ * - initFactorDataFromJSON: 从JSON格式导入因子数据（从权威数据源）
+ * - initFactorDataFromCSV: 从CSV格式导入因子数据（从权威数据源）
  * - migrate-carbon-calculation-v1: 迁移数据库结构（添加地区、餐食类型等字段）
  * - migrate-recalculate-carbon-v1: 批量重新计算现有菜谱碳足迹
  * - migrate-recipes-add-isbaserecipe: 为所有已有食谱添加 isBaseRecipe 字段（默认值：true）
@@ -122,6 +125,9 @@ exports.main = async (event) => {
         return await migrateRestaurantsAddCertificationFields(event);
       case 'initCarbonFactorCollections':
         return await initCarbonFactorCollections(event);
+      case 'initFactorDataFromJSON':
+      case 'initFactorDataFromCSV':
+        return await initFactorDataFromAuthoritativeSources(event);
       case 'initVegetarianPersonnelCollections':
         const { main: initVegetarianPersonnelCollections } = require('./init-vegetarian-personnel-collections');
         return await initVegetarianPersonnelCollections(event);
