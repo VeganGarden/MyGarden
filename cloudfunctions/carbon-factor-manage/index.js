@@ -30,15 +30,29 @@ const _ = db.command;
 
 /**
  * 生成因子ID
+ * 使用Base64编码处理中文名称，确保唯一性
  */
 function generateFactorId(name, category, subCategory, region, year) {
-  // 将名称转换为小写，替换空格为下划线
-  const namePart = (name || '').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-  const categoryPart = category || 'general';
-  const subCategoryPart = subCategory ? `_${subCategory.toLowerCase().replace(/\s+/g, '_')}` : '';
-  const regionPart = region ? `_${region.toLowerCase()}` : '';
-  const yearPart = year ? `_${year}` : '';
+  let namePart = "";
+  if (name) {
+    const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+    if (hasChinese) {
+      // 中文名称使用Base64编码（取前8个字符，去掉等号）
+      const base64Name = Buffer.from(name, 'utf8').toString('base64').replace(/[=+/]/g, '').substring(0, 8);
+      namePart = base64Name.toLowerCase();
+    } else {
+      // 英文名称直接转换
+      namePart = name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    }
+  }
   
+  const categoryPart = category || "general";
+  const subCategoryPart = subCategory
+    ? `_${subCategory.toLowerCase().replace(/\s+/g, "_")}`
+    : "";
+  const regionPart = region ? `_${region.toLowerCase()}` : "";
+  const yearPart = year ? `_${year}` : "";
+
   return `ef_${namePart}${subCategoryPart}${regionPart}${yearPart}`;
 }
 
@@ -95,10 +109,12 @@ function validateFactor(factor) {
 
 /**
  * 检查权限（仅管理员可操作）
+ * @param {string} openid - 用户OpenID
+ * @returns {Promise<boolean>} 是否有权限
  */
 async function checkPermission(openid) {
   // TODO: 实现权限检查逻辑
-  // 这里简化处理，实际应该查询用户权限表
+  // 查询用户权限表，检查是否为管理员
   // 暂时允许所有操作，生产环境需要添加权限验证
   return true;
 }
@@ -588,19 +604,18 @@ async function batchImportFactors(factors, openid) {
 
 /**
  * 初始化示例数据
+ * @deprecated 此功能已弃用，数据已通过initFactorDataFromJSON完成初始化
+ * 保留此函数仅为向后兼容，不建议使用
  */
 async function initSampleData(openid) {
+  // 注意：此函数已弃用，数据应通过initFactorDataFromJSON导入
   // 先确保集合存在（使用 createCollection 方法）
   try {
     await db.createCollection('carbon_emission_factors');
-    console.log('✅ carbon_emission_factors 集合创建成功');
   } catch (error) {
     // 如果集合已存在，继续执行
-    if (error.message && error.message.includes('already exists')) {
-      console.log('ℹ️  carbon_emission_factors 集合已存在');
-    } else {
-      console.log('⚠️  集合创建检查失败:', error.message);
-      // 继续尝试插入数据，如果集合存在应该能成功
+    if (!error.message || !error.message.includes('already exists')) {
+      // 静默处理，继续尝试插入数据
     }
   }
   
@@ -900,6 +915,7 @@ exports.main = async (event, context) => {
         return await batchImportFactors(params.factors, OPENID);
         
       case 'initSampleData':
+        // @deprecated 已弃用，建议使用initFactorDataFromJSON
         return await initSampleData(OPENID);
         
       default:
@@ -907,7 +923,7 @@ exports.main = async (event, context) => {
           code: 400,
           success: false,
           error: '未知的 action 参数',
-          message: '支持的 action: create, update, get, archive, activate, list, batchImport, initSampleData'
+          message: '支持的 action: create, update, get, archive, activate, list, batchImport'
         };
     }
   } catch (error) {

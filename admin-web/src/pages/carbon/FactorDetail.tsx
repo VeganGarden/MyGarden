@@ -4,7 +4,7 @@
 import i18n from '@/i18n'
 import { factorManageAPI } from '@/services/factor'
 import type { CarbonEmissionFactor } from '@/types/factor'
-import { FactorCategory, FactorSource, FactorStatus, FactorBoundary } from '@/types/factor'
+import { FactorBoundary, FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
 import {
   Button,
@@ -117,6 +117,11 @@ const FactorDetail: React.FC = () => {
               icon={<EditOutlined />}
               onClick={() => navigate(`/carbon/factor-library/${factorId}/edit`)}
               disabled={factor.status === FactorStatus.ARCHIVED}
+              style={{
+                color: (factor.status === FactorStatus.PENDING || factor.factorValue === null || factor.factorValue === undefined) 
+                  ? '#ff7a00' 
+                  : undefined
+              }}
             >
               {t('pages.carbon.factorDetail.buttons.edit')}
             </Button>
@@ -127,7 +132,13 @@ const FactorDetail: React.FC = () => {
         <Card title={t('pages.carbon.factorDetail.sections.basicInfo')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered>
             <Descriptions.Item label={t('pages.carbon.factorDetail.fields.factorId')}>
-              {factor.factorId}
+              <span style={{ 
+                color: (factor.status === FactorStatus.PENDING || factor.factorValue === null || factor.factorValue === undefined) 
+                  ? '#ff7a00' 
+                  : 'inherit' 
+              }}>
+                {factor.factorId}
+              </span>
             </Descriptions.Item>
             <Descriptions.Item label={t('pages.carbon.factorDetail.fields.name')}>
               {factor.name}
@@ -159,7 +170,13 @@ const FactorDetail: React.FC = () => {
         <Card title={t('pages.carbon.factorDetail.sections.factorValue')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered>
             <Descriptions.Item label={t('pages.carbon.factorDetail.fields.factorValue')}>
-              {factor.factorValue.toFixed(2)} {factor.unit}
+              <span style={{ 
+                color: (factor.status === FactorStatus.PENDING || factor.factorValue === null || factor.factorValue === undefined) 
+                  ? '#ff7a00' 
+                  : 'inherit' 
+              }}>
+                {(factor.factorValue ?? 0).toFixed(2)} {factor.unit}
+              </span>
             </Descriptions.Item>
             {factor.uncertainty !== undefined && (
               <Descriptions.Item label={t('pages.carbon.factorDetail.fields.uncertainty')}>

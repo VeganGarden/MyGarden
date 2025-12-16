@@ -134,8 +134,6 @@ const FactorImport: React.FC = () => {
 
     if (invalid.length > 0) {
       message.warning(t('pages.carbon.factorImport.messages.validationFailed', { count: invalid.length }))
-      // 显示错误详情
-      console.error('验证失败的数据:', invalid)
       return
     }
 

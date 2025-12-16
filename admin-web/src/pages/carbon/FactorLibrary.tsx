@@ -3,8 +3,8 @@
  */
 import i18n from '@/i18n'
 import { factorManageAPI } from '@/services/factor'
-import type { FactorQueryParams, CarbonEmissionFactor } from '@/types/factor'
-import { FactorCategory, FactorSource, FactorStatus, FactorBoundary } from '@/types/factor'
+import type { CarbonEmissionFactor, FactorQueryParams } from '@/types/factor'
+import { FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
 import {
   EditOutlined,
   EyeOutlined,
@@ -76,7 +76,8 @@ const FactorLibrary: React.FC = () => {
 
   useEffect(() => {
     fetchData()
-  }, [pagination.current, pagination.pageSize, filters])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, pagination.pageSize, filters.category, filters.source, filters.status, filters.keyword])
 
   // 处理筛选
   const handleFilterChange = (key: string, value: any) => {
@@ -133,7 +134,15 @@ const FactorLibrary: React.FC = () => {
       key: 'factorId',
       width: 200,
       ellipsis: true,
-      render: (factorId: string) => factorId || '-',
+      render: (factorId: string, record: CarbonEmissionFactor) => {
+        // 判断是否需要补充数据：status为pending或factorValue为null/undefined
+        const isPending = record.status === FactorStatus.PENDING || record.factorValue === null || record.factorValue === undefined;
+        return (
+          <span style={{ color: isPending ? '#ff7a00' : 'inherit' }}>
+            {factorId || '-'}
+          </span>
+        );
+      },
     },
     {
       title: t('pages.carbon.factorLibrary.table.columns.name'),
@@ -168,12 +177,21 @@ const FactorLibrary: React.FC = () => {
       key: 'factorValue',
       width: 150,
       render: (_: any, record: CarbonEmissionFactor) => {
-        const value = record.factorValue
+        // 如果factorValue为null/undefined，使用0作为默认值
+        const value = record.factorValue ?? 0
         const unit = record.unit || 'kgCO2e/kg'
-        return `${value.toFixed(2)} ${unit}`
+        const isPending = record.status === 'pending' || record.factorValue === null || record.factorValue === undefined;
+        
+        return (
+          <span style={{ color: isPending ? '#ff7a00' : 'inherit' }}>
+            {value.toFixed(2)} {unit}
+          </span>
+        );
       },
       sorter: (a: CarbonEmissionFactor, b: CarbonEmissionFactor) => {
-        return a.factorValue - b.factorValue
+        const aValue = a.factorValue ?? 0
+        const bValue = b.factorValue ?? 0
+        return aValue - bValue
       },
     },
     {
@@ -246,25 +264,32 @@ const FactorLibrary: React.FC = () => {
       key: 'action',
       width: 200,
       fixed: 'right',
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/carbon/factor-library/${record.factorId}`)}
-          >
-            {t('pages.carbon.factorLibrary.table.actions.view')}
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/carbon/factor-library/${record.factorId}/edit`)}
-            disabled={record.status === FactorStatus.ARCHIVED}
-          >
-            {t('pages.carbon.factorLibrary.table.actions.edit')}
-          </Button>
+      render: (_, record) => {
+        // 判断是否需要补充数据：status为pending或factorValue为null/undefined
+        const isPending = record.status === FactorStatus.PENDING || record.factorValue === null || record.factorValue === undefined;
+        const linkColor = isPending ? '#ff7a00' : undefined;
+        
+        return (
+          <Space>
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/carbon/factor-library/${record.factorId}`)}
+              style={{ color: linkColor }}
+            >
+              {t('pages.carbon.factorLibrary.table.actions.view')}
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/carbon/factor-library/${record.factorId}/edit`)}
+              disabled={record.status === FactorStatus.ARCHIVED}
+              style={{ color: linkColor }}
+            >
+              {t('pages.carbon.factorLibrary.table.actions.edit')}
+            </Button>
           {record.status === FactorStatus.ACTIVE ? (
             <Popconfirm
               title={t('pages.carbon.factorLibrary.messages.confirmArchive')}
@@ -286,8 +311,9 @@ const FactorLibrary: React.FC = () => {
               {t('pages.carbon.factorLibrary.table.actions.activate')}
             </Button>
           )}
-        </Space>
-      ),
+          </Space>
+        )
+      },
     },
   ]
 

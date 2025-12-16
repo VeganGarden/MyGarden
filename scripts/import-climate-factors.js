@@ -10,10 +10,13 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const FACTORS_FILE = path.join(PROJECT_ROOT, 'cloudfunctions/database/climate-restaurant-factors.json');
+
+// 支持命令行参数指定文件
+const fileName = process.argv[2] || 'climate-restaurant-factors.json';
+const FACTORS_FILE = path.join(PROJECT_ROOT, 'cloudfunctions/database', fileName);
 
 console.log('========================================');
-console.log('导入气候餐厅因子数据');
+console.log('导入因子数据');
 console.log('========================================\n');
 
 // 检查文件是否存在

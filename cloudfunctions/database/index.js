@@ -18,6 +18,9 @@ const { main: initCertificationCollections } = require('./init-certification-col
 const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
 const { main: initCarbonFactorCollections } = require('./init-carbon-factor-collections');
 const { main: initFactorDataFromAuthoritativeSources } = require('./init-factor-data-from-authoritative-sources');
+const { main: initFactorsFromExistingIngredients } = require('./init-factors-from-existing-ingredients');
+const { main: checkDuplicateFactors } = require('./check-duplicate-factors');
+const { main: fixDuplicateFactors } = require('./fix-duplicate-factors');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -128,6 +131,12 @@ exports.main = async (event) => {
       case 'initFactorDataFromJSON':
       case 'initFactorDataFromCSV':
         return await initFactorDataFromAuthoritativeSources(event);
+      case 'initFactorsFromExistingIngredients':
+        return await initFactorsFromExistingIngredients(event);
+      case 'checkDuplicateFactors':
+        return await checkDuplicateFactors(event);
+      case 'fixDuplicateFactors':
+        return await fixDuplicateFactors(event);
       case 'initVegetarianPersonnelCollections':
         const { main: initVegetarianPersonnelCollections } = require('./init-vegetarian-personnel-collections');
         return await initVegetarianPersonnelCollections(event);

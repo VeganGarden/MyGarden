@@ -85,7 +85,6 @@ const CarbonReport: React.FC = () => {
         setEsgData(null)
       }
     } catch (error: any) {
-      console.error('获取报告数据失败:', error)
       message.error(error.message || '获取报告数据失败，请稍后重试')
       setMonthlyData([])
       setYearlyData([])
@@ -109,19 +108,11 @@ const CarbonReport: React.FC = () => {
           ? `${dayjs().subtract(3, 'month').format('YYYY-MM-DD')}_${dayjs().format('YYYY-MM-DD')}`
           : `${dayjs().subtract(1, 'year').format('YYYY-MM-DD')}_${dayjs().format('YYYY-MM-DD')}`
       
-      console.log('生成报告参数:', {
-        restaurantId: currentRestaurantId,
-        type: reportType,
-        period,
-      })
-      
       const result = await carbonFootprintAPI.generateReport({
         type: reportType,
         period,
         restaurantId: currentRestaurantId,
       })
-      
-      console.log('生成报告结果:', result)
 
       if (result && result.code === 0) {
         // 保存完整报告数据
@@ -175,7 +166,6 @@ const CarbonReport: React.FC = () => {
         throw new Error(result?.message || '生成报告失败')
       }
     } catch (error: any) {
-      console.error('生成报告失败:', error)
       message.error(error.message || '生成报告失败，请稍后重试')
     } finally {
       setLoading(false)
@@ -204,7 +194,6 @@ const CarbonReport: React.FC = () => {
         throw new Error(result?.message || '保存报告失败')
       }
     } catch (error: any) {
-      console.error('保存报告失败:', error)
       message.error(error.message || '保存报告失败，请稍后重试')
     }
   }
@@ -245,12 +234,8 @@ const CarbonReport: React.FC = () => {
         setHistoryReports(result.data.reports || [])
       } else {
         setHistoryReports([])
-        if (result && result.message) {
-          console.warn('获取历史报告:', result.message)
-        }
       }
     } catch (error: any) {
-      console.error('获取历史报告失败:', error)
       message.error(error.message || '获取历史报告失败，请稍后重试')
       setHistoryReports([])
     } finally {
@@ -294,7 +279,6 @@ const CarbonReport: React.FC = () => {
         throw new Error(result?.message || '删除报告失败')
       }
     } catch (error: any) {
-      console.error('删除报告失败:', error)
       message.error(error.message || '删除报告失败，请稍后重试')
     }
   }

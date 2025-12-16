@@ -419,6 +419,9 @@
         },
         "pagination": {
           "total": "共 {{total}} 条记录"
+        },
+        "factorValue": {
+          "pending": "待补充"
         }
       },
       "factorForm": {

@@ -29,6 +29,7 @@ export enum FactorStatus {
   ACTIVE = 'active',     // 活跃
   ARCHIVED = 'archived', // 已归档
   DRAFT = 'draft',       // 草稿
+  PENDING = 'pending',   // 待补充数据
 }
 
 // 碳排放因子完整数据结构
@@ -39,7 +40,7 @@ export interface CarbonEmissionFactor {
   alias: string[]                  // 别名/搜索关键词，如 ["牛肉", "黄牛肉", "beef"]
   category: FactorCategory         // 一级分类
   subCategory: string              // 二级分类，如 "meat", "grain", "electricity"
-  factorValue: number              // 排放因子数值，如 27.5
+  factorValue: number | null       // 排放因子数值，如 27.5；null表示待补充
   unit: string                     // 单位，如 "kgCO2e/kg", "kgCO2e/kWh"
   uncertainty?: number             // 不确定性百分比 (±%)
   region: string                   // 适用区域代码，如 "CN", "CN-East", "Global"

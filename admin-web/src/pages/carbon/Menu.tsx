@@ -39,9 +39,7 @@ const CarbonMenu: React.FC = () => {
 
   const fetchMenuData = async () => {
     try {
-      console.log('🔍 菜单碳足迹 - currentRestaurantId:', currentRestaurantId)
       if (!currentRestaurantId) {
-        console.log('⚠️ 菜单碳足迹 - currentRestaurantId 为空')
         setDataSource([])
         setLoading(false)
         return
@@ -51,10 +49,8 @@ const CarbonMenu: React.FC = () => {
       const params = {
         restaurantId: currentRestaurantId,
       }
-      console.log('📤 菜单碳足迹 - 请求参数:', params)
       
       const result = await carbonFootprintAPI.getMenuList(params)
-      console.log('📥 菜单碳足迹 - API 返回结果:', result)
       
       if (result && result.code === 0 && result.data) {
         try {
@@ -78,10 +74,8 @@ const CarbonMenu: React.FC = () => {
             })))
           } else {
             setDataSource([])
-            console.warn('API返回的数据格式不正确，menus不是数组:', menus)
           }
         } catch (parseError: any) {
-          console.error('解析菜单数据失败:', parseError)
           setDataSource([])
           message.warning('数据格式错误，请稍后重试')
         }
@@ -92,7 +86,6 @@ const CarbonMenu: React.FC = () => {
         }
       }
     } catch (error: any) {
-      console.error('获取菜单数据失败:', error)
       message.error(error.message || '获取菜单数据失败，请稍后重试')
       setDataSource([])
     } finally {
@@ -211,7 +204,6 @@ const CarbonMenu: React.FC = () => {
         message.error({ content: result?.message || '重新计算失败', key: 'calculate' })
       }
     } catch (error: any) {
-      console.error('重新计算碳足迹失败:', error)
       message.error({ content: error.message || '重新计算失败，请稍后重试', key: 'calculate' })
     }
   }
@@ -245,7 +237,6 @@ const CarbonMenu: React.FC = () => {
             throw new Error(result?.message || '删除失败')
           }
         } catch (error: any) {
-          console.error('删除菜单项失败:', error)
           message.error(error.message || '删除失败，请稍后重试')
         }
       },
@@ -314,7 +305,6 @@ const CarbonMenu: React.FC = () => {
         // 表单验证错误
         return
       }
-      console.error('保存菜单项失败:', error)
       message.error(error.message || '保存失败，请稍后重试')
     }
   }

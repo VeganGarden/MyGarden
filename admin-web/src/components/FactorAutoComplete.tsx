@@ -61,7 +61,6 @@ const FactorAutoComplete: React.FC<FactorAutoCompleteProps> = ({
         setOptions([])
       }
     } catch (error) {
-      console.error('搜索因子失败:', error)
       setOptions([])
     } finally {
       setLoading(false)
@@ -107,7 +106,7 @@ const FactorAutoComplete: React.FC<FactorAutoCompleteProps> = ({
             <span>{opt.factor.name}</span>
             <div>
               <Tag color="blue" style={{ marginRight: 4 }}>
-                {opt.factor.factorValue.toFixed(2)} {opt.factor.unit}
+                {(opt.factor.factorValue ?? 0).toFixed(2)} {opt.factor.unit}
               </Tag>
               <Tag color="default">{opt.factor.source}</Tag>
             </div>
@@ -121,7 +120,6 @@ const FactorAutoComplete: React.FC<FactorAutoCompleteProps> = ({
       placeholder={placeholder}
       disabled={disabled}
       style={style}
-      loading={loading}
       notFoundContent={loading ? '搜索中...' : '暂无匹配的因子'}
       filterOption={false} // 不使用本地过滤，完全依赖后端搜索
       allowClear
@@ -133,7 +131,7 @@ const FactorAutoComplete: React.FC<FactorAutoCompleteProps> = ({
             <span>{opt.factor.name}</span>
             <div>
               <Tag color="blue" style={{ marginRight: 4 }}>
-                {opt.factor.factorValue.toFixed(2)} {opt.factor.unit}
+                {(opt.factor.factorValue ?? 0).toFixed(2)} {opt.factor.unit}
               </Tag>
               <Tag color="default">{opt.factor.source}</Tag>
             </div>
