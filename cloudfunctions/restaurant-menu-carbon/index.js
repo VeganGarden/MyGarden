@@ -218,22 +218,59 @@ async function calculateCarbonFootprint(data) {
   let packagingCarbon = 0;
   let otherCarbon = 0;
 
-  // 计算食材碳足迹
+  // 获取餐厅地区（用于因子匹配）
+  let restaurantRegion = 'CN'; // 默认使用全国
+  if (data.restaurantId) {
+    try {
+      const restaurant = await db.collection('restaurants')
+        .doc(data.restaurantId)
+        .get();
+      if (restaurant.data && restaurant.data.region) {
+        restaurantRegion = restaurant.data.region;
+      }
+    } catch (error) {
+      console.warn('无法获取餐厅地区，使用默认值CN:', error);
+    }
+  }
+
+  // 计算食材碳足迹（使用因子库）
   if (data.ingredients && Array.isArray(data.ingredients)) {
     for (const ingredient of data.ingredients) {
-      // 从食材数据库获取碳系数
       try {
-        const ingredientDoc = await db.collection('ingredients')
-          .doc(ingredient.ingredientId)
-          .get();
+        let ingredientName = ingredient.name;
+        let ingredientCategory = ingredient.category || null;
+
+        // 如果没有名称，从ingredients集合获取
+        if (!ingredientName && ingredient.ingredientId) {
+          const ingredientDoc = await db.collection('ingredients')
+            .doc(ingredient.ingredientId)
+            .get();
+          
+          if (ingredientDoc.data) {
+            ingredientName = ingredientDoc.data.name;
+            if (!ingredientCategory && ingredientDoc.data.category) {
+              ingredientCategory = ingredientDoc.data.category;
+            }
+          }
+        }
+
+        if (!ingredientName) {
+          console.warn(`食材缺少名称，跳过: ${ingredient.ingredientId || 'unknown'}`);
+          continue;
+        }
+
+        // 从因子库查询因子
+        const factor = await matchFactor(ingredientName, ingredientCategory, restaurantRegion);
         
-        if (ingredientDoc.data && ingredientDoc.data.carbonFootprint) {
-          const coefficient = ingredientDoc.data.carbonFootprint.coefficient || 0;
-          const weight = ingredient.weight || 0;
+        if (factor && factor.factorValue !== null && factor.factorValue !== undefined) {
+          const coefficient = factor.factorValue;
+          const weight = ingredient.weight || 0; // weight单位应该是kg
           ingredientsCarbon += coefficient * weight;
+        } else {
+          console.warn(`无法匹配因子: ${ingredientName}，使用默认值0`);
         }
       } catch (error) {
-        console.warn(`无法获取食材 ${ingredient.ingredientId} 的碳系数:`, error);
+        console.error(`获取食材 ${ingredient.name || ingredient.ingredientId} 的因子失败:`, error);
       }
     }
   }
