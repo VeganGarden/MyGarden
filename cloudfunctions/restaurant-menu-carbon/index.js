@@ -409,27 +409,47 @@ async function matchFactor(inputName, category, restaurantRegion) {
 
   // Level 3: 别名/模糊匹配 (Alias/Fuzzy Match)
   // 查询条件：alias contains inputName AND status == 'active'
-  // 注意：MongoDB不支持数组直接包含查询，需要使用正则表达式
-  const aliasMatch = await db.collection('carbon_emission_factors')
+  // MongoDB中数组字段包含查询，使用where({alias: inputName})即可
+  let aliasMatch = await db.collection('carbon_emission_factors')
     .where({
-      alias: db.RegExp({
-        regexp: inputName,
-        options: 'i'
-      }),
+      alias: inputName,
       status: 'active'
     })
     .get();
 
-  if (aliasMatch.data.length > 0) {
-    // 找到第一个匹配的因子
-    const matchedFactor = aliasMatch.data.find(f => 
-      f.alias && f.alias.some(alias => 
-        alias.toLowerCase() === inputName.toLowerCase()
-      )
-    ) || aliasMatch.data[0];
+  // 如果精确匹配失败，尝试模糊匹配（使用正则）
+  if (aliasMatch.data.length === 0) {
+    // 获取所有活跃因子，在内存中匹配别名
+    const allActiveFactors = await db.collection('carbon_emission_factors')
+      .where({
+        status: 'active',
+        category: category ? 'ingredient' : _.neq(null) // 如果提供了category，只查ingredient类别
+      })
+      .get();
 
+    const matchedFactors = allActiveFactors.data.filter(factor => {
+      if (!factor.alias || !Array.isArray(factor.alias)) return false;
+      return factor.alias.some(alias => {
+        const aliasLower = alias.toLowerCase();
+        const inputLower = inputName.toLowerCase();
+        return aliasLower.includes(inputLower) || inputLower.includes(aliasLower);
+      });
+    });
+
+    if (matchedFactors.length > 0) {
+      // 找到最精确的匹配（完全匹配优先）
+      const exactMatch = matchedFactors.find(f => 
+        f.alias.some(alias => alias.toLowerCase() === inputName.toLowerCase())
+      );
+      
+      return {
+        ...(exactMatch || matchedFactors[0]),
+        matchLevel: 'alias_fuzzy_match'
+      };
+    }
+  } else {
     return {
-      ...matchedFactor,
+      ...aliasMatch.data[0],
       matchLevel: 'alias_fuzzy_match'
     };
   }
