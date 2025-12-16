@@ -587,6 +587,290 @@ async function batchImportFactors(factors, openid) {
 }
 
 /**
+ * 初始化示例数据
+ */
+async function initSampleData(openid) {
+  // 先确保集合存在（通过添加一个临时文档来创建集合）
+  try {
+    const tempResult = await db.collection('carbon_emission_factors').add({
+      data: {
+        _init: true,
+        createdAt: new Date()
+      }
+    });
+    // 创建成功后，删除临时文档
+    if (tempResult._id) {
+      await db.collection('carbon_emission_factors').doc(tempResult._id).remove();
+    }
+  } catch (error) {
+    // 如果已存在初始化文档，删除它
+    try {
+      const initDocs = await db.collection('carbon_emission_factors')
+        .where({ _init: true })
+        .get();
+      if (initDocs.data.length > 0) {
+        for (const doc of initDocs.data) {
+          await db.collection('carbon_emission_factors').doc(doc._id).remove();
+        }
+      }
+    } catch (cleanError) {
+      console.log('清理临时文档失败:', cleanError.message);
+    }
+  }
+  
+  const sampleFactors = [
+    {
+      name: "大米",
+      alias: ["稻米", "白米", "rice"],
+      category: "ingredient",
+      subCategory: "grain",
+      factorValue: 3.2,
+      unit: "kgCO2e/kg",
+      uncertainty: 15,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active",
+      notes: "中国大米平均排放因子"
+    },
+    {
+      name: "小麦",
+      alias: ["wheat", "麦子"],
+      category: "ingredient",
+      subCategory: "grain",
+      factorValue: 1.8,
+      unit: "kgCO2e/kg",
+      uncertainty: 12,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active"
+    },
+    {
+      name: "牛肉",
+      alias: ["beef", "黄牛肉", "牛腩"],
+      category: "ingredient",
+      subCategory: "meat",
+      factorValue: 27.5,
+      unit: "kgCO2e/kg",
+      uncertainty: 20,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-farm",
+      status: "active",
+      notes: "中国牛肉平均排放因子"
+    },
+    {
+      name: "猪肉",
+      alias: ["pork", "猪肉"],
+      category: "ingredient",
+      subCategory: "meat",
+      factorValue: 12.1,
+      unit: "kgCO2e/kg",
+      uncertainty: 18,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-farm",
+      status: "active"
+    },
+    {
+      name: "鸡肉",
+      alias: ["chicken", "鸡"],
+      category: "ingredient",
+      subCategory: "meat",
+      factorValue: 6.9,
+      unit: "kgCO2e/kg",
+      uncertainty: 15,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-farm",
+      status: "active"
+    },
+    {
+      name: "土豆",
+      alias: ["potato", "马铃薯", "洋芋"],
+      category: "ingredient",
+      subCategory: "vegetable",
+      factorValue: 0.3,
+      unit: "kgCO2e/kg",
+      uncertainty: 10,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active"
+    },
+    {
+      name: "番茄",
+      alias: ["tomato", "西红柿"],
+      category: "ingredient",
+      subCategory: "vegetable",
+      factorValue: 2.2,
+      unit: "kgCO2e/kg",
+      uncertainty: 12,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active"
+    },
+    {
+      name: "生菜",
+      alias: ["lettuce", "莴苣"],
+      category: "ingredient",
+      subCategory: "vegetable",
+      factorValue: 0.8,
+      unit: "kgCO2e/kg",
+      uncertainty: 10,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active"
+    },
+    {
+      name: "电力",
+      alias: ["electricity", "电"],
+      category: "energy",
+      subCategory: "electricity",
+      factorValue: 0.5810,
+      unit: "kgCO2e/kWh",
+      uncertainty: 5,
+      region: "CN",
+      source: "CLCD",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active",
+      notes: "中国电网平均排放因子（2024年）"
+    },
+    {
+      name: "天然气",
+      alias: ["natural gas", "天然气"],
+      category: "energy",
+      subCategory: "gas",
+      factorValue: 2.16,
+      unit: "kgCO2e/m³",
+      uncertainty: 3,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active"
+    },
+    {
+      name: "自来水",
+      alias: ["water", "水"],
+      category: "material",
+      subCategory: "water",
+      factorValue: 0.0003,
+      unit: "kgCO2e/kg",
+      uncertainty: 20,
+      region: "CN",
+      source: "IPCC",
+      year: 2024,
+      version: "v1.0",
+      boundary: "cradle-to-gate",
+      status: "active",
+      notes: "自来水处理排放因子"
+    }
+  ];
+  
+  // 直接插入数据，不检查已存在
+  const results = {
+    success: 0,
+    failed: 0,
+    skipped: 0,
+    errors: []
+  };
+  
+  const now = new Date();
+  
+  for (let i = 0; i < sampleFactors.length; i++) {
+    const factor = sampleFactors[i];
+    
+    try {
+      // 验证数据
+      const validation = validateFactor(factor);
+      if (!validation.valid) {
+        results.failed++;
+        results.errors.push({
+          index: i + 1,
+          name: factor.name,
+          error: validation.errors.join('; ')
+        });
+        continue;
+      }
+      
+      // 生成factorId
+      const factorId = generateFactorId(
+        factor.name,
+        factor.category,
+        factor.subCategory,
+        factor.region,
+        factor.year
+      );
+      
+      // 准备数据
+      const factorData = {
+        ...factor,
+        factorId,
+        alias: factor.alias || [],
+        status: factor.status || 'active',
+        createdAt: now,
+        updatedAt: now,
+        createdBy: openid || 'system',
+        updatedBy: openid || 'system'
+      };
+      
+      // 直接插入（如果已存在会失败，但不会报错）
+      try {
+        await db.collection('carbon_emission_factors').add({
+          data: factorData
+        });
+        results.success++;
+      } catch (addError) {
+        // 如果是重复数据错误，跳过
+        if (addError.errCode === -502002 || addError.message.includes('duplicate')) {
+          results.skipped++;
+        } else {
+          throw addError;
+        }
+      }
+      
+    } catch (error) {
+      results.failed++;
+      results.errors.push({
+        index: i + 1,
+        name: factor.name,
+        error: error.message || '导入失败'
+      });
+    }
+  }
+  
+  return {
+    code: 0,
+    success: true,
+    ...results,
+    message: `导入完成：成功 ${results.success}，失败 ${results.failed}，跳过 ${results.skipped}`
+  };
+}
+
+/**
  * 主函数
  */
 exports.main = async (event, context) => {
@@ -594,8 +878,8 @@ exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   
   try {
-    // 权限检查（除查询外都需要权限）
-    if (action !== 'list' && action !== 'get') {
+    // 权限检查（除查询和初始化示例数据外都需要权限）
+    if (action !== 'list' && action !== 'get' && action !== 'initSampleData') {
       const hasPermission = await checkPermission(OPENID);
       if (!hasPermission) {
         return {
@@ -629,12 +913,15 @@ exports.main = async (event, context) => {
       case 'batchImport':
         return await batchImportFactors(params.factors, OPENID);
         
+      case 'initSampleData':
+        return await initSampleData(OPENID);
+        
       default:
         return {
           code: 400,
           success: false,
           error: '未知的 action 参数',
-          message: '支持的 action: create, update, get, archive, activate, list, batchImport'
+          message: '支持的 action: create, update, get, archive, activate, list, batchImport, initSampleData'
         };
     }
   } catch (error) {
