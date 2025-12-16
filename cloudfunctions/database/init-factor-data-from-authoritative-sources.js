@@ -21,12 +21,25 @@ const _ = db.command;
 
 /**
  * 生成因子ID
+ * 使用Base64编码处理中文名称，确保唯一性
  */
 function generateFactorId(name, category, subCategory, region, year) {
-  const namePart = (name || "")
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
+  // 对于中文名称，使用Base64编码的前8个字符
+  // 对于英文名称，直接使用（转换为小写，替换空格为下划线）
+  let namePart = "";
+  if (name) {
+    // 检查是否包含中文字符
+    const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+    if (hasChinese) {
+      // 中文名称使用Base64编码（取前8个字符，去掉等号）
+      const base64Name = Buffer.from(name, 'utf8').toString('base64').replace(/[=+/]/g, '').substring(0, 8);
+      namePart = base64Name.toLowerCase();
+    } else {
+      // 英文名称直接转换
+      namePart = name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    }
+  }
+  
   const categoryPart = category || "general";
   const subCategoryPart = subCategory
     ? `_${subCategory.toLowerCase().replace(/\s+/g, "_")}`
