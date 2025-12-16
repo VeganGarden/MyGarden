@@ -179,6 +179,47 @@ export const factorManageAPI = {
   },
 
   /**
+   * 搜索因子（用于智能联想）
+   */
+  search: async (keyword: string, limit = 10) => {
+    if (!keyword || keyword.trim().length === 0) {
+      return {
+        success: true,
+        data: [],
+      }
+    }
+    
+    try {
+      const result = await callCloudFunction('carbon-factor-manage', {
+        action: 'list',
+        keyword: keyword.trim(),
+        status: 'active',
+        page: 1,
+        pageSize: limit,
+      })
+      
+      if (result && result.code === 0) {
+        return {
+          success: true,
+          data: result.data || [],
+        }
+      }
+      
+      return {
+        success: false,
+        error: result?.message || '搜索失败',
+        data: [],
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || '搜索失败',
+        data: [],
+      }
+    }
+  },
+
+  /**
    * 批量导入
    */
   batchImport: async (factors: FactorFormData[]): Promise<FactorImportResult> => {
