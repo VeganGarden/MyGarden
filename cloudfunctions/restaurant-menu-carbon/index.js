@@ -25,6 +25,8 @@ exports.main = async (event, context) => {
         return await calculateMenuItemCarbon(data, context);
       case 'recalculateMenuItems':
         return await recalculateMenuItems(data, context);
+      case 'getCarbonFactors':
+        return await getCarbonFactors(data, context);
       default:
         return {
           code: 400,
@@ -284,6 +286,190 @@ function getDefaultBaseline(mealType) {
     meat_full: 7.5     // 肉食正餐
   };
   return defaultBaselines[mealType] || 5.0;
+}
+
+/**
+ * 获取碳排放因子（多级匹配算法）
+ * 
+ * 根据方案文档实现四级匹配策略：
+ * Level 1: 精确区域匹配 (Exact Region Match)
+ * Level 2: 国家级匹配 (National Fallback)
+ * Level 3: 别名/模糊匹配 (Alias/Fuzzy Match)
+ * Level 4: 类别兜底 (Category Fallback)
+ * 
+ * @param {Object} data - 请求数据
+ * @param {Array} data.items - 食材列表，每个元素包含 { name, category }
+ * @param {string} data.region - 餐厅区域代码，如 "CN-East", "CN"
+ */
+async function getCarbonFactors(data, context) {
+  try {
+    if (!data.items || !Array.isArray(data.items)) {
+      return {
+        code: 400,
+        message: '缺少必填字段：items（数组）'
+      };
+    }
+
+    if (!data.region) {
+      return {
+        code: 400,
+        message: '缺少必填字段：region'
+      };
+    }
+
+    const results = [];
+
+    for (const item of data.items) {
+      const { name, category } = item;
+      if (!name) {
+        results.push({
+          input: name || 'unknown',
+          success: false,
+          error: '食材名称不能为空'
+        });
+        continue;
+      }
+
+      try {
+        const factor = await matchFactor(name, category, data.region);
+        results.push({
+          input: name,
+          factorId: factor?.factorId || null,
+          value: factor?.factorValue || null,
+          unit: factor?.unit || null,
+          source: factor?.source || null,
+          matchLevel: factor?.matchLevel || 'not_found',
+          success: factor !== null
+        });
+      } catch (error) {
+        console.error(`匹配因子失败 ${name}:`, error);
+        results.push({
+          input: name,
+          success: false,
+          error: error.message,
+          matchLevel: 'error'
+        });
+      }
+    }
+
+    return {
+      code: 0,
+      message: '匹配完成',
+      data: {
+        results: results
+      }
+    };
+  } catch (error) {
+    console.error('获取碳排放因子失败:', error);
+    return {
+      code: 500,
+      message: '获取因子失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 匹配因子（多级匹配算法）
+ */
+async function matchFactor(inputName, category, restaurantRegion) {
+  // Level 1: 精确区域匹配 (Exact Region Match)
+  // 查询条件：name == inputName AND region == restaurantRegion AND status == 'active'
+  let factor = await db.collection('carbon_emission_factors')
+    .where({
+      name: inputName,
+      region: restaurantRegion,
+      status: 'active'
+    })
+    .get();
+
+  if (factor.data.length > 0) {
+    return {
+      ...factor.data[0],
+      matchLevel: 'exact_region'
+    };
+  }
+
+  // Level 2: 国家级匹配 (National Fallback)
+  // 查询条件：name == inputName AND region == "CN" AND status == 'active'
+  factor = await db.collection('carbon_emission_factors')
+    .where({
+      name: inputName,
+      region: 'CN',
+      status: 'active'
+    })
+    .get();
+
+  if (factor.data.length > 0) {
+    return {
+      ...factor.data[0],
+      matchLevel: 'national_fallback'
+    };
+  }
+
+  // Level 3: 别名/模糊匹配 (Alias/Fuzzy Match)
+  // 查询条件：alias contains inputName AND status == 'active'
+  // 注意：MongoDB不支持数组直接包含查询，需要使用正则表达式
+  const aliasMatch = await db.collection('carbon_emission_factors')
+    .where({
+      alias: db.RegExp({
+        regexp: inputName,
+        options: 'i'
+      }),
+      status: 'active'
+    })
+    .get();
+
+  if (aliasMatch.data.length > 0) {
+    // 找到第一个匹配的因子
+    const matchedFactor = aliasMatch.data.find(f => 
+      f.alias && f.alias.some(alias => 
+        alias.toLowerCase() === inputName.toLowerCase()
+      )
+    ) || aliasMatch.data[0];
+
+    return {
+      ...matchedFactor,
+      matchLevel: 'alias_fuzzy_match'
+    };
+  }
+
+  // Level 4: 类别兜底 (Category Fallback)
+  // 根据品类使用行业通用平均值
+  if (category) {
+    const categoryMap = {
+      'meat': 'meat',
+      'vegetable': 'vegetable',
+      'grain': 'grain',
+      'fruit': 'fruit',
+      'dairy': 'dairy',
+      'seafood': 'seafood'
+    };
+
+    const mappedCategory = categoryMap[category] || category;
+
+    // 查询该类别下的通用因子（subCategory为'general'或包含'general'）
+    const categoryFactor = await db.collection('carbon_emission_factors')
+      .where({
+        category: 'ingredient',
+        subCategory: mappedCategory,
+        region: _.or(['CN', restaurantRegion]),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (categoryFactor.data.length > 0) {
+      return {
+        ...categoryFactor.data[0],
+        matchLevel: 'category_fallback'
+      };
+    }
+  }
+
+  // 如果所有级别都未匹配到，返回null
+  return null;
 }
 
 /**
