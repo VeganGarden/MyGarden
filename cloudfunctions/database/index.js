@@ -21,6 +21,7 @@ const { main: initFactorDataFromAuthoritativeSources } = require('./init-factor-
 const { main: initFactorsFromExistingIngredients } = require('./init-factors-from-existing-ingredients');
 const { main: checkDuplicateFactors } = require('./check-duplicate-factors');
 const { main: fixDuplicateFactors } = require('./fix-duplicate-factors');
+const { main: migrateFactorsIntegration } = require('./migrate-factors-integration');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -137,6 +138,8 @@ exports.main = async (event) => {
         return await checkDuplicateFactors(event);
       case 'fixDuplicateFactors':
         return await fixDuplicateFactors(event);
+      case 'migrateFactorsIntegration':
+        return await migrateFactorsIntegration(event);
       case 'initVegetarianPersonnelCollections':
         const { main: initVegetarianPersonnelCollections } = require('./init-vegetarian-personnel-collections');
         return await initVegetarianPersonnelCollections(event);
