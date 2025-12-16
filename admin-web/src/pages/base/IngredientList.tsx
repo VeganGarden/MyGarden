@@ -256,20 +256,19 @@ const IngredientList: React.FC = () => {
       width: 120,
     },
     {
-      title: '碳系数 (kg CO₂e/kg)',
-      dataIndex: ['carbonFootprint', 'coefficient'],
-      key: 'carbonCoefficient',
-      width: 140,
-      render: (coefficient: number) => {
-        if (coefficient === undefined || coefficient === null) {
-          return <span style={{ color: '#999' }}>-</span>
-        }
-        return coefficient.toFixed(2)
-      },
-      sorter: (a, b) => {
-        const aCoeff = a.carbonFootprint?.coefficient || 0
-        const bCoeff = b.carbonFootprint?.coefficient || 0
-        return aCoeff - bCoeff
+      title: '碳排放因子',
+      key: 'carbonFactor',
+      width: 120,
+      render: (_: any, record: BaseIngredient) => {
+        return (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => navigate(`/carbon/factors?search=${encodeURIComponent(record.name)}`)}
+          >
+            查看因子
+          </Button>
+        )
       },
     },
     {
