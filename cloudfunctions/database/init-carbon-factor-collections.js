@@ -17,30 +17,17 @@ const db = cloud.database();
  */
 async function createCarbonEmissionFactorsCollection() {
   try {
-    // 尝试创建一个文档来初始化集合（如果集合不存在，会自动创建）
-    await db.collection('carbon_emission_factors').add({
-      data: {
-        _init: true,
-        createdAt: new Date()
-      }
-    }).catch(async (err) => {
-      // 如果已存在，删除初始化文档
-      if (err.errCode === -502002) {
-        // 集合已存在，尝试查找并删除初始化文档
-        const initDoc = await db.collection('carbon_emission_factors')
-          .where({ _init: true })
-          .get();
-        if (initDoc.data.length > 0) {
-          await db.collection('carbon_emission_factors')
-            .doc(initDoc.data[0]._id)
-            .remove();
-        }
-      }
-    });
-    
+    // 使用 db.createCollection() 创建集合（与其他初始化脚本一致）
+    await db.createCollection('carbon_emission_factors');
     console.log('✅ carbon_emission_factors 集合创建成功');
     return { collection: 'carbon_emission_factors', status: 'success' };
   } catch (error) {
+    // 如果集合已存在，不算错误
+    if (error.message && error.message.includes('already exists')) {
+      console.log('ℹ️  carbon_emission_factors 集合已存在，跳过创建');
+      return { collection: 'carbon_emission_factors', status: 'exists', message: '集合已存在' };
+    }
+    
     console.error('❌ carbon_emission_factors 集合创建失败:', error);
     return { collection: 'carbon_emission_factors', status: 'failed', error: error.message };
   }

@@ -590,31 +590,17 @@ async function batchImportFactors(factors, openid) {
  * 初始化示例数据
  */
 async function initSampleData(openid) {
-  // 先确保集合存在（通过添加一个临时文档来创建集合）
+  // 先确保集合存在（使用 createCollection 方法）
   try {
-    const tempResult = await db.collection('carbon_emission_factors').add({
-      data: {
-        _init: true,
-        createdAt: new Date()
-      }
-    });
-    // 创建成功后，删除临时文档
-    if (tempResult._id) {
-      await db.collection('carbon_emission_factors').doc(tempResult._id).remove();
-    }
+    await db.createCollection('carbon_emission_factors');
+    console.log('✅ carbon_emission_factors 集合创建成功');
   } catch (error) {
-    // 如果已存在初始化文档，删除它
-    try {
-      const initDocs = await db.collection('carbon_emission_factors')
-        .where({ _init: true })
-        .get();
-      if (initDocs.data.length > 0) {
-        for (const doc of initDocs.data) {
-          await db.collection('carbon_emission_factors').doc(doc._id).remove();
-        }
-      }
-    } catch (cleanError) {
-      console.log('清理临时文档失败:', cleanError.message);
+    // 如果集合已存在，继续执行
+    if (error.message && error.message.includes('already exists')) {
+      console.log('ℹ️  carbon_emission_factors 集合已存在');
+    } else {
+      console.log('⚠️  集合创建检查失败:', error.message);
+      // 继续尝试插入数据，如果集合存在应该能成功
     }
   }
   
