@@ -26,7 +26,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const { Search } = Input
 const { Option } = Select
@@ -34,6 +34,7 @@ const { Option } = Select
 const FactorLibrary: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(false)
   const [dataSource, setDataSource] = useState<CarbonEmissionFactor[]>([])
   const [pagination, setPagination] = useState({
@@ -41,10 +42,22 @@ const FactorLibrary: React.FC = () => {
     pageSize: 20,
     total: 0,
   })
+  
+  // 从URL查询参数中读取keyword
+  const getKeywordFromUrl = () => {
+    const params = new URLSearchParams(location.search)
+    return params.get('keyword') || undefined
+  }
+  
+  const initialKeyword = getKeywordFromUrl()
   const [filters, setFilters] = useState<FactorQueryParams>({
     page: 1,
     pageSize: 20,
+    keyword: initialKeyword,
   })
+  
+  // 搜索框的值（用于显示）
+  const [searchValue, setSearchValue] = useState(initialKeyword || '')
 
   // 获取列表数据
   const fetchData = async () => {
@@ -90,12 +103,26 @@ const FactorLibrary: React.FC = () => {
 
   // 处理搜索
   const handleSearch = (value: string) => {
+    setSearchValue(value)
     setFilters({
       ...filters,
       keyword: value || undefined,
     })
     setPagination({ ...pagination, current: 1 })
   }
+  
+  // 当URL查询参数变化时，更新搜索框和筛选条件
+  useEffect(() => {
+    const keywordFromUrl = getKeywordFromUrl()
+    if (keywordFromUrl !== filters.keyword) {
+      setSearchValue(keywordFromUrl || '')
+      setFilters({
+        ...filters,
+        keyword: keywordFromUrl,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search])
 
   // 处理归档/激活
   const handleArchive = async (record: CarbonEmissionFactor) => {
@@ -344,6 +371,8 @@ const FactorLibrary: React.FC = () => {
           <Search
             placeholder={t('pages.carbon.factorLibrary.filters.search')}
             allowClear
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             onSearch={handleSearch}
             style={{ width: 300 }}
           />

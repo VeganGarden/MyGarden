@@ -264,7 +264,7 @@ const IngredientList: React.FC = () => {
           <Button
             type="link"
             size="small"
-            onClick={() => navigate(`/carbon/factors?search=${encodeURIComponent(record.name)}`)}
+            onClick={() => navigate(`/carbon/factor-library?keyword=${encodeURIComponent(record.name)}`)}
           >
             查看因子
           </Button>
