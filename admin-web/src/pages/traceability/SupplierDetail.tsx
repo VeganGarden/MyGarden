@@ -6,8 +6,9 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
-import { Card, Descriptions, Tag, Button, Space, Tabs, Table, message } from 'antd'
-import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Tag, Button, Space, Tabs, Table, message, Modal, Popconfirm } from 'antd'
+import { ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useAppSelector } from '@/store/hooks'
 import { supplierAPI } from '@/services/traceability'
 import type { Supplier } from '@/types/traceability'
 import { SupplierType, SupplierAuditStatus, RiskLevel, CooperationStatus } from '@/types/traceability'
@@ -18,6 +19,13 @@ const SupplierDetailPage: React.FC = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [supplier, setSupplier] = useState<Supplier | null>(null)
+  
+  // 从Redux获取租户和餐厅信息
+  const { currentTenant, restaurants } = useAppSelector((state: any) => state.tenant)
+  const { user } = useAppSelector((state: any) => state.auth)
+  
+  // 判断是否为餐厅管理员（可以编辑餐厅关联）
+  const isRestaurantAdmin = user?.role === 'restaurant_admin'
 
   useEffect(() => {
     if (id) {
@@ -29,7 +37,8 @@ const SupplierDetailPage: React.FC = () => {
     if (!id) return
     setLoading(true)
     try {
-      const result = await supplierAPI.get(id, 'default') // 实际应从用户信息获取tenantId
+      const tenantId = currentTenant?.id || user?.tenantId || 'default'
+      const result = await supplierAPI.get(id, tenantId)
       if (result.success && result.data) {
         setSupplier(result.data)
       } else {
@@ -41,6 +50,28 @@ const SupplierDetailPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 移除餐厅关联
+  const handleRemoveRestaurant = async (restaurantId: string) => {
+    if (!id || !supplier) return
+    try {
+      const result = await supplierAPI.removeRestaurant(id, supplier.tenantId, restaurantId)
+      if (result.success) {
+        message.success('移除餐厅关联成功')
+        loadData() // 重新加载数据
+      } else {
+        message.error(result.error || '移除餐厅关联失败')
+      }
+    } catch (error: any) {
+      message.error(error.message || t('common.networkError'))
+    }
+  }
+
+  // 获取餐厅名称
+  const getRestaurantName = (restaurantId: string) => {
+    const restaurant = restaurants.find((r: any) => r.id === restaurantId)
+    return restaurant?.name || restaurantId
   }
 
   if (!supplier) {
@@ -181,6 +212,55 @@ const SupplierDetailPage: React.FC = () => {
           <Descriptions.Item label={t('pages.traceability.supplierDetail.cooperation.fields.totalOrders')}>{supplier.cooperation.totalOrders}</Descriptions.Item>
           <Descriptions.Item label={t('pages.traceability.supplierDetail.cooperation.fields.totalAmount')}>{supplier.cooperation.totalAmount.toFixed(2)} {t('common.yuan')}</Descriptions.Item>
         </Descriptions>
+      )
+    },
+    {
+      key: 'restaurants',
+      label: '合作餐厅',
+      children: (
+        <Table
+          columns={[
+            {
+              title: '餐厅名称',
+              dataIndex: 'restaurantId',
+              key: 'restaurantId',
+              render: (restaurantId: string) => getRestaurantName(restaurantId)
+            },
+            {
+              title: '操作',
+              key: 'action',
+              width: 120,
+              render: (_: any, record: { restaurantId: string }) => (
+                isRestaurantAdmin ? (
+                  <Popconfirm
+                    title="确定要移除该餐厅关联吗？"
+                    onConfirm={() => handleRemoveRestaurant(record.restaurantId)}
+                    okText="确定"
+                    cancelText="取消"
+                  >
+                    <Button
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                    >
+                      移除
+                    </Button>
+                  </Popconfirm>
+                ) : (
+                  <span style={{ color: '#999' }}>仅查看</span>
+                )
+              )
+            }
+          ]}
+          dataSource={supplier.cooperation?.restaurantIds?.map((restaurantId) => ({
+            key: restaurantId,
+            restaurantId
+          })) || []}
+          pagination={false}
+          locale={{
+            emptyText: '暂无合作餐厅'
+          }}
+        />
       )
     },
     {

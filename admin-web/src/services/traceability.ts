@@ -2,19 +2,19 @@
  * 供应链溯源系统 API 服务
  */
 
-import { callCloudFunction } from './cloudbase'
 import type {
-  Supplier,
   IngredientLot,
-  TraceChain,
-  SupplierQueryParams,
-  IngredientLotQueryParams,
-  TraceChainQueryParams,
-  SupplierFormData,
   IngredientLotFormData,
+  IngredientLotQueryParams,
+  PaginatedResponse,
+  Supplier,
+  SupplierFormData,
+  SupplierQueryParams,
+  TraceChain,
   TraceChainFormData,
-  PaginatedResponse
-} from '@/types/traceability'
+  TraceChainQueryParams
+} from '@/types/traceability';
+import { callCloudFunction } from './cloudbase';
 
 /**
  * 供应商管理 API
@@ -176,6 +176,75 @@ export const supplierAPI = {
     return {
       success: false,
       error: result.message || '删除失败'
+    }
+  },
+
+  /**
+   * 添加餐厅关联
+   */
+  addRestaurant: async (supplierId: string, tenantId: string, restaurantId: string) => {
+    const result = await callCloudFunction('supplier-manage', {
+      action: 'addRestaurant',
+      supplierId,
+      tenantId,
+      restaurantId
+    })
+    if (result.code === 0) {
+      return {
+        success: true,
+        data: result.data,
+        message: result.message || '添加餐厅关联成功'
+      }
+    }
+    return {
+      success: false,
+      error: result.message || '添加餐厅关联失败'
+    }
+  },
+
+  /**
+   * 移除餐厅关联
+   */
+  removeRestaurant: async (supplierId: string, tenantId: string, restaurantId: string) => {
+    const result = await callCloudFunction('supplier-manage', {
+      action: 'removeRestaurant',
+      supplierId,
+      tenantId,
+      restaurantId
+    })
+    if (result.code === 0) {
+      return {
+        success: true,
+        data: result.data,
+        message: result.message || '移除餐厅关联成功'
+      }
+    }
+    return {
+      success: false,
+      error: result.message || '移除餐厅关联失败'
+    }
+  },
+
+  /**
+   * 批量更新餐厅关联
+   */
+  updateRestaurants: async (supplierId: string, tenantId: string, restaurantIds: string[]) => {
+    const result = await callCloudFunction('supplier-manage', {
+      action: 'updateRestaurants',
+      supplierId,
+      tenantId,
+      restaurantIds
+    })
+    if (result.code === 0) {
+      return {
+        success: true,
+        data: result.data,
+        message: result.message || '更新餐厅关联成功'
+      }
+    }
+    return {
+      success: false,
+      error: result.message || '更新餐厅关联失败'
     }
   }
 }

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Button, Card, Input, Select, Table, Space, Tag, message, Modal } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, AuditOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { useAppSelector } from '@/store/hooks'
 import { supplierAPI } from '@/services/traceability'
 import type { Supplier, SupplierQueryParams } from '@/types/traceability'
 import { SupplierType, SupplierAuditStatus, RiskLevel } from '@/types/traceability'
@@ -16,6 +17,11 @@ const { Search } = Input
 const SupplierPage: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  
+  // 从Redux store获取当前选中的餐厅ID（Header中的RestaurantSwitcher控制）
+  const { currentRestaurantId, currentTenant } = useAppSelector((state: any) => state.tenant)
+  const { user } = useAppSelector((state: any) => state.auth)
+  
   const [loading, setLoading] = useState(false)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [pagination, setPagination] = useState({
@@ -27,7 +33,8 @@ const SupplierPage: React.FC = () => {
   const [queryParams, setQueryParams] = useState<SupplierQueryParams>({
     page: 1,
     pageSize: 20,
-    tenantId: 'default' // 实际应从用户信息获取
+    tenantId: currentTenant?.id || user?.tenantId || 'default',
+    restaurantId: currentRestaurantId || undefined // 从Header的RestaurantSwitcher获取
   })
 
   // 加载数据
@@ -68,9 +75,19 @@ const SupplierPage: React.FC = () => {
     }
   }
 
+  // 当queryParams变化时，重新加载数据
   useEffect(() => {
     loadData()
   }, [queryParams])
+
+  // 当Header中的餐厅切换时，更新queryParams并重新加载
+  useEffect(() => {
+    setQueryParams(prev => ({
+      ...prev,
+      restaurantId: currentRestaurantId || undefined,
+      page: 1 // 切换餐厅时重置到第一页
+    }))
+  }, [currentRestaurantId])
 
   // 删除确认
   const handleDelete = (supplier: Supplier) => {

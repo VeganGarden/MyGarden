@@ -2,14 +2,16 @@
  * 供应商编辑页
  */
 
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { Card, Form, Input, Select, Button, Space, message, Row, Col } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import RestaurantSelector from '@/components/traceability/RestaurantSelector'
 import { supplierAPI } from '@/services/traceability'
+import { useAppSelector } from '@/store/hooks'
 import type { Supplier, SupplierFormData } from '@/types/traceability'
-import { SupplierType, RiskLevel } from '@/types/traceability'
+import { RiskLevel, SupplierType } from '@/types/traceability'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Button, Card, Col, Form, Input, Row, Select, Space, message } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const SupplierEditPage: React.FC = () => {
   const { t } = useTranslation()
@@ -18,6 +20,10 @@ const SupplierEditPage: React.FC = () => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [supplier, setSupplier] = useState<Supplier | null>(null)
+  
+  // 从Redux获取租户信息
+  const { currentTenant } = useAppSelector((state: any) => state.tenant)
+  const { user } = useAppSelector((state: any) => state.auth)
 
   useEffect(() => {
     if (id) {
@@ -29,7 +35,8 @@ const SupplierEditPage: React.FC = () => {
     if (!id) return
     setLoading(true)
     try {
-      const result = await supplierAPI.get(id, 'default')
+      const tenantId = currentTenant?.id || user?.tenantId || 'default'
+      const result = await supplierAPI.get(id, tenantId)
       if (result.success && result.data) {
         setSupplier(result.data)
         form.setFieldsValue({
@@ -46,7 +53,8 @@ const SupplierEditPage: React.FC = () => {
           riskLevel: result.data.businessInfo?.riskLevel,
           businessScope: result.data.businessInfo?.businessScope,
           annualCapacity: result.data.businessInfo?.annualCapacity,
-          mainProducts: result.data.businessInfo?.mainProducts?.join(', ')
+          mainProducts: result.data.businessInfo?.mainProducts?.join(', '),
+          restaurantIds: result.data.cooperation?.restaurantIds || []
         })
       } else {
         message.error(result.error || t('pages.traceability.supplierEdit.messages.loadFailed'))
@@ -83,15 +91,32 @@ const SupplierEditPage: React.FC = () => {
           businessScope: values.businessScope,
           annualCapacity: values.annualCapacity,
           mainProducts: values.mainProducts ? values.mainProducts.split(',').map((s: string) => s.trim()) : []
+        },
+        cooperation: {
+          restaurantIds: values.restaurantIds || []
         }
       }
 
-      const result = await supplierAPI.update(id, supplier.tenantId, formData)
-      if (result.success) {
+      // 先更新供应商基本信息
+      const updateResult = await supplierAPI.update(id, supplier.tenantId, formData)
+      
+      // 然后更新餐厅关联（使用批量更新接口）
+      if (values.restaurantIds && Array.isArray(values.restaurantIds)) {
+        const restaurantResult = await supplierAPI.updateRestaurants(
+          id,
+          supplier.tenantId,
+          values.restaurantIds
+        )
+        if (!restaurantResult.success) {
+          message.warning('供应商信息已更新，但餐厅关联更新失败：' + restaurantResult.error)
+        }
+      }
+
+      if (updateResult.success) {
         message.success(t('pages.traceability.supplierEdit.messages.updateSuccess'))
         navigate(`/traceability/suppliers/${id}`)
       } else {
-        message.error(result.error || t('pages.traceability.supplierEdit.messages.updateFailed'))
+        message.error(updateResult.error || t('pages.traceability.supplierEdit.messages.updateFailed'))
       }
     } catch (error: any) {
       message.error(error.message || t('common.networkError'))
@@ -216,6 +241,14 @@ const SupplierEditPage: React.FC = () => {
 
         <Form.Item name="mainProducts" label={t('pages.traceability.supplierAdd.fields.mainProducts')}>
           <Input placeholder={t('pages.traceability.supplierAdd.placeholders.mainProducts')} />
+        </Form.Item>
+
+        <Form.Item
+          name="restaurantIds"
+          label="合作餐厅"
+          tooltip="选择与该供应商合作的餐厅，可多选"
+        >
+          <RestaurantSelector placeholder="请选择合作餐厅" />
         </Form.Item>
 
         <Form.Item>

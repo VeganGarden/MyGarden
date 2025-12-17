@@ -330,6 +330,7 @@ export interface SupplierQueryParams {
   status?: SupplierAuditStatus
   riskLevel?: RiskLevel
   tenantId?: string
+  restaurantId?: string // 按餐厅筛选（从Header的RestaurantSwitcher获取）
 }
 
 export interface IngredientLotQueryParams {
@@ -363,6 +364,9 @@ export interface SupplierFormData {
   contact: Supplier['contact']
   certifications?: Supplier['certifications']
   businessInfo: Supplier['businessInfo']
+  cooperation?: {
+    restaurantIds: string[]
+  }
 }
 
 export interface IngredientLotFormData {
