@@ -7,6 +7,7 @@ const _ = db.command;
 const { insertRestaurantTestData } = require('./insert-restaurant-test-data');
 const { main: insertCarbonTestData } = require('./insert-carbon-test-data');
 const { main: migrateCarbonCalculationV1 } = require('./migrate-carbon-calculation-v1');
+const { main: migrateCarbonCalculationV2 } = require('./migrate-carbon-calculation-v2');
 const { main: migrateRecalculateCarbonV1 } = require('./migrate-recalculate-carbon-v1');
 const { main: migrateRecipesAddIsBaseRecipe } = require('./migrate-recipes-add-isbaserecipe')
 const { main: migrateMeatProductsAddFields } = require('./migrate-meat-products-add-fields');
@@ -50,6 +51,7 @@ const { main: verifyFactorsMigration } = require('./verify-factors-migration');
  * - initFactorDataFromJSON: 从JSON格式导入因子数据（从权威数据源）
  * - initFactorDataFromCSV: 从CSV格式导入因子数据（从权威数据源）
  * - migrate-carbon-calculation-v1: 迁移数据库结构（添加地区、餐食类型等字段）
+ * - migrate-carbon-calculation-v2: 迁移数据库结构（添加计算级别、因子匹配信息等字段）
  * - migrate-recalculate-carbon-v1: 批量重新计算现有菜谱碳足迹
  * - migrate-recipes-add-isbaserecipe: 为所有已有食谱添加 isBaseRecipe 字段（默认值：true）
  * - migrate-meat-products-add-fields: 为 meat_products 集合补充系统字段（status, createdBy, createdAt, updatedAt, version）
@@ -109,6 +111,8 @@ exports.main = async (event) => {
         return await insertCarbonTestData(event);
       case 'migrate-carbon-calculation-v1':
         return await migrateCarbonCalculationV1(event);
+      case 'migrate-carbon-calculation-v2':
+        return await migrateCarbonCalculationV2(event);
       case 'migrate-recalculate-carbon-v1':
         return await migrateRecalculateCarbonV1(event);
       case 'migrate-recipes-add-isbaserecipe':

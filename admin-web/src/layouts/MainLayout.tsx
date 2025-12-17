@@ -307,10 +307,6 @@ const MainLayout: React.FC = () => {
                 label: t('menu.recipeList'),
               },
               {
-                key: '/recipe/create',
-                label: t('menu.recipeCreate'),
-              },
-              {
                 key: '/recipe/categories',
                 label: t('menu.recipeCategories'),
               },

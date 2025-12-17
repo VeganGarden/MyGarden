@@ -164,8 +164,8 @@ export const callCloudFunction = async (
  */
 export const recipeAPI = {
   // 创建菜谱（租户隔离）
-  create: (recipe: any) =>
-    callCloudFunction('recipe', { action: 'create', recipe }),
+  create: (recipe: any, restaurantId?: string) =>
+    callCloudFunction('recipe', { action: 'create', recipe, restaurantId: restaurantId || recipe.restaurantId }),
 
   // 更新菜谱（租户隔离）
   update: (recipeId: string, recipe: any) =>
@@ -922,6 +922,15 @@ export const tenantAPI = {
       isAvailable?: boolean
       nutrition?: any
       tags?: any
+      mealType?: 'meat_simple' | 'meat_full'
+      energyType?: 'electric' | 'gas' | 'mixed'
+      calculationLevel?: 'L1' | 'L2' | 'L3'
+      restaurantRegion?: string
+      cookingTime?: number
+      cookingMethod?: string
+      carbonFootprint?: any
+      baselineInfo?: any
+      factorMatchInfo?: any[]
     }
   }) =>
     callCloudFunction('tenant', {

@@ -698,6 +698,23 @@ const RestaurantList: React.FC = () => {
           <Form.Item name="address" label={t('pages.platform.restaurantList.form.fields.address')} rules={[{ required: true, message: t('pages.platform.restaurantList.form.messages.addressRequired') }]}>
             <Input.TextArea rows={2} placeholder={t('pages.platform.restaurantList.form.placeholders.address')} />
           </Form.Item>
+          <Form.Item 
+            name="region" 
+            label="地区" 
+            rules={[{ required: true, message: '请选择餐厅所在地区' }]}
+            tooltip="地区用于碳足迹计算时的因子匹配和基准值查询"
+          >
+            <Select placeholder="请选择地区">
+              <Select.Option value="north_china">华北区域</Select.Option>
+              <Select.Option value="northeast">东北区域</Select.Option>
+              <Select.Option value="east_china">华东区域</Select.Option>
+              <Select.Option value="central_china">华中区域</Select.Option>
+              <Select.Option value="south_china">华南区域</Select.Option>
+              <Select.Option value="northwest">西北区域</Select.Option>
+              <Select.Option value="southwest">西南区域</Select.Option>
+              <Select.Option value="national_average">全国平均</Select.Option>
+            </Select>
+          </Form.Item>
           <Form.Item name="status" label={t('pages.platform.restaurantList.form.fields.status')}>
             <Select placeholder={t('pages.platform.restaurantList.form.placeholders.status')}>
               <Select.Option value="active">{t('pages.platform.restaurantList.status.active')}</Select.Option>

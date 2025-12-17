@@ -175,9 +175,9 @@
     "reportESG": "ESG报告",
     "reportDashboard": "数据看板",
     "recipe": "菜谱管理",
-    "recipeList": "菜谱列表",
-    "recipeCreate": "创建菜谱",
-    "recipeCategories": "分类管理",
+    "recipeList": "餐厅菜谱列表",
+    "recipeCreate": "创建餐厅菜谱",
+    "recipeCategories": "菜谱分类",
     "platform": "平台管理",
     "platformTenants": "租户列表管理",
     "platformRestaurants": "餐厅列表管理",
@@ -895,7 +895,7 @@
     },
     "recipe": {
       "list": {
-        "title": "菜谱列表",
+        "title": "餐厅菜谱列表",
         "buttons": {
           "search": "搜索",
           "create": "创建新菜谱"
@@ -965,7 +965,7 @@
         }
       },
       "create": {
-        "title": "创建菜谱",
+        "title": "创建餐厅菜谱",
         "fields": {
           "name": "菜谱名称",
           "description": "描述",
@@ -1075,7 +1075,7 @@
         }
       },
       "categories": {
-        "title": "菜谱分类管理",
+        "title": "菜谱分类",
         "buttons": {
           "add": "添加分类",
           "edit": "编辑",

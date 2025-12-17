@@ -406,16 +406,16 @@ async function compareWithMeat(event) {
       try {
         // 从因子库查询因子
         const factor = await matchFactor(item.name, null, 'CN');
-        
+      
         if (factor && factor.factorValue !== null && factor.factorValue !== undefined) {
           const carbon = factor.factorValue * (item.amount / 1000);
-          veganCarbon += carbon;
-          veganDetails.push({
-            name: item.name,
-            amount: item.amount,
+        veganCarbon += carbon;
+        veganDetails.push({
+          name: item.name,
+          amount: item.amount,
             carbonFootprint: factor.factorValue,
-            carbon: carbon
-          });
+          carbon: carbon
+        });
         } else {
           console.warn(`无法匹配因子: ${item.name}`);
         }
@@ -432,21 +432,21 @@ async function compareWithMeat(event) {
       try {
         // 从因子库查询因子（优先匹配meat类别）
         let factor = await matchFactor(item.name, 'meat', 'CN');
-        
+      
         // 如果没找到，尝试不指定类别
         if (!factor || factor.factorValue === null || factor.factorValue === undefined) {
           factor = await matchFactor(item.name, null, 'CN');
-        }
-        
+      }
+      
         if (factor && factor.factorValue !== null && factor.factorValue !== undefined) {
           const carbon = factor.factorValue * (item.amount / 1000);
-          meatCarbon += carbon;
-          meatDetails.push({
-            name: item.name,
-            amount: item.amount,
+        meatCarbon += carbon;
+        meatDetails.push({
+          name: item.name,
+          amount: item.amount,
             carbonFootprint: factor.factorValue,
-            carbon: carbon
-          });
+          carbon: carbon
+        });
         } else {
           console.warn(`无法匹配因子: ${item.name}`);
         }

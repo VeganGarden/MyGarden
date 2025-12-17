@@ -6,7 +6,6 @@ import RouteGuard from './components/RouteGuard'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
 import RecipeCategories from './pages/recipe/Categories'
-import RecipeCreate from './pages/recipe/Create'
 import RecipeDetail from './pages/recipe/Detail'
 import RecipeEdit from './pages/recipe/Edit'
 import RecipeList from './pages/recipe/List'
@@ -459,14 +458,6 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['restaurant_admin']}>
                 <RecipeList />
-              </RouteGuard>
-            } 
-          />
-          <Route 
-            path="recipe/create" 
-            element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
-                <RecipeCreate />
               </RouteGuard>
             } 
           />
