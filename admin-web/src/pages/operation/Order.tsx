@@ -1,12 +1,15 @@
 import { operationAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import { DownloadOutlined, EyeOutlined } from '@ant-design/icons'
-import { Button, Card, Col, DatePicker, Input, Row, Select, Space, Statistic, Table, Tag, message } from 'antd'
+import { Column, Line } from '@ant-design/charts'
+import { Button, Card, Col, DatePicker, Input, Row, Select, Space, Statistic, Table, Tag, message, Tabs } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
+const { TabPane } = Tabs
 
 interface Order {
   id: string
@@ -18,27 +21,67 @@ interface Order {
   status: 'pending' | 'processing' | 'completed' | 'cancelled'
 }
 
+interface OrderStats {
+  totalOrders: number
+  completedOrders: number
+  totalRevenue: number
+  totalCarbonReduction: number
+  avgOrderValue: number
+  completionRate: number
+  dailyStats: Array<{
+    date: string
+    orderCount: number
+    revenue: number
+    carbonReduction: number
+  }>
+  statusStats: Record<string, number>
+}
+
 const OperationOrder: React.FC = () => {
   const { t } = useTranslation()
   const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   const [dataSource, setDataSource] = useState<Order[]>([])
+  const [stats, setStats] = useState<OrderStats | null>(null)
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+  const [keyword, setKeyword] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>('list')
 
   useEffect(() => {
     fetchOrderData()
-  }, [currentRestaurantId])
+  }, [currentRestaurantId, dateRange, statusFilter])
 
   const fetchOrderData = async () => {
     try {
       if (!currentRestaurantId) {
         setDataSource([])
+        setStats(null)
         return
       }
       
-      const result = await operationAPI.order.list({
+      setLoading(true)
+      const params: any = {
         restaurantId: currentRestaurantId,
-      })
+        includeStats: true,
+      }
+
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        params.startDate = dateRange[0].format('YYYY-MM-DD')
+        params.endDate = dateRange[1].format('YYYY-MM-DD')
+      }
+
+      if (statusFilter) {
+        params.status = statusFilter
+      }
+
+      if (keyword) {
+        params.keyword = keyword
+      }
       
-      if (result && result.code === 0 && result.data) {
+      const result = await operationAPI.order.list(params)
+      
+      if (result && result.code === 0) {
         const orders = Array.isArray(result.data) ? result.data : []
         setDataSource(orders.map((order: any) => ({
           id: order.id || order._id || order.orderNo,
@@ -49,13 +92,21 @@ const OperationOrder: React.FC = () => {
           carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonReduction || 0,
           status: order.status || 'pending',
         })))
-    } else {
+
+        if (result.stats) {
+          setStats(result.stats)
+        }
+      } else {
         setDataSource([])
+        setStats(null)
       }
     } catch (error: any) {
       console.error('获取订单数据失败:', error)
       message.error(error.message || '获取订单数据失败，请稍后重试')
       setDataSource([])
+      setStats(null)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -117,88 +168,161 @@ const OperationOrder: React.FC = () => {
 
   return (
     <div>
-      <Card title={t('pages.operation.order.statistics.title')} style={{ marginBottom: 16 }}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <Statistic 
-              title={t('pages.operation.order.statistics.todayOrders')} 
-              value={dataSource.filter((order) => {
-                const orderDate = new Date(order.orderDate)
-                const today = new Date()
-                return orderDate.toDateString() === today.toDateString()
-              }).length} 
-              suffix={t('pages.operation.order.statistics.unit')} 
-              valueStyle={{ color: '#3f8600' }} 
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic 
-              title={t('pages.operation.order.statistics.todayRevenue')} 
-              value={dataSource
-                .filter((order) => {
-                  const orderDate = new Date(order.orderDate)
-                  const today = new Date()
-                  return orderDate.toDateString() === today.toDateString()
-                })
-                .reduce((sum, order) => sum + order.amount, 0)} 
-              prefix="¥" 
-              valueStyle={{ color: '#1890ff' }} 
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic 
-              title={t('pages.operation.order.statistics.todayCarbonReduction')} 
-              value={dataSource
-                .filter((order) => {
-                  const orderDate = new Date(order.orderDate)
-                  const today = new Date()
-                  return orderDate.toDateString() === today.toDateString()
-                })
-                .reduce((sum, order) => sum + order.carbonFootprint, 0)} 
-              suffix="kg CO₂e" 
-              valueStyle={{ color: '#cf1322' }} 
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic 
-              title={t('pages.operation.order.statistics.avgOrderValue')} 
-              value={dataSource.length > 0 ? (dataSource.reduce((sum, order) => sum + order.amount, 0) / dataSource.length).toFixed(2) : 0} 
-              prefix="¥" 
-              valueStyle={{ color: '#722ed1' }} 
-            />
-          </Col>
-        </Row>
-      </Card>
+      {/* 订单统计概览 */}
+      {stats && (
+        <Card title="订单统计概览" style={{ marginBottom: 16 }}>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Statistic 
+                title="总订单数" 
+                value={stats.totalOrders} 
+                suffix="单" 
+                valueStyle={{ color: '#3f8600' }} 
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic 
+                title="总收入" 
+                value={stats.totalRevenue.toFixed(2)} 
+                prefix="¥" 
+                valueStyle={{ color: '#1890ff' }} 
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic 
+                title="总碳减排" 
+                value={stats.totalCarbonReduction.toFixed(2)} 
+                suffix="kg CO₂e" 
+                valueStyle={{ color: '#cf1322' }} 
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic 
+                title="平均客单价" 
+                value={stats.avgOrderValue.toFixed(2)} 
+                prefix="¥" 
+                valueStyle={{ color: '#722ed1' }} 
+              />
+            </Col>
+          </Row>
+        </Card>
+      )}
 
       <Card
-        title={t('pages.operation.order.title')}
+        title="订单管理"
         extra={
           <Space>
-            <RangePicker />
-            <Button icon={<DownloadOutlined />}>{t('pages.operation.order.buttons.export')}</Button>
+            <RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as any)}
+            />
+            <Button icon={<DownloadOutlined />}>导出</Button>
           </Space>
         }
       >
-        <Space style={{ marginBottom: 16 }}>
-          <Input.Search placeholder={t('pages.operation.order.filters.search')} style={{ width: 300 }} />
-          <Select placeholder={t('pages.operation.order.filters.status')} style={{ width: 150 }} allowClear>
-            <Select.Option value="pending">{t('pages.operation.order.status.pending')}</Select.Option>
-            <Select.Option value="processing">{t('pages.operation.order.status.processing')}</Select.Option>
-            <Select.Option value="completed">{t('pages.operation.order.status.completed')}</Select.Option>
-            <Select.Option value="cancelled">{t('pages.operation.order.status.cancelled')}</Select.Option>
-          </Select>
-        </Space>
+        <Tabs activeKey={activeTab} onChange={setActiveTab}>
+          <TabPane tab="订单列表" key="list">
+            <Space style={{ marginBottom: 16 }}>
+              <Input.Search 
+                placeholder="搜索订单号或客户名称" 
+                style={{ width: 300 }}
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onSearch={fetchOrderData}
+              />
+              <Select 
+                placeholder="订单状态" 
+                style={{ width: 150 }} 
+                allowClear
+                value={statusFilter}
+                onChange={setStatusFilter}
+              >
+                <Select.Option value="pending">待处理</Select.Option>
+                <Select.Option value="processing">处理中</Select.Option>
+                <Select.Option value="completed">已完成</Select.Option>
+                <Select.Option value="cancelled">已取消</Select.Option>
+              </Select>
+            </Space>
 
-        <Table
-          columns={columns}
-          dataSource={dataSource}
-          rowKey="id"
-          pagination={{
-            total: dataSource.length,
-            pageSize: 10,
-            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
-          }}
-        />
+            <Table
+              columns={columns}
+              dataSource={dataSource}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                total: dataSource.length,
+                pageSize: 10,
+                showTotal: (total) => `共 ${total} 条记录`,
+              }}
+            />
+          </TabPane>
+          
+          <TabPane tab="统计分析" key="stats">
+            {stats && (
+              <>
+                <Row gutter={16} style={{ marginBottom: 16 }}>
+                  <Col span={12}>
+                    <Card title="订单趋势">
+                      <Line
+                        data={stats.dailyStats.map((item) => ({
+                          date: item.date,
+                          value: item.orderCount,
+                          type: '订单数',
+                        }))}
+                        xField="date"
+                        yField="value"
+                        height={300}
+                      />
+                    </Card>
+                  </Col>
+                  <Col span={12}>
+                    <Card title="收入趋势">
+                      <Line
+                        data={stats.dailyStats.map((item) => ({
+                          date: item.date,
+                          value: item.revenue,
+                          type: '收入',
+                        }))}
+                        xField="date"
+                        yField="value"
+                        height={300}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Card title="订单状态分布">
+                      <Column
+                        data={Object.entries(stats.statusStats).map(([status, count]) => ({
+                          status,
+                          count,
+                        }))}
+                        xField="status"
+                        yField="count"
+                        height={300}
+                      />
+                    </Card>
+                  </Col>
+                  <Col span={12}>
+                    <Card title="碳减排趋势">
+                      <Line
+                        data={stats.dailyStats.map((item) => ({
+                          date: item.date,
+                          value: item.carbonReduction,
+                          type: '碳减排',
+                        }))}
+                        xField="date"
+                        yField="value"
+                        height={300}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              </>
+            )}
+          </TabPane>
+        </Tabs>
       </Card>
     </div>
   )

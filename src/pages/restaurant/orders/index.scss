@@ -1,0 +1,150 @@
+.restaurant-orders {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 20px;
+
+  .tabs {
+    display: flex;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+
+    .tab {
+      flex: 1;
+      padding: 20px;
+      text-align: center;
+      font-size: 28px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+
+      &.active {
+        color: #4caf50;
+        border-bottom-color: #4caf50;
+        font-weight: bold;
+      }
+    }
+  }
+
+  .orders-list {
+    height: calc(100vh - 100px);
+    padding: 20px;
+  }
+
+  .order-card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .order-no {
+        font-size: 28px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+
+        .status-text {
+          color: #fff;
+          font-size: 24px;
+        }
+      }
+    }
+
+    .order-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .customer-name {
+        font-size: 26px;
+        color: #666;
+      }
+
+      .order-amount {
+        font-size: 32px;
+        font-weight: bold;
+        color: #ff5722;
+      }
+    }
+
+    .order-items {
+      margin-bottom: 16px;
+      padding: 16px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+
+      .item-text {
+        font-size: 24px;
+        color: #666;
+        margin-right: 16px;
+        display: inline-block;
+      }
+    }
+
+    .order-time {
+      margin-bottom: 16px;
+
+      text {
+        font-size: 24px;
+        color: #999;
+      }
+    }
+
+    .order-actions {
+      display: flex;
+      gap: 16px;
+
+      .action-btn {
+        flex: 1;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 26px;
+        border: none;
+
+        &.accept {
+          background-color: #4caf50;
+          color: #fff;
+        }
+
+        &.reject {
+          background-color: #f44336;
+          color: #fff;
+        }
+
+        &.preparing {
+          background-color: #2196f3;
+          color: #fff;
+        }
+
+        &.complete {
+          background-color: #4caf50;
+          color: #fff;
+        }
+
+        &.detail {
+          background-color: #fff;
+          color: #666;
+          border: 1px solid #e0e0e0;
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: #999;
+    font-size: 28px;
+  }
+}
+

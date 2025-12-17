@@ -1,0 +1,196 @@
+.restaurant-coupon {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 20px;
+
+  .coupons-list {
+    height: calc(100vh - 40px);
+  }
+
+  .coupon-card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .coupon-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .coupon-name {
+        font-size: 32px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        background-color: #e0e0e0;
+
+        &.active {
+          background-color: #4caf50;
+        }
+
+        text {
+          color: #fff;
+          font-size: 24px;
+        }
+      }
+    }
+
+    .coupon-info {
+      margin-bottom: 20px;
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .label {
+          font-size: 26px;
+          color: #666;
+        }
+
+        .value {
+          font-size: 26px;
+          color: #333;
+        }
+      }
+    }
+
+    .coupon-actions {
+      display: flex;
+      gap: 16px;
+
+      .action-btn {
+        flex: 1;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 26px;
+        border: none;
+
+        &.distribute {
+          background-color: #4caf50;
+          color: #fff;
+        }
+
+        &.stats {
+          background-color: #fff;
+          color: #666;
+          border: 1px solid #e0e0e0;
+        }
+
+        &[disabled] {
+          background-color: #e0e0e0;
+          color: #999;
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: #999;
+
+    text {
+      display: block;
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .empty-tip {
+      font-size: 24px;
+      color: #ccc;
+    }
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    width: 90%;
+    max-width: 600px;
+
+    .modal-title {
+      display: block;
+      font-size: 36px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .modal-subtitle {
+      display: block;
+      font-size: 28px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .modal-form {
+      margin-bottom: 24px;
+
+      .form-label {
+        display: block;
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 12px;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 26px;
+        min-height: 200px;
+      }
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 16px;
+
+      .modal-btn {
+        flex: 1;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 28px;
+        border: none;
+
+        &.cancel {
+          background-color: #f5f5f5;
+          color: #666;
+        }
+
+        &.confirm {
+          background-color: #4caf50;
+          color: #fff;
+        }
+      }
+    }
+  }
+}
+

@@ -198,6 +198,13 @@
       "envVariables": {},
       "runtime": "Nodejs16.13",
       "memorySize": 512
+    },
+    {
+      "name": "restaurant-operation",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
   ]
 }

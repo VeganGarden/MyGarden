@@ -1,0 +1,255 @@
+.restaurant-review {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+
+  .header {
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 20px;
+
+    .tabs {
+      display: flex;
+      margin-bottom: 16px;
+
+      .tab {
+        flex: 1;
+        padding: 16px;
+        text-align: center;
+        font-size: 28px;
+        color: #666;
+        border-bottom: 2px solid transparent;
+
+        &.active {
+          color: #4caf50;
+          border-bottom-color: #4caf50;
+          font-weight: bold;
+        }
+      }
+    }
+
+    .stats-btn {
+      width: 100%;
+      padding: 16px;
+      background-color: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 8px;
+      font-size: 26px;
+    }
+  }
+
+  .reviews-list {
+    height: calc(100vh - 200px);
+    padding: 20px;
+  }
+
+  .review-card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+
+      .customer-info {
+        flex: 1;
+
+        .customer-name {
+          display: block;
+          font-size: 30px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 8px;
+        }
+
+        .order-no {
+          display: block;
+          font-size: 24px;
+          color: #999;
+        }
+      }
+
+      .rating {
+        .stars {
+          font-size: 24px;
+        }
+      }
+    }
+
+    .review-content {
+      margin-bottom: 16px;
+      padding: 16px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+
+      text {
+        font-size: 28px;
+        color: #333;
+        line-height: 1.6;
+      }
+    }
+
+    .review-time {
+      margin-bottom: 16px;
+
+      text {
+        font-size: 24px;
+        color: #999;
+      }
+    }
+
+    .reply-section {
+      padding: 16px;
+      background-color: #e8f5e9;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+
+      .reply-label {
+        display: block;
+        font-size: 24px;
+        color: #4caf50;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      .reply-content {
+        display: block;
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 8px;
+        line-height: 1.6;
+      }
+
+      .reply-time {
+        display: block;
+        font-size: 24px;
+        color: #999;
+      }
+    }
+
+    .review-actions {
+      .reply-btn {
+        width: 100%;
+        padding: 16px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 26px;
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: #999;
+    font-size: 28px;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    width: 90%;
+    max-width: 600px;
+
+    .modal-title {
+      display: block;
+      font-size: 36px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 24px;
+    }
+
+    .review-preview {
+      margin-bottom: 24px;
+      padding: 16px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+
+      .preview-label {
+        display: block;
+        font-size: 24px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+
+      .preview-content {
+        display: block;
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 8px;
+        line-height: 1.6;
+      }
+
+      .preview-rating {
+        display: block;
+        font-size: 24px;
+        color: #999;
+      }
+    }
+
+    .modal-form {
+      margin-bottom: 24px;
+
+      .form-label {
+        display: block;
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 12px;
+      }
+
+      .form-textarea {
+        width: 100%;
+        padding: 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 26px;
+        min-height: 200px;
+      }
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 16px;
+
+      .modal-btn {
+        flex: 1;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 28px;
+        border: none;
+
+        &.cancel {
+          background-color: #f5f5f5;
+          color: #666;
+        }
+
+        &.confirm {
+          background-color: #4caf50;
+          color: #fff;
+        }
+      }
+    }
+  }
+}
+

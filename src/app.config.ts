@@ -6,7 +6,12 @@ export default {
     'pages/profile/index',
     'pages/login/index',
     'pages/recipe-design/index',
-    'pages/recipe-design/create'
+    'pages/recipe-design/create',
+    'pages/restaurant/orders/index',
+    'pages/restaurant/orders/detail',
+    'pages/restaurant/data/index',
+    'pages/restaurant/coupon/index',
+    'pages/restaurant/review/index'
   ],
   window: {
     backgroundTextStyle: 'light',

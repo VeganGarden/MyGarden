@@ -16,6 +16,8 @@ const { main: migrateIngredientsResetAllCarbonCoefficient } = require('./migrate
 const { main: migrateRestaurantsAddStats } = require('./migrate-restaurants-add-stats');
 const { main: initCertificationCollections } = require('./init-certification-collections');
 const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
+const { initOperationCollections } = require('./init-operation-collections');
+const { initOperationSampleData } = require('./init-operation-sample-data');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -127,6 +129,10 @@ exports.main = async (event) => {
       case 'insertVegetarianPersonnelTestData':
         const { main: insertVegetarianPersonnelTestData } = require('./insert-vegetarian-personnel-test-data');
         return await insertVegetarianPersonnelTestData(event);
+      case 'initOperationCollections':
+        return await initOperationCollections(event);
+      case 'initOperationSampleData':
+        return await initOperationSampleData(event.data || event);
       default:
         return await initCollectionsV1(event);
     }

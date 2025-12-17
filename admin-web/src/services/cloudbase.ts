@@ -669,18 +669,32 @@ export const operationAPI = {
     create: (data: any) =>
       callCloudFunction('restaurant-operation', {
         action: 'createLedger',
-        data,
+        ...data,
       }),
-    update: (id: string, data: any) =>
+    update: (ledgerId: string, data: any) =>
       callCloudFunction('restaurant-operation', {
         action: 'updateLedger',
-        id,
-        data,
+        ledgerId,
+        ...data,
       }),
-    delete: (id: string) =>
+    delete: (ledgerId: string, tenantId: string) =>
       callCloudFunction('restaurant-operation', {
         action: 'deleteLedger',
-        id,
+        ledgerId,
+        tenantId,
+      }),
+    getStats: (params?: any) =>
+      callCloudFunction('restaurant-operation', {
+        action: 'getLedgerStats',
+        ...params,
+      }),
+    batchImport: (params?: any) =>
+      callCloudFunction('restaurant-operation', {
+        action: 'batchImportLedger',
+        restaurantId: params?.restaurantId,
+        tenantId: params?.tenantId,
+        ledgerData: params?.ledgerData,
+        createdBy: params?.createdBy,
       }),
   },
 
@@ -691,6 +705,11 @@ export const operationAPI = {
         action: 'getBehaviorMetrics',
         data: params,
       }),
+    generateSnapshot: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'generateBehaviorSnapshot',
+        data: params,
+      }),
   },
 
   // 优惠券管理
@@ -699,6 +718,11 @@ export const operationAPI = {
       callCloudFunction('tenant', {
         action: 'listCoupons',
         data: params,
+      }),
+    getDetail: (couponId: string) =>
+      callCloudFunction('tenant', {
+        action: 'getCouponDetail',
+        data: { couponId },
       }),
     create: (data: any) =>
       callCloudFunction('tenant', {
@@ -715,6 +739,21 @@ export const operationAPI = {
         action: 'deleteCoupon',
         data: { id },
       }),
+    distribute: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'distributeCoupon',
+        data: params,
+      }),
+    getStats: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'getCouponStats',
+        data: params,
+      }),
+    analyze: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'analyzeCouponEffect',
+        data: params,
+      }),
   },
 
   // 用户评价
@@ -724,10 +763,25 @@ export const operationAPI = {
         action: 'listReviews',
         data: params,
       }),
+    getDetail: (reviewId: string) =>
+      callCloudFunction('tenant', {
+        action: 'getReviewDetail',
+        data: { reviewId },
+      }),
     reply: (reviewId: string, reply: string) =>
       callCloudFunction('tenant', {
         action: 'replyReview',
         data: { reviewId, reply },
+      }),
+    getStats: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'getReviewStats',
+        data: params,
+      }),
+    analyze: (params?: any) =>
+      callCloudFunction('tenant', {
+        action: 'analyzeReviews',
+        data: params,
       }),
   },
 }
@@ -769,6 +823,11 @@ export const reportAPI = {
  * 租户和餐厅管理API
  */
 export const tenantAPI = {
+  getDashboardData: (params?: any) =>
+    callCloudFunction('tenant', {
+      action: 'getDashboardData',
+      data: params,
+    }),
   // 获取租户信息
   getTenant: (tenantId: string) =>
     callCloudFunction('tenant', {

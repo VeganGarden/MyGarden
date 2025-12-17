@@ -122,22 +122,40 @@ exports.main = async (event, context) => {
       case 'getBehaviorMetrics':
         // 获取行为统计数据
         return await getBehaviorMetrics(data)
+      
+      case 'generateBehaviorSnapshot':
+        // 生成行为指标快照
+        return await generateBehaviorSnapshot(data)
 
       // 优惠券管理
       case 'listCoupons':
         return await listCoupons(data)
+      case 'getCouponDetail':
+        return await getCouponDetail(data.couponId)
       case 'createCoupon':
         return await createCoupon(data)
       case 'updateCoupon':
         return await updateCoupon(data.id, data.data)
       case 'deleteCoupon':
         return await deleteCoupon(data.id)
+      case 'distributeCoupon':
+        return await distributeCoupon(data)
+      case 'getCouponStats':
+        return await getCouponStats(data)
+      case 'analyzeCouponEffect':
+        return await analyzeCouponEffect(data)
 
       // 用户评价
       case 'listReviews':
         return await listReviews(data)
+      case 'getReviewDetail':
+        return await getReviewDetail(data.reviewId)
       case 'replyReview':
         return await replyReview(data.reviewId, data.reply)
+      case 'getReviewStats':
+        return await getReviewStats(data)
+      case 'analyzeReviews':
+        return await analyzeReviews(data)
 
       // 订单管理
       case 'listOrders':
@@ -229,6 +247,14 @@ exports.main = async (event, context) => {
           const gate = await requireAuth(event, context)
           if (!gate.ok) return gate.error
           return await getDashboard(data, gate.user)
+        }
+      
+      case 'getDashboardData':
+        // 获取数据看板数据（扩展版，包含关键指标、趋势数据、图表数据）
+        {
+          const gate = await requireAuth(event, context)
+          if (!gate.ok) return gate.error
+          return await getDashboardData(data, gate.user)
         }
 
       case 'init':
@@ -2066,10 +2092,11 @@ async function getRestaurantData(data) {
 }
 
 /**
- * 获取行为统计数据
+ * 获取行为统计数据（扩展版 - 支持完整的行为指标统计）
+ * 根据策划方案实现餐厅行为指标和顾客行为指标
  */
 async function getBehaviorMetrics(data) {
-  const { restaurantId, startDate, endDate } = data || {}
+  const { restaurantId, tenantId, period, startDate, endDate } = data || {}
 
   if (!restaurantId) {
     return {
@@ -2079,96 +2106,233 @@ async function getBehaviorMetrics(data) {
   }
 
   try {
-    // 构建查询条件
-    const query = db.collection('restaurant_behavior_metrics').where({
+    // 1. 从订单数据计算行为指标
+    const ordersResult = await db.collection('restaurant_orders')
+      .where({
+        restaurantId: restaurantId,
+        status: db.command.in(['completed', 'processing']), // 只统计已完成或处理中的订单
+      })
+      .get()
+    
+    const orders = ordersResult.data || []
+    
+    // 应用日期筛选
+    let filteredOrders = orders
+    if (startDate || endDate) {
+      filteredOrders = orders.filter((order) => {
+        const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+        if (!orderDate) return false
+        
+        const dateStr = typeof orderDate === 'string' 
+          ? orderDate.substring(0, 10) 
+          : new Date(orderDate).toISOString().substring(0, 10)
+        
+        if (startDate && dateStr < startDate) return false
+        if (endDate && dateStr > endDate) return false
+        return true
+      })
+    }
+
+    // 2. 计算餐厅行为指标
+    let lowCarbonDishCount = 0 // 低碳菜品订单数
+    let totalOrderCount = filteredOrders.length // 总订单数
+    let localIngredientCount = 0 // 使用本地食材的订单数
+    let organicIngredientCount = 0 // 使用有机食材的订单数
+    let totalRevenue = 0 // 总收入（用于计算能源强度）
+    let totalServiceCount = 0 // 总服务人次
+
+    // 3. 计算顾客行为指标
+    const customerMap = new Map() // 用户ID -> 订单列表
+    const hourCountMap = new Map() // 小时 -> 订单数
+    let totalAmount = 0 // 总消费金额
+    let lowCarbonChoiceCount = 0 // 选择低碳菜品的订单数
+    let smallPortionCount = 0 // 选择小份的订单数
+    let noUtensilsCount = 0 // 不使用一次性餐具的订单数
+
+    filteredOrders.forEach((order) => {
+      // 餐厅行为指标计算
+      const amount = order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0
+      totalRevenue += amount
+      totalServiceCount += order.guestCount || order.guest_count || 1
+
+      // 检查是否为低碳菜品（通过碳足迹判断）
+      const carbonFootprint = order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0
+      const baselineCarbon = order.baselineCarbon || order.baseline_carbon || 0
+      if (baselineCarbon > 0 && carbonFootprint < baselineCarbon * 0.7) {
+        lowCarbonDishCount++
+      }
+
+      // 检查本地食材和有机食材（从订单项中判断）
+      const items = order.items || []
+      let hasLocalIngredient = false
+      let hasOrganicIngredient = false
+      items.forEach((item) => {
+        if (item.isLocal || item.is_local) {
+          hasLocalIngredient = true
+        }
+        if (item.isOrganic || item.is_organic) {
+          hasOrganicIngredient = true
+        }
+      })
+      if (hasLocalIngredient) localIngredientCount++
+      if (hasOrganicIngredient) organicIngredientCount++
+
+      // 顾客行为指标计算
+      const customerId = order.customerId || order.customer_id || order.userId || order.user_id || ''
+      if (customerId) {
+        if (!customerMap.has(customerId)) {
+          customerMap.set(customerId, [])
+        }
+        customerMap.get(customerId).push(order)
+      }
+
+      // 统计消费时段
+      const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+      if (orderDate) {
+        const date = new Date(orderDate)
+        const hour = date.getHours()
+        hourCountMap.set(hour, (hourCountMap.get(hour) || 0) + 1)
+      }
+
+      totalAmount += amount
+
+      // 检查低碳行为选择
+      if (order.lowCarbonChoice || order.low_carbon_choice) {
+        lowCarbonChoiceCount++
+      }
+      if (order.smallPortion || order.small_portion) {
+        smallPortionCount++
+      }
+      if (order.noUtensils || order.no_utensils) {
+        noUtensilsCount++
+      }
+    })
+
+    // 4. 计算餐厅行为指标
+    const lowCarbonDishRatio = totalOrderCount > 0 ? lowCarbonDishCount / totalOrderCount : 0
+    const localIngredientRatio = totalOrderCount > 0 ? localIngredientCount / totalOrderCount : 0
+    const organicIngredientRatio = totalOrderCount > 0 ? organicIngredientCount / totalOrderCount : 0
+
+    // 能源强度计算（需要从运营台账获取能源数据，这里先返回0）
+    const energyIntensity = 0 // 需要从运营台账计算
+    const energyIntensityReduction = 0 // 需要对比历史数据
+
+    // 浪费减少指标（需要从运营台账获取，这里先返回0）
+    const wasteReduction = 0
+    const wasteReductionRate = 0
+
+    // 5. 计算顾客行为指标
+    const customerCount = customerMap.size
+    const avgFrequency = customerCount > 0 ? totalOrderCount / customerCount : 0
+
+    // 找出高峰时段（订单数最多的3个时段）
+    const peakHours = Array.from(hourCountMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([hour]) => `${hour}:00`)
+
+    const avgAmount = totalOrderCount > 0 ? totalAmount / totalOrderCount : 0
+    const lowCarbonChoiceRate = totalOrderCount > 0 ? lowCarbonChoiceCount / totalOrderCount : 0
+    const smallPortionRate = totalOrderCount > 0 ? smallPortionCount / totalOrderCount : 0
+    const noUtensilsRate = totalOrderCount > 0 ? noUtensilsCount / totalOrderCount : 0
+
+    // 6. 获取历史快照数据
+    const snapshotQuery = db.collection('restaurant_behavior_metrics').where({
       restaurantId: restaurantId,
     })
 
-    // 添加日期筛选
     if (startDate || endDate) {
       const dateCondition = {}
       if (startDate) {
-        dateCondition.date = db.command.gte(startDate)
+        dateCondition.snapshotDate = db.command.gte(startDate)
       }
       if (endDate) {
-        dateCondition.date = db.command.lte(endDate)
+        dateCondition.snapshotDate = db.command.lte(endDate)
       }
       if (Object.keys(dateCondition).length > 0) {
-        query.where(dateCondition)
+        snapshotQuery.where(dateCondition)
       }
     }
 
-    // 查询数据
-    const result = await query.orderBy('date', 'desc').get()
-    const metrics = result.data || []
+    if (period) {
+      snapshotQuery.where({
+        period: period,
+      })
+    }
 
-    // 计算统计数据
-    let totalLowCarbonRatio = 0
-    let totalCarbonReduction = 0
-    let totalLowCarbonChoices = 0
-    let totalChoices = 0
+    const snapshotsResult = await snapshotQuery
+      .orderBy('snapshotDate', 'desc')
+      .limit(30) // 最多返回30个快照
+      .get()
 
-    metrics.forEach((metric) => {
-      const lowCarbonRatio = metric.lowCarbonRatio || metric.low_carbon_ratio || 0
-      const carbonReduction = metric.carbonReduction || metric.carbon_reduction || 0
-      const lowCarbonChoices = metric.lowCarbonChoices || metric.low_carbon_choices || 0
-      const totalChoicesCount = metric.totalChoices || metric.total_choices || 0
-
-      totalLowCarbonRatio += lowCarbonRatio
-      totalCarbonReduction += carbonReduction
-      totalLowCarbonChoices += lowCarbonChoices
-      totalChoices += totalChoicesCount
-    })
-
-    // 计算平均值和总计
-    const avgLowCarbonRatio = metrics.length > 0 ? totalLowCarbonRatio / metrics.length : 0
-    const customerLowCarbonChoiceRate = totalChoices > 0 ? totalLowCarbonChoices / totalChoices : 0
-
-    // 格式化详细数据
-    const details = metrics.map((metric) => ({
-      id: metric._id || '',
-      date: metric.date || metric.createTime || '',
-      lowCarbonRatio: metric.lowCarbonRatio || metric.low_carbon_ratio || 0,
-      customerBehavior: metric.customerBehavior || metric.customer_behavior || '',
-      carbonReduction: metric.carbonReduction || metric.carbon_reduction || 0,
+    const snapshots = (snapshotsResult.data || []).map((snapshot) => ({
+      metricId: snapshot._id || snapshot.metricId || '',
+      snapshotDate: snapshot.snapshotDate || snapshot.snapshot_date || '',
+      period: snapshot.period || 'daily',
+      restaurantMetrics: snapshot.restaurantMetrics || {},
+      customerMetrics: snapshot.customerMetrics || {},
     }))
 
-    // 生成图表数据（按日期分组）
+    // 7. 生成图表数据（按日期分组）
     const chartDataMap = new Map()
-    metrics.forEach((metric) => {
-      const date = metric.date || metric.createTime || ''
+    snapshots.forEach((snapshot) => {
+      const date = snapshot.snapshotDate || ''
       const month = date.substring(0, 7) // 提取年月 YYYY-MM
       if (!chartDataMap.has(month)) {
         chartDataMap.set(month, {
           date: month,
-          ratio: 0,
+          lowCarbonRatio: 0,
           count: 0,
         })
       }
       const chartItem = chartDataMap.get(month)
-      chartItem.ratio += metric.lowCarbonRatio || metric.low_carbon_ratio || 0
+      const lowCarbonRatio = snapshot.restaurantMetrics?.lowCarbonDishRatio || 0
+      chartItem.lowCarbonRatio += lowCarbonRatio
       chartItem.count += 1
     })
 
     const chartData = Array.from(chartDataMap.values())
       .map((item) => ({
         date: item.date,
-        ratio: item.count > 0 ? item.ratio / item.count : 0,
+        ratio: item.count > 0 ? item.lowCarbonRatio / item.count : 0,
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
 
+    // 8. 返回完整的行为指标数据
     return {
       code: 0,
       message: '获取成功',
       data: {
-        statistics: {
-          lowCarbonRatio: avgLowCarbonRatio,
-          monthlyCarbonReduction: totalCarbonReduction,
-          customerLowCarbonChoiceRate: customerLowCarbonChoiceRate,
-          behaviorRecordCount: metrics.length,
+        // 餐厅行为指标
+        restaurantMetrics: {
+          lowCarbonDishRatio: lowCarbonDishRatio,
+          localIngredientRatio: localIngredientRatio,
+          organicIngredientRatio: organicIngredientRatio,
+          energyIntensity: energyIntensity,
+          energyIntensityReduction: energyIntensityReduction,
+          wasteReduction: wasteReduction,
+          wasteReductionRate: wasteReductionRate,
         },
+        // 顾客行为指标
+        customerMetrics: {
+          avgFrequency: avgFrequency,
+          peakHours: peakHours,
+          avgAmount: avgAmount,
+          lowCarbonChoiceRate: lowCarbonChoiceRate,
+          smallPortionRate: smallPortionRate,
+          noUtensilsRate: noUtensilsRate,
+        },
+        // 历史快照
+        snapshots: snapshots,
+        // 图表数据
         chartData: chartData,
-        details: details,
+        // 统计数据（兼容旧接口）
+        statistics: {
+          lowCarbonRatio: lowCarbonDishRatio,
+          monthlyCarbonReduction: 0, // 需要从订单计算
+          customerLowCarbonChoiceRate: lowCarbonChoiceRate,
+          behaviorRecordCount: snapshots.length,
+        },
       },
     }
   } catch (error) {
@@ -2176,6 +2340,104 @@ async function getBehaviorMetrics(data) {
     return {
       code: 500,
       message: '获取行为统计数据失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 生成行为指标快照
+ * 根据策划方案，定期生成行为指标快照（日/周/月）
+ */
+async function generateBehaviorSnapshot(data) {
+  const { restaurantId, tenantId, period = 'daily', snapshotDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 1. 获取当前行为指标数据
+    const metricsResult = await getBehaviorMetrics({
+      restaurantId,
+      tenantId,
+      period,
+    })
+
+    if (metricsResult.code !== 0) {
+      return metricsResult
+    }
+
+    const metricsData = metricsResult.data
+
+    // 2. 确定快照日期
+    const targetDate = snapshotDate || new Date().toISOString().substring(0, 10)
+
+    // 3. 检查是否已存在该日期的快照
+    const existingSnapshot = await db.collection('restaurant_behavior_metrics')
+      .where({
+        restaurantId: restaurantId,
+        snapshotDate: targetDate,
+        period: period,
+      })
+      .get()
+
+    if (existingSnapshot.data && existingSnapshot.data.length > 0) {
+      // 更新现有快照
+      const snapshotId = existingSnapshot.data[0]._id
+      await db.collection('restaurant_behavior_metrics').doc(snapshotId).update({
+        data: {
+          restaurantMetrics: metricsData.restaurantMetrics || {},
+          customerMetrics: metricsData.customerMetrics || {},
+          updatedAt: db.serverDate(),
+        },
+      })
+
+      return {
+        code: 0,
+        message: '快照更新成功',
+        data: {
+          metricId: snapshotId,
+          snapshotDate: targetDate,
+          period: period,
+        },
+      }
+    } else {
+      // 创建新快照
+      const snapshot = {
+        metricId: `metric_${restaurantId}_${targetDate}_${period}`,
+        restaurantId: restaurantId,
+        tenantId: tenantId || '',
+        snapshotDate: targetDate,
+        period: period,
+        restaurantMetrics: metricsData.restaurantMetrics || {},
+        customerMetrics: metricsData.customerMetrics || {},
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      }
+
+      const result = await db.collection('restaurant_behavior_metrics').add({
+        data: snapshot,
+      })
+
+      return {
+        code: 0,
+        message: '快照生成成功',
+        data: {
+          metricId: result._id,
+          snapshotDate: targetDate,
+          period: period,
+        },
+      }
+    }
+  } catch (error) {
+    console.error('生成行为指标快照失败:', error)
+    return {
+      code: 500,
+      message: '生成行为指标快照失败',
       error: error.message,
     }
   }
@@ -2348,10 +2610,398 @@ async function deleteCoupon(id) {
 }
 
 /**
+ * 获取优惠券详情
+ */
+async function getCouponDetail(couponId) {
+  if (!couponId) {
+    return {
+      code: 400,
+      message: 'couponId 不能为空',
+    }
+  }
+
+  try {
+    const result = await db.collection('restaurant_campaigns').doc(couponId).get()
+
+    if (!result.data) {
+      return {
+        code: 404,
+        message: '优惠券不存在',
+      }
+    }
+
+    const coupon = result.data
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        id: coupon._id || '',
+        name: coupon.name || coupon.title || '',
+        type: coupon.type || 'discount',
+        value: coupon.value || coupon.discount || 0,
+        minAmount: coupon.minAmount || coupon.min_amount || 0,
+        totalCount: coupon.totalCount || coupon.total_count || 0,
+        usedCount: coupon.usedCount || coupon.used_count || 0,
+        validFrom: coupon.validFrom || coupon.valid_from || '',
+        validTo: coupon.validTo || coupon.valid_to || '',
+        status: coupon.status || 'active',
+        description: coupon.description || '',
+        rules: coupon.rules || {},
+        createdAt: coupon.createdAt || '',
+        updatedAt: coupon.updatedAt || '',
+      },
+    }
+  } catch (error) {
+    console.error('获取优惠券详情失败:', error)
+    return {
+      code: 500,
+      message: '获取优惠券详情失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 发放优惠券
+ */
+async function distributeCoupon(data) {
+  const { couponId, restaurantId, userIds, distributionType, scheduledTime } = data || {}
+
+  if (!couponId || !restaurantId) {
+    return {
+      code: 400,
+      message: 'couponId 和 restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 获取优惠券信息
+    const couponResult = await db.collection('restaurant_campaigns').doc(couponId).get()
+    if (!couponResult.data) {
+      return {
+        code: 404,
+        message: '优惠券不存在',
+      }
+    }
+
+    const coupon = couponResult.data
+
+    // 检查优惠券状态
+    if (coupon.status !== 'active') {
+      return {
+        code: 400,
+        message: '优惠券未激活，无法发放',
+      }
+    }
+
+    // 检查有效期
+    const now = new Date()
+    const validFrom = new Date(coupon.validFrom || coupon.valid_from || '')
+    const validTo = new Date(coupon.validTo || coupon.valid_to || '')
+    if (now < validFrom || now > validTo) {
+      return {
+        code: 400,
+        message: '优惠券不在有效期内',
+      }
+    }
+
+    // 检查剩余数量
+    const remainingCount = (coupon.totalCount || coupon.total_count || 0) - (coupon.usedCount || coupon.used_count || 0)
+    if (remainingCount <= 0) {
+      return {
+        code: 400,
+        message: '优惠券已发放完毕',
+      }
+    }
+
+    // 根据发放类型处理
+    if (distributionType === 'targeted' && userIds && userIds.length > 0) {
+      // 定向发放：发放给指定用户
+      const distributeCount = Math.min(userIds.length, remainingCount)
+      const distributeUserIds = userIds.slice(0, distributeCount)
+
+      // 创建用户优惠券记录
+      const userCoupons = distributeUserIds.map((userId) => ({
+        couponId: couponId,
+        restaurantId: restaurantId,
+        userId: userId,
+        status: 'unused',
+        distributedAt: db.serverDate(),
+        expiresAt: validTo,
+        createdAt: db.serverDate(),
+      }))
+
+      // 批量添加用户优惠券记录（如果存在user_coupons集合）
+      // 注意：这里假设存在user_coupons集合，如果不存在需要先创建
+      try {
+        const batch = db.batch()
+        userCoupons.forEach((uc) => {
+          const docRef = db.collection('user_coupons').doc()
+          batch.set(docRef, uc)
+        })
+        await batch.commit()
+      } catch (error) {
+        console.error('创建用户优惠券记录失败:', error)
+        // 如果集合不存在，只更新优惠券的已发放数量
+      }
+
+      // 更新优惠券的已发放数量
+      await db.collection('restaurant_campaigns').doc(couponId).update({
+        data: {
+          distributedCount: (coupon.distributedCount || coupon.distributed_count || 0) + distributeCount,
+          updatedAt: db.serverDate(),
+        },
+      })
+
+      return {
+        code: 0,
+        message: '发放成功',
+        data: {
+          distributedCount: distributeCount,
+          userIds: distributeUserIds,
+        },
+      }
+    } else if (distributionType === 'public') {
+      // 公开领取：不创建具体记录，只记录发放事件
+      return {
+        code: 0,
+        message: '公开领取模式，无需发放',
+        data: {
+          couponId: couponId,
+          distributionType: 'public',
+        },
+      }
+    } else {
+      return {
+        code: 400,
+        message: '无效的发放类型',
+      }
+    }
+  } catch (error) {
+    console.error('发放优惠券失败:', error)
+    return {
+      code: 500,
+      message: '发放优惠券失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取优惠券统计
+ */
+async function getCouponStats(data) {
+  const { restaurantId, couponId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_campaigns').where({
+      restaurantId: restaurantId,
+    })
+
+    if (couponId) {
+      query.where({
+        _id: couponId,
+      })
+    }
+
+    const result = await query.get()
+    const coupons = result.data || []
+
+    // 计算统计数据
+    let totalCoupons = coupons.length
+    let totalDistributed = 0
+    let totalUsed = 0
+    let totalRevenue = 0
+    let totalCost = 0
+
+    coupons.forEach((coupon) => {
+      const distributed = coupon.distributedCount || coupon.distributed_count || 0
+      const used = coupon.usedCount || coupon.used_count || 0
+      totalDistributed += distributed
+      totalUsed += used
+
+      // 计算优惠券带来的收入（从订单中统计）
+      // 这里简化处理，实际应该从订单数据中统计使用了该优惠券的订单收入
+      const couponValue = coupon.value || coupon.discount || 0
+      totalCost += used * couponValue
+    })
+
+    const usageRate = totalDistributed > 0 ? totalUsed / totalDistributed : 0
+    const conversionRate = 0 // 需要从订单数据计算
+    const roi = totalCost > 0 ? (totalRevenue - totalCost) / totalCost : 0
+
+    // 按日期分组统计使用情况（需要从订单数据统计）
+    const dailyStats = []
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        totalCoupons,
+        totalDistributed,
+        totalUsed,
+        usageRate,
+        conversionRate,
+        totalRevenue,
+        totalCost,
+        roi,
+        dailyStats,
+      },
+    }
+  } catch (error) {
+    console.error('获取优惠券统计失败:', error)
+    return {
+      code: 500,
+      message: '获取优惠券统计失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 分析优惠券效果
+ */
+async function analyzeCouponEffect(data) {
+  const { restaurantId, couponId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    // 获取优惠券信息
+    let coupon = null
+    if (couponId) {
+      const couponResult = await db.collection('restaurant_campaigns').doc(couponId).get()
+      coupon = couponResult.data
+    }
+
+    // 从订单数据中统计使用了优惠券的订单
+    const orderQuery = {
+      restaurantId: restaurantId,
+    }
+
+    if (couponId) {
+      orderQuery.couponId = couponId
+    }
+
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.createdAt = _.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.createdAt = _.lte(endDate)
+      }
+      Object.assign(orderQuery, dateCondition)
+    }
+
+    const ordersResult = await db.collection('restaurant_orders')
+      .where(orderQuery)
+      .field({
+        'pricing.total': 1,
+        'couponId': 1,
+        'couponDiscount': 1,
+        'createdAt': 1,
+      })
+      .get()
+
+    const orders = ordersResult.data || []
+
+    // 分析数据
+    const couponOrders = orders.filter((o) => o.couponId)
+    const totalOrders = orders.length
+    const couponOrderCount = couponOrders.length
+    const conversionRate = totalOrders > 0 ? couponOrderCount / totalOrders : 0
+
+    // 按时间维度分析
+    const timeAnalysis = {
+      daily: {},
+      weekly: {},
+      monthly: {},
+    }
+
+    couponOrders.forEach((order) => {
+      const orderDate = order.createdAt || ''
+      if (!orderDate) return
+
+      const date = new Date(orderDate)
+      const dayKey = date.toISOString().substring(0, 10)
+      const weekKey = `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`
+      const monthKey = date.toISOString().substring(0, 7)
+
+      if (!timeAnalysis.daily[dayKey]) {
+        timeAnalysis.daily[dayKey] = { count: 0, revenue: 0 }
+      }
+      timeAnalysis.daily[dayKey].count++
+      timeAnalysis.daily[dayKey].revenue += order.pricing?.total || 0
+
+      if (!timeAnalysis.weekly[weekKey]) {
+        timeAnalysis.weekly[weekKey] = { count: 0, revenue: 0 }
+      }
+      timeAnalysis.weekly[weekKey].count++
+      timeAnalysis.weekly[weekKey].revenue += order.pricing?.total || 0
+
+      if (!timeAnalysis.monthly[monthKey]) {
+        timeAnalysis.monthly[monthKey] = { count: 0, revenue: 0 }
+      }
+      timeAnalysis.monthly[monthKey].count++
+      timeAnalysis.monthly[monthKey].revenue += order.pricing?.total || 0
+    })
+
+    // 用户维度分析
+    const userAnalysis = {
+      newUsers: 0,
+      returningUsers: 0,
+      avgOrderValue: 0,
+    }
+
+    // 菜品维度分析（需要从订单项中统计）
+    const dishAnalysis = {}
+
+    return {
+      code: 0,
+      message: '分析成功',
+      data: {
+        coupon: coupon ? {
+          id: coupon._id || '',
+          name: coupon.name || coupon.title || '',
+          type: coupon.type || 'discount',
+        } : null,
+        conversionRate,
+        couponOrderCount,
+        totalOrders,
+        timeAnalysis,
+        userAnalysis,
+        dishAnalysis,
+      },
+    }
+  } catch (error) {
+    console.error('分析优惠券效果失败:', error)
+    return {
+      code: 500,
+      message: '分析优惠券效果失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
  * 获取评价列表
  */
 async function listReviews(data) {
-  const { restaurantId, page = 1, pageSize = 20 } = data || {}
+  const { restaurantId, page = 1, pageSize = 20, startDate, endDate, rating, status, keyword } = data || {}
 
   if (!restaurantId) {
     return {
@@ -2365,13 +3015,78 @@ async function listReviews(data) {
       restaurantId: restaurantId,
     })
 
-    const result = await query
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .orderBy('reviewDate', 'desc')
-      .get()
+    // 添加评分筛选
+    if (rating) {
+      query.where({
+        rating: rating,
+      })
+    }
 
-    const reviews = result.data || []
+    // 添加状态筛选（待回复/已回复）
+    if (status === 'pending') {
+      query.where({
+        reply: _.eq(null).or(_.eq('')),
+      })
+    } else if (status === 'replied') {
+      query.where({
+        reply: _.neq(null).and(_.neq('')),
+      })
+    }
+
+    // 注意：日期和关键词筛选在内存中处理
+    let result
+    try {
+      result = await query.orderBy('reviewDate', 'desc').get()
+    } catch (error) {
+      // 如果排序失败，尝试不排序
+      try {
+        result = await query.get()
+        result.data = (result.data || []).sort((a, b) => {
+          const dateA = a.reviewDate || a.review_date || a.createdAt || ''
+          const dateB = b.reviewDate || b.review_date || b.createdAt || ''
+          return new Date(dateB).getTime() - new Date(dateA).getTime()
+        })
+      } catch (err) {
+        console.error('查询评价失败:', err)
+        return {
+          code: 500,
+          message: '查询评价失败',
+          error: err.message,
+        }
+      }
+    }
+
+    let reviews = result.data || []
+
+    // 添加日期筛选（在内存中过滤）
+    if (startDate || endDate) {
+      reviews = reviews.filter((review) => {
+        const reviewDate = review.reviewDate || review.review_date || review.createdAt || ''
+        if (!reviewDate) return false
+
+        const dateStr = typeof reviewDate === 'string'
+          ? reviewDate.substring(0, 10)
+          : new Date(reviewDate).toISOString().substring(0, 10)
+
+        if (startDate && dateStr < startDate) return false
+        if (endDate && dateStr > endDate) return false
+        return true
+      })
+    }
+
+    // 添加关键词搜索（在内存中过滤）
+    if (keyword) {
+      const keywordLower = keyword.toLowerCase()
+      reviews = reviews.filter((review) => {
+        const content = (review.content || review.comment || '').toLowerCase()
+        const customerName = (review.customerName || review.customer_name || '').toLowerCase()
+        return content.includes(keywordLower) || customerName.includes(keywordLower)
+      })
+    }
+
+    // 分页处理
+    const total = reviews.length
+    reviews = reviews.slice((page - 1) * pageSize, page * pageSize)
 
     return {
       code: 0,
@@ -2382,11 +3097,18 @@ async function listReviews(data) {
         customerName: review.customerName || review.customer_name || '',
         rating: review.rating || 0,
         content: review.content || review.comment || '',
+        images: review.images || [],
         carbonSatisfaction: review.carbonSatisfaction || review.carbon_satisfaction || 0,
         reviewDate: review.reviewDate || review.review_date || review.createdAt || '',
         reply: review.reply || '',
         replyDate: review.replyDate || review.reply_date || '',
       })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
     }
   } catch (error) {
     console.error('获取评价列表失败:', error)
@@ -2440,10 +3162,337 @@ async function replyReview(reviewId, reply) {
 }
 
 /**
+ * 获取评价详情
+ */
+async function getReviewDetail(reviewId) {
+  if (!reviewId) {
+    return {
+      code: 400,
+      message: 'reviewId 不能为空',
+    }
+  }
+
+  try {
+    const result = await db.collection('restaurant_reviews').doc(reviewId).get()
+
+    if (!result.data) {
+      return {
+        code: 404,
+        message: '评价不存在',
+      }
+    }
+
+    const review = result.data
+
+    // 获取关联的订单信息
+    let orderInfo = null
+    if (review.orderId || review.order_id) {
+      try {
+        const orderResult = await db.collection('restaurant_orders')
+          .doc(review.orderId || review.order_id)
+          .get()
+        if (orderResult.data) {
+          orderInfo = {
+            orderNo: orderResult.data.orderNo || orderResult.data.order_no || '',
+            orderDate: orderResult.data.orderDate || orderResult.data.order_date || orderResult.data.createdAt || '',
+            amount: orderResult.data.amount || orderResult.data.totalAmount || orderResult.data.total_amount || 0,
+            items: orderResult.data.items || [],
+          }
+        }
+      } catch (error) {
+        console.error('获取订单信息失败:', error)
+      }
+    }
+
+    // 获取用户历史评价
+    let userHistoryReviews = []
+    if (review.userId || review.user_id) {
+      try {
+        const historyResult = await db.collection('restaurant_reviews')
+          .where({
+            userId: review.userId || review.user_id,
+            restaurantId: review.restaurantId,
+            _id: _.neq(reviewId),
+          })
+          .orderBy('reviewDate', 'desc')
+          .limit(5)
+          .get()
+        userHistoryReviews = (historyResult.data || []).map((r) => ({
+          id: r._id || '',
+          rating: r.rating || 0,
+          content: r.content || r.comment || '',
+          reviewDate: r.reviewDate || r.review_date || r.createdAt || '',
+        }))
+      } catch (error) {
+        console.error('获取用户历史评价失败:', error)
+      }
+    }
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        id: review._id || '',
+        orderNo: review.orderNo || review.order_id || '',
+        customerName: review.customerName || review.customer_name || '',
+        userId: review.userId || review.user_id || '',
+        rating: review.rating || 0,
+        content: review.content || review.comment || '',
+        images: review.images || [],
+        carbonSatisfaction: review.carbonSatisfaction || review.carbon_satisfaction || 0,
+        reviewDate: review.reviewDate || review.review_date || review.createdAt || '',
+        reply: review.reply || '',
+        replyDate: review.replyDate || review.reply_date || '',
+        replyHistory: review.replyHistory || [],
+        orderInfo: orderInfo,
+        userHistoryReviews: userHistoryReviews,
+      },
+    }
+  } catch (error) {
+    console.error('获取评价详情失败:', error)
+    return {
+      code: 500,
+      message: '获取评价详情失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 获取评价统计
+ */
+async function getReviewStats(data) {
+  const { restaurantId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_reviews').where({
+      restaurantId: restaurantId,
+    })
+
+    // 添加日期筛选
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.reviewDate = _.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.reviewDate = _.lte(endDate)
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        query.where(dateCondition)
+      }
+    }
+
+    const result = await query.get()
+    const reviews = result.data || []
+
+    // 计算统计数据
+    let totalReviews = reviews.length
+    let totalRating = 0
+    let ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+    let repliedCount = 0
+    let pendingReplyCount = 0
+
+    reviews.forEach((review) => {
+      const rating = review.rating || 0
+      totalRating += rating
+      if (rating >= 1 && rating <= 5) {
+        ratingCounts[rating] = (ratingCounts[rating] || 0) + 1
+      }
+      if (review.reply) {
+        repliedCount++
+      } else {
+        pendingReplyCount++
+      }
+    })
+
+    const avgRating = totalReviews > 0 ? totalRating / totalReviews : 0
+    const goodRate = totalReviews > 0 ? ((ratingCounts[5] || 0) + (ratingCounts[4] || 0)) / totalReviews : 0
+    const badRate = totalReviews > 0 ? ((ratingCounts[1] || 0) + (ratingCounts[2] || 0)) / totalReviews : 0
+    const neutralRate = totalReviews > 0 ? (ratingCounts[3] || 0) / totalReviews : 0
+    const replyRate = totalReviews > 0 ? repliedCount / totalReviews : 0
+
+    // 按日期分组统计趋势
+    const dailyStatsMap = new Map()
+    reviews.forEach((review) => {
+      const reviewDate = review.reviewDate || review.review_date || review.createdAt || ''
+      if (!reviewDate) return
+
+      const dateStr = typeof reviewDate === 'string'
+        ? reviewDate.substring(0, 10)
+        : new Date(reviewDate).toISOString().substring(0, 10)
+
+      if (!dailyStatsMap.has(dateStr)) {
+        dailyStatsMap.set(dateStr, {
+          date: dateStr,
+          count: 0,
+          avgRating: 0,
+          totalRating: 0,
+        })
+      }
+
+      const dayStat = dailyStatsMap.get(dateStr)
+      dayStat.count++
+      dayStat.totalRating += review.rating || 0
+      dayStat.avgRating = dayStat.totalRating / dayStat.count
+    })
+
+    const trends = Array.from(dailyStatsMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+
+    // 评分分布
+    const distribution = [
+      { rating: 5, count: ratingCounts[5] || 0, label: '5星' },
+      { rating: 4, count: ratingCounts[4] || 0, label: '4星' },
+      { rating: 3, count: ratingCounts[3] || 0, label: '3星' },
+      { rating: 2, count: ratingCounts[2] || 0, label: '2星' },
+      { rating: 1, count: ratingCounts[1] || 0, label: '1星' },
+    ]
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        totalReviews,
+        avgRating,
+        goodRate,
+        badRate,
+        neutralRate,
+        replyRate,
+        repliedCount,
+        pendingReplyCount,
+        ratingCounts,
+        trends,
+        distribution,
+      },
+    }
+  } catch (error) {
+    console.error('获取评价统计失败:', error)
+    return {
+      code: 500,
+      message: '获取评价统计失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * 分析评价数据
+ */
+async function analyzeReviews(data) {
+  const { restaurantId, startDate, endDate } = data || {}
+
+  if (!restaurantId) {
+    return {
+      code: 400,
+      message: 'restaurantId 不能为空',
+    }
+  }
+
+  try {
+    const query = db.collection('restaurant_reviews').where({
+      restaurantId: restaurantId,
+    })
+
+    // 添加日期筛选
+    if (startDate || endDate) {
+      const dateCondition = {}
+      if (startDate) {
+        dateCondition.reviewDate = _.gte(startDate)
+      }
+      if (endDate) {
+        dateCondition.reviewDate = _.lte(endDate)
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        query.where(dateCondition)
+      }
+    }
+
+    const result = await query.get()
+    const reviews = result.data || []
+
+    // 关键词分析（简单实现，提取高频词）
+    const keywordMap = new Map()
+    reviews.forEach((review) => {
+      const content = (review.content || review.comment || '').toLowerCase()
+      // 简单分词（按常见分隔符）
+      const words = content.split(/[\s，。！？、；：,\.!?\s]+/).filter((w) => w.length > 1)
+      words.forEach((word) => {
+        keywordMap.set(word, (keywordMap.get(word) || 0) + 1)
+      })
+    })
+
+    // 获取高频关键词（前20个）
+    const topKeywords = Array.from(keywordMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([word, count]) => ({ word, count }))
+
+    // 情感分析（简单实现：基于评分）
+    const sentimentAnalysis = {
+      positive: reviews.filter((r) => (r.rating || 0) >= 4).length,
+      neutral: reviews.filter((r) => (r.rating || 0) === 3).length,
+      negative: reviews.filter((r) => (r.rating || 0) <= 2).length,
+    }
+
+    // 评价主题分析（简单实现：基于关键词匹配）
+    const themes = {
+      dish: 0, // 菜品
+      service: 0, // 服务
+      environment: 0, // 环境
+      price: 0, // 价格
+      carbon: 0, // 碳减排
+    }
+
+    const themeKeywords = {
+      dish: ['菜品', '菜', '味道', '口感', '好吃', '难吃', '食材'],
+      service: ['服务', '态度', '速度', '效率', '服务员', '等待'],
+      environment: ['环境', '装修', '氛围', '干净', '卫生', '舒适'],
+      price: ['价格', '贵', '便宜', '划算', '性价比', '收费'],
+      carbon: ['碳', '环保', '绿色', '低碳', '减排', '环境'],
+    }
+
+    reviews.forEach((review) => {
+      const content = (review.content || review.comment || '').toLowerCase()
+      Object.entries(themeKeywords).forEach(([theme, keywords]) => {
+        if (keywords.some((kw) => content.includes(kw))) {
+          themes[theme]++
+        }
+      })
+    })
+
+    return {
+      code: 0,
+      message: '分析成功',
+      data: {
+        topKeywords,
+        sentimentAnalysis,
+        themes,
+        totalAnalyzed: reviews.length,
+      },
+    }
+  } catch (error) {
+    console.error('分析评价数据失败:', error)
+    return {
+      code: 500,
+      message: '分析评价数据失败',
+      error: error.message,
+    }
+  }
+}
+
+/**
  * 获取订单列表
  */
 async function listOrders(data) {
-  const { restaurantId, startDate, endDate, page = 1, pageSize = 20, status, keyword } = data || {}
+  const { restaurantId, startDate, endDate, page = 1, pageSize = 20, status, keyword, includeStats } = data || {}
 
   if (!restaurantId) {
     return {
@@ -2518,12 +3567,81 @@ async function listOrders(data) {
       })
     }
 
+    // 计算统计数据（如果需要）
+    let stats = null
+    if (includeStats) {
+      const totalOrders = orders.length
+      const completedOrders = orders.filter((o) => o.status === 'completed' || o.status === 'completed').length
+      const totalRevenue = orders
+        .filter((o) => o.status === 'completed' || o.status === 'completed')
+        .reduce((sum, o) => {
+          const amount = o.amount || o.totalAmount || o.total_amount || o.pricing?.total || 0
+          return sum + amount
+        }, 0)
+      const totalCarbonReduction = orders
+        .filter((o) => o.status === 'completed' || o.status === 'completed')
+        .reduce((sum, o) => {
+          const carbon = o.carbonFootprint || o.carbon_footprint || o.carbonImpact?.totalCarbonFootprint || 0
+          return sum + carbon
+        }, 0)
+      const avgOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0
+      const completionRate = totalOrders > 0 ? completedOrders / totalOrders : 0
+
+      // 按日期分组统计
+      const dailyStats = new Map()
+      orders.forEach((order) => {
+        const orderDate = order.orderDate || order.order_date || order.createdAt || ''
+        if (!orderDate) return
+        
+        const dateStr = typeof orderDate === 'string' 
+          ? orderDate.substring(0, 10) 
+          : new Date(orderDate).toISOString().substring(0, 10)
+        
+        if (!dailyStats.has(dateStr)) {
+          dailyStats.set(dateStr, {
+            date: dateStr,
+            orderCount: 0,
+            revenue: 0,
+            carbonReduction: 0,
+          })
+        }
+        
+        const dayStat = dailyStats.get(dateStr)
+        dayStat.orderCount++
+        
+        if (order.status === 'completed' || order.status === 'completed') {
+          const amount = order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0
+          const carbon = order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0
+          dayStat.revenue += amount
+          dayStat.carbonReduction += carbon
+        }
+      })
+
+      // 按状态分组统计
+      const statusStats = new Map()
+      orders.forEach((order) => {
+        const orderStatus = order.status || 'pending'
+        statusStats.set(orderStatus, (statusStats.get(orderStatus) || 0) + 1)
+      })
+
+      stats = {
+        totalOrders,
+        completedOrders,
+        totalRevenue,
+        totalCarbonReduction,
+        avgOrderValue,
+        completionRate,
+        dailyStats: Array.from(dailyStats.values()).sort((a, b) => a.date.localeCompare(b.date)),
+        statusStats: Object.fromEntries(statusStats),
+      }
+    }
+
     // 分页处理
     const total = orders.length
-    orders = orders.slice((page - 1) * pageSize, page * pageSize)
+    const paginatedOrders = orders.slice((page - 1) * pageSize, page * pageSize)
 
     // 格式化订单数据
-    const formattedOrders = orders.map((order) => ({
+    const formattedOrders = paginatedOrders.map((order) => ({
       id: order._id || '',
       orderNo: order.orderNo || order.order_no || order.orderId || '',
       orderDate: order.orderDate || order.order_date || order.createdAt || '',
@@ -2531,12 +3649,20 @@ async function listOrders(data) {
       amount: order.amount || order.totalAmount || order.total_amount || order.pricing?.total || 0,
       carbonFootprint: order.carbonFootprint || order.carbon_footprint || order.carbonImpact?.totalCarbonFootprint || 0,
       status: order.status || 'pending',
+      items: order.items || [],
     }))
 
     return {
       code: 0,
       message: '获取成功',
       data: formattedOrders,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+      stats: stats,
     }
   } catch (error) {
     console.error('获取订单列表失败:', error)
@@ -4422,6 +5548,144 @@ async function getDashboard(data, currentUser) {
   }
   
   return result
+}
+
+/**
+ * 获取数据看板数据（扩展版）
+ * 根据策划方案，返回关键指标、趋势数据、图表数据
+ */
+async function getDashboardData(data, currentUser) {
+  const { restaurantId, tenantId, dateRange, metrics } = data || {}
+  
+  try {
+    // 1. 获取基础看板数据
+    const dashboardResult = await getDashboard({
+      restaurantId,
+      tenantId,
+      includeTopRecipes: true,
+      includeTrends: true,
+      startDate: dateRange?.startDate,
+      endDate: dateRange?.endDate,
+    }, currentUser)
+
+    if (dashboardResult.code !== 0) {
+      return dashboardResult
+    }
+
+    const baseData = dashboardResult.data
+
+    // 2. 构建关键指标
+    const keyMetrics = {
+      todayOrders: baseData.todayOrders || 0,
+      todayRevenue: baseData.todayRevenue || 0,
+      todayCarbonReduction: 0, // 需要从订单数据计算今日碳减排
+      totalRecipes: baseData.totalRecipes || 0,
+      totalCarbonReduction: baseData.totalCarbonReduction || 0,
+      certifiedRestaurants: baseData.certifiedRestaurants || 0,
+      activeUsers: baseData.activeUsers || 0,
+    }
+
+    // 3. 计算今日碳减排（从订单数据）
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      const orderQuery = {}
+      if (restaurantId) {
+        orderQuery.restaurantId = restaurantId
+      }
+
+      const todayOrdersRes = await db.collection('restaurant_orders')
+        .where({
+          ...orderQuery,
+          createdAt: _.gte(today).and(_.lt(tomorrow)),
+        })
+        .field({
+          'carbonImpact.carbonSavingsVsMeat': 1,
+        })
+        .get()
+
+      keyMetrics.todayCarbonReduction = todayOrdersRes.data.reduce((sum, order) => {
+        const reduction = order.carbonImpact?.carbonSavingsVsMeat || 0
+        return sum + reduction
+      }, 0)
+    } catch (error) {
+      console.error('计算今日碳减排失败:', error)
+    }
+
+    // 4. 构建趋势数据
+    const trends = baseData.trends || []
+
+    // 5. 构建图表数据
+    const charts = []
+    
+    // 订单趋势图
+    if (trends.length > 0) {
+      charts.push({
+        type: 'line',
+        title: '订单趋势',
+        data: trends.map((t) => ({
+          date: t.date,
+          value: t.orderCount,
+          type: '订单数',
+        })),
+      })
+
+      // 收入趋势图
+      charts.push({
+        type: 'line',
+        title: '收入趋势',
+        data: trends.map((t) => ({
+          date: t.date,
+          value: t.revenue,
+          type: '收入',
+        })),
+      })
+
+      // 碳减排趋势图
+      charts.push({
+        type: 'line',
+        title: '碳减排趋势',
+        data: trends.map((t) => ({
+          date: t.date,
+          value: t.carbonReduction,
+          type: '碳减排',
+        })),
+      })
+    }
+
+    // 热门菜谱图表
+    if (baseData.topRecipes && baseData.topRecipes.length > 0) {
+      charts.push({
+        type: 'bar',
+        title: '热门菜谱',
+        data: baseData.topRecipes.map((recipe) => ({
+          name: recipe.recipeName,
+          value: recipe.orders,
+        })),
+      })
+    }
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: {
+        keyMetrics,
+        trends,
+        charts,
+        topRecipes: baseData.topRecipes || [],
+      },
+    }
+  } catch (error) {
+    console.error('获取数据看板数据失败:', error)
+    return {
+      code: 500,
+      message: '获取数据看板数据失败',
+      error: error.message,
+    }
+  }
 }
 
 /**

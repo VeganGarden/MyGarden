@@ -1,12 +1,14 @@
 import { useAppSelector } from '@/store/hooks'
 import { operationAPI } from '@/services/cloudbase'
-import { Column } from '@ant-design/charts'
-import { Card, Col, DatePicker, Row, Space, Statistic, Table, message } from 'antd'
+import { Column, Line } from '@ant-design/charts'
+import { Card, Col, DatePicker, Row, Space, Statistic, Table, Tabs, message, Select, Button } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
+const { TabPane } = Tabs
 
 interface BehaviorMetric {
   id: string
@@ -16,50 +18,102 @@ interface BehaviorMetric {
   carbonReduction: number
 }
 
+interface RestaurantMetrics {
+  lowCarbonDishRatio: number
+  localIngredientRatio: number
+  organicIngredientRatio: number
+  energyIntensity: number
+  energyIntensityReduction: number
+  wasteReduction: number
+  wasteReductionRate: number
+}
+
+interface CustomerMetrics {
+  avgFrequency: number
+  peakHours: string[]
+  avgAmount: number
+  lowCarbonChoiceRate: number
+  smallPortionRate: number
+  noUtensilsRate: number
+}
+
 const OperationBehavior: React.FC = () => {
   const { t } = useTranslation()
-  const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
+  const { currentRestaurantId, tenantId } = useAppSelector((state: any) => state.tenant)
   const [dataSource, setDataSource] = useState<BehaviorMetric[]>([])
   const [chartData, setChartData] = useState<Array<{ date: string; ratio: number }>>([])
-  const [statistics, setStatistics] = useState({
-    lowCarbonRatio: 0,
-    monthlyCarbonReduction: 0,
-    customerLowCarbonChoiceRate: 0,
-    behaviorRecordCount: 0,
+  const [restaurantMetrics, setRestaurantMetrics] = useState<RestaurantMetrics>({
+    lowCarbonDishRatio: 0,
+    localIngredientRatio: 0,
+    organicIngredientRatio: 0,
+    energyIntensity: 0,
+    energyIntensityReduction: 0,
+    wasteReduction: 0,
+    wasteReductionRate: 0,
   })
+  const [customerMetrics, setCustomerMetrics] = useState<CustomerMetrics>({
+    avgFrequency: 0,
+    peakHours: [],
+    avgAmount: 0,
+    lowCarbonChoiceRate: 0,
+    smallPortionRate: 0,
+    noUtensilsRate: 0,
+  })
+  const [snapshots, setSnapshots] = useState<any[]>([])
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
+  const [period, setPeriod] = useState<string>('daily')
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchBehaviorData()
-  }, [currentRestaurantId])
+  }, [currentRestaurantId, dateRange, period])
 
   const fetchBehaviorData = async () => {
     try {
       if (!currentRestaurantId) {
-        setDataSource([])
-        setChartData([])
-        setStatistics({
-          lowCarbonRatio: 0,
-          monthlyCarbonReduction: 0,
-          customerLowCarbonChoiceRate: 0,
-          behaviorRecordCount: 0,
-        })
+        resetData()
         return
       }
       
-      const result = await operationAPI.behavior.getMetrics({
+      setLoading(true)
+      const params: any = {
         restaurantId: currentRestaurantId,
-      })
+        tenantId: tenantId,
+        period: period,
+      }
+
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        params.startDate = dateRange[0].format('YYYY-MM-DD')
+        params.endDate = dateRange[1].format('YYYY-MM-DD')
+      }
+      
+      const result = await operationAPI.behavior.getMetrics(params)
       
       if (result && result.code === 0 && result.data) {
         const data = result.data
         
-        // 设置统计数据
-        if (data.statistics) {
-          setStatistics({
-            lowCarbonRatio: data.statistics.lowCarbonRatio || data.statistics.low_carbon_ratio || 0,
-            monthlyCarbonReduction: data.statistics.monthlyCarbonReduction || data.statistics.monthly_carbon_reduction || 0,
-            customerLowCarbonChoiceRate: data.statistics.customerLowCarbonChoiceRate || data.statistics.customer_low_carbon_choice_rate || 0,
-            behaviorRecordCount: data.statistics.behaviorRecordCount || data.statistics.behavior_record_count || 0,
+        // 设置餐厅行为指标
+        if (data.restaurantMetrics) {
+          setRestaurantMetrics({
+            lowCarbonDishRatio: data.restaurantMetrics.lowCarbonDishRatio || 0,
+            localIngredientRatio: data.restaurantMetrics.localIngredientRatio || 0,
+            organicIngredientRatio: data.restaurantMetrics.organicIngredientRatio || 0,
+            energyIntensity: data.restaurantMetrics.energyIntensity || 0,
+            energyIntensityReduction: data.restaurantMetrics.energyIntensityReduction || 0,
+            wasteReduction: data.restaurantMetrics.wasteReduction || 0,
+            wasteReductionRate: data.restaurantMetrics.wasteReductionRate || 0,
+          })
+        }
+        
+        // 设置顾客行为指标
+        if (data.customerMetrics) {
+          setCustomerMetrics({
+            avgFrequency: data.customerMetrics.avgFrequency || 0,
+            peakHours: data.customerMetrics.peakHours || [],
+            avgAmount: data.customerMetrics.avgAmount || 0,
+            lowCarbonChoiceRate: data.customerMetrics.lowCarbonChoiceRate || 0,
+            smallPortionRate: data.customerMetrics.smallPortionRate || 0,
+            noUtensilsRate: data.customerMetrics.noUtensilsRate || 0,
           })
         }
         
@@ -71,98 +125,208 @@ const OperationBehavior: React.FC = () => {
           })))
         }
         
-        // 设置详细数据
-        if (data.details && Array.isArray(data.details)) {
-          setDataSource(data.details.map((item: any) => ({
-            id: item.id || item._id || '',
-            date: item.date || item.createTime || '',
-            lowCarbonRatio: item.lowCarbonRatio || item.low_carbon_ratio || 0,
-            customerBehavior: item.customerBehavior || item.customer_behavior || '',
-            carbonReduction: item.carbonReduction || item.carbon_reduction || 0,
+        // 设置快照数据
+        if (data.snapshots && Array.isArray(data.snapshots)) {
+          setSnapshots(data.snapshots)
+          setDataSource(data.snapshots.map((snapshot: any) => ({
+            id: snapshot.metricId || snapshot._id || '',
+            date: snapshot.snapshotDate || snapshot.snapshot_date || '',
+            lowCarbonRatio: snapshot.restaurantMetrics?.lowCarbonDishRatio || 0,
+            customerBehavior: `${snapshot.customerMetrics?.avgFrequency?.toFixed(1) || 0}次/月`,
+            carbonReduction: snapshot.restaurantMetrics?.wasteReduction || 0,
           })))
         } else {
+          setSnapshots([])
           setDataSource([])
         }
       } else {
-        setDataSource([])
-        setChartData([])
+        resetData()
       }
     } catch (error: any) {
       console.error('获取行为数据失败:', error)
       message.error(error.message || '获取行为数据失败，请稍后重试')
-      setDataSource([])
-      setChartData([])
+      resetData()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetData = () => {
+    setDataSource([])
+    setChartData([])
+    setRestaurantMetrics({
+      lowCarbonDishRatio: 0,
+      localIngredientRatio: 0,
+      organicIngredientRatio: 0,
+      energyIntensity: 0,
+      energyIntensityReduction: 0,
+      wasteReduction: 0,
+      wasteReductionRate: 0,
+    })
+    setCustomerMetrics({
+      avgFrequency: 0,
+      peakHours: [],
+      avgAmount: 0,
+      lowCarbonChoiceRate: 0,
+      smallPortionRate: 0,
+      noUtensilsRate: 0,
+    })
+    setSnapshots([])
+  }
+
+  const handleGenerateSnapshot = async () => {
+    try {
+      if (!currentRestaurantId) {
+        message.warning('请先选择餐厅')
+        return
+      }
+
+      setLoading(true)
+      const result = await operationAPI.behavior.generateSnapshot?.({
+        restaurantId: currentRestaurantId,
+        tenantId: tenantId,
+        period: period,
+      })
+
+      if (result && result.code === 0) {
+        message.success('快照生成成功')
+        fetchBehaviorData()
+      } else {
+        message.error(result?.message || '快照生成失败')
+      }
+    } catch (error: any) {
+      console.error('生成快照失败:', error)
+      message.error(error.message || '生成快照失败')
+    } finally {
+      setLoading(false)
     }
   }
 
   const columns: ColumnsType<BehaviorMetric> = [
     {
-      title: t('pages.operation.behavior.table.columns.date'),
+      title: '快照日期',
       dataIndex: 'date',
       key: 'date',
     },
     {
-      title: t('pages.operation.behavior.table.columns.lowCarbonRatio'),
+      title: '低碳菜品占比',
       dataIndex: 'lowCarbonRatio',
       key: 'lowCarbonRatio',
       render: (value: number) => `${(value * 100).toFixed(1)}%`,
     },
     {
-      title: t('pages.operation.behavior.table.columns.customerBehavior'),
+      title: '平均消费频次',
       dataIndex: 'customerBehavior',
       key: 'customerBehavior',
     },
     {
-      title: t('pages.operation.behavior.table.columns.carbonReduction'),
+      title: '浪费减量',
       dataIndex: 'carbonReduction',
       key: 'carbonReduction',
-      render: (value: number) => `${value.toFixed(2)} kg CO₂e`,
+      render: (value: number) => `${value.toFixed(2)} kg`,
     },
   ]
 
-
   return (
     <div>
-      <Card title={t('pages.operation.behavior.overview.title')} style={{ marginBottom: 16 }}>
+      {/* 餐厅行为指标概览 */}
+      <Card title="餐厅行为指标概览" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title={t('pages.operation.behavior.overview.lowCarbonRatio')}
-              value={(statistics.lowCarbonRatio * 100).toFixed(1)}
+              title="低碳菜品占比"
+              value={(restaurantMetrics.lowCarbonDishRatio * 100).toFixed(1)}
               suffix="%"
               valueStyle={{ color: '#3f8600' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title={t('pages.operation.behavior.overview.monthlyCarbonReduction')}
-              value={statistics.monthlyCarbonReduction}
-              suffix="kg CO₂e"
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title={t('pages.operation.behavior.overview.customerLowCarbonChoiceRate')}
-              value={(statistics.customerLowCarbonChoiceRate * 100).toFixed(1)}
+              title="本地食材占比"
+              value={(restaurantMetrics.localIngredientRatio * 100).toFixed(1)}
               suffix="%"
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title={t('pages.operation.behavior.overview.behaviorRecordCount')}
-              value={statistics.behaviorRecordCount}
-              suffix={t('pages.operation.behavior.overview.unit')}
+              title="有机食材占比"
+              value={(restaurantMetrics.organicIngredientRatio * 100).toFixed(1)}
+              suffix="%"
               valueStyle={{ color: '#722ed1' }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="浪费减量率"
+              value={(restaurantMetrics.wasteReductionRate * 100).toFixed(1)}
+              suffix="%"
+              valueStyle={{ color: '#cf1322' }}
             />
           </Col>
         </Row>
       </Card>
 
+      {/* 顾客行为指标概览 */}
+      <Card title="顾客行为指标概览" style={{ marginBottom: 16 }}>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic
+              title="平均消费频次"
+              value={customerMetrics.avgFrequency.toFixed(1)}
+              suffix="次/月"
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="平均消费金额"
+              value={customerMetrics.avgAmount.toFixed(2)}
+              prefix="¥"
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="低碳选择率"
+              value={(customerMetrics.lowCarbonChoiceRate * 100).toFixed(1)}
+              suffix="%"
+              valueStyle={{ color: '#722ed1' }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="高峰时段"
+              value={customerMetrics.peakHours.join(', ') || '暂无'}
+              valueStyle={{ color: '#cf1322', fontSize: 14 }}
+            />
+          </Col>
+        </Row>
+      </Card>
+
+      {/* 趋势图表 */}
       <Card
-        title={t('pages.operation.behavior.trend.title')}
-        extra={<RangePicker />}
+        title="行为指标趋势"
+        extra={
+          <Space>
+            <Select
+              value={period}
+              onChange={setPeriod}
+              style={{ width: 120 }}
+            >
+              <Select.Option value="daily">日度</Select.Option>
+              <Select.Option value="weekly">周度</Select.Option>
+              <Select.Option value="monthly">月度</Select.Option>
+            </Select>
+            <RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as any)}
+            />
+            <Button onClick={handleGenerateSnapshot} loading={loading}>
+              生成快照
+            </Button>
+          </Space>
+        }
         style={{ marginBottom: 16 }}
       >
         <Column
@@ -177,19 +341,17 @@ const OperationBehavior: React.FC = () => {
         />
       </Card>
 
-      <Card title={t('pages.operation.behavior.detail.title')}>
-        <Space style={{ marginBottom: 16 }}>
-          <RangePicker />
-        </Space>
-
+      {/* 快照详情 */}
+      <Card title="历史快照">
         <Table
           columns={columns}
           dataSource={dataSource}
           rowKey="id"
+          loading={loading}
           pagination={{
             total: dataSource.length,
             pageSize: 10,
-            showTotal: (total) => t('pages.carbon.baselineList.pagination.total', { total }),
+            showTotal: (total) => `共 ${total} 条记录`,
           }}
         />
       </Card>
