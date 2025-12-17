@@ -220,7 +220,8 @@ async function createRecipe(recipeCollection, recipe, openid, tenantId) {
     carbonScore: recipe.carbonScore || 0,
     status: recipe.status || 'draft',
     channels: recipe.channels || [],
-    version: 1,
+    version: recipe.version || 1,
+    isBaseRecipe: recipe.isBaseRecipe !== undefined ? recipe.isBaseRecipe : false, // 保留前端传递的 isBaseRecipe 值
     tenantId: tenantId, // 使用餐厅ID作为租户ID
     restaurantId: tenantId, // 同时保存餐厅ID字段，便于查询
     createdBy: openid,
@@ -469,8 +470,12 @@ async function listRecipes(recipeCollection, keyword, page, pageSize, tenantId, 
     // 如果指定了 isBaseRecipe，则只查询基础食谱（不进行租户隔离）
     if (filters.isBaseRecipe === true) {
       // 构建基础食谱查询条件
+      // 注意：真正的平台基础菜谱应该 tenantId 和 restaurantId 都为 null
+      // 手工创建的菜谱虽然 isBaseRecipe 也为 true，但它们有 tenantId/restaurantId，不应该出现在基础菜谱库中
       let query = recipeCollection.where({
         isBaseRecipe: true, // 只查询基础食谱
+        tenantId: null, // 平台基础菜谱无租户ID
+        restaurantId: null, // 平台基础菜谱无餐厅ID
         status: _.neq('archived') // 排除已归档的菜谱
       })
 

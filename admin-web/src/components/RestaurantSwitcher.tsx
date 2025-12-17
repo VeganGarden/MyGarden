@@ -3,6 +3,7 @@ import { setCurrentRestaurant } from '@/store/slices/tenantSlice'
 import { ShopOutlined } from '@ant-design/icons'
 import { Select, Tag } from 'antd'
 import React from 'react'
+import { useLocation } from 'react-router-dom'
 import styles from './RestaurantSwitcher.module.css'
 
 /**
@@ -20,11 +21,19 @@ import styles from './RestaurantSwitcher.module.css'
  * 显示条件：
  * - 用户角色必须是 restaurant_admin 或 carbon_specialist
  * - 必须存在当前租户信息（currentTenant）
+ * - 不在因子库管理页面（因子库是平台级数据，与租户/餐厅无关）
  */
 const RestaurantSwitcher: React.FC = () => {
   const dispatch = useAppDispatch()
+  const location = useLocation()
   const { currentTenant, currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   const { user } = useAppSelector((state: any) => state.auth)
+
+  // 因子库管理页面不显示租户/餐厅选择器（因子库是平台级数据）
+  const isFactorLibraryPage = location.pathname.startsWith('/carbon/factor-library')
+  if (isFactorLibraryPage) {
+    return null
+  }
 
   // 餐厅管理员和碳核算专员显示；其余角色隐藏
   // 即使餐厅列表为空，只要有租户信息就显示（但会提示没有餐厅）

@@ -182,19 +182,25 @@ const RecipeEdit: React.FC = () => {
         return
       }
 
-      // 1. 计算食材碳足迹
+      // 1. 计算食材碳足迹（使用因子库）
+      // 注意：这里需要调用后端云函数来计算，因为因子库查询在后端
+      // 当前先使用简化方案：提示用户使用因子库管理功能
+      message.warning('碳足迹计算功能已迁移到因子库，请使用餐厅菜单碳足迹计算功能进行精确计算')
+      
+      // 暂时保留简单的计算逻辑（仅用于显示，不保存）
       let ingredientsCarbon = 0
       for (const ing of ingredients) {
         if (!ing.ingredientId || !ing.quantity) continue
 
-        // 从 allIngredients 中查找食材的碳系数
+        // 提示：碳系数已迁移到因子库，这里不再从ingredient读取
+        // 实际计算应该调用后端云函数 restaurant-menu-carbon/calculateMenuItemCarbon
         const ingredient = allIngredients.find((item) => item._id === ing.ingredientId)
-        if (ingredient?.carbonFootprint?.coefficient) {
-          const coefficient = ingredient.carbonFootprint.coefficient
+        if (ingredient) {
+          // 使用默认值或提示用户去因子库查看
+          const defaultCoefficient = 0.5 // 默认值
           const quantity = ing.quantity || 0
-          ingredientsCarbon += coefficient * quantity
-        } else {
-          message.warning(`食材 ${ingredient?.name || ing.ingredientId} 缺少碳系数，请先完善食材信息`)
+          ingredientsCarbon += defaultCoefficient * quantity
+          message.warning(`食材 ${ingredient.name} 的因子值请查看因子库，当前使用默认值计算`)
         }
       }
 

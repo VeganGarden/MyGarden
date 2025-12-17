@@ -187,25 +187,11 @@ const MeatIngredientEdit: React.FC = () => {
             </Panel>
 
             <Panel header="碳足迹信息" key="2">
-              <Form.Item
-                name="carbonFootprint"
-                label="碳足迹 (kg CO₂e/kg)"
-                rules={[{ required: true, message: '请输入碳足迹' }]}
-              >
-                <InputNumber min={0} step={0.01} style={{ width: '100%' }} placeholder="请输入碳足迹" />
-              </Form.Item>
-              <Form.Item name={['carbonFootprintSource', 'organization']} label="数据来源机构">
-                <Input placeholder="如：FAO" />
-              </Form.Item>
-              <Form.Item name={['carbonFootprintSource', 'report']} label="报告名称">
-                <Input placeholder="如：Food Carbon Footprint Database" />
-              </Form.Item>
-              <Form.Item name={['carbonFootprintSource', 'year']} label="年份">
-                <InputNumber min={2000} max={2100} style={{ width: '100%' }} placeholder="如：2021" />
-              </Form.Item>
-              <Form.Item name={['carbonFootprintSource', 'methodology']} label="计算方法">
-                <Input placeholder="如：Life Cycle Assessment" />
-              </Form.Item>
+              <div style={{ padding: '16px', color: '#666', fontSize: '14px' }}>
+                <div>• 碳足迹因子数据已迁移到因子库统一管理</div>
+                <div>• 请前往「因子库管理」查看和管理该荤食食材的碳排放因子</div>
+                <div>• 计算碳足迹时将自动从因子库查询对应的因子值</div>
+              </div>
             </Panel>
 
             <Panel header="营养信息" key="3">

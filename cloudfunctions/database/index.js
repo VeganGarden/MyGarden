@@ -7,6 +7,7 @@ const _ = db.command;
 const { insertRestaurantTestData } = require('./insert-restaurant-test-data');
 const { main: insertCarbonTestData } = require('./insert-carbon-test-data');
 const { main: migrateCarbonCalculationV1 } = require('./migrate-carbon-calculation-v1');
+const { main: migrateCarbonCalculationV2 } = require('./migrate-carbon-calculation-v2');
 const { main: migrateRecalculateCarbonV1 } = require('./migrate-recalculate-carbon-v1');
 const { main: migrateRecipesAddIsBaseRecipe } = require('./migrate-recipes-add-isbaserecipe')
 const { main: migrateMeatProductsAddFields } = require('./migrate-meat-products-add-fields');
@@ -18,6 +19,13 @@ const { main: initCertificationCollections } = require('./init-certification-col
 const { main: migrateRestaurantsAddCertificationFields } = require('./migrate-restaurants-add-certification-fields');
 const { initOperationCollections } = require('./init-operation-collections');
 const { initOperationSampleData } = require('./init-operation-sample-data');
+const { main: initCarbonFactorCollections } = require('./init-carbon-factor-collections');
+const { main: initFactorDataFromAuthoritativeSources } = require('./init-factor-data-from-authoritative-sources');
+const { main: initFactorsFromExistingIngredients } = require('./init-factors-from-existing-ingredients');
+const { main: checkDuplicateFactors } = require('./check-duplicate-factors');
+const { main: fixDuplicateFactors } = require('./fix-duplicate-factors');
+const { main: migrateFactorsIntegration } = require('./migrate-factors-integration');
+const { main: verifyFactorsMigration } = require('./verify-factors-migration');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -41,7 +49,11 @@ const { initOperationSampleData } = require('./init-operation-sample-data');
  * - insertCarbonTestData: 为指定租户的餐厅插入菜单碳足迹和订单碳足迹示例数据
  * - initCertificationCollections: 初始化认证域集合（certification_applications, certification_stages, certification_badges, certification_documents, certification_materials）
  * - migrate-restaurants-add-certification-fields: 为 restaurants 集合添加完整的 climateCertification 字段结构
+ * - initCarbonFactorCollections: 初始化碳排放因子集合（carbon_emission_factors）
+ * - initFactorDataFromJSON: 从JSON格式导入因子数据（从权威数据源）
+ * - initFactorDataFromCSV: 从CSV格式导入因子数据（从权威数据源）
  * - migrate-carbon-calculation-v1: 迁移数据库结构（添加地区、餐食类型等字段）
+ * - migrate-carbon-calculation-v2: 迁移数据库结构（添加计算级别、因子匹配信息等字段）
  * - migrate-recalculate-carbon-v1: 批量重新计算现有菜谱碳足迹
  * - migrate-recipes-add-isbaserecipe: 为所有已有食谱添加 isBaseRecipe 字段（默认值：true）
  * - migrate-meat-products-add-fields: 为 meat_products 集合补充系统字段（status, createdBy, createdAt, updatedAt, version）
@@ -101,6 +113,8 @@ exports.main = async (event) => {
         return await insertCarbonTestData(event);
       case 'migrate-carbon-calculation-v1':
         return await migrateCarbonCalculationV1(event);
+      case 'migrate-carbon-calculation-v2':
+        return await migrateCarbonCalculationV2(event);
       case 'migrate-recalculate-carbon-v1':
         return await migrateRecalculateCarbonV1(event);
       case 'migrate-recipes-add-isbaserecipe':
@@ -120,6 +134,21 @@ exports.main = async (event) => {
         return await initCertificationCollections(event);
       case 'migrate-restaurants-add-certification-fields':
         return await migrateRestaurantsAddCertificationFields(event);
+      case 'initCarbonFactorCollections':
+        return await initCarbonFactorCollections(event);
+      case 'initFactorDataFromJSON':
+      case 'initFactorDataFromCSV':
+        return await initFactorDataFromAuthoritativeSources(event);
+      case 'initFactorsFromExistingIngredients':
+        return await initFactorsFromExistingIngredients(event);
+      case 'checkDuplicateFactors':
+        return await checkDuplicateFactors(event);
+      case 'fixDuplicateFactors':
+        return await fixDuplicateFactors(event);
+      case 'migrateFactorsIntegration':
+        return await migrateFactorsIntegration(event);
+      case 'verifyFactorsMigration':
+        return await verifyFactorsMigration(event);
       case 'initVegetarianPersonnelCollections':
         const { main: initVegetarianPersonnelCollections } = require('./init-vegetarian-personnel-collections');
         return await initVegetarianPersonnelCollections(event);

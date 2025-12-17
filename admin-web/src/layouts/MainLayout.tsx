@@ -203,6 +203,10 @@ const MainLayout: React.FC = () => {
                 key: '/carbon/baseline',
                 label: t('menu.carbonBaseline'),
               },
+              {
+                key: '/carbon/factor-library',
+                label: t('menu.carbonFactorLibrary'),
+              },
             ],
           },
         ]
@@ -301,10 +305,6 @@ const MainLayout: React.FC = () => {
               {
                 key: '/recipe/list',
                 label: t('menu.recipeList'),
-              },
-              {
-                key: '/recipe/create',
-                label: t('menu.recipeCreate'),
               },
               {
                 key: '/recipe/categories',

@@ -6,30 +6,10 @@ cloud.init({
 // 引入高级碳计算器
 const CarbonCalculator = require('./carbon-calculator')
 
-// 碳足迹计算系数（kg CO2e/kg 食材）
-const CARBON_FACTORS = {
-  // 蔬菜类
-  vegetables: {
-    leafy: 0.4,      // 叶菜类
-    root: 0.3,       // 根茎类
-    fruit: 0.5,      // 果菜类
-    mushroom: 0.6     // 菌菇类
-  },
-  // 豆制品
-  beans: {
-    tofu: 1.2,       // 豆腐
-    soy_milk: 0.8,   // 豆浆
-    tempeh: 1.5      // 天贝
-  },
-  // 谷物
-  grains: {
-    rice: 1.4,       // 大米
-    wheat: 1.2,      // 小麦
-    corn: 1.1        // 玉米
-  }
-}
+const db = cloud.database()
+const _ = db.command
 
-// 烹饪方式调整系数
+// 烹饪方式调整系数（保留，仍在使用）
 const COOKING_FACTORS = {
   raw: 1.0,          // 生食
   steamed: 1.1,      // 蒸
@@ -37,6 +17,107 @@ const COOKING_FACTORS = {
   stir_fried: 1.5,   // 炒
   fried: 2.0,        // 炸
   baked: 1.8         // 烤
+}
+
+/**
+ * 映射ingredients的category到因子库的subCategory
+ */
+function mapIngredientCategoryToSubCategory(category) {
+  const categoryMap = {
+    vegetables: 'vegetable',
+    beans: 'bean_product',
+    grains: 'grain',
+    fruits: 'fruit',
+    nuts: 'nut',
+    mushrooms: 'mushroom',
+    seafood: 'seafood',
+    dairy: 'dairy',
+    spices: 'spice',
+    others: 'other'
+  };
+  return categoryMap[category] || category || 'other';
+}
+
+/**
+ * 匹配因子（多级匹配算法）
+ * @param {string} inputName - 食材名称
+ * @param {string} category - 食材类别（可选）
+ * @param {string} region - 地区（默认'CN'）
+ * @returns {Promise<Object|null>} 匹配到的因子对象，或null
+ */
+async function matchFactor(inputName, category, region = 'CN') {
+  if (!inputName) return null;
+
+  // Level 1: 精确区域匹配
+  let factor = await db.collection('carbon_emission_factors')
+    .where({
+      name: inputName,
+      region: region,
+      status: 'active'
+    })
+    .get();
+
+  if (factor.data.length > 0) {
+    const matched = factor.data[0];
+    if (matched.factorValue !== null && matched.factorValue !== undefined) {
+      return matched;
+    }
+  }
+
+  // Level 2: 国家级匹配
+  factor = await db.collection('carbon_emission_factors')
+    .where({
+      name: inputName,
+      region: 'CN',
+      status: 'active'
+    })
+    .get();
+
+  if (factor.data.length > 0) {
+    const matched = factor.data[0];
+    if (matched.factorValue !== null && matched.factorValue !== undefined) {
+      return matched;
+    }
+  }
+
+  // Level 3: 别名匹配
+  let aliasMatch = await db.collection('carbon_emission_factors')
+    .where({
+      alias: inputName,
+      status: 'active'
+    })
+    .get();
+
+  if (aliasMatch.data.length > 0) {
+    const matched = aliasMatch.data[0];
+    if (matched.factorValue !== null && matched.factorValue !== undefined) {
+      return matched;
+    }
+  }
+
+  // Level 4: 类别兜底
+  if (category) {
+    const subCategory = mapIngredientCategoryToSubCategory(category);
+    const categoryFactor = await db.collection('carbon_emission_factors')
+      .where({
+        category: 'ingredient',
+        subCategory: subCategory,
+        region: _.or(['CN', region]),
+        status: 'active'
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (categoryFactor.data.length > 0) {
+      const matched = categoryFactor.data[0];
+      if (matched.factorValue !== null && matched.factorValue !== undefined) {
+        return matched;
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -241,20 +322,49 @@ async function calculateCarbonFootprint(ingredients, cookingMethod, mealType, re
   // 查询基准碳足迹
   const baselineCarbon = await queryBaseline(mealType, region, energyType)
   
-  ingredients.forEach(ingredient => {
-    const { type, category, weight } = ingredient
-    const factor = CARBON_FACTORS[type]?.[category] || 0.5
+  // 使用因子库查询每个食材的因子
+  for (const ingredient of ingredients) {
+    const { name, type, category, weight } = ingredient
+    let factor = null
+    let factorSource = 'not_found'
+
+    // 从因子库查询因子
+    try {
+      const matchedFactor = await matchFactor(name, category, region || 'CN')
+      if (matchedFactor && matchedFactor.factorValue !== null && matchedFactor.factorValue !== undefined) {
+        factor = matchedFactor.factorValue
+        factorSource = matchedFactor.matchLevel || 'factor_library'
+      }
+    } catch (error) {
+      console.error(`查询因子失败 ${name}:`, error)
+    }
+
+    // 如果因子库中没有找到，使用默认值（向后兼容）
+    if (factor === null) {
+      // 使用类别默认值（保留向后兼容）
+      const defaultFactors = {
+        vegetables: { leafy: 0.4, root: 0.3, fruit: 0.5, mushroom: 0.6 },
+        beans: { tofu: 1.2, soy_milk: 0.8, tempeh: 1.5 },
+        grains: { rice: 1.4, wheat: 1.2, corn: 1.1 }
+      }
+      factor = defaultFactors[type]?.[category] || 0.5
+      factorSource = 'default_fallback'
+      console.warn(`因子库中未找到 ${name}，使用默认值: ${factor}`)
+    }
+
     const carbon = factor * (weight / 1000) // 转换为kg
     
     totalFootprint += carbon
     details.push({
-      name: ingredient.name,
+      name: name,
       type: type,
       category: category,
       weight: weight,
-      carbon: carbon
+      carbon: carbon,
+      factor: factor,
+      factorSource: factorSource
     })
-  })
+  }
   
   // 应用烹饪方式调整
   const cookingFactor = COOKING_FACTORS[cookingMethod] || 1.0
@@ -288,53 +398,60 @@ async function compareWithMeat(event) {
   const db = cloud.database();
 
   try {
-    // 计算素食餐碳足迹
+    // 计算素食餐碳足迹（使用因子库）
     let veganCarbon = 0;
     const veganDetails = [];
 
     for (const item of veganIngredients) {
-      const ingredient = await db.collection('ingredients')
-        .where({ name: item.name })
-        .get();
+      try {
+        // 从因子库查询因子
+        const factor = await matchFactor(item.name, null, 'CN');
       
-      if (ingredient.data.length > 0) {
-        const carbon = ingredient.data[0].carbonFootprint * (item.amount / 1000);
+        if (factor && factor.factorValue !== null && factor.factorValue !== undefined) {
+          const carbon = factor.factorValue * (item.amount / 1000);
         veganCarbon += carbon;
         veganDetails.push({
           name: item.name,
           amount: item.amount,
-          carbonFootprint: ingredient.data[0].carbonFootprint,
+            carbonFootprint: factor.factorValue,
           carbon: carbon
         });
+        } else {
+          console.warn(`无法匹配因子: ${item.name}`);
+        }
+      } catch (error) {
+        console.error(`获取食材 ${item.name} 的因子失败:`, error);
       }
     }
 
-    // 计算肉食餐碳足迹
+    // 计算肉食餐碳足迹（使用因子库）
     let meatCarbon = 0;
     const meatDetails = [];
 
     for (const item of meatIngredients) {
-      // 先查询肉类数据库
-      let product = await db.collection('meat_products')
-        .where({ name: item.name })
-        .get();
+      try {
+        // 从因子库查询因子（优先匹配meat类别）
+        let factor = await matchFactor(item.name, 'meat', 'CN');
       
-      // 如果肉类库没有，查ingredients（可能是蛋奶类）
-      if (product.data.length === 0) {
-        product = await db.collection('ingredients')
-          .where({ name: item.name })
-          .get();
+        // 如果没找到，尝试不指定类别
+        if (!factor || factor.factorValue === null || factor.factorValue === undefined) {
+          factor = await matchFactor(item.name, null, 'CN');
       }
       
-      if (product.data.length > 0) {
-        const carbon = product.data[0].carbonFootprint * (item.amount / 1000);
+        if (factor && factor.factorValue !== null && factor.factorValue !== undefined) {
+          const carbon = factor.factorValue * (item.amount / 1000);
         meatCarbon += carbon;
         meatDetails.push({
           name: item.name,
           amount: item.amount,
-          carbonFootprint: product.data[0].carbonFootprint,
+            carbonFootprint: factor.factorValue,
           carbon: carbon
         });
+        } else {
+          console.warn(`无法匹配因子: ${item.name}`);
+        }
+      } catch (error) {
+        console.error(`获取食材 ${item.name} 的因子失败:`, error);
       }
     }
 

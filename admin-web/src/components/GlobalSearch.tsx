@@ -61,9 +61,8 @@ const GlobalSearch: React.FC = () => {
       { key: 'report-dashboard', label: '数据看板', path: '/report/dashboard', type: 'menu' },
       
       // 菜谱管理
-      { key: 'recipe-list', label: '菜谱列表', path: '/recipe/list', type: 'menu' },
-      { key: 'recipe-create', label: '创建菜谱', path: '/recipe/create', type: 'menu' },
-      { key: 'recipe-categories', label: '分类管理', path: '/recipe/categories', type: 'menu' },
+      { key: 'recipe-list', label: '餐厅菜谱列表', path: '/recipe/list', type: 'menu' },
+      { key: 'recipe-categories', label: '菜谱分类', path: '/recipe/categories', type: 'menu' },
       
       // 个人中心
       { key: 'profile', label: '个人中心', path: '/profile', type: 'menu' },

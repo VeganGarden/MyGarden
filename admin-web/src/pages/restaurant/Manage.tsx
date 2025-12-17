@@ -1,5 +1,6 @@
 import { useAppSelector } from '@/store/hooks'
 import { tenantAPI } from '@/services/cloudbase'
+import { parseAddressToRegion, getRegionLabel, REGION_OPTIONS } from '@/utils/addressParser'
 import {
   EditOutlined,
   PlusOutlined,
@@ -9,8 +10,10 @@ import {
   Button,
   Card,
   Form,
+  AutoComplete,
   Input,
   Modal,
+  Select,
   Space,
   Table,
   Tag,
@@ -27,6 +30,7 @@ interface Restaurant {
   address: string
   phone: string
   email: string
+  region?: string
   status: 'active' | 'inactive' | 'pending' | 'suspended'
   certificationLevel?: 'bronze' | 'silver' | 'gold' | 'platinum'
   certificationStatus?: string
@@ -42,6 +46,26 @@ const RestaurantManage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingRecord, setEditingRecord] = useState<Restaurant | null>(null)
   const [form] = Form.useForm()
+  
+  // 处理地址输入完成，自动识别地区（在失去焦点时触发）
+  const handleAddressBlur = () => {
+    // 从表单中获取地址值
+    const address = form.getFieldValue('address')
+    
+    // 如果地址不为空，尝试识别地区
+    if (address && address.trim()) {
+      const region = parseAddressToRegion(address)
+      if (region) {
+        const currentRegion = form.getFieldValue('region')
+        // 每次失去焦点都自动识别并更新地区
+        form.setFieldsValue({ region })
+        // 如果地区发生了变化，显示提示
+        if (currentRegion !== region) {
+          message.success(`已自动识别地区：${getRegionLabel(region)}`)
+        }
+      }
+    }
+  }
 
   useEffect(() => {
     if (currentTenant?.id) {
@@ -70,6 +94,7 @@ const RestaurantManage: React.FC = () => {
             address: r.address || '',
             phone: r.phone || '',
             email: r.email || '',
+            region: r.region || 'national_average',
             status: r.status || 'active',
             certificationLevel: r.certificationLevel,
             certificationStatus: r.certificationStatus || 'none',
@@ -102,13 +127,22 @@ const RestaurantManage: React.FC = () => {
       address: record.address,
       phone: record.phone,
       email: record.email,
+      region: record.region || 'national_average',
     })
     setIsModalVisible(true)
   }
 
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields()
+      let values = await form.validateFields()
+
+      // 如果地址已填写，尝试自动识别地区（作为备用检查，主要识别在onBlur时完成）
+      if (values.address) {
+        const parsedRegion = parseAddressToRegion(values.address)
+        if (parsedRegion) {
+          values.region = parsedRegion
+        }
+      }
 
       if (!currentTenant?.id) {
         message.error('当前租户信息不存在')
@@ -122,6 +156,7 @@ const RestaurantManage: React.FC = () => {
           address: values.address,
           phone: values.phone,
           email: values.email,
+          region: values.region,
         })
 
         if (result && result.success) {
@@ -139,6 +174,7 @@ const RestaurantManage: React.FC = () => {
           address: values.address,
           phone: values.phone,
           email: values.email,
+          region: values.region || 'national_average',
         })
 
         if (result && result.success) {
@@ -172,7 +208,16 @@ const RestaurantManage: React.FC = () => {
       title: '地址',
       dataIndex: 'address',
       key: 'address',
-      width: 250,
+      width: 200,
+    },
+    {
+      title: '地区',
+      dataIndex: 'region',
+      key: 'region',
+      width: 120,
+      render: (region: string) => {
+        return <Tag color="blue">{getRegionLabel(region) || region || '未设置'}</Tag>
+      },
     },
     {
       title: '联系电话',
@@ -283,6 +328,7 @@ const RestaurantManage: React.FC = () => {
           layout="vertical"
           initialValues={{
             status: 'active',
+            region: 'national_average',
           }}
         >
           <Form.Item
@@ -297,8 +343,20 @@ const RestaurantManage: React.FC = () => {
             name="address"
             label="餐厅地址"
             rules={[{ required: true, message: '请输入餐厅地址' }]}
+            tooltip="输入地址后，当输入框失去焦点时会自动识别并更新地区。您也可以手动选择地区进行覆盖。"
           >
-            <Input placeholder="请输入餐厅地址" />
+            <AutoComplete
+              placeholder="请输入餐厅地址，如：北京市朝阳区xxx街道xxx号（输入完成后点击其他区域或按Tab键，系统会自动识别地区）"
+              allowClear
+              onBlur={handleAddressBlur}
+              onSelect={(value: string) => {
+                // 选择自动完成项时，先更新地址字段，然后识别地区
+                form.setFieldsValue({ address: value })
+                setTimeout(() => {
+                  handleAddressBlur()
+                }, 100)
+              }}
+            />
           </Form.Item>
 
           <Form.Item
@@ -321,6 +379,22 @@ const RestaurantManage: React.FC = () => {
             ]}
           >
             <Input placeholder="请输入邮箱" />
+          </Form.Item>
+
+          <Form.Item
+            name="region"
+            label="地区"
+            rules={[{ required: true, message: '请选择餐厅所在地区' }]}
+            tooltip="地区用于碳足迹计算时的因子匹配和基准值查询。输入地址后系统会自动识别，您也可以手动选择覆盖。"
+            initialValue="national_average"
+          >
+            <Select placeholder="请选择地区（输入地址后将自动识别）">
+              {REGION_OPTIONS.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

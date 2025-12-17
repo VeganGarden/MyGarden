@@ -39,9 +39,7 @@ const CarbonOrder: React.FC = () => {
 
   const fetchOrderCarbonData = async () => {
     try {
-      console.log('🔍 订单碳足迹 - currentRestaurantId:', currentRestaurantId)
       if (!currentRestaurantId) {
-        console.log('⚠️ 订单碳足迹 - currentRestaurantId 为空')
         setDataSource([])
         setChartData([])
         setStatistics({
@@ -58,10 +56,8 @@ const CarbonOrder: React.FC = () => {
         startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
         endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
       }
-      console.log('📤 订单碳足迹 - 请求参数:', params)
       
       const result = await carbonFootprintAPI.getOrderCarbonStats(params)
-      console.log('📥 订单碳足迹 - API 返回结果:', result)
       
       if (result && result.code === 0 && result.data) {
         try {
@@ -102,7 +98,6 @@ const CarbonOrder: React.FC = () => {
             setDataSource([])
           }
         } catch (parseError: any) {
-          console.error('解析订单数据失败:', parseError)
           setDataSource([])
           setChartData([])
           message.warning('数据格式错误，请稍后重试')
@@ -112,7 +107,6 @@ const CarbonOrder: React.FC = () => {
         setChartData([])
       }
     } catch (error: any) {
-      console.error('获取订单碳足迹数据失败:', error)
       message.error(error.message || '获取订单碳足迹数据失败，请稍后重试')
       setDataSource([])
       setChartData([])
@@ -174,7 +168,6 @@ const CarbonOrder: React.FC = () => {
 
   const handleExport = () => {
     // TODO: 实现数据导出
-    console.log('导出数据')
   }
 
   // 如果没有选择餐厅，显示提示

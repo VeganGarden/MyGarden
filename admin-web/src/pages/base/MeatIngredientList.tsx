@@ -283,17 +283,20 @@ const MeatIngredientList: React.FC = () => {
       width: 120,
     },
     {
-      title: '碳足迹 (kg CO₂e/kg)',
-      dataIndex: 'carbonFootprint',
-      key: 'carbonFootprint',
-      width: 140,
-      render: (value: number) => {
-        if (value === undefined || value === null) {
-          return <span style={{ color: '#999' }}>-</span>
-        }
-        return value.toFixed(2)
+      title: '碳排放因子',
+      key: 'carbonFactor',
+      width: 120,
+      render: (_: any, record: BaseMeatIngredient) => {
+        return (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => navigate(`/carbon/factor-library?keyword=${encodeURIComponent(record.name)}`)}
+          >
+            查看因子
+          </Button>
+        )
       },
-      sorter: (a, b) => (a.carbonFootprint || 0) - (b.carbonFootprint || 0),
     },
     {
       title: '状态',

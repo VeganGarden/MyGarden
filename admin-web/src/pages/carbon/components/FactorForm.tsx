@@ -1,0 +1,248 @@
+/**
+ * 碳排放因子表单组件
+ */
+import React from 'react'
+import { Form, Input, InputNumber, Select, Row, Col, Tag } from 'antd'
+import type { FormInstance } from 'antd'
+import { FactorCategory, FactorSource, FactorBoundary, FactorStatus } from '@/types/factor'
+import { useTranslation } from 'react-i18next'
+
+const { Option } = Select
+const { TextArea } = Input
+
+interface FactorFormProps {
+  form: FormInstance
+  initialValues?: any
+  onValuesChange?: (changedValues: any, allValues: any) => void
+}
+
+const FactorForm: React.FC<FactorFormProps> = ({
+  form,
+  initialValues,
+  onValuesChange,
+}) => {
+  const { t } = useTranslation()
+
+  return (
+    <Form
+      form={form}
+      layout="vertical"
+      initialValues={initialValues}
+      onValuesChange={onValuesChange}
+    >
+      {/* 基本信息 */}
+      <div style={{ marginBottom: 24 }}>
+        <h3>{t('pages.carbon.factorForm.sections.basicInfo')}</h3>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="name"
+              label={t('pages.carbon.factorForm.fields.name')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.nameRequired') }]}
+            >
+              <Input placeholder={t('pages.carbon.factorForm.placeholders.name')} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="factorId"
+              label={t('pages.carbon.factorForm.fields.factorId')}
+              tooltip={t('pages.carbon.factorForm.tooltips.factorId')}
+            >
+              <Input placeholder={t('pages.carbon.factorForm.placeholders.factorId')} disabled />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="category"
+              label={t('pages.carbon.factorForm.fields.category')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.categoryRequired') }]}
+            >
+              <Select placeholder={t('pages.carbon.factorForm.placeholders.category')}>
+                <Option value={FactorCategory.INGREDIENT}>{t('pages.carbon.factorLibrary.categories.ingredient')}</Option>
+                <Option value={FactorCategory.ENERGY}>{t('pages.carbon.factorLibrary.categories.energy')}</Option>
+                <Option value={FactorCategory.MATERIAL}>{t('pages.carbon.factorLibrary.categories.material')}</Option>
+                <Option value={FactorCategory.TRANSPORT}>{t('pages.carbon.factorLibrary.categories.transport')}</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="subCategory"
+              label={t('pages.carbon.factorForm.fields.subCategory')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.subCategoryRequired') }]}
+            >
+              <Input placeholder={t('pages.carbon.factorForm.placeholders.subCategory')} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item
+          name="alias"
+          label={t('pages.carbon.factorForm.fields.alias')}
+          tooltip={t('pages.carbon.factorForm.tooltips.alias')}
+        >
+          <Select
+            mode="tags"
+            placeholder={t('pages.carbon.factorForm.placeholders.alias')}
+            tokenSeparators={[',', ' ']}
+          />
+        </Form.Item>
+      </div>
+
+      {/* 因子数值 */}
+      <div style={{ marginBottom: 24 }}>
+        <h3>{t('pages.carbon.factorForm.sections.factorValue')}</h3>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="factorValue"
+              label={t('pages.carbon.factorForm.fields.factorValue')}
+              rules={[
+                { required: true, message: t('pages.carbon.factorForm.validation.factorValueRequired') },
+                { type: 'number', min: 0, message: t('pages.carbon.factorForm.validation.factorValueMin') },
+              ]}
+            >
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder={t('pages.carbon.factorForm.placeholders.factorValue')}
+                precision={2}
+                min={0}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="unit"
+              label={t('pages.carbon.factorForm.fields.unit')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.unitRequired') }]}
+            >
+              <Select placeholder={t('pages.carbon.factorForm.placeholders.unit')}>
+                <Option value="kgCO2e/kg">kgCO₂e/kg</Option>
+                <Option value="kgCO2e/kWh">kgCO₂e/kWh</Option>
+                <Option value="kgCO2e/tkm">kgCO₂e/tkm</Option>
+                <Option value="kgCO2e/m³">kgCO₂e/m³</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="uncertainty"
+              label={t('pages.carbon.factorForm.fields.uncertainty')}
+              tooltip={t('pages.carbon.factorForm.tooltips.uncertainty')}
+            >
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder={t('pages.carbon.factorForm.placeholders.uncertainty')}
+                precision={1}
+                min={0}
+                max={100}
+                addonAfter="%"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+      </div>
+
+      {/* 适用范围与来源 */}
+      <div style={{ marginBottom: 24 }}>
+        <h3>{t('pages.carbon.factorForm.sections.sourceRegion')}</h3>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="region"
+              label={t('pages.carbon.factorForm.fields.region')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.regionRequired') }]}
+            >
+              <Select placeholder={t('pages.carbon.factorForm.placeholders.region')}>
+                <Option value="CN">中国 (CN)</Option>
+                <Option value="CN-East">华东 (CN-East)</Option>
+                <Option value="CN-North">华北 (CN-North)</Option>
+                <Option value="CN-South">华南 (CN-South)</Option>
+                <Option value="CN-West">西部 (CN-West)</Option>
+                <Option value="Global">全球 (Global)</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="source"
+              label={t('pages.carbon.factorForm.fields.source')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.sourceRequired') }]}
+            >
+              <Select placeholder={t('pages.carbon.factorForm.placeholders.source')}>
+                <Option value={FactorSource.CLCD}>CLCD</Option>
+                <Option value={FactorSource.IPCC}>IPCC</Option>
+                <Option value={FactorSource.CPCD}>CPCD</Option>
+                <Option value={FactorSource.ECOINVENT}>Ecoinvent</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="year"
+              label={t('pages.carbon.factorForm.fields.year')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.yearRequired') }]}
+            >
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder={t('pages.carbon.factorForm.placeholders.year')}
+                min={2000}
+                max={2100}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="version"
+              label={t('pages.carbon.factorForm.fields.version')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.versionRequired') }]}
+            >
+              <Input placeholder={t('pages.carbon.factorForm.placeholders.version')} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="boundary"
+              label={t('pages.carbon.factorForm.fields.boundary')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.boundaryRequired') }]}
+            >
+              <Select placeholder={t('pages.carbon.factorForm.placeholders.boundary')}>
+                <Option value={FactorBoundary.CRADLE_TO_GATE}>{t('pages.carbon.factorForm.options.cradleToGate')}</Option>
+                <Option value={FactorBoundary.CRADLE_TO_FARM}>{t('pages.carbon.factorForm.options.cradleToFarm')}</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="status"
+              label={t('pages.carbon.factorForm.fields.status')}
+              rules={[{ required: true, message: t('pages.carbon.factorForm.validation.statusRequired') }]}
+            >
+              <Select placeholder={t('pages.carbon.factorForm.placeholders.status')}>
+                <Option value={FactorStatus.ACTIVE}>
+                  <Tag color="success">{t('pages.carbon.factorLibrary.status.active')}</Tag>
+                </Option>
+                <Option value={FactorStatus.DRAFT}>
+                  <Tag color="warning">{t('pages.carbon.factorLibrary.status.draft')}</Tag>
+                </Option>
+                <Option value={FactorStatus.ARCHIVED}>
+                  <Tag color="default">{t('pages.carbon.factorLibrary.status.archived')}</Tag>
+                </Option>
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item name="notes" label={t('pages.carbon.factorForm.fields.notes')}>
+          <TextArea rows={3} placeholder={t('pages.carbon.factorForm.placeholders.notes')} />
+        </Form.Item>
+      </div>
+    </Form>
+  )
+}
+
+export default FactorForm
+

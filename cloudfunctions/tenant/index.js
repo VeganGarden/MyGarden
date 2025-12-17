@@ -4493,6 +4493,13 @@ async function getMenuList(data) {
       restaurantId: menu.restaurantId || restaurantId,
       baseRecipeId: menu.baseRecipeId || undefined,
       category: menu.category || '',
+      // 碳足迹计算相关配置
+      mealType: menu.mealType,
+      energyType: menu.energyType,
+      calculationLevel: menu.calculationLevel,
+      restaurantRegion: menu.restaurantRegion,
+      cookingMethod: menu.cookingMethod,
+      cookingTime: menu.cookingTime,
     }))
 
     return {
@@ -4740,8 +4747,6 @@ async function createMenuItemFromRecipe(data, user, context) {
       data: menuItemData
     })
 
-    console.log(`成功从基础菜谱创建菜单项: recipeId=${recipeId}, restaurantId=${restaurantId}, menuItemId=${result._id}`)
-
     return {
       code: 0,
       message: '菜单项创建成功',
@@ -4894,6 +4899,7 @@ async function removeRecipeFromMenu(data, user, context) {
  */
 async function updateMenuItem(data, user, context) {
   const { menuItemId, restaurantId, updateData = {} } = data || {}
+  const { addAudit } = require('./audit')
 
   if (!menuItemId) {
     return {
@@ -4969,6 +4975,35 @@ async function updateMenuItem(data, user, context) {
       updateFields.nutrition = updateData.nutrition
     }
 
+    // 更新碳足迹计算相关配置
+    if (updateData.mealType !== undefined) {
+      updateFields.mealType = updateData.mealType
+    }
+    if (updateData.energyType !== undefined) {
+      updateFields.energyType = updateData.energyType
+    }
+    if (updateData.calculationLevel !== undefined) {
+      updateFields.calculationLevel = updateData.calculationLevel
+    }
+    if (updateData.restaurantRegion !== undefined && updateData.restaurantRegion !== null) {
+      updateFields.restaurantRegion = updateData.restaurantRegion
+    }
+    if (updateData.cookingTime !== undefined && updateData.cookingTime !== null) {
+      updateFields.cookingTime = Number(updateData.cookingTime) || 0
+    }
+    if (updateData.cookingMethod !== undefined && updateData.cookingMethod !== null) {
+      updateFields.cookingMethod = updateData.cookingMethod
+    }
+
+    // 检查是否有字段需要更新
+    const hasFieldsToUpdate = Object.keys(updateFields).length > 0
+    if (!hasFieldsToUpdate) {
+      return {
+        code: 400,
+        message: '没有需要更新的字段'
+      }
+    }
+
     // 添加更新时间
     updateFields.updatedAt = db.serverDate()
 
@@ -4978,17 +5013,22 @@ async function updateMenuItem(data, user, context) {
     })
 
     // 4. 记录操作日志
-    await addAudit(db, {
-      module: 'tenant',
-      action: 'updateMenuItem',
-      resource: 'restaurant_menu_item',
-      resourceId: menuItemId,
-      description: `更新餐厅菜单项 ${menuItem.name || menuItemId}`,
-      restaurantId: restaurantId,
-      status: 'success',
-      ip: context.requestIp || '',
-      userAgent: context.userAgent || '',
-    })
+    try {
+      await addAudit(db, {
+        module: 'tenant',
+        action: 'updateMenuItem',
+        resource: 'restaurant_menu_item',
+        resourceId: menuItemId,
+        description: `更新餐厅菜单项 ${menuItem.name || menuItemId}`,
+        restaurantId: restaurantId,
+        status: 'success',
+        ip: context.requestIp || '',
+        userAgent: context.userAgent || '',
+      })
+    } catch (auditError) {
+      console.warn('记录审计日志失败:', auditError)
+      // 审计日志失败不影响主流程
+    }
 
     // 5. 获取更新后的数据
     const updatedResult = await db.collection('restaurant_menu_items').doc(menuItemId).get()

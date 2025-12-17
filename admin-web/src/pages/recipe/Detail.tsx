@@ -59,7 +59,7 @@ const RecipeDetail: React.FC = () => {
 
   const handleCopy = () => {
     if (currentRecipe) {
-      navigate('/recipe/create', {
+      navigate('/recipe/list', {
         state: {
           copyFrom: currentRecipe,
         },

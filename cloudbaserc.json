@@ -172,6 +172,13 @@
       "memorySize": 256
     },
     {
+      "name": "carbon-factor-manage",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
+    },
+    {
       "name": "restaurant-menu-carbon",
       "timeout": 10,
       "envVariables": {},

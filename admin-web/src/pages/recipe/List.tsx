@@ -1,6 +1,9 @@
+import IngredientSelector from '@/components/IngredientSelector'
 import { recipeAPI, tenantAPI } from '@/services/cloudbase'
-import { useAppSelector } from '@/store/hooks'
-import { CheckOutlined, DeleteOutlined, EditOutlined, SearchOutlined, ShoppingCartOutlined } from '@ant-design/icons'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { fetchIngredients } from '@/store/slices/ingredientSlice'
+import { RecipeIngredient, RecipeStatus } from '@/types'
+import { CheckOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons'
 import {
   Alert,
   Button,
@@ -18,11 +21,12 @@ import {
   Switch,
   Table,
   Tag,
+  Upload,
   message,
 } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 // 菜单项接口
 interface MenuItem {
@@ -31,7 +35,17 @@ interface MenuItem {
   name: string
   description?: string
   price?: number
-  carbonFootprint?: number
+  carbonFootprint?: number | {
+    value: number
+    baseline: number
+    reduction: number
+    breakdown?: {
+      ingredients: number
+      energy: number
+      packaging: number
+      transport: number
+    }
+  }
   carbonLabel?: string
   category?: string
   ingredients?: any[]
@@ -39,6 +53,16 @@ interface MenuItem {
   isAvailable?: boolean
   baseRecipeId?: string
   restaurantId: string
+  mealType?: 'meat_simple' | 'meat_full'
+  energyType?: 'electric' | 'gas' | 'mixed'
+  calculationLevel?: 'L1' | 'L2' | 'L3'
+  cookingMethod?: string
+  cookingTime?: number
+  baselineInfo?: {
+    baselineId: string | null
+    version: string | null
+    source: string | null
+  }
 }
 
 // 基础菜谱接口
@@ -56,6 +80,8 @@ interface BaseRecipe {
 const RecipeList: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { currentRestaurantId, restaurants } = useAppSelector((state: any) => state.tenant)
   
   // 菜单项相关状态
@@ -87,6 +113,13 @@ const RecipeList: React.FC = () => {
   const [editForm] = Form.useForm()
   const [updating, setUpdating] = useState(false)
 
+  // 手工创建菜谱相关状态
+  const [createRecipeModalVisible, setCreateRecipeModalVisible] = useState(false)
+  const [createRecipeForm] = Form.useForm()
+  const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([])
+  const [ingredientSelectorVisible, setIngredientSelectorVisible] = useState(false)
+  const [creatingRecipe, setCreatingRecipe] = useState(false)
+
   // 加载餐厅菜单项
   useEffect(() => {
     if (currentRestaurantId) {
@@ -96,6 +129,22 @@ const RecipeList: React.FC = () => {
       setPagination({ page: 1, pageSize: 20, total: 0 })
     }
   }, [currentRestaurantId, pagination.page, pagination.pageSize])
+
+  // 检查URL参数，如果有editId则自动打开编辑弹窗
+  useEffect(() => {
+    const editId = searchParams.get('editId')
+    if (editId && menuItems.length > 0 && !editModalVisible) {
+      const menuItem = menuItems.find(item => (item._id === editId || item.id === editId))
+      if (menuItem) {
+        handleEditMenuItem(menuItem)
+        // 清除URL参数
+        const newParams = new URLSearchParams(searchParams)
+        newParams.delete('editId')
+        setSearchParams(newParams, { replace: true })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, menuItems, editModalVisible])
 
   // 加载菜单项列表
   const loadMenuItems = async () => {
@@ -462,32 +511,116 @@ const RecipeList: React.FC = () => {
     }
   }
 
-  const getCarbonLabelColor = (label?: string) => {
-    switch (label) {
-      case 'ultra_low':
-      case 'low':
-        return 'green'
-      case 'medium':
-        return 'orange'
-      case 'high':
-        return 'red'
-      default:
-        return 'default'
-    }
+  // 批量导入菜谱
+  const handleBatchImport = (file: File) => {
+    message.info('正在导入...')
+    // TODO: 实现Excel批量导入菜谱功能
+    // 支持格式: .xlsx, .xls, .csv
+    // 导入后应该创建菜谱并自动添加到当前餐厅的菜单中
+    return false
   }
 
-  const getCarbonLabelText = (label?: string) => {
-    switch (label) {
-      case 'ultra_low':
-        return '超低'
-      case 'low':
-        return '低'
-      case 'medium':
-        return '中'
-      case 'high':
-        return '高'
-      default:
-        return '未计算'
+  // 手工创建菜谱相关函数
+  const handleAddRecipeIngredient = () => {
+    setIngredientSelectorVisible(true)
+  }
+
+  const handleSelectRecipeIngredient = (ingredient: any) => {
+    const newIngredient: RecipeIngredient = {
+      ingredientId: ingredient._id,
+      name: ingredient.name,
+      quantity: 0,
+      unit: ingredient.unit || 'g',
+    }
+    setRecipeIngredients([...recipeIngredients, newIngredient])
+  }
+
+  const handleRemoveRecipeIngredient = (index: number) => {
+    setRecipeIngredients(recipeIngredients.filter((_, i) => i !== index))
+  }
+
+  const handleUpdateRecipeIngredient = (index: number, field: keyof RecipeIngredient, value: any) => {
+    const updated = [...recipeIngredients]
+    updated[index] = { ...updated[index], [field]: value }
+    setRecipeIngredients(updated)
+  }
+
+  const handleCreateRecipe = async () => {
+    try {
+      const values = await createRecipeForm.validateFields()
+      
+      if (recipeIngredients.length === 0) {
+        message.warning('请至少添加一种食材')
+        return
+      }
+
+      const hasZeroQuantity = recipeIngredients.some((ing) => !ing.quantity || ing.quantity <= 0)
+      if (hasZeroQuantity) {
+        message.warning('请设置所有食材的数量')
+        return
+      }
+
+      if (!currentRestaurantId) {
+        message.warning('请先选择餐厅')
+        return
+      }
+
+      setCreatingRecipe(true)
+
+      // 1. 先创建菜谱
+      const recipeData: any = {
+        name: values.name,
+        description: values.description,
+        category: values.category,
+        cookingMethod: values.cookingMethod,
+        ingredients: recipeIngredients,
+        status: RecipeStatus.DRAFT,
+        version: 1,
+        isBaseRecipe: true, // 设置为true，这样才能通过createMenuItemFromRecipe添加到菜单
+        restaurantId: currentRestaurantId, // 添加餐厅ID
+      }
+
+      // 调用 recipeAPI.create 时传递 restaurantId
+      const createResult = await recipeAPI.create(recipeData, currentRestaurantId)
+      
+      // 检查返回结果格式
+      const actualCreateResult = createResult?.result || createResult
+      if (actualCreateResult && actualCreateResult.code === 0 && actualCreateResult.data && actualCreateResult.data._id) {
+        // 2. 创建成功后，立即将其添加到菜单中
+        const addToMenuResult = await tenantAPI.createMenuItemFromRecipe({
+          recipeId: actualCreateResult.data._id,
+          restaurantId: currentRestaurantId,
+          customFields: {
+            price: values.price || 0,
+            isAvailable: values.isAvailable !== false,
+          },
+        })
+
+        const actualResult = addToMenuResult?.result || addToMenuResult
+        if (actualResult && actualResult.code === 0) {
+          message.success('创建成功并已添加到菜单')
+          setCreateRecipeModalVisible(false)
+          createRecipeForm.resetFields()
+          setRecipeIngredients([])
+          // 刷新菜单列表
+          loadMenuItems()
+        } else {
+          message.warning('菜谱创建成功，但添加到菜单失败：' + (actualResult?.message || '未知错误'))
+          // 即使添加到菜单失败，也关闭弹窗，因为菜谱已经创建成功了
+          setCreateRecipeModalVisible(false)
+          createRecipeForm.resetFields()
+          setRecipeIngredients([])
+        }
+      } else {
+        message.error(actualCreateResult?.message || createResult?.message || '创建菜谱失败')
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        return
+      }
+      message.error(error.message || '创建失败')
+    } finally {
+      setCreatingRecipe(false)
     }
   }
 
@@ -513,39 +646,6 @@ const RecipeList: React.FC = () => {
       width: 100,
     },
     {
-      title: '碳足迹 (kg CO₂e)',
-      dataIndex: 'carbonFootprint',
-      key: 'carbonFootprint',
-      width: 120,
-      render: (footprint: number | any) => {
-        if (footprint !== undefined && footprint !== null) {
-          if (typeof footprint === 'object' && footprint.value) {
-            return footprint.value.toFixed(2)
-          }
-          if (typeof footprint === 'number') {
-            return footprint.toFixed(2)
-          }
-        }
-        return '-'
-      },
-    },
-    {
-      title: '碳标签',
-      dataIndex: 'carbonLabel',
-      key: 'carbonLabel',
-      width: 100,
-      render: (label: string | any) => {
-        const actualLabel = (typeof label === 'object' && label?.carbonLabel) 
-          ? label.carbonLabel 
-          : (typeof label === 'string' ? label : undefined)
-        return (
-          <Tag color={getCarbonLabelColor(actualLabel)}>
-            {getCarbonLabelText(actualLabel)}
-          </Tag>
-        )
-      },
-    },
-    {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
@@ -568,8 +668,16 @@ const RecipeList: React.FC = () => {
         <Space size="small">
           <Button
             type="link"
+            onClick={() => navigate(`/carbon/menu?highlightId=${record.id || record._id}`)}
+            size="small"
+          >
+            查看碳足迹详情
+          </Button>
+          <Button
+            type="link"
             icon={<EditOutlined />}
             onClick={() => handleEditMenuItem(record)}
+            size="small"
           >
             编辑
           </Button>
@@ -580,7 +688,7 @@ const RecipeList: React.FC = () => {
             okText="确认"
             cancelText="取消"
           >
-            <Button type="link" danger icon={<DeleteOutlined />}>
+            <Button type="link" danger icon={<DeleteOutlined />} size="small">
               删除
             </Button>
           </Popconfirm>
@@ -660,45 +768,6 @@ const RecipeList: React.FC = () => {
       key: 'cookingMethod',
       width: 100,
       render: (method: string) => getCookingMethodText(method),
-    },
-    {
-      title: '碳足迹',
-      dataIndex: 'carbonFootprint',
-      key: 'carbonFootprint',
-      width: 100,
-      render: (footprint: number | any) => {
-        if (footprint === undefined || footprint === null) {
-          return <span style={{ color: '#999' }}>-</span>
-        }
-        let value: number
-        if (typeof footprint === 'object' && footprint.value !== undefined) {
-          value = footprint.value
-        } else if (typeof footprint === 'number') {
-          value = footprint
-        } else if (typeof footprint === 'string') {
-          value = parseFloat(footprint)
-          if (isNaN(value)) return <span style={{ color: '#999' }}>-</span>
-        } else {
-          return <span style={{ color: '#999' }}>-</span>
-        }
-        return (
-          <div>
-            <div style={{ fontWeight: 500 }}>{value.toFixed(2)}</div>
-            <div style={{ fontSize: 11, color: '#999' }}>kg CO₂e</div>
-          </div>
-        )
-      },
-    },
-    {
-      title: '碳标签',
-      dataIndex: 'carbonLabel',
-      key: 'carbonLabel',
-      width: 90,
-      render: (label: string) => (
-        <Tag color={getCarbonLabelColor(label)}>
-          {getCarbonLabelText(label)}
-        </Tag>
-      ),
     },
     {
       title: '状态',
@@ -783,6 +852,29 @@ const RecipeList: React.FC = () => {
                 </Col>
                 <Col span={12} style={{ textAlign: 'right' }}>
                   <Space>
+                    <Upload 
+                      accept=".xlsx,.xls,.csv" 
+                      beforeUpload={handleBatchImport} 
+                      showUploadList={false}
+                    >
+                      <Button icon={<UploadOutlined />}>
+                        批量导入
+                      </Button>
+                    </Upload>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        if (!currentRestaurantId) {
+                          message.warning('请先选择餐厅')
+                          return
+                        }
+                        dispatch(fetchIngredients({ page: 1, pageSize: 1000 }))
+                        setCreateRecipeModalVisible(true)
+                      }}
+                    >
+                      手工创建菜谱
+                    </Button>
                     <Button
                       type="primary"
                       icon={<ShoppingCartOutlined />}
@@ -1011,28 +1103,6 @@ const RecipeList: React.FC = () => {
                   </div>
                 </Col>
                 <Col span={12}>
-                  <div style={{ marginBottom: 8 }}>
-                    <span style={{ color: '#666', marginRight: 8 }}>碳足迹：</span>
-                    <span style={{ fontWeight: 500, color: '#1890ff' }}>
-                      {(() => {
-                        const footprint = selectedBaseRecipe.carbonFootprint
-                        if (footprint === undefined || footprint === null) return '0.00'
-                        if (typeof footprint === 'object' && footprint.value !== undefined) {
-                          return footprint.value.toFixed(2)
-                        }
-                        if (typeof footprint === 'number') {
-                          return footprint.toFixed(2)
-                        }
-                        return '0.00'
-                      })()} kg CO₂e
-                    </span>
-                  </div>
-                  <div style={{ marginBottom: 8 }}>
-                    <span style={{ color: '#666', marginRight: 8 }}>碳标签：</span>
-                    <Tag color={getCarbonLabelColor(selectedBaseRecipe.carbonLabel)}>
-                      {getCarbonLabelText(selectedBaseRecipe.carbonLabel)}
-                    </Tag>
-                  </div>
                   <div>
                     <span style={{ color: '#666', marginRight: 8 }}>食材数量：</span>
                     <span>
@@ -1076,6 +1146,7 @@ const RecipeList: React.FC = () => {
                     </Form.Item>
                   </Col>
                 </Row>
+
               </Form>
               <div style={{ marginTop: 20, textAlign: 'right' }}>
                 <Space>
@@ -1205,6 +1276,9 @@ const RecipeList: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="isAvailable"
@@ -1217,6 +1291,180 @@ const RecipeList: React.FC = () => {
           </Row>
         </Form>
       </Modal>
+
+      {/* 手工创建菜谱Modal */}
+      <Modal
+        title="手工创建菜谱"
+        open={createRecipeModalVisible}
+        onCancel={() => {
+          setCreateRecipeModalVisible(false)
+          createRecipeForm.resetFields()
+          setRecipeIngredients([])
+        }}
+        onOk={handleCreateRecipe}
+        confirmLoading={creatingRecipe}
+        width={800}
+        destroyOnClose={true}
+        maskClosable={false}
+        centered={true}
+      >
+        <Form form={createRecipeForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="菜谱名称"
+            rules={[{ required: true, message: '请输入菜谱名称' }]}
+          >
+            <Input placeholder="请输入菜谱名称" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="描述"
+          >
+            <Input.TextArea rows={3} placeholder="请输入菜谱描述（可选）" />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="category"
+                label="分类"
+                rules={[{ required: true, message: '请选择分类' }]}
+              >
+                <Select placeholder="请选择分类">
+                  <Select.Option value="hot">热菜</Select.Option>
+                  <Select.Option value="cold">凉菜</Select.Option>
+                  <Select.Option value="soup">汤品</Select.Option>
+                  <Select.Option value="staple">主食</Select.Option>
+                  <Select.Option value="dessert">甜品</Select.Option>
+                  <Select.Option value="drink">饮品</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="cookingMethod"
+                label="烹饪方式"
+                rules={[{ required: true, message: '请选择烹饪方式' }]}
+              >
+                <Select placeholder="请选择烹饪方式">
+                  <Select.Option value="steamed">蒸</Select.Option>
+                  <Select.Option value="boiled">煮</Select.Option>
+                  <Select.Option value="stir_fried">炒</Select.Option>
+                  <Select.Option value="fried">炸</Select.Option>
+                  <Select.Option value="baked">烤</Select.Option>
+                  <Select.Option value="stewed">炖</Select.Option>
+                  <Select.Option value="cold_dish">凉拌</Select.Option>
+                  <Select.Option value="raw">生食</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="price"
+                label="价格（元）"
+                rules={[
+                  { required: true, message: '请输入价格' },
+                  { type: 'number', min: 0, message: '价格必须大于等于0' },
+                ]}
+                initialValue={0}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  placeholder="请输入菜品价格"
+                  min={0}
+                  precision={2}
+                  prefix="¥"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="isAvailable"
+                label="是否可用"
+                valuePropName="checked"
+                initialValue={true}
+              >
+                <Switch checkedChildren="可用" unCheckedChildren="不可用" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item label="食材配置">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={handleAddRecipeIngredient}
+                block
+              >
+                添加食材
+              </Button>
+              {recipeIngredients.length > 0 && (
+                <Table
+                  columns={[
+                    {
+                      title: '食材名称',
+                      dataIndex: 'name',
+                      key: 'name',
+                      width: 200,
+                    },
+                    {
+                      title: '数量',
+                      key: 'quantity',
+                      width: 150,
+                      render: (_: any, record: RecipeIngredient, index: number) => (
+                        <InputNumber
+                          value={record.quantity}
+                          onChange={(value) => handleUpdateRecipeIngredient(index, 'quantity', value || 0)}
+                          min={0}
+                          style={{ width: '100%' }}
+                        />
+                      ),
+                    },
+                    {
+                      title: '单位',
+                      dataIndex: 'unit',
+                      key: 'unit',
+                      width: 100,
+                    },
+                    {
+                      title: '操作',
+                      key: 'action',
+                      width: 100,
+                      render: (_: any, __: RecipeIngredient, index: number) => (
+                        <Button
+                          type="link"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleRemoveRecipeIngredient(index)}
+                        >
+                          删除
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  dataSource={recipeIngredients}
+                  rowKey={(record, index) => `${record.ingredientId}-${index}`}
+                  pagination={false}
+                  size="small"
+                />
+              )}
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 食材选择器 */}
+      <IngredientSelector
+        visible={ingredientSelectorVisible}
+        onCancel={() => setIngredientSelectorVisible(false)}
+        onSelect={handleSelectRecipeIngredient}
+        excludeIds={recipeIngredients.map(ing => ing.ingredientId)}
+      />
     </div>
   )
 }

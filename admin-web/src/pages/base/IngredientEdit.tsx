@@ -93,10 +93,7 @@ const IngredientEdit: React.FC = () => {
       const result = await ingredientAPI.get(id)
       if (result && result.code === 0 && result.data) {
         const data = result.data
-        // 处理日期字段
-        if (data.carbonFootprint?.verifiedAt) {
-          data.carbonFootprint.verifiedAt = new Date(data.carbonFootprint.verifiedAt).toISOString().split('T')[0]
-        }
+        // 不再处理carbonFootprint字段（已迁移到因子库）
         form.setFieldsValue(data)
       } else {
         message.error('获取食材信息失败')
@@ -113,9 +110,9 @@ const IngredientEdit: React.FC = () => {
       const values = await form.validateFields()
       setSaving(true)
 
-      // 处理日期字段
-      if (values.carbonFootprint?.verifiedAt) {
-        values.carbonFootprint.verifiedAt = new Date(values.carbonFootprint.verifiedAt)
+      // 移除carbonFootprint字段（已迁移到因子库）
+      if (values.carbonFootprint) {
+        delete values.carbonFootprint
       }
 
       if (isEdit) {
@@ -200,29 +197,12 @@ const IngredientEdit: React.FC = () => {
               </Form.Item>
             </Panel>
 
-            {/* 碳足迹信息 */}
+            {/* 碳足迹信息提示 */}
             <Panel header="碳足迹信息" key="carbon">
-              <Form.Item
-                name={['carbonFootprint', 'coefficient']}
-                label="碳系数 (kg CO₂e/kg)"
-                rules={[{ required: true, message: '请输入碳系数' }]}
-              >
-                <InputNumber
-                  min={0}
-                  step={0.01}
-                  placeholder="请输入碳系数"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-              <Form.Item name={['carbonFootprint', 'source']} label="数据来源">
-                <Input placeholder="如：FAO 2021、Our World in Data" />
-              </Form.Item>
-              <Form.Item name={['carbonFootprint', 'verifiedAt']} label="验证时间">
-                <Input type="date" placeholder="选择验证时间" />
-              </Form.Item>
-              <div style={{ color: '#999', fontSize: '12px', marginTop: '-16px', marginBottom: '16px' }}>
-                <div>• 碳系数是食材本身的属性，不涉及地区、用能方式</div>
-                <div>• 餐厅使用时，会基于此系数计算</div>
+              <div style={{ padding: '16px', color: '#666', fontSize: '14px' }}>
+                <div>• 碳足迹因子数据已迁移到因子库统一管理</div>
+                <div>• 请前往「因子库管理」查看和管理该食材的碳排放因子</div>
+                <div>• 计算碳足迹时将自动从因子库查询对应的因子值</div>
               </div>
             </Panel>
 

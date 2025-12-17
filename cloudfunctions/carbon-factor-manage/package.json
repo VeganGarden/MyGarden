@@ -1,0 +1,10 @@
+{
+  "name": "carbon-factor-manage",
+  "version": "1.0.0",
+  "description": "碳排放因子管理云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+
