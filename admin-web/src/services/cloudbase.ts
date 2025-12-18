@@ -65,22 +65,29 @@ export const callCloudFunction = async (
         if (resultData.code !== undefined) {
           // 处理权限错误
           if (resultData.code === 401) {
-            // 401认证错误，清除登录状态并重定向
-            // 但只在非系统管理相关路径时才立即跳转
-            // 系统管理相关页面由RouteGuard处理
-            try {
-              const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
-              const isSystemPage = currentPath.includes('/system/')
-              
-              localStorage.removeItem('admin_token')
-              localStorage.removeItem('admin_user')
-              localStorage.removeItem('admin_permissions')
-              
-              // 系统管理页面由RouteGuard处理，不立即跳转
-              if (typeof window !== 'undefined' && !isSystemPage) {
-                window.location.href = '/login'
-              }
-            } catch {}
+            // 401认证错误，先检查是否真的有token
+            const hasToken = typeof window !== 'undefined' && localStorage.getItem('admin_token')
+            
+            // 如果有token但返回401，可能是token过期或无效，清除登录状态
+            if (hasToken) {
+              console.warn('[cloudbase] Token存在但返回401，可能是token过期或无效')
+              try {
+                const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+                const isSystemPage = currentPath.includes('/system/')
+                
+                localStorage.removeItem('admin_token')
+                localStorage.removeItem('admin_user')
+                localStorage.removeItem('admin_permissions')
+                
+                // 系统管理页面由RouteGuard处理，不立即跳转
+                if (typeof window !== 'undefined' && !isSystemPage) {
+                  window.location.href = '/login'
+                }
+              } catch {}
+            } else {
+              // 如果没有token，只是抛出错误，不立即跳转（由RouteGuard处理）
+              console.warn('[cloudbase] 未找到token，返回401错误')
+            }
             throw new Error(resultData.message || '未授权访问，请先登录')
           }
           

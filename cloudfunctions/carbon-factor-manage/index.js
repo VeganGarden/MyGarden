@@ -1045,6 +1045,17 @@ exports.main = async (event, context) => {
   const { action, ...params } = event;
   const { OPENID } = cloud.getWXContext();
   
+  // 调试：打印event结构（仅用于调试）
+  if (action === 'update' || action === 'create' || action === 'archive') {
+    console.log('[carbon-factor-manage] Event结构:', {
+      action,
+      hasToken: !!event.token,
+      hasParamsToken: !!params.token,
+      paramsKeys: Object.keys(params),
+      eventKeys: Object.keys(event)
+    });
+  }
+  
   try {
     // 权限检查（除查询和初始化示例数据外都需要权限）
     if (action !== 'list' && action !== 'get' && action !== 'initSampleData') {
@@ -1065,12 +1076,11 @@ exports.main = async (event, context) => {
     // 对于需要权限的操作，先检查token
     if (action === 'update' || action === 'create' || action === 'archive') {
       // 确保event中有token（从params中获取，因为前端通过payload.token传递）
-      if (!event.token && params.token) {
-        event.token = params.token;
-      }
-      // 如果还是没有token，尝试从data中获取
-      if (!event.token && event.data && event.data.token) {
-        event.token = event.data.token;
+      // 注意：前端通过 data: { action: 'update', token: '...', ... } 传递
+      // 所以token在params中，不在event.token中
+      if (!event.token) {
+        // 尝试从多个位置获取token
+        event.token = params.token || event.data?.token || event.token || '';
       }
       
       // 调试日志
@@ -1078,6 +1088,8 @@ exports.main = async (event, context) => {
         action,
         hasEventToken: !!event.token,
         hasParamsToken: !!params.token,
+        hasDataToken: !!(event.data && event.data.token),
+        paramsKeys: Object.keys(params),
         tokenPrefix: event.token ? event.token.substring(0, 10) : 'none'
       });
       
@@ -1097,6 +1109,7 @@ exports.main = async (event, context) => {
         user = await checkPermission(event, context);
       } catch (err) {
         // 如果权限检查失败（如token无效），返回401
+        console.error('[carbon-factor-manage] 权限检查失败:', err);
         return {
           code: 401,
           success: false,
