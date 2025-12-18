@@ -27,7 +27,7 @@ exports.main = async () => {
           'certification:apply',
           'certification:view',
           'carbon:view',
-          'carbon:maintain', // 允许餐厅管理员维护因子库
+          // 移除 carbon:maintain 权限，因子库管理仅碳核算专员可操作
           'traceability:view',
           'traceability:manage',
           'operation:view',

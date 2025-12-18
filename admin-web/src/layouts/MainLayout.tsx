@@ -180,7 +180,7 @@ const MainLayout: React.FC = () => {
       label: t('menu.dashboard'),
     },
     ...certificationMenu,
-    // 碳足迹核算（餐厅管理员和碳核算专员可见）
+    // 碳足迹核算（餐厅管理员和碳核算专员可见，但菜单项不同）
     ...(isRestaurantAdmin || isCarbonSpecialist
       ? [
           {
@@ -200,14 +200,19 @@ const MainLayout: React.FC = () => {
                 key: '/carbon/report',
                 label: t('menu.carbonReport'),
               },
-              {
-                key: '/carbon/baseline',
-                label: t('menu.carbonBaseline'),
-              },
-              {
-                key: '/carbon/factor-library',
-                label: t('menu.carbonFactorLibrary'),
-              },
+              // 基准值管理和因子库管理仅碳核算专员可见
+              ...(isCarbonSpecialist
+                ? [
+                    {
+                      key: '/carbon/baseline',
+                      label: t('menu.carbonBaseline'),
+                    },
+                    {
+                      key: '/carbon/factor-library',
+                      label: t('menu.carbonFactorLibrary'),
+                    },
+                  ]
+                : []),
             ],
           },
         ]

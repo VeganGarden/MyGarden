@@ -193,10 +193,11 @@ const App: React.FC = () => {
               </RouteGuard>
             } 
           />
+          {/* 基准值管理（仅碳核算专员可见） */}
           <Route 
             path="carbon/baseline" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <BaselineList />
               </RouteGuard>
             } 
@@ -204,7 +205,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/:baselineId" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <BaselineDetail />
               </RouteGuard>
             } 
@@ -212,7 +213,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/:baselineId/edit" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <BaselineEdit />
               </RouteGuard>
             } 
@@ -220,7 +221,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/add" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <BaselineAdd />
               </RouteGuard>
             } 
@@ -228,15 +229,16 @@ const App: React.FC = () => {
           <Route 
             path="carbon/baseline/import" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <BaselineImport />
               </RouteGuard>
             } 
           />
+          {/* 因子库管理（仅碳核算专员可见） */}
           <Route 
             path="carbon/factor-library" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <FactorLibrary />
               </RouteGuard>
             } 
@@ -244,7 +246,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/factor-library/add" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <FactorAdd />
               </RouteGuard>
             } 
@@ -252,7 +254,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/factor-library/:factorId" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <FactorDetail />
               </RouteGuard>
             } 
@@ -260,7 +262,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/factor-library/:factorId/edit" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <FactorEdit />
               </RouteGuard>
             } 
@@ -268,7 +270,7 @@ const App: React.FC = () => {
           <Route 
             path="carbon/factor-library/import" 
             element={
-              <RouteGuard allowedRoles={['restaurant_admin', 'carbon_specialist']}>
+              <RouteGuard allowedRoles={['carbon_specialist']}>
                 <FactorImport />
               </RouteGuard>
             } 
