@@ -1061,7 +1061,9 @@ exports.main = async (event, context) => {
     
     // 获取用户信息（用于审核流程）
     let user = null;
-    try {
+    
+    // 对于需要权限的操作，先检查token
+    if (action === 'update' || action === 'create' || action === 'archive') {
       // 确保event中有token（从params中获取，因为前端通过payload.token传递）
       if (!event.token && params.token) {
         event.token = params.token;
@@ -1070,19 +1072,53 @@ exports.main = async (event, context) => {
       if (!event.token && event.data && event.data.token) {
         event.token = event.data.token;
       }
-      const { checkPermission } = require('../common/permission');
-      user = await checkPermission(event, context);
-    } catch (err) {
-      // 如果权限检查失败（如无token），对于update操作应该返回401
-      // 但为了兼容性，暂时允许继续执行（某些操作可能不需要权限）
-      // 注意：这可能导致权限检查不严格
-      if (err.code === 401 && (action === 'update' || action === 'create' || action === 'archive')) {
+      
+      // 调试日志
+      console.log('[carbon-factor-manage] Token检查:', {
+        action,
+        hasEventToken: !!event.token,
+        hasParamsToken: !!params.token,
+        tokenPrefix: event.token ? event.token.substring(0, 10) : 'none'
+      });
+      
+      // 检查是否有token
+      if (!event.token) {
+        console.warn('[carbon-factor-manage] 未找到token，返回401');
         return {
           code: 401,
           success: false,
           error: '未授权访问，请先登录',
+          message: '未授权访问，请先登录'
+        };
+      }
+      
+      try {
+        const { checkPermission } = require('../common/permission');
+        user = await checkPermission(event, context);
+      } catch (err) {
+        // 如果权限检查失败（如token无效），返回401
+        return {
+          code: 401,
+          success: false,
+          error: err.message || '未授权访问，请先登录',
           message: err.message || '未授权访问，请先登录'
         };
+      }
+    } else {
+      // 对于不需要权限的操作，尝试获取用户信息（但不强制）
+      try {
+        if (!event.token && params.token) {
+          event.token = params.token;
+        }
+        if (!event.token && event.data && event.data.token) {
+          event.token = event.data.token;
+        }
+        if (event.token) {
+          const { checkPermission } = require('../common/permission');
+          user = await checkPermission(event, context);
+        }
+      } catch (err) {
+        // 静默处理，不影响查询操作
       }
     }
 

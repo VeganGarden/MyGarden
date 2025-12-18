@@ -46,6 +46,11 @@ export const callCloudFunction = async (
         payload.token = token
       }
       
+      // 调试：检查token是否存在
+      if (!token && (functionName === 'carbon-factor-manage')) {
+        console.warn('[cloudbase] 警告：调用 carbon-factor-manage 时未找到 admin_token，可能导致401错误')
+      }
+      
       const result = await app.callFunction({
         name: functionName,
         data: payload,
