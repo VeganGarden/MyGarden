@@ -1109,12 +1109,22 @@ exports.main = async (event, context) => {
         user = await checkPermission(event, context);
       } catch (err) {
         // 如果权限检查失败（如token无效），返回401
-        console.error('[carbon-factor-manage] 权限检查失败:', err);
+        console.error('[carbon-factor-manage] 权限检查失败:', {
+          error: err,
+          code: err.code,
+          message: err.message,
+          hasToken: !!event.token
+        });
+        
+        // 处理错误对象（可能是 { code, message } 格式）
+        const errorCode = err.code || 401;
+        const errorMessage = err.message || '未授权访问，请先登录';
+        
         return {
-          code: 401,
+          code: errorCode,
           success: false,
-          error: err.message || '未授权访问，请先登录',
-          message: err.message || '未授权访问，请先登录'
+          error: errorMessage,
+          message: errorMessage
         };
       }
     } else {

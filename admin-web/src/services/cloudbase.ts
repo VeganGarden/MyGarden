@@ -47,8 +47,16 @@ export const callCloudFunction = async (
       }
       
       // 调试：检查token是否存在
-      if (!token && (functionName === 'carbon-factor-manage')) {
-        console.warn('[cloudbase] 警告：调用 carbon-factor-manage 时未找到 admin_token，可能导致401错误')
+      if (functionName === 'carbon-factor-manage') {
+        if (!token) {
+          console.warn('[cloudbase] 警告：调用 carbon-factor-manage 时未找到 admin_token，可能导致401错误')
+        } else {
+          console.log('[cloudbase] Token已准备:', {
+            hasToken: !!token,
+            tokenPrefix: token.substring(0, 10),
+            payloadHasToken: !!payload.token
+          })
+        }
       }
       
       const result = await app.callFunction({
