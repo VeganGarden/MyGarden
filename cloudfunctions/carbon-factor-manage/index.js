@@ -579,59 +579,79 @@ async function listFactors(params) {
     pageSize = 20 
   } = params;
   
-  const query = {};
-  
-  if (category) query.category = category;
-  if (subCategory) query.subCategory = subCategory;
-  if (source) query.source = source;
-  if (year) query.year = year;
-  if (region) query.region = region;
-  if (status) query.status = status;
-  
-  // 关键词搜索（名称或别名）
-  if (keyword) {
-    query._complex = {
-      $or: [
-        { name: new RegExp(keyword, 'i') },
-        { alias: new RegExp(keyword, 'i') },
-        { factorId: new RegExp(keyword, 'i') }
-      ]
-    };
-  }
-  
   try {
-    let queryBuilder = db.collection('carbon_emission_factors').where(query);
+    // 构建基础查询条件
+    const baseQuery = {};
+    if (category) baseQuery.category = category;
+    if (subCategory) baseQuery.subCategory = subCategory;
+    if (source) baseQuery.source = source;
+    if (year) baseQuery.year = year;
+    if (region) baseQuery.region = region;
+    if (status) baseQuery.status = status;
     
-    // 关键词搜索需要使用更复杂的方式
-    if (keyword && !query._complex) {
-      // 如果关键词存在但没有使用_complex，则使用or查询
-      queryBuilder = db.collection('carbon_emission_factors').where(
-        _.or([
-          { name: db.RegExp({ regexp: keyword, options: 'i' }) },
-          { factorId: db.RegExp({ regexp: keyword, options: 'i' }) },
-          { alias: db.RegExp({ regexp: keyword, options: 'i' }) }
-        ])
-      );
+    let queryBuilder;
+    
+    // 如果有关键词，需要组合搜索条件
+    if (keyword && keyword.trim()) {
+      const keywordTrimmed = keyword.trim();
+      // 使用or查询搜索名称、别名或factorId
+      const keywordConditions = _.or([
+        { name: db.RegExp({ regexp: keywordTrimmed, options: 'i' }) },
+        { factorId: db.RegExp({ regexp: keywordTrimmed, options: 'i' }) },
+        { alias: db.RegExp({ regexp: keywordTrimmed, options: 'i' }) }
+      ]);
+      
+      // 如果有其他筛选条件，需要组合查询
+      if (Object.keys(baseQuery).length > 0) {
+        // 组合条件：基础条件 AND (关键词条件)
+        queryBuilder = db.collection('carbon_emission_factors').where(
+          _.and([
+            baseQuery,
+            keywordConditions
+          ])
+        );
+      } else {
+        // 只有关键词条件
+        queryBuilder = db.collection('carbon_emission_factors').where(keywordConditions);
+      }
+    } else {
+      // 没有关键词，只使用基础查询条件
+      queryBuilder = db.collection('carbon_emission_factors').where(baseQuery);
     }
     
+    // 执行查询
     const result = await queryBuilder
       .orderBy('createdAt', 'desc')
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .get();
     
-    // 如果没有关键词，使用原始query统计总数
-    const countQuery = keyword ? {} : query;
-    const countResult = await db.collection('carbon_emission_factors')
-      .where(countQuery)
-      .count();
-    
-    // 如果有关键词，需要单独统计
-    let total = countResult.total;
-    if (keyword) {
-      // 关键词搜索时，使用结果数量作为总数（简化处理）
-      total = result.data.length;
+    // 统计总数（使用相同的查询条件）
+    let countQueryBuilder;
+    if (keyword && keyword.trim()) {
+      const keywordTrimmed = keyword.trim();
+      const keywordConditions = _.or([
+        { name: db.RegExp({ regexp: keywordTrimmed, options: 'i' }) },
+        { factorId: db.RegExp({ regexp: keywordTrimmed, options: 'i' }) },
+        { alias: db.RegExp({ regexp: keywordTrimmed, options: 'i' }) }
+      ]);
+      
+      if (Object.keys(baseQuery).length > 0) {
+        countQueryBuilder = db.collection('carbon_emission_factors').where(
+          _.and([
+            baseQuery,
+            keywordConditions
+          ])
+        );
+      } else {
+        countQueryBuilder = db.collection('carbon_emission_factors').where(keywordConditions);
+      }
+    } else {
+      countQueryBuilder = db.collection('carbon_emission_factors').where(baseQuery);
     }
+    
+    const countResult = await countQueryBuilder.count();
+    const total = countResult.total;
     
     return {
       code: 0,
