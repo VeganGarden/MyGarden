@@ -12,22 +12,47 @@ const JWT_SECRET = process.env.JWT_SECRET || 'climate-restaurant-secret-key-chan
 async function verifyToken(token, db) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET)
+    console.log('[permission] Token解码成功:', {
+      userId: decoded.userId,
+      username: decoded.username,
+      role: decoded.role
+    })
 
     // 从数据库获取最新用户信息（确保权限是最新的）
     const userResult = await db.collection('admin_users')
       .doc(decoded.userId)
       .get()
 
-    if (!userResult.data || userResult.data.status !== 'active') {
+    if (!userResult.data) {
+      console.error('[permission] 用户不存在:', decoded.userId)
       return null
     }
 
-    return {
+    if (userResult.data.status !== 'active') {
+      console.error('[permission] 用户状态非active:', {
+        userId: decoded.userId,
+        status: userResult.data.status
+      })
+      return null
+    }
+
+    const user = {
       ...decoded,
       ...userResult.data,
     }
+    console.log('[permission] 用户信息获取成功:', {
+      userId: user._id,
+      username: user.username,
+      role: user.role,
+      status: user.status
+    })
+
+    return user
   } catch (error) {
-    console.error('Token验证失败:', error)
+    console.error('[permission] Token验证失败:', {
+      error: error.message,
+      name: error.name
+    })
     return null
   }
 }
@@ -50,7 +75,16 @@ async function checkPermission(event, context, requiredPermission = null, resour
   const eventToken = event.token || (event.data && event.data.token) || ''
   const token = (headerAuth.replace('Bearer ', '').trim() || eventToken).trim()
 
+  console.log('[permission] Token获取检查:', {
+    hasHeaderAuth: !!headerAuth,
+    hasEventToken: !!event.token,
+    hasDataToken: !!(event.data && event.data.token),
+    tokenLength: token.length,
+    tokenPrefix: token ? token.substring(0, 20) + '...' : 'none'
+  })
+
   if (!token) {
+    console.error('[permission] Token为空')
     throw { code: 401, message: '未授权访问，请先登录' }
   }
 
