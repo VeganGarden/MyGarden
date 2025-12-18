@@ -1049,10 +1049,19 @@ exports.main = async (event, context) => {
   if (action === 'update' || action === 'create' || action === 'archive') {
     console.log('[carbon-factor-manage] Event结构:', {
       action,
-      hasToken: !!event.token,
+      hasEventToken: !!event.token,
       hasParamsToken: !!params.token,
       paramsKeys: Object.keys(params),
-      eventKeys: Object.keys(event)
+      eventKeys: Object.keys(event),
+      // 打印params的前几个键，看看token在哪里
+      sampleParams: Object.keys(params).slice(0, 5).reduce((acc, key) => {
+        if (key === 'token') {
+          acc[key] = params[key] ? `${params[key].substring(0, 10)}...` : 'none'
+        } else {
+          acc[key] = typeof params[key]
+        }
+        return acc
+      }, {})
     });
   }
   
@@ -1106,7 +1115,9 @@ exports.main = async (event, context) => {
       
       try {
         const { checkPermission } = require('../common/permission');
-        user = await checkPermission(event, context);
+        // 因子库管理需要 carbon:maintain 权限
+        // 允许有 carbon:maintain 权限的角色（如碳核算专员、餐厅管理员）操作因子库
+        user = await checkPermission(event, context, 'carbon:maintain');
       } catch (err) {
         // 如果权限检查失败（如token无效），返回401
         console.error('[carbon-factor-manage] 权限检查失败:', {
