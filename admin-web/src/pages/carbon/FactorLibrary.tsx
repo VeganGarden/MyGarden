@@ -26,7 +26,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Search } = Input
 const { Option } = Select
@@ -129,7 +129,12 @@ const FactorLibrary: React.FC = () => {
     try {
       const result = await factorManageAPI.archive(record.factorId)
       if (result.success) {
-        message.success(t('pages.carbon.factorLibrary.messages.archiveSuccess'))
+        // 检查是否已提交审核申请
+        if (result.data?.approvalRequired) {
+          message.success('归档审核申请已提交，请等待审核')
+        } else {
+          message.success(t('pages.carbon.factorLibrary.messages.archiveSuccess'))
+        }
         fetchData()
       } else {
         message.error(result.error || t('pages.carbon.factorLibrary.messages.archiveFailed'))

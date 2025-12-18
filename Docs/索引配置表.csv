@@ -238,3 +238,13 @@ carbon_emission_factors,status_region_index,status|region,1|1,否,高,状态区�
 carbon_emission_factors,status_year_index,status|year,1|-1,否,高,状态年份索引,按状态和年份筛选因子
 carbon_emission_factors,status_createdAt_index,status|createdAt,1|-1,否,高,状态创建时间索引,按状态查询并按创建时间倒序排序
 carbon_emission_factors,alias_index,alias,数组,否,高,别名数组索引,别名匹配查询（Level 3匹配算法）
+approval_configs,configId_unique,configId,1,是,最高,配置ID唯一性索引,配置ID唯一性和查询
+approval_configs,businessType_operationType_index,businessType|operationType,1|1,否,最高,业务类型和操作类型索引,查询特定业务类型的审核配置
+approval_configs,status_index,status,1,否,高,状态索引,按状态查询审核配置
+approval_requests,requestId_unique,requestId,1,是,最高,申请ID唯一性索引,申请ID唯一性和查询
+approval_requests,businessType_businessId_index,businessType|businessId,1|1,否,高,业务类型和业务ID索引,查询特定业务对象的审核申请
+approval_requests,submitterId_status_index,submitterId|status,1|1,否,最高,提交人和状态索引,查询用户提交的审核申请
+approval_requests,status_currentNodeIndex_index,status|currentNodeIndex,1|1,否,最高,状态和当前节点索引,查询待审核的申请
+approval_requests,createdAt_index,createdAt,-1,否,高,创建时间索引,按创建时间倒序排序
+approval_records,requestId_index,requestId,1,否,最高,申请ID索引,查询申请的审核记录
+approval_records,approverId_reviewedAt_index,approverId|reviewedAt,1|-1,否,高,审核人和审核时间索引,查询审核人的审核记录

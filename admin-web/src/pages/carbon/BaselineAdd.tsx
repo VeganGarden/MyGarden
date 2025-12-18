@@ -4,7 +4,7 @@
 import { baselineManageAPI } from '@/services/baseline'
 import type { BaselineFormData } from '@/types/baseline'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Space, Steps, message } from 'antd'
+import { App, Button, Card, Form, Space, Steps } from 'antd'
 import dayjs from 'dayjs'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +15,7 @@ const { Step } = Steps
 
 const BaselineAdd: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [currentStep, setCurrentStep] = useState(0)
@@ -94,8 +95,14 @@ const BaselineAdd: React.FC = () => {
       const result = await baselineManageAPI.create(formData)
       
       if (result.success) {
-        message.success(t('pages.carbon.baselineAdd.messages.createSuccess'))
-        navigate(`/carbon/baseline/${baselineId}`)
+        // 检查是否已提交审核申请
+        if (result.data?.approvalRequired) {
+          message.success('审核申请已提交，请等待审核')
+          navigate(`/carbon/baseline`)
+        } else {
+          message.success(t('pages.carbon.baselineAdd.messages.createSuccess'))
+          navigate(`/carbon/baseline/${baselineId}`)
+        }
       } else {
         message.error(result.error || t('pages.carbon.baselineAdd.messages.createFailed'))
       }

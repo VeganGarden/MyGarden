@@ -4,7 +4,7 @@
 import { factorManageAPI } from '@/services/factor'
 import type { FactorFormData } from '@/types/factor'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Space, message } from 'antd'
+import { App, Button, Card, Form, Space } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -12,6 +12,7 @@ import FactorForm from './components/FactorForm'
 
 const FactorEdit: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const { factorId } = useParams<{ factorId: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
@@ -89,7 +90,12 @@ const FactorEdit: React.FC = () => {
       const result = await factorManageAPI.update(factorId, formData)
       
       if (result.success) {
-        message.success(t('pages.carbon.factorEdit.messages.updateSuccess'))
+        // 检查是否已提交审核申请
+        if (result.data?.approvalRequired) {
+          message.success('审核申请已提交，请等待审核')
+        } else {
+          message.success(t('pages.carbon.factorEdit.messages.updateSuccess'))
+        }
         navigate(`/carbon/factor-library/${factorId}`)
       } else {
         message.error(result.error || t('pages.carbon.factorEdit.messages.updateFailed'))

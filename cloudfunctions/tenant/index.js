@@ -228,8 +228,21 @@ exports.main = async (event, context) => {
       case 'updateMenuItem':
         // 更新餐厅菜单项
         {
+          // 确保token被正确传递到checkPermission
+          // 前端通过 cloudbase.ts 将 token 放在 payload.token 中，即 event.token
+          // 为了兼容性，也检查 data.token 和 event.data.token
+          if (!event.token) {
+            if (data && data.token) {
+              event.token = data.token
+            } else if (event.data && event.data.token) {
+              event.token = event.data.token
+            }
+          }
           const gate = await requireAuth(event, context)
-          if (!gate.ok) return gate.error
+          if (!gate.ok) {
+            console.log('[updateMenuItem] 权限验证失败:', gate.error)
+            return gate.error
+          }
           return await updateMenuItem(data, gate.user, context)
         }
 

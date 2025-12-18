@@ -115,6 +115,7 @@ const MainLayout: React.FC = () => {
             { key: '/system/users', label: t('menu.systemUsers') },
             { key: '/system/roles', label: t('menu.systemRoles') },
             { key: '/system/audit', label: t('menu.systemAudit') },
+            { key: '/system/approval-request', label: '审核申请管理' },
             { key: '/system/monitor', label: t('menu.systemMonitor') },
             { key: '/system/backup', label: t('menu.systemBackup') },
           ],

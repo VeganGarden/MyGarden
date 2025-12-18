@@ -4,7 +4,7 @@
 import { factorManageAPI } from '@/services/factor'
 import type { FactorFormData } from '@/types/factor'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Space, message } from 'antd'
+import { App, Button, Card, Form, Space } from 'antd'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -12,6 +12,7 @@ import FactorForm from './components/FactorForm'
 
 const FactorAdd: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -71,7 +72,12 @@ const FactorAdd: React.FC = () => {
       const result = await factorManageAPI.create(formData)
       
       if (result.success) {
-        message.success(t('pages.carbon.factorAdd.messages.createSuccess'))
+        // 检查是否已提交审核申请
+        if (result.data?.approvalRequired) {
+          message.success('审核申请已提交，请等待审核')
+        } else {
+          message.success(t('pages.carbon.factorAdd.messages.createSuccess'))
+        }
         navigate(`/carbon/factor-library`)
       } else {
         message.error(result.error || t('pages.carbon.factorAdd.messages.createFailed'))

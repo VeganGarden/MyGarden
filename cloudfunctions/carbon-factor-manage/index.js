@@ -120,9 +120,92 @@ async function checkPermission(openid) {
 }
 
 /**
- * 创建因子
+ * 创建因子（需要审核）
  */
-async function createFactor(factor, openid) {
+async function createFactor(factor, openid, user) {
+  // 验证数据
+  const validation = validateFactor(factor);
+  if (!validation.valid) {
+    return {
+      code: 1,
+      success: false,
+      error: '数据验证失败',
+      errors: validation.errors,
+      message: validation.errors.join('; ')
+    };
+  }
+  
+  // 生成factorId
+  const factorId = factor.factorId || generateFactorId(
+    factor.name,
+    factor.category,
+    factor.subCategory,
+    factor.region,
+    factor.year
+  );
+  
+  // 检查是否已存在
+  const existing = await db.collection('carbon_emission_factors')
+    .where({
+      factorId: factorId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length > 0) {
+    return {
+      code: 1,
+      success: false,
+      error: '因子已存在',
+      factorId,
+      message: '该因子ID已存在'
+    };
+  }
+  
+  // 创建审核申请
+  try {
+    const approvalResult = await cloud.callFunction({
+      name: 'approval-manage',
+      data: {
+        action: 'createRequest',
+        businessType: 'carbon_factor',
+        operationType: 'create',
+        title: `创建因子：${factor.name}`,
+        description: `申请创建新的碳排放因子：${factor.name} (${factorId})`,
+        newData: factor,
+        currentData: null
+      }
+    });
+    
+    if (approvalResult.result && approvalResult.result.success) {
+      return {
+        code: 0,
+        success: true,
+        data: {
+          requestId: approvalResult.result.data.requestId,
+          factorId,
+          approvalRequired: true
+        },
+        message: '审核申请已提交，请等待审核'
+      };
+    } else {
+      throw new Error(approvalResult.result?.error || '创建审核申请失败');
+    }
+  } catch (error) {
+    console.error('创建审核申请失败:', error);
+    return {
+      code: 1,
+      success: false,
+      error: error.message || '创建审核申请失败',
+      message: error.message || '创建审核申请失败'
+    };
+  }
+}
+
+/**
+ * 执行已审核通过的创建操作
+ */
+async function executeApprovedCreate(factor) {
   // 验证数据
   const validation = validateFactor(factor);
   if (!validation.valid) {
@@ -168,11 +251,11 @@ async function createFactor(factor, openid) {
     ...factor,
     factorId,
     alias: factor.alias || [],
-    status: factor.status || 'draft',
+    status: factor.status || 'active',
     createdAt: now,
     updatedAt: now,
-    createdBy: openid || 'system',
-    updatedBy: openid || 'system'
+    createdBy: 'system',
+    updatedBy: 'system'
   };
   
   // 插入数据库
@@ -238,9 +321,73 @@ async function getFactor(factorId) {
 }
 
 /**
- * 更新因子
+ * 更新因子（需要审核）
  */
-async function updateFactor(factorId, updates, openid) {
+async function updateFactor(factorId, updates, openid, user) {
+  // 查找现有因子
+  const existing = await db.collection('carbon_emission_factors')
+    .where({
+      factorId: factorId
+    })
+    .get();
+  
+  if (existing.data.length === 0) {
+    return {
+      code: 1,
+      success: false,
+      error: '因子不存在',
+      message: '因子不存在'
+    };
+  }
+  
+  const currentFactor = existing.data[0];
+  const newFactorData = { ...currentFactor, ...updates };
+  
+  // 创建审核申请
+  try {
+    const approvalResult = await cloud.callFunction({
+      name: 'approval-manage',
+      data: {
+        action: 'createRequest',
+        businessType: 'carbon_factor',
+        businessId: factorId,
+        operationType: 'update',
+        title: `更新因子：${currentFactor.name || factorId}`,
+        description: `申请更新碳排放因子：${currentFactor.name || factorId}`,
+        currentData: currentFactor,
+        newData: newFactorData
+      }
+    });
+    
+    if (approvalResult.result && approvalResult.result.success) {
+      return {
+        code: 0,
+        success: true,
+        data: {
+          requestId: approvalResult.result.data.requestId,
+          factorId,
+          approvalRequired: true
+        },
+        message: '审核申请已提交，请等待审核'
+      };
+    } else {
+      throw new Error(approvalResult.result?.error || '创建审核申请失败');
+    }
+  } catch (error) {
+    console.error('创建审核申请失败:', error);
+    return {
+      code: 1,
+      success: false,
+      error: error.message || '创建审核申请失败',
+      message: error.message || '创建审核申请失败'
+    };
+  }
+}
+
+/**
+ * 执行已审核通过的更新操作
+ */
+async function executeApprovedUpdate(factorId, updates) {
   // 查找现有因子
   const existing = await db.collection('carbon_emission_factors')
     .where({
@@ -292,7 +439,7 @@ async function updateFactor(factorId, updates, openid) {
   const updateData = {
     ...updates,
     updatedAt: new Date(),
-    updatedBy: openid || 'system'
+    updatedBy: 'system'
   };
   
   try {
@@ -892,18 +1039,39 @@ exports.main = async (event, context) => {
       }
     }
     
+    // 获取用户信息（用于审核流程）
+    let user = null;
+    try {
+      const { checkPermission } = require('../common/permission');
+      user = await checkPermission(event, context);
+    } catch (err) {
+      // 如果权限检查失败，继续执行（某些操作可能不需要权限）
+    }
+
     switch (action) {
       case 'create':
-        return await createFactor(params.factor, OPENID);
+        return await createFactor(params.factor, OPENID, user);
+      
+      case 'executeApprovedCreate':
+        // 执行已审核通过的创建操作（由审核系统调用）
+        return await executeApprovedCreate(params.factor);
         
       case 'update':
-        return await updateFactor(params.factorId, params.factor, OPENID);
+        return await updateFactor(params.factorId, params.factor, OPENID, user);
+      
+      case 'executeApprovedUpdate':
+        // 执行已审核通过的更新操作（由审核系统调用）
+        return await executeApprovedUpdate(params.factorId, params.factor);
         
       case 'get':
         return await getFactor(params.factorId);
         
       case 'archive':
-        return await archiveFactor(params.factorId, OPENID);
+        return await archiveFactor(params.factorId, OPENID, user);
+      
+      case 'executeApprovedArchive':
+        // 执行已审核通过的归档操作（由审核系统调用）
+        return await executeApprovedArchive(params.factorId);
         
       case 'activate':
         return await activateFactor(params.factorId, OPENID);
@@ -923,7 +1091,7 @@ exports.main = async (event, context) => {
           code: 400,
           success: false,
           error: '未知的 action 参数',
-          message: '支持的 action: create, update, get, archive, activate, list, batchImport'
+          message: '支持的 action: create, update, get, archive, activate, list, batchImport, executeApprovedCreate, executeApprovedUpdate, executeApprovedArchive'
         };
     }
   } catch (error) {

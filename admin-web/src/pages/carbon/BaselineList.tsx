@@ -101,7 +101,12 @@ const BaselineList: React.FC = () => {
     try {
       const result = await baselineManageAPI.archive(record.baselineId)
       if (result.success) {
-        message.success(t('pages.carbon.baselineList.messages.archiveSuccess'))
+        // 检查是否已提交审核申请
+        if (result.data?.approvalRequired) {
+          message.success('归档审核申请已提交，请等待审核')
+        } else {
+          message.success(t('pages.carbon.baselineList.messages.archiveSuccess'))
+        }
         fetchData()
       } else {
         message.error(result.error || t('pages.carbon.baselineList.messages.archiveFailed'))

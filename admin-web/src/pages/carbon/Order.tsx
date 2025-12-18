@@ -2,7 +2,7 @@ import { carbonFootprintAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import { Line } from '@ant-design/charts'
 import { DownloadOutlined } from '@ant-design/icons'
-import { Button, Card, Col, DatePicker, Row, Space, Statistic, Table, message } from 'antd'
+import { App, Button, Card, Col, DatePicker, Row, Space, Statistic, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
@@ -22,6 +22,7 @@ interface OrderCarbon {
 
 const CarbonOrder: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
   const [dataSource, setDataSource] = useState<OrderCarbon[]>([])
   const [chartData, setChartData] = useState<Array<{ date: string; carbon: number }>>([])

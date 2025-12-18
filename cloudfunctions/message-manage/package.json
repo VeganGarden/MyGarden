@@ -4,8 +4,7 @@
   "description": "消息管理云函数 - 消息的CRUD操作",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^8.5.1",
+    "wx-server-sdk": "~2.6.3"
   }
 }
-

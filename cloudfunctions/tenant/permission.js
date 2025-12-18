@@ -20,9 +20,18 @@ async function verifyToken(token, db) {
 async function checkPermission(event, context, requiredPermission = null, resourceScope = 'self') {
   const cloud = require('wx-server-sdk')
   const db = cloud.database()
-  const authHeader = event.headers?.authorization || event.headers?.Authorization || event.token || ''
+  // 兼容 Node.js 10，不使用可选链操作符
+  // 获取Token（支持多种方式传递token）
+  // 前端通过 cloudbase.ts 将 token 放在 payload.token 中，即 event.token
+  // 但也要检查 event.data.token（因为某些情况下 token 可能在 data 中）
+  const headerAuth = (event.headers && (event.headers.authorization || event.headers.Authorization)) || ''
+  const eventToken = event.token || (event.data && event.data.token) || ''
+  const authHeader = headerAuth || eventToken || ''
   const token = authHeader.replace('Bearer ', '').trim()
-  if (!token) throw { code: 401, message: '未授权访问，请先登录' }
+  if (!token) {
+    console.log('[checkPermission] Token为空，event.keys:', Object.keys(event), 'event.token:', event.token, 'event.data:', event.data)
+    throw { code: 401, message: '未授权访问，请先登录' }
+  }
   const user = await verifyToken(token, db)
   if (!user) throw { code: 401, message: 'Token无效或已过期' }
   if (user.status !== 'active') throw { code: 403, message: '用户已被禁用' }

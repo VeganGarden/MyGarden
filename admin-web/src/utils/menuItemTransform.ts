@@ -1,7 +1,7 @@
 /**
  * 菜单项数据转换工具函数
  */
-import type { MenuItem, CarbonFootprintData } from '@/types/menuItem'
+import type { CarbonFootprintData, MenuItem } from '@/types/menuItem'
 
 /**
  * 转换API返回的菜单项数据为统一格式

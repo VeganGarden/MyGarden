@@ -1,7 +1,7 @@
 import { carbonFootprintAPI, tenantAPI } from '@/services/cloudbase'
 import { useAppSelector } from '@/store/hooks'
 import type { MenuItem } from '@/types/menuItem'
-import { transformMenuItemList, transformMenuItemData, getCarbonFootprintValue, formatCarbonFootprintValue } from '@/utils/menuItemTransform'
+import { formatCarbonFootprintValue, getCarbonFootprintValue, transformMenuItemData, transformMenuItemList } from '@/utils/menuItemTransform'
 import {
   CalculatorOutlined,
   EditOutlined,
@@ -287,11 +287,19 @@ const CarbonMenu: React.FC = () => {
         updateData.cookingTime = Number(values.cookingTime)
       }
 
+      console.log('[Menu] 准备调用 updateMenuItem:', {
+        menuItemId: editingMenuItem._id || editingMenuItem.id,
+        restaurantId: currentRestaurantId,
+        updateData,
+      })
+
       const result = await tenantAPI.updateMenuItem({
         menuItemId: editingMenuItem._id || editingMenuItem.id,
         restaurantId: currentRestaurantId,
         updateData,
       })
+
+      console.log('[Menu] updateMenuItem 返回结果:', result)
 
       const actualResult = result?.result || result
       
@@ -320,6 +328,7 @@ const CarbonMenu: React.FC = () => {
         message.error(errorMsg)
       }
     } catch (error: any) {
+      console.error('[Menu] updateMenuItem 错误:', error)
       if (error.errorFields) {
         // 表单验证错误
         return

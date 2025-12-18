@@ -38,6 +38,8 @@ const FUNCTIONS = [
   'carbon-baseline-query',
   'carbon-baseline-manage',
   'carbon-baseline-init',
+  'carbon-factor-manage',
+  'approval-manage',
 ]
 
 // 检查命令是否存在

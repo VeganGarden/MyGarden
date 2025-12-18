@@ -46,10 +46,18 @@ export const callCloudFunction = async (
         payload.token = token
       }
       
+      console.log(`[cloudbase] 调用云函数 ${functionName}:`, {
+        hasToken: !!token,
+        tokenPrefix: token ? token.substring(0, 10) : 'none',
+        payloadKeys: Object.keys(payload),
+      })
+      
       const result = await app.callFunction({
         name: functionName,
         data: payload,
       })
+      
+      console.log(`[cloudbase] 云函数 ${functionName} 返回:`, result)
       
       // 检查返回结果
       // 云开发SDK返回格式: { result: {...}, requestId: '...' }
@@ -61,12 +69,18 @@ export const callCloudFunction = async (
           // 处理权限错误
           if (resultData.code === 401) {
             // 401认证错误，清除登录状态并重定向
+            // 但只在非系统管理相关路径时才立即跳转
+            // 系统管理相关页面由RouteGuard处理
             try {
-              console.error('[cloudbase] 认证失败(401)，清除登录状态', resultData)
+              const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+              const isSystemPage = currentPath.includes('/system/')
+              
               localStorage.removeItem('admin_token')
               localStorage.removeItem('admin_user')
               localStorage.removeItem('admin_permissions')
-              if (typeof window !== 'undefined') {
+              
+              // 系统管理页面由RouteGuard处理，不立即跳转
+              if (typeof window !== 'undefined' && !isSystemPage) {
                 window.location.href = '/login'
               }
             } catch {}
@@ -135,11 +149,16 @@ export const callCloudFunction = async (
       // 403权限不足错误不应该清除登录状态，应该由调用方处理
       if (error?.code === 401) {
         try {
+          const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+          const isSystemPage = currentPath.includes('/system/')
+          
           console.error('[cloudbase] 认证失败，清除登录状态', error)
           localStorage.removeItem('admin_token')
           localStorage.removeItem('admin_user')
           localStorage.removeItem('admin_permissions')
-          if (typeof window !== 'undefined') {
+          
+          // 系统管理页面由RouteGuard处理，不立即跳转
+          if (typeof window !== 'undefined' && !isSystemPage) {
             window.location.href = '/login'
           }
         } catch {}

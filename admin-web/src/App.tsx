@@ -31,14 +31,15 @@ import BaselineDetail from './pages/carbon/BaselineDetail'
 import BaselineEdit from './pages/carbon/BaselineEdit'
 import BaselineImport from './pages/carbon/BaselineImport'
 import BaselineList from './pages/carbon/BaselineList'
+import FactorAdd from './pages/carbon/FactorAdd'
+import FactorDetail from './pages/carbon/FactorDetail'
+import FactorEdit from './pages/carbon/FactorEdit'
+import FactorImport from './pages/carbon/FactorImport'
+import FactorLibrary from './pages/carbon/FactorLibrary'
 import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
-import FactorLibrary from './pages/carbon/FactorLibrary'
-import FactorAdd from './pages/carbon/FactorAdd'
-import FactorEdit from './pages/carbon/FactorEdit'
-import FactorDetail from './pages/carbon/FactorDetail'
-import FactorImport from './pages/carbon/FactorImport'
+import ApprovalRequest from './pages/system/ApprovalRequest'
 
 // 核心模块3: 供应链溯源
 import TraceabilityBatch from './pages/traceability/Batch'
@@ -506,6 +507,14 @@ const App: React.FC = () => {
           <Route path="system/users" element={<SystemUsers />} />
           <Route path="system/roles" element={<SystemRoles />} />
           <Route path="system/audit" element={<SystemAudit />} />
+          <Route 
+            path="system/approval-request" 
+            element={
+              <RouteGuard allowedRoles={['system_admin', 'carbon_specialist']}>
+                <ApprovalRequest />
+              </RouteGuard>
+            } 
+          />
           <Route path="system/monitor" element={<SystemMonitor />} />
           <Route path="system/backup" element={<SystemBackup />} />
           

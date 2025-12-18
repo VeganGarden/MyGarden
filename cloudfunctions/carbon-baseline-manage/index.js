@@ -81,9 +81,80 @@ async function checkPermission(openid) {
 }
 
 /**
- * 创建基准值
+ * 创建基准值（需要审核）
  */
-async function createBaseline(baseline, openid) {
+async function createBaseline(baseline, openid, user) {
+  // 验证数据
+  const validation = validateBaseline(baseline);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: '数据验证失败',
+      errors: validation.errors
+    };
+  }
+  
+  // 生成baselineId
+  const baselineId = generateBaselineId(baseline.category);
+  
+  // 检查是否已存在
+  const existing = await db.collection('carbon_baselines')
+    .where({
+      baselineId: baselineId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length > 0) {
+    return {
+      success: false,
+      error: '基准值已存在',
+      baselineId
+    };
+  }
+  
+  // 创建审核申请
+  try {
+    const approvalResult = await cloud.callFunction({
+      name: 'approval-manage',
+      data: {
+        action: 'createRequest',
+        businessType: 'carbon_baseline',
+        operationType: 'create',
+        title: `创建基准值：${baselineId}`,
+        description: `申请创建新的碳足迹基准值：${baselineId}`,
+        newData: baseline,
+        currentData: null
+      }
+    });
+    
+    if (approvalResult.result && approvalResult.result.success) {
+      return {
+        success: true,
+        code: 0,
+        data: {
+          requestId: approvalResult.result.data.requestId,
+          baselineId,
+          approvalRequired: true
+        },
+        message: '审核申请已提交，请等待审核'
+      };
+    } else {
+      throw new Error(approvalResult.result?.error || '创建审核申请失败');
+    }
+  } catch (error) {
+    console.error('创建审核申请失败:', error);
+    return {
+      success: false,
+      error: error.message || '创建审核申请失败'
+    };
+  }
+}
+
+/**
+ * 执行已审核通过的创建操作
+ */
+async function executeApprovedCreate(baseline) {
   // 验证数据
   const validation = validateBaseline(baseline);
   if (!validation.valid) {
@@ -120,8 +191,8 @@ async function createBaseline(baseline, openid) {
     baselineId,
     createdAt: now,
     updatedAt: now,
-    createdBy: openid || 'system',
-    updatedBy: openid || 'system',
+    createdBy: 'system',
+    updatedBy: 'system',
     usageCount: 0
   };
   
@@ -130,6 +201,7 @@ async function createBaseline(baseline, openid) {
     const result = await db.collection('carbon_baselines').add(baselineData);
     return {
       success: true,
+      code: 0,
       data: {
         _id: result._id,
         baselineId
@@ -144,9 +216,70 @@ async function createBaseline(baseline, openid) {
 }
 
 /**
- * 更新基准值
+ * 更新基准值（需要审核）
  */
-async function updateBaseline(baselineId, updates, openid) {
+async function updateBaseline(baselineId, updates, openid, user) {
+  // 查找现有基准值
+  const existing = await db.collection('carbon_baselines')
+    .where({
+      baselineId: baselineId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length === 0) {
+    return {
+      success: false,
+      error: '基准值不存在'
+    };
+  }
+  
+  const currentBaseline = existing.data[0];
+  const newBaselineData = { ...currentBaseline, ...updates };
+  
+  // 创建审核申请
+  try {
+    const approvalResult = await cloud.callFunction({
+      name: 'approval-manage',
+      data: {
+        action: 'createRequest',
+        businessType: 'carbon_baseline',
+        businessId: baselineId,
+        operationType: 'update',
+        title: `更新基准值：${baselineId}`,
+        description: `申请更新碳足迹基准值：${baselineId}`,
+        currentData: currentBaseline,
+        newData: newBaselineData
+      }
+    });
+    
+    if (approvalResult.result && approvalResult.result.success) {
+      return {
+        success: true,
+        code: 0,
+        data: {
+          requestId: approvalResult.result.data.requestId,
+          baselineId,
+          approvalRequired: true
+        },
+        message: '审核申请已提交，请等待审核'
+      };
+    } else {
+      throw new Error(approvalResult.result?.error || '创建审核申请失败');
+    }
+  } catch (error) {
+    console.error('创建审核申请失败:', error);
+    return {
+      success: false,
+      error: error.message || '创建审核申请失败'
+    };
+  }
+}
+
+/**
+ * 执行已审核通过的更新操作
+ */
+async function executeApprovedUpdate(baselineId, updates) {
   // 查找现有基准值
   const existing = await db.collection('carbon_baselines')
     .where({
@@ -166,7 +299,7 @@ async function updateBaseline(baselineId, updates, openid) {
   const updateData = {
     ...updates,
     updatedAt: new Date(),
-    updatedBy: openid || 'system'
+    updatedBy: 'system'
   };
   
   try {
@@ -176,6 +309,7 @@ async function updateBaseline(baselineId, updates, openid) {
     
     return {
       success: true,
+      code: 0,
       data: {
         baselineId
       }
@@ -189,9 +323,70 @@ async function updateBaseline(baselineId, updates, openid) {
 }
 
 /**
- * 归档基准值
+ * 归档基准值（需要审核）
  */
-async function archiveBaseline(baselineId, openid) {
+async function archiveBaseline(baselineId, openid, user) {
+  // 查找现有基准值
+  const existing = await db.collection('carbon_baselines')
+    .where({
+      baselineId: baselineId,
+      status: 'active'
+    })
+    .get();
+  
+  if (existing.data.length === 0) {
+    return {
+      success: false,
+      error: '基准值不存在'
+    };
+  }
+  
+  const currentBaseline = existing.data[0];
+  const newBaselineData = { ...currentBaseline, status: 'archived' };
+  
+  // 创建审核申请
+  try {
+    const approvalResult = await cloud.callFunction({
+      name: 'approval-manage',
+      data: {
+        action: 'createRequest',
+        businessType: 'carbon_baseline',
+        businessId: baselineId,
+        operationType: 'archive',
+        title: `归档基准值：${baselineId}`,
+        description: `申请归档碳足迹基准值：${baselineId}`,
+        currentData: currentBaseline,
+        newData: newBaselineData
+      }
+    });
+    
+    if (approvalResult.result && approvalResult.result.success) {
+      return {
+        success: true,
+        code: 0,
+        data: {
+          requestId: approvalResult.result.data.requestId,
+          baselineId,
+          approvalRequired: true
+        },
+        message: '审核申请已提交，请等待审核'
+      };
+    } else {
+      throw new Error(approvalResult.result?.error || '创建审核申请失败');
+    }
+  } catch (error) {
+    console.error('创建审核申请失败:', error);
+    return {
+      success: false,
+      error: error.message || '创建审核申请失败'
+    };
+  }
+}
+
+/**
+ * 执行已审核通过的归档操作
+ */
+async function executeApprovedArchive(baselineId) {
   // 查找现有基准值
   const existing = await db.collection('carbon_baselines')
     .where({
@@ -213,11 +408,12 @@ async function archiveBaseline(baselineId, openid) {
       .update({
         status: 'archived',
         updatedAt: new Date(),
-        updatedBy: openid || 'system'
+        updatedBy: 'system'
       });
     
     return {
       success: true,
+      code: 0,
       data: {
         baselineId
       }
@@ -279,8 +475,18 @@ exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   
   try {
-    // 权限检查（除查询外都需要权限）
-    if (action !== 'list' && action !== 'query') {
+    // 获取用户信息（用于审核流程）
+    let user = null;
+    try {
+      const { checkPermission: checkPerm } = require('../common/permission');
+      user = await checkPerm(event, context);
+    } catch (err) {
+      // 如果权限检查失败，继续执行（某些操作可能不需要权限）
+    }
+    
+    // 权限检查（除查询和执行审核通过的操作外都需要权限）
+    if (action !== 'list' && action !== 'query' && 
+        !action.startsWith('executeApproved')) {
       const hasPermission = await checkPermission(OPENID);
       if (!hasPermission) {
         return {
@@ -293,13 +499,25 @@ exports.main = async (event, context) => {
     
     switch (action) {
       case 'create':
-        return await createBaseline(params.baseline, OPENID);
+        return await createBaseline(params.baseline, OPENID, user);
+      
+      case 'executeApprovedCreate':
+        // 执行已审核通过的创建操作（由审核系统调用）
+        return await executeApprovedCreate(params.baseline);
         
       case 'update':
-        return await updateBaseline(params.baselineId, params.updates, OPENID);
+        return await updateBaseline(params.baselineId, params.updates || params.baseline, OPENID, user);
+      
+      case 'executeApprovedUpdate':
+        // 执行已审核通过的更新操作（由审核系统调用）
+        return await executeApprovedUpdate(params.baselineId, params.updates || params.baseline);
         
       case 'archive':
-        return await archiveBaseline(params.baselineId, OPENID);
+        return await archiveBaseline(params.baselineId, OPENID, user);
+      
+      case 'executeApprovedArchive':
+        // 执行已审核通过的归档操作（由审核系统调用）
+        return await executeApprovedArchive(params.baselineId);
         
       case 'list':
         return await listBaselines(params);
@@ -308,7 +526,7 @@ exports.main = async (event, context) => {
         return {
           success: false,
           error: '未知的 action 参数',
-          message: '支持的 action: create, update, archive, list'
+          message: '支持的 action: create, update, archive, list, executeApprovedCreate, executeApprovedUpdate, executeApprovedArchive'
         };
     }
   } catch (error) {

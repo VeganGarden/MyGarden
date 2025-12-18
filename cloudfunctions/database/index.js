@@ -162,6 +162,12 @@ exports.main = async (event) => {
         return await initOperationCollections(event);
       case 'initOperationSampleData':
         return await initOperationSampleData(event.data || event);
+      case 'initApprovalCollections':
+        const { main: initApprovalCollections } = require('./init-approval-collections');
+        return await initApprovalCollections(event);
+      case 'initApprovalConfigs':
+        const { initApprovalConfigs } = require('./init-approval-configs');
+        return await initApprovalConfigs();
       default:
         return await initCollectionsV1(event);
     }
