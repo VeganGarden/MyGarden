@@ -27,6 +27,7 @@ const { main: fixDuplicateFactors } = require('./fix-duplicate-factors');
 const { main: migrateFactorsIntegration } = require('./migrate-factors-integration');
 const { main: verifyFactorsMigration } = require('./verify-factors-migration');
 const { migrateFactorRegions, rollbackFactorRegions } = require('./migrate-factor-regions');
+const { main: fixRestaurantAdminPermission } = require('./fix-restaurant-admin-permission');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -104,6 +105,8 @@ exports.main = async (event) => {
       case 'initRoleConfigs':
         const { main: initRoleConfigs } = require('./init-role-configs');
         return await initRoleConfigs(event);
+      case 'fixRestaurantAdminPermission':
+        return await fixRestaurantAdminPermission(event);
       case 'initMessageCollections':
         return await initMessageCollections(event);
       case 'initMessageEventRules':
