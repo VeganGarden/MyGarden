@@ -122,7 +122,7 @@ async function checkPermission(openid) {
 /**
  * 创建因子（需要审核）
  */
-async function createFactor(factor, openid, user) {
+async function createFactor(factor, openid, user, token) {
   // 验证数据
   const validation = validateFactor(factor);
   if (!validation.valid) {
@@ -164,17 +164,24 @@ async function createFactor(factor, openid, user) {
   
   // 创建审核申请
   try {
+    const approvalData = {
+      action: 'createRequest',
+      businessType: 'carbon_factor',
+      operationType: 'create',
+      title: `创建因子：${factor.name}`,
+      description: `申请创建新的碳排放因子：${factor.name} (${factorId})`,
+      newData: factor,
+      currentData: null
+    };
+    
+    // 传递token给approval-manage云函数
+    if (token) {
+      approvalData.token = token;
+    }
+    
     const approvalResult = await cloud.callFunction({
       name: 'approval-manage',
-      data: {
-        action: 'createRequest',
-        businessType: 'carbon_factor',
-        operationType: 'create',
-        title: `创建因子：${factor.name}`,
-        description: `申请创建新的碳排放因子：${factor.name} (${factorId})`,
-        newData: factor,
-        currentData: null
-      }
+      data: approvalData
     });
     
     if (approvalResult.result && approvalResult.result.success) {
@@ -323,7 +330,7 @@ async function getFactor(factorId) {
 /**
  * 更新因子（需要审核）
  */
-async function updateFactor(factorId, updates, openid, user) {
+async function updateFactor(factorId, updates, openid, user, token) {
   // 查找现有因子
   const existing = await db.collection('carbon_emission_factors')
     .where({
@@ -345,18 +352,25 @@ async function updateFactor(factorId, updates, openid, user) {
   
   // 创建审核申请
   try {
+    const approvalData = {
+      action: 'createRequest',
+      businessType: 'carbon_factor',
+      businessId: factorId,
+      operationType: 'update',
+      title: `更新因子：${currentFactor.name || factorId}`,
+      description: `申请更新碳排放因子：${currentFactor.name || factorId}`,
+      currentData: currentFactor,
+      newData: newFactorData
+    };
+    
+    // 传递token给approval-manage云函数
+    if (token) {
+      approvalData.token = token;
+    }
+    
     const approvalResult = await cloud.callFunction({
       name: 'approval-manage',
-      data: {
-        action: 'createRequest',
-        businessType: 'carbon_factor',
-        businessId: factorId,
-        operationType: 'update',
-        title: `更新因子：${currentFactor.name || factorId}`,
-        description: `申请更新碳排放因子：${currentFactor.name || factorId}`,
-        currentData: currentFactor,
-        newData: newFactorData
-      }
+      data: approvalData
     });
     
     if (approvalResult.result && approvalResult.result.success) {
@@ -471,7 +485,7 @@ async function executeApprovedUpdate(factorId, updates) {
 /**
  * 归档因子
  */
-async function archiveFactor(factorId, openid) {
+async function archiveFactor(factorId, openid, user, token) {
   // 查找现有因子
   const existing = await db.collection('carbon_emission_factors')
     .where({
@@ -1169,14 +1183,14 @@ exports.main = async (event, context) => {
 
     switch (action) {
       case 'create':
-        return await createFactor(params.factor, OPENID, user);
+        return await createFactor(params.factor, OPENID, user, event.token);
       
       case 'executeApprovedCreate':
         // 执行已审核通过的创建操作（由审核系统调用）
         return await executeApprovedCreate(params.factor);
         
       case 'update':
-        return await updateFactor(params.factorId, params.factor, OPENID, user);
+        return await updateFactor(params.factorId, params.factor, OPENID, user, event.token);
       
       case 'executeApprovedUpdate':
         // 执行已审核通过的更新操作（由审核系统调用）
@@ -1186,7 +1200,7 @@ exports.main = async (event, context) => {
         return await getFactor(params.factorId);
         
       case 'archive':
-        return await archiveFactor(params.factorId, OPENID, user);
+        return await archiveFactor(params.factorId, OPENID, user, event.token);
       
       case 'executeApprovedArchive':
         // 执行已审核通过的归档操作（由审核系统调用）
