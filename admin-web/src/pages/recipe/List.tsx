@@ -115,6 +115,8 @@ const RecipeList: React.FC = () => {
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null)
   const [editForm] = Form.useForm()
   const [updating, setUpdating] = useState(false)
+  const [editIngredients, setEditIngredients] = useState<RecipeIngredient[]>([])
+  const [editIngredientSelectorVisible, setEditIngredientSelectorVisible] = useState(false)
 
   // 手工创建菜谱相关状态
   const [createRecipeModalVisible, setCreateRecipeModalVisible] = useState(false)
@@ -408,6 +410,12 @@ const RecipeList: React.FC = () => {
       status: menuItem.status || 'active',
       isAvailable: menuItem.isAvailable !== false, // 默认为true
     })
+    // 设置食材列表
+    if (menuItem.ingredients && menuItem.ingredients.length > 0) {
+      setEditIngredients(menuItem.ingredients)
+    } else {
+      setEditIngredients([])
+    }
   }
 
   // 保存编辑的菜单项
@@ -430,6 +438,7 @@ const RecipeList: React.FC = () => {
           category: values.category,
           status: values.status,
           isAvailable: values.isAvailable,
+          ingredients: editIngredients, // 添加食材数据
         },
       })
 
@@ -439,6 +448,7 @@ const RecipeList: React.FC = () => {
         setEditModalVisible(false)
         setEditingMenuItem(null)
         editForm.resetFields()
+        setEditIngredients([])
         loadMenuItems()
       } else {
         message.error(actualResult?.message || result?.message || '更新失败')
@@ -453,6 +463,32 @@ const RecipeList: React.FC = () => {
     } finally {
       setUpdating(false)
     }
+  }
+
+  // 编辑模式下的食材操作
+  const handleAddEditIngredient = () => {
+    setEditIngredientSelectorVisible(true)
+  }
+
+  const handleSelectEditIngredient = (ingredient: any) => {
+    const newIngredient: RecipeIngredient = {
+      ingredientId: ingredient._id,
+      name: ingredient.name,
+      quantity: 0,
+      unit: ingredient.unit || 'g',
+      carbonCoefficient: ingredient.carbonCoefficient,
+    }
+    setEditIngredients([...editIngredients, newIngredient])
+  }
+
+  const handleRemoveEditIngredient = (index: number) => {
+    setEditIngredients(editIngredients.filter((_, i) => i !== index))
+  }
+
+  const handleUpdateEditIngredient = (index: number, field: keyof RecipeIngredient, value: any) => {
+    const updated = [...editIngredients]
+    updated[index] = { ...updated[index], [field]: value }
+    setEditIngredients(updated)
   }
 
   // 选择基础菜谱并添加到菜单
@@ -1253,14 +1289,14 @@ const RecipeList: React.FC = () => {
           setEditModalVisible(false)
           setEditingMenuItem(null)
           editForm.resetFields()
+          setEditIngredients([])
         }}
         onOk={handleUpdateMenuItem}
         confirmLoading={updating}
-        width={600}
+        width={900}
         destroyOnClose={true}
         maskClosable={false}
         centered={true}
-        style={{ marginLeft: 200 }}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item
@@ -1346,6 +1382,113 @@ const RecipeList: React.FC = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          <Divider orientation="left">食材列表</Divider>
+          <Form.Item label="食材">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ color: '#666' }}>
+                  已添加 {editIngredients.length} 种食材
+                  {editIngredients.length > 0 && (
+                    <span style={{ marginLeft: 16, color: '#999' }}>
+                      总用量: {editIngredients.reduce((sum, ing) => sum + (ing.quantity || 0), 0).toFixed(2)}
+                    </span>
+                  )}
+                </span>
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddEditIngredient}
+                  size="small"
+                >
+                  添加食材
+                </Button>
+              </div>
+              {editIngredients.length > 0 && (
+                <Table
+                  columns={[
+                    {
+                      title: '食材名称',
+                      dataIndex: 'name',
+                      key: 'name',
+                      width: 150,
+                      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+                    },
+                    {
+                      title: '用量',
+                      key: 'quantity',
+                      width: 120,
+                      render: (_: any, record: RecipeIngredient, index: number) => (
+                        <InputNumber
+                          value={record.quantity}
+                          onChange={(value) => handleUpdateEditIngredient(index, 'quantity', value || 0)}
+                          min={0}
+                          step={0.1}
+                          precision={2}
+                          style={{ width: '100%' }}
+                          size="small"
+                        />
+                      ),
+                    },
+                    {
+                      title: '单位',
+                      key: 'unit',
+                      width: 100,
+                      render: (_: any, record: RecipeIngredient, index: number) => (
+                        <Input
+                          value={record.unit}
+                          onChange={(e) => handleUpdateEditIngredient(index, 'unit', e.target.value)}
+                          placeholder="单位"
+                          style={{ width: '100%' }}
+                          size="small"
+                        />
+                      ),
+                    },
+                    {
+                      title: '备注',
+                      key: 'notes',
+                      width: 150,
+                      render: (_: any, record: RecipeIngredient, index: number) => (
+                        <Input
+                          value={record.notes || ''}
+                          onChange={(e) => handleUpdateEditIngredient(index, 'notes', e.target.value)}
+                          placeholder="备注（可选）"
+                          style={{ width: '100%' }}
+                          size="small"
+                        />
+                      ),
+                    },
+                    {
+                      title: '操作',
+                      key: 'action',
+                      width: 80,
+                      render: (_: any, __: RecipeIngredient, index: number) => (
+                        <Button
+                          type="link"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleRemoveEditIngredient(index)}
+                          size="small"
+                        >
+                          删除
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  dataSource={editIngredients}
+                  rowKey={(record, index) => `${record.ingredientId}-${index}`}
+                  pagination={false}
+                  size="small"
+                  bordered
+                />
+              )}
+              {editIngredients.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#999', border: '1px dashed #d9d9d9', borderRadius: 4 }}>
+                  暂无食材，请点击上方按钮添加食材
+                </div>
+              )}
+            </Space>
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -1521,6 +1664,14 @@ const RecipeList: React.FC = () => {
         onCancel={() => setIngredientSelectorVisible(false)}
         onSelect={handleSelectRecipeIngredient}
         excludeIds={recipeIngredients.map(ing => ing.ingredientId)}
+      />
+
+      {/* 编辑模式下的食材选择器 */}
+      <IngredientSelector
+        visible={editIngredientSelectorVisible}
+        onCancel={() => setEditIngredientSelectorVisible(false)}
+        onSelect={handleSelectEditIngredient}
+        excludeIds={editIngredients.map(ing => ing.ingredientId)}
       />
     </div>
   )
