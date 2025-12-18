@@ -88,6 +88,18 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
         cookingMethod: initialData.cookingMethod,
         channels: initialData.channels,
       })
+      // 设置食材列表
+      if (initialData.ingredients && initialData.ingredients.length > 0) {
+        setIngredients(initialData.ingredients)
+      }
+      // 设置碳足迹结果
+      if (initialData.carbonFootprint !== undefined) {
+        setCarbonResult({
+          carbonFootprint: initialData.carbonFootprint,
+          carbonLabel: initialData.carbonLabel,
+          carbonScore: initialData.carbonScore,
+        })
+      }
     }
     
     // 如果是复制模式，填充表单数据
@@ -238,6 +250,7 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
       dataIndex: 'name',
       key: 'name',
       width: 200,
+      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
     },
     {
       title: t('pages.recipe.create.ingredientsTable.columns.quantity'),
@@ -248,15 +261,37 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
           value={record.quantity}
           onChange={(value) => handleUpdateIngredient(index, 'quantity', value || 0)}
           min={0}
+          step={0.1}
+          precision={2}
           style={{ width: '100%' }}
         />
       ),
     },
     {
       title: t('pages.recipe.create.ingredientsTable.columns.unit'),
-      dataIndex: 'unit',
       key: 'unit',
-      width: 100,
+      width: 120,
+      render: (_: any, record: RecipeIngredient, index: number) => (
+        <Input
+          value={record.unit}
+          onChange={(e) => handleUpdateIngredient(index, 'unit', e.target.value)}
+          placeholder="单位"
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: '备注',
+      key: 'notes',
+      width: 200,
+      render: (_: any, record: RecipeIngredient, index: number) => (
+        <Input
+          value={record.notes || ''}
+          onChange={(e) => handleUpdateIngredient(index, 'notes', e.target.value)}
+          placeholder="备注（可选）"
+          style={{ width: '100%' }}
+        />
+      ),
     },
     {
       title: t('pages.recipe.create.ingredientsTable.columns.actions'),
@@ -328,14 +363,23 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
 
           <Form.Item label={t('pages.recipe.create.fields.ingredients')}>
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button
-                type="dashed"
-                icon={<PlusOutlined />}
-                onClick={handleAddIngredient}
-                block
-              >
-                {t('pages.recipe.create.buttons.addIngredient')}
-              </Button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ color: '#666' }}>
+                  已添加 {ingredients.length} 种食材
+                  {ingredients.length > 0 && (
+                    <span style={{ marginLeft: 16, color: '#999' }}>
+                      总用量: {ingredients.reduce((sum, ing) => sum + (ing.quantity || 0), 0).toFixed(2)}
+                    </span>
+                  )}
+                </span>
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddIngredient}
+                >
+                  {t('pages.recipe.create.buttons.addIngredient')}
+                </Button>
+              </div>
               {ingredients.length > 0 && (
                 <Table
                   columns={ingredientColumns}
@@ -343,13 +387,20 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
                   rowKey={(record, index) => `${record.ingredientId}-${index}`}
                   pagination={false}
                   size="small"
+                  bordered
                 />
+              )}
+              {ingredients.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#999', border: '1px dashed #d9d9d9', borderRadius: 4 }}>
+                  暂无食材，请点击上方按钮添加食材
+                </div>
               )}
               {ingredients.length > 0 && (
                 <Button
                   type="primary"
                   onClick={handleCalculateCarbon}
                   loading={calculating}
+                  block
                 >
                   {t('pages.recipe.create.buttons.calculateCarbon')}
                 </Button>

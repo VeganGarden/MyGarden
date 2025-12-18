@@ -17,6 +17,7 @@ export interface RecipeIngredient {
   quantity: number
   unit: string
   carbonCoefficient?: number
+  notes?: string
 }
 
 export interface Recipe {
