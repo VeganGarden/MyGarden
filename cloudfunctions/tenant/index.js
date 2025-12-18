@@ -4953,7 +4953,8 @@ async function updateMenuItem(data, user, context) {
       'price',
       'category',
       'status',
-      'tags'
+      'tags',
+      'ingredients'
     ]
     
     const updateFields = {}
@@ -4976,6 +4977,23 @@ async function updateMenuItem(data, user, context) {
     }
     if (updateData.tags !== undefined) {
       updateFields.tags = updateData.tags
+    }
+
+    // 更新食材列表
+    if (updateData.ingredients !== undefined) {
+      // 确保ingredients是数组格式
+      if (Array.isArray(updateData.ingredients)) {
+        updateFields.ingredients = updateData.ingredients.map(ing => ({
+          ingredientId: ing.ingredientId || '',
+          name: ing.name || '',
+          quantity: Number(ing.quantity) || 0,
+          unit: ing.unit || 'g',
+          notes: ing.notes || '',
+          carbonCoefficient: ing.carbonCoefficient || undefined,
+        }))
+      } else {
+        updateFields.ingredients = []
+      }
     }
 
     // 更新可用性（通过availability字段）
