@@ -4,7 +4,7 @@
 import React from 'react'
 import { Form, Input, InputNumber, Select, Row, Col, Tag } from 'antd'
 import type { FormInstance } from 'antd'
-import { FactorCategory, FactorSource, FactorBoundary, FactorStatus } from '@/types/factor'
+import { FactorCategory, FactorSource, FactorBoundary, FactorStatus, Region } from '@/types/factor'
 import { useTranslation } from 'react-i18next'
 
 const { Option } = Select
@@ -156,12 +156,13 @@ const FactorForm: React.FC<FactorFormProps> = ({
               rules={[{ required: true, message: t('pages.carbon.factorForm.validation.regionRequired') }]}
             >
               <Select placeholder={t('pages.carbon.factorForm.placeholders.region')}>
-                <Option value="CN">中国 (CN)</Option>
-                <Option value="CN-East">华东 (CN-East)</Option>
-                <Option value="CN-North">华北 (CN-North)</Option>
-                <Option value="CN-South">华南 (CN-South)</Option>
-                <Option value="CN-West">西部 (CN-West)</Option>
-                <Option value="Global">全球 (Global)</Option>
+                <Option value={Region.NATIONAL_AVERAGE}>全国平均</Option>
+                <Option value={Region.NORTH_CHINA}>华北区域</Option>
+                <Option value={Region.NORTHEAST}>东北区域</Option>
+                <Option value={Region.EAST_CHINA}>华东区域</Option>
+                <Option value={Region.CENTRAL_CHINA}>华中区域</Option>
+                <Option value={Region.NORTHWEST}>西北区域</Option>
+                <Option value={Region.SOUTH_CHINA}>南方区域</Option>
               </Select>
             </Form.Item>
           </Col>

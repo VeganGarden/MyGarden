@@ -3,6 +3,7 @@
  */
 import { factorManageAPI } from '@/services/factor'
 import type { FactorFormData } from '@/types/factor'
+import { normalizeRegion } from '@/utils/regionMapper'
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -69,7 +70,7 @@ const FactorImport: React.FC = () => {
           factorValue: parseFloat(row['因子值'] || row.factorValue || 0),
           unit: row['单位'] || row.unit || 'kgCO2e/kg',
           uncertainty: row['不确定性'] || row.uncertainty ? parseFloat(row['不确定性'] || row.uncertainty) : undefined,
-          region: row['适用区域'] || row.region,
+          region: normalizeRegion(row['适用区域'] || row.region),
           source: row['数据来源'] || row.source,
           year: parseInt(row['年份'] || row.year || new Date().getFullYear()),
           version: row['版本号'] || row.version,

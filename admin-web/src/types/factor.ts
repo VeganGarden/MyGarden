@@ -2,6 +2,9 @@
  * 碳排放因子相关类型定义
  */
 
+// 导入统一的区域类型（与基准值保持一致）
+export { Region } from './baseline'
+
 // 因子分类
 export enum FactorCategory {
   INGREDIENT = 'ingredient', // 食材
@@ -43,7 +46,7 @@ export interface CarbonEmissionFactor {
   factorValue: number | null       // 排放因子数值，如 27.5；null表示待补充
   unit: string                     // 单位，如 "kgCO2e/kg", "kgCO2e/kWh"
   uncertainty?: number             // 不确定性百分比 (±%)
-  region: string                   // 适用区域代码，如 "CN", "CN-East", "Global"
+  region: string                   // 适用区域代码，统一使用基准值格式，如 "east_china", "north_china", "national_average"
   source: FactorSource             // 数据来源库
   year: number                     // 数据年份/发布年份
   version: string                  // 版本号，如 "v3.0.1"

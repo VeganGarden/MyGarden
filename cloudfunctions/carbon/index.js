@@ -39,20 +39,49 @@ function mapIngredientCategoryToSubCategory(category) {
 }
 
 /**
+ * 区域映射工具（向后兼容）
+ * 将基准值格式的区域转换为因子库格式
+ */
+function normalizeRegionForFactor(region) {
+  if (!region) return 'CN';
+  
+  const regionMapping = {
+    'national_average': 'CN',
+    'north_china': 'CN-North',
+    'northeast': 'CN-North',
+    'east_china': 'CN-East',
+    'central_china': 'CN-East',
+    'northwest': 'CN-West',
+    'south_china': 'CN-South',
+    'CN': 'CN',
+    'CN-East': 'CN-East',
+    'CN-North': 'CN-North',
+    'CN-South': 'CN-South',
+    'CN-West': 'CN-West',
+    'Global': 'Global',
+  };
+  
+  return regionMapping[region] || 'CN';
+}
+
+/**
  * 匹配因子（多级匹配算法）
  * @param {string} inputName - 食材名称
  * @param {string} category - 食材类别（可选）
- * @param {string} region - 地区（默认'CN'）
+ * @param {string} region - 地区（默认'CN'，支持新格式和旧格式）
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
 async function matchFactor(inputName, category, region = 'CN') {
   if (!inputName) return null;
 
+  // 将基准值格式的区域转换为因子库格式（向后兼容）
+  const factorRegion = normalizeRegionForFactor(region);
+
   // Level 1: 精确区域匹配
   let factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: region,
+      region: factorRegion,
       status: 'active'
     })
     .get();
@@ -102,7 +131,7 @@ async function matchFactor(inputName, category, region = 'CN') {
       .where({
         category: 'ingredient',
         subCategory: subCategory,
-        region: _.or(['CN', region]),
+        region: _.or(['CN', factorRegion]),
         status: 'active'
       })
       .orderBy('createdAt', 'desc')

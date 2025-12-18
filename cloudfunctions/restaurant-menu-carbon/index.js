@@ -4,6 +4,69 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
+ * 区域映射工具
+ * 将基准值格式的区域代码转换为因子库格式（向后兼容）
+ * 同时支持新格式（统一后）和旧格式（兼容）
+ */
+function normalizeRegionForFactor(region) {
+  if (!region) {
+    return 'CN'; // 默认使用国家级
+  }
+  
+  // 区域映射表：基准值格式 -> 因子库格式（向后兼容）
+  const regionMapping = {
+    // 新格式（统一后的基准值格式）
+    'national_average': 'CN',
+    'north_china': 'CN-North',
+    'northeast': 'CN-North', // 东北映射到华北（因子库无独立东北）
+    'east_china': 'CN-East',
+    'central_china': 'CN-East', // 华中映射到华东（因子库无独立华中）
+    'northwest': 'CN-West',
+    'south_china': 'CN-South',
+    
+    // 旧格式（因子库格式，保持不变）
+    'CN': 'CN',
+    'CN-East': 'CN-East',
+    'CN-North': 'CN-North',
+    'CN-South': 'CN-South',
+    'CN-West': 'CN-West',
+    'Global': 'Global',
+  };
+  
+  return regionMapping[region] || 'CN';
+}
+
+/**
+ * 区域映射（反向）：因子库格式 -> 基准值格式
+ * 用于数据迁移和显示
+ */
+function normalizeRegionForBaseline(region) {
+  if (!region) {
+    return 'national_average';
+  }
+  
+  const reverseMapping = {
+    'CN': 'national_average',
+    'CN-East': 'east_china',
+    'CN-North': 'north_china',
+    'CN-South': 'south_china',
+    'CN-West': 'northwest',
+    'Global': 'national_average',
+    
+    // 新格式保持不变
+    'national_average': 'national_average',
+    'north_china': 'north_china',
+    'northeast': 'northeast',
+    'east_china': 'east_china',
+    'central_china': 'central_china',
+    'northwest': 'northwest',
+    'south_china': 'south_china',
+  };
+  
+  return reverseMapping[region] || 'national_average';
+}
+
+/**
  * 餐厅菜谱碳足迹计算云函数
  * 
  * 功能：
@@ -1002,12 +1065,15 @@ async function matchEnergyFactor(energyType, region = 'CN') {
   const subCategory = energyType === 'gas' ? 'natural_gas' : 'electricity';
   const name = energyType === 'gas' ? '天然气' : '电力';
   
+  // 将基准值格式的区域转换为因子库格式（向后兼容）
+  const factorRegion = normalizeRegionForFactor(region);
+  
   // Level 1: 精确区域匹配
   let factor = await db.collection('carbon_emission_factors')
     .where({
       category: 'energy',
       subCategory: subCategory,
-      region: region,
+      region: factorRegion,
       status: 'active'
     })
     .orderBy('createdAt', 'desc')
@@ -1077,12 +1143,15 @@ async function matchEnergyFactor(energyType, region = 'CN') {
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
 async function matchMaterialFactor(materialName, region = 'CN') {
+  // 将基准值格式的区域转换为因子库格式（向后兼容）
+  const factorRegion = normalizeRegionForFactor(region);
+  
   // Level 1: 精确名称和区域匹配
   let factor = await db.collection('carbon_emission_factors')
     .where({
       category: 'material',
       name: materialName,
-      region: region,
+      region: factorRegion,
       status: 'active'
     })
     .limit(1)
@@ -1177,12 +1246,15 @@ async function matchMaterialFactor(materialName, region = 'CN') {
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
 async function matchTransportFactor(transportMode, region = 'CN') {
+  // 将基准值格式的区域转换为因子库格式（向后兼容）
+  const factorRegion = normalizeRegionForFactor(region);
+  
   // Level 1: 精确匹配
   let factor = await db.collection('carbon_emission_factors')
     .where({
       category: 'transport',
       name: transportMode,
-      region: region,
+      region: factorRegion,
       status: 'active'
     })
     .limit(1)
@@ -1373,12 +1445,15 @@ async function getCarbonFactors(data, context) {
  * 匹配因子（多级匹配算法）
  */
 async function matchFactor(inputName, category, restaurantRegion) {
+  // 将基准值格式的区域转换为因子库格式（向后兼容）
+  const factorRegion = normalizeRegionForFactor(restaurantRegion);
+  
   // Level 1: 精确区域匹配 (Exact Region Match)
-  // 查询条件：name == inputName AND region == restaurantRegion AND status == 'active'
+  // 查询条件：name == inputName AND region == factorRegion AND status == 'active'
   let factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: restaurantRegion,
+      region: factorRegion,
       status: 'active'
     })
     .get();
@@ -1487,7 +1562,7 @@ async function matchFactor(inputName, category, restaurantRegion) {
       .where({
         category: 'ingredient',
         subCategory: mappedCategory,
-        region: _.or(['CN', restaurantRegion]),
+        region: _.or(['CN', factorRegion]),
         status: 'active'
       })
       .orderBy('createdAt', 'desc')
