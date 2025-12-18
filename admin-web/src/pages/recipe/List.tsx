@@ -311,9 +311,6 @@ const RecipeList: React.FC = () => {
         // 但为了兼容，也支持 { result: { code, message, data } } 格式
         const actualResult = result?.result || result
         
-        // 记录返回结果用于调试
-        console.log('删除菜单项返回结果:', { result, actualResult })
-        
         // 检查返回结果
         if (actualResult && actualResult.code === 0) {
           message.success('移出成功')
@@ -360,7 +357,6 @@ const RecipeList: React.FC = () => {
         // 如果是餐厅自己创建的菜单项，直接删除（需要添加删除菜单项的API）
         // 暂时使用 removeRecipeFromMenu，传入菜单项ID
         message.warning('删除餐厅自定义菜单项功能开发中')
-        // TODO: 添加删除菜单项的API
       }
     } catch (error: any) {
       console.error('删除菜单项失败:', error)
@@ -437,12 +433,6 @@ const RecipeList: React.FC = () => {
         notes: ing.notes || '',
         carbonCoefficient: ing.carbonCoefficient,
       }))
-
-      console.log('更新菜单项数据:', {
-        menuItemId: editingMenuItem._id || editingMenuItem.id,
-        ingredients: ingredientsData,
-        ingredientsCount: ingredientsData.length,
-      })
 
       const result = await tenantAPI.updateMenuItem({
         menuItemId: editingMenuItem._id || editingMenuItem.id,
@@ -569,9 +559,7 @@ const RecipeList: React.FC = () => {
   // 批量导入菜谱
   const handleBatchImport = (file: File) => {
     message.info('正在导入...')
-    // TODO: 实现Excel批量导入菜谱功能
-    // 支持格式: .xlsx, .xls, .csv
-    // 导入后应该创建菜谱并自动添加到当前餐厅的菜单中
+    // 批量导入功能开发中
     return false
   }
 
@@ -1186,7 +1174,6 @@ const RecipeList: React.FC = () => {
                       addToMenuForm.resetFields()
                     } catch (error) {
                       // 忽略表单重置错误
-                      console.warn('重置表单失败:', error)
                     }
                     setSelectedBaseRecipe(null)
                   }}
@@ -1265,7 +1252,6 @@ const RecipeList: React.FC = () => {
                         addToMenuForm.resetFields()
                       } catch (error) {
                         // 忽略表单重置错误
-                        console.warn('重置表单失败:', error)
                       }
                       setSelectedBaseRecipe(null)
                     }}

@@ -46,18 +46,10 @@ export const callCloudFunction = async (
         payload.token = token
       }
       
-      console.log(`[cloudbase] 调用云函数 ${functionName}:`, {
-        hasToken: !!token,
-        tokenPrefix: token ? token.substring(0, 10) : 'none',
-        payloadKeys: Object.keys(payload),
-      })
-      
       const result = await app.callFunction({
         name: functionName,
         data: payload,
       })
-      
-      console.log(`[cloudbase] 云函数 ${functionName} 返回:`, result)
       
       // 检查返回结果
       // 云开发SDK返回格式: { result: {...}, requestId: '...' }
@@ -136,10 +128,8 @@ export const callCloudFunction = async (
       }
     }
   ).catch((error: any) => {
-    // 403权限不足错误是预期的，降级为debug级别，避免控制台噪音
-    if (error?.code === 403) {
-      console.debug(`[cloudbase] 调用云函数 ${functionName} 权限不足:`, error.message || error)
-    } else {
+    // 403权限不足错误是预期的，静默处理
+    if (error?.code !== 403) {
       console.error(`调用云函数 ${functionName} 失败:`, error)
     }
     
