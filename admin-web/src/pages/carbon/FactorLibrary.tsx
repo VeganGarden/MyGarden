@@ -385,6 +385,7 @@ const FactorLibrary: React.FC = () => {
             placeholder={t('pages.carbon.factorLibrary.filters.category')}
             allowClear
             style={{ width: 120 }}
+            value={filters.category}
             onChange={(value) => handleFilterChange('category', value)}
           >
             <Option value={FactorCategory.INGREDIENT}>{t('pages.carbon.factorLibrary.categories.ingredient')}</Option>
@@ -396,6 +397,7 @@ const FactorLibrary: React.FC = () => {
             placeholder={t('pages.carbon.factorLibrary.filters.source')}
             allowClear
             style={{ width: 120 }}
+            value={filters.source}
             onChange={(value) => handleFilterChange('source', value)}
           >
             <Option value={FactorSource.CLCD}>CLCD</Option>
@@ -407,6 +409,7 @@ const FactorLibrary: React.FC = () => {
             placeholder={t('pages.carbon.factorLibrary.filters.status')}
             allowClear
             style={{ width: 120 }}
+            value={filters.status}
             onChange={(value) => handleFilterChange('status', value)}
           >
             <Option value={FactorStatus.ACTIVE}>{t('pages.carbon.factorLibrary.status.active')}</Option>
