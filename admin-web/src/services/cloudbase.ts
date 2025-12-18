@@ -998,6 +998,7 @@ export const tenantAPI = {
       category?: string
       status?: string
       isAvailable?: boolean
+      ingredients?: any[]
       nutrition?: any
       tags?: any
       mealType?: 'meat_simple' | 'meat_full'

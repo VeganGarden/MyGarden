@@ -428,6 +428,22 @@ const RecipeList: React.FC = () => {
       const values = await editForm.validateFields()
       setUpdating(true)
 
+      // 确保食材数据格式正确
+      const ingredientsData = editIngredients.map(ing => ({
+        ingredientId: ing.ingredientId,
+        name: ing.name,
+        quantity: ing.quantity || 0,
+        unit: ing.unit || 'g',
+        notes: ing.notes || '',
+        carbonCoefficient: ing.carbonCoefficient,
+      }))
+
+      console.log('更新菜单项数据:', {
+        menuItemId: editingMenuItem._id || editingMenuItem.id,
+        ingredients: ingredientsData,
+        ingredientsCount: ingredientsData.length,
+      })
+
       const result = await tenantAPI.updateMenuItem({
         menuItemId: editingMenuItem._id || editingMenuItem.id,
         restaurantId: currentRestaurantId,
@@ -438,7 +454,7 @@ const RecipeList: React.FC = () => {
           category: values.category,
           status: values.status,
           isAvailable: values.isAvailable,
-          ingredients: editIngredients, // 添加食材数据
+          ingredients: ingredientsData, // 添加食材数据
         },
       })
 
@@ -1275,10 +1291,11 @@ const RecipeList: React.FC = () => {
       {/* 编辑菜单项Modal */}
       <Modal
         title={
-          <div style={{ fontSize: 18, fontWeight: 500 }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#262626' }}>
+            <EditOutlined style={{ marginRight: 8, color: '#1890ff' }} />
             编辑菜单项
             {editingMenuItem && (
-              <span style={{ fontSize: 14, fontWeight: 400, color: '#666', marginLeft: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 400, color: '#8c8c8c', marginLeft: 8 }}>
                 {editingMenuItem.name}
               </span>
             )}
@@ -1293,131 +1310,178 @@ const RecipeList: React.FC = () => {
         }}
         onOk={handleUpdateMenuItem}
         confirmLoading={updating}
-        width={900}
+        width={1000}
         destroyOnClose={true}
         maskClosable={false}
         centered={true}
+        okText="保存"
+        cancelText="取消"
+        okButtonProps={{ size: 'large' }}
+        cancelButtonProps={{ size: 'large' }}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="name"
-            label="菜品名称"
-            rules={[{ required: true, message: '请输入菜品名称' }]}
+        <Form form={editForm} layout="vertical" style={{ marginTop: 8 }}>
+          {/* 基本信息卡片 */}
+          <Card 
+            size="small" 
+            title={<span style={{ fontSize: 15, fontWeight: 500 }}>基本信息</span>}
+            style={{ marginBottom: 16 }}
+            headStyle={{ backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' }}
           >
-            <Input placeholder="请输入菜品名称" />
-          </Form.Item>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item
+                  name="name"
+                  label={<span style={{ fontWeight: 500 }}>菜品名称</span>}
+                  rules={[{ required: true, message: '请输入菜品名称' }]}
+                >
+                  <Input 
+                    placeholder="请输入菜品名称" 
+                    size="large"
+                    style={{ borderRadius: 4 }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Form.Item
-            name="description"
-            label="菜品描述"
-          >
-            <Input.TextArea 
-              rows={3} 
-              placeholder="请输入菜品描述（可选）"
-            />
-          </Form.Item>
+            <Form.Item
+              name="description"
+              label={<span style={{ fontWeight: 500 }}>菜品描述</span>}
+            >
+              <Input.TextArea 
+                rows={3} 
+                placeholder="请输入菜品描述（可选）"
+                style={{ borderRadius: 4 }}
+                showCount
+                maxLength={200}
+              />
+            </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="price"
-                label="价格（元）"
-                rules={[
-                  { required: true, message: '请输入价格' },
-                  { type: 'number', min: 0, message: '价格必须大于等于0' },
-                ]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  placeholder="请输入价格"
-                  min={0}
-                  precision={2}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="category"
-                label="分类"
-              >
-                <Select placeholder="请选择分类" allowClear>
-                  <Select.Option value="hot">热菜</Select.Option>
-                  <Select.Option value="cold">凉菜</Select.Option>
-                  <Select.Option value="soup">汤品</Select.Option>
-                  <Select.Option value="staple">主食</Select.Option>
-                  <Select.Option value="dessert">甜品</Select.Option>
-                  <Select.Option value="drink">饮品</Select.Option>
-                  <Select.Option value="asian_fusion">亚洲融合</Select.Option>
-                  <Select.Option value="western">西式</Select.Option>
-                  <Select.Option value="other">其他</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="price"
+                  label={<span style={{ fontWeight: 500 }}>价格（元）</span>}
+                  rules={[
+                    { required: true, message: '请输入价格' },
+                    { type: 'number', min: 0, message: '价格必须大于等于0' },
+                  ]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="请输入价格"
+                    min={0}
+                    precision={2}
+                    size="large"
+                    prefix="¥"
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="category"
+                  label={<span style={{ fontWeight: 500 }}>分类</span>}
+                >
+                  <Select placeholder="请选择分类" allowClear size="large">
+                    <Select.Option value="hot">热菜</Select.Option>
+                    <Select.Option value="cold">凉菜</Select.Option>
+                    <Select.Option value="soup">汤品</Select.Option>
+                    <Select.Option value="staple">主食</Select.Option>
+                    <Select.Option value="dessert">甜品</Select.Option>
+                    <Select.Option value="drink">饮品</Select.Option>
+                    <Select.Option value="asian_fusion">亚洲融合</Select.Option>
+                    <Select.Option value="western">西式</Select.Option>
+                    <Select.Option value="other">其他</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="status"
+                  label={<span style={{ fontWeight: 500 }}>状态</span>}
+                >
+                  <Select placeholder="请选择状态" size="large">
+                    <Select.Option value="active">可用</Select.Option>
+                    <Select.Option value="inactive">不可用</Select.Option>
+                    <Select.Option value="available">上架</Select.Option>
+                    <Select.Option value="unavailable">下架</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="status"
-                label="状态"
-              >
-                <Select placeholder="请选择状态">
-                  <Select.Option value="active">可用</Select.Option>
-                  <Select.Option value="inactive">不可用</Select.Option>
-                  <Select.Option value="available">上架</Select.Option>
-                  <Select.Option value="unavailable">下架</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="isAvailable"
+                  label={<span style={{ fontWeight: 500 }}>是否可用</span>}
+                  valuePropName="checked"
+                >
+                  <Switch 
+                    checkedChildren="可用" 
+                    unCheckedChildren="不可用"
+                    size="default"
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="isAvailable"
-                label="是否可用"
-                valuePropName="checked"
-              >
-                <Switch checkedChildren="可用" unCheckedChildren="不可用" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider orientation="left">食材列表</Divider>
-          <Form.Item label="食材">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ color: '#666' }}>
-                  已添加 {editIngredients.length} 种食材
-                  {editIngredients.length > 0 && (
-                    <span style={{ marginLeft: 16, color: '#999' }}>
-                      总用量: {editIngredients.reduce((sum, ing) => sum + (ing.quantity || 0), 0).toFixed(2)}
-                    </span>
-                  )}
-                </span>
+          {/* 食材列表卡片 */}
+          <Card 
+            size="small" 
+            title={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 15, fontWeight: 500 }}>食材列表</span>
                 <Button
-                  type="dashed"
+                  type="primary"
                   icon={<PlusOutlined />}
                   onClick={handleAddEditIngredient}
                   size="small"
+                  style={{ borderRadius: 4 }}
                 >
                   添加食材
                 </Button>
               </div>
-              {editIngredients.length > 0 && (
+            }
+            headStyle={{ backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' }}
+          >
+            {editIngredients.length > 0 ? (
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: 4,
+                  marginBottom: 8
+                }}>
+                  <Space>
+                    <Tag color="blue" style={{ margin: 0 }}>
+                      共 {editIngredients.length} 种食材
+                    </Tag>
+                    <Tag color="green" style={{ margin: 0 }}>
+                      总用量: {editIngredients.reduce((sum, ing) => sum + (ing.quantity || 0), 0).toFixed(2)}
+                    </Tag>
+                  </Space>
+                </div>
                 <Table
                   columns={[
                     {
-                      title: '食材名称',
+                      title: <span style={{ fontWeight: 500 }}>食材名称</span>,
                       dataIndex: 'name',
                       key: 'name',
-                      width: 150,
-                      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+                      width: 180,
+                      render: (name: string) => (
+                        <span style={{ fontWeight: 500, color: '#262626' }}>{name || '-'}</span>
+                      ),
                     },
                     {
-                      title: '用量',
+                      title: <span style={{ fontWeight: 500 }}>用量</span>,
                       key: 'quantity',
-                      width: 120,
+                      width: 140,
                       render: (_: any, record: RecipeIngredient, index: number) => (
                         <InputNumber
                           value={record.quantity}
@@ -1427,11 +1491,12 @@ const RecipeList: React.FC = () => {
                           precision={2}
                           style={{ width: '100%' }}
                           size="small"
+                          placeholder="用量"
                         />
                       ),
                     },
                     {
-                      title: '单位',
+                      title: <span style={{ fontWeight: 500 }}>单位</span>,
                       key: 'unit',
                       width: 100,
                       render: (_: any, record: RecipeIngredient, index: number) => (
@@ -1445,9 +1510,9 @@ const RecipeList: React.FC = () => {
                       ),
                     },
                     {
-                      title: '备注',
+                      title: <span style={{ fontWeight: 500 }}>备注</span>,
                       key: 'notes',
-                      width: 150,
+                      width: 200,
                       render: (_: any, record: RecipeIngredient, index: number) => (
                         <Input
                           value={record.notes || ''}
@@ -1459,9 +1524,10 @@ const RecipeList: React.FC = () => {
                       ),
                     },
                     {
-                      title: '操作',
+                      title: <span style={{ fontWeight: 500 }}>操作</span>,
                       key: 'action',
                       width: 80,
+                      fixed: 'right' as const,
                       render: (_: any, __: RecipeIngredient, index: number) => (
                         <Button
                           type="link"
@@ -1480,15 +1546,25 @@ const RecipeList: React.FC = () => {
                   pagination={false}
                   size="small"
                   bordered
+                  scroll={{ x: 700 }}
+                  style={{ marginTop: 8 }}
                 />
-              )}
-              {editIngredients.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#999', border: '1px dashed #d9d9d9', borderRadius: 4 }}>
-                  暂无食材，请点击上方按钮添加食材
-                </div>
-              )}
-            </Space>
-          </Form.Item>
+              </Space>
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px 20px', 
+                color: '#8c8c8c',
+                border: '2px dashed #d9d9d9', 
+                borderRadius: 4,
+                backgroundColor: '#fafafa'
+              }}>
+                <PlusOutlined style={{ fontSize: 32, color: '#bfbfbf', marginBottom: 12, display: 'block' }} />
+                <div style={{ fontSize: 14, marginBottom: 8 }}>暂无食材</div>
+                <div style={{ fontSize: 12, color: '#bfbfbf' }}>请点击上方"添加食材"按钮添加食材</div>
+              </div>
+            )}
+          </Card>
         </Form>
       </Modal>
 
