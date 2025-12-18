@@ -1062,10 +1062,28 @@ exports.main = async (event, context) => {
     // 获取用户信息（用于审核流程）
     let user = null;
     try {
+      // 确保event中有token（从params中获取，因为前端通过payload.token传递）
+      if (!event.token && params.token) {
+        event.token = params.token;
+      }
+      // 如果还是没有token，尝试从data中获取
+      if (!event.token && event.data && event.data.token) {
+        event.token = event.data.token;
+      }
       const { checkPermission } = require('../common/permission');
       user = await checkPermission(event, context);
     } catch (err) {
-      // 如果权限检查失败，继续执行（某些操作可能不需要权限）
+      // 如果权限检查失败（如无token），对于update操作应该返回401
+      // 但为了兼容性，暂时允许继续执行（某些操作可能不需要权限）
+      // 注意：这可能导致权限检查不严格
+      if (err.code === 401 && (action === 'update' || action === 'create' || action === 'archive')) {
+        return {
+          code: 401,
+          success: false,
+          error: '未授权访问，请先登录',
+          message: err.message || '未授权访问，请先登录'
+        };
+      }
     }
 
     switch (action) {
