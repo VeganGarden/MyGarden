@@ -5,6 +5,10 @@ cloud.init({
 
 /**
  * 修复餐厅管理员权限：添加 carbon:maintain 权限
+ * 
+ * ⚠️ 临时脚本：此脚本用于修复角色权限配置问题
+ * 正常情况下应使用 initRoleConfigs 来管理角色配置
+ * 此脚本仅用于紧急修复场景
  */
 exports.main = async () => {
   const db = cloud.database()

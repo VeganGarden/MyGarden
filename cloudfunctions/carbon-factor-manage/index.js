@@ -1059,26 +1059,6 @@ exports.main = async (event, context) => {
   const { action, ...params } = event;
   const { OPENID } = cloud.getWXContext();
   
-  // 调试：打印event结构（仅用于调试）
-  if (action === 'update' || action === 'create' || action === 'archive') {
-    console.log('[carbon-factor-manage] Event结构:', {
-      action,
-      hasEventToken: !!event.token,
-      hasParamsToken: !!params.token,
-      paramsKeys: Object.keys(params),
-      eventKeys: Object.keys(event),
-      // 打印params的前几个键，看看token在哪里
-      sampleParams: Object.keys(params).slice(0, 5).reduce((acc, key) => {
-        if (key === 'token') {
-          acc[key] = params[key] ? `${params[key].substring(0, 10)}...` : 'none'
-        } else {
-          acc[key] = typeof params[key]
-        }
-        return acc
-      }, {})
-    });
-  }
-  
   try {
     // 权限检查（除查询和初始化示例数据外都需要权限）
     if (action !== 'list' && action !== 'get' && action !== 'initSampleData') {
@@ -1099,37 +1079,18 @@ exports.main = async (event, context) => {
     // 对于需要权限的操作，先检查token
     if (action === 'update' || action === 'create' || action === 'archive') {
       // 确保event中有token（从params中获取，因为前端通过payload.token传递）
-      // 注意：前端通过 data: { action: 'update', token: '...', ... } 传递
-      // 所以token在params中，不在event.token中
       // 云开发SDK会将data中的内容直接作为event的属性，所以token在params.token中
       if (!event.token) {
-        // 尝试从多个位置获取token
-        event.token = params.token || event.data?.token || event.token || '';
+        event.token = params.token || event.data?.token || '';
       }
-      
-      // 调试日志
-      console.log('[carbon-factor-manage] Token检查:', {
-        action,
-        hasEventToken: !!event.token,
-        hasParamsToken: !!params.token,
-        hasDataToken: !!(event.data && event.data.token),
-        paramsKeys: Object.keys(params),
-        eventKeys: Object.keys(event),
-        tokenPrefix: event.token ? event.token.substring(0, 20) + '...' : 'none',
-        tokenLength: event.token ? event.token.length : 0,
-        // 检查params中是否有token
-        paramsTokenPrefix: params.token ? params.token.substring(0, 20) + '...' : 'none'
-      });
       
       // 如果event.token为空，但params.token存在，则使用params.token
       if (!event.token && params.token) {
         event.token = params.token;
-        console.log('[carbon-factor-manage] 从params中获取token');
       }
       
       // 检查是否有token
       if (!event.token) {
-        console.warn('[carbon-factor-manage] 未找到token，返回401');
         return {
           code: 401,
           success: false,
@@ -1144,14 +1105,6 @@ exports.main = async (event, context) => {
         // 允许有 carbon:maintain 权限的角色（如碳核算专员）操作因子库
         user = await checkPermission(event, context, 'carbon:maintain');
       } catch (err) {
-        // 如果权限检查失败（如token无效），返回401
-        console.error('[carbon-factor-manage] 权限检查失败:', {
-          error: err,
-          code: err.code,
-          message: err.message,
-          hasToken: !!event.token
-        });
-        
         // 处理错误对象（可能是 { code, message } 格式）
         const errorCode = err.code || 401;
         const errorMessage = err.message || '未授权访问，请先登录';

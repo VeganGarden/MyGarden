@@ -46,19 +46,6 @@ export const callCloudFunction = async (
         payload.token = token
       }
       
-      // 调试：检查token是否存在
-      if (functionName === 'carbon-factor-manage') {
-        if (!token) {
-          console.warn('[cloudbase] 警告：调用 carbon-factor-manage 时未找到 admin_token，可能导致401错误')
-        } else {
-          console.log('[cloudbase] Token已准备:', {
-            hasToken: !!token,
-            tokenPrefix: token.substring(0, 10),
-            payloadHasToken: !!payload.token
-          })
-        }
-      }
-      
       const result = await app.callFunction({
         name: functionName,
         data: payload,
@@ -78,7 +65,6 @@ export const callCloudFunction = async (
             
             // 如果有token但返回401，可能是token过期或无效，清除登录状态
             if (hasToken) {
-              console.warn('[cloudbase] Token存在但返回401，可能是token过期或无效')
               try {
                 const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
                 const isSystemPage = currentPath.includes('/system/')
@@ -92,9 +78,6 @@ export const callCloudFunction = async (
                   window.location.href = '/login'
                 }
               } catch {}
-            } else {
-              // 如果没有token，只是抛出错误，不立即跳转（由RouteGuard处理）
-              console.warn('[cloudbase] 未找到token，返回401错误')
             }
             throw new Error(resultData.message || '未授权访问，请先登录')
           }
