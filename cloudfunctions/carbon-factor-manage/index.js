@@ -1114,7 +1114,7 @@ exports.main = async (event, context) => {
       }
       
       try {
-        const { checkPermission } = require('../common/permission');
+        const { checkPermission } = require('./permission');
         // 因子库管理需要 carbon:maintain 权限
         // 允许有 carbon:maintain 权限的角色（如碳核算专员、餐厅管理员）操作因子库
         user = await checkPermission(event, context, 'carbon:maintain');
@@ -1148,7 +1148,7 @@ exports.main = async (event, context) => {
           event.token = event.data.token;
         }
         if (event.token) {
-          const { checkPermission } = require('../common/permission');
+          const { checkPermission } = require('./permission');
           user = await checkPermission(event, context);
         }
       } catch (err) {
