@@ -14,10 +14,13 @@ import {
   Table,
   Tag,
   message,
+  Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
+const { Text } = Typography
 
 const { Option } = Select
 
@@ -422,6 +425,60 @@ const RecipeList: React.FC = () => {
           dataSource={dataSource}
           rowKey="_id"
           rowSelection={rowSelection}
+          expandable={{
+            expandedRowRender: (record) => {
+              if (!record.ingredients || record.ingredients.length === 0) {
+                return (
+                  <div style={{ padding: '16px', color: '#999' }}>
+                    <Text type="secondary">该食谱暂无食材信息</Text>
+                  </div>
+                )
+              }
+
+              const ingredientColumns: ColumnsType<typeof record.ingredients[0]> = [
+                {
+                  title: '食材名称',
+                  dataIndex: 'name',
+                  key: 'name',
+                  width: 200,
+                },
+                {
+                  title: '用量',
+                  key: 'quantity',
+                  width: 150,
+                  render: (_, ingredient) => (
+                    <Text>
+                      {ingredient.quantity} {ingredient.unit || 'g'}
+                    </Text>
+                  ),
+                },
+                {
+                  title: '备注',
+                  dataIndex: 'notes',
+                  key: 'notes',
+                  render: (notes: string) => notes || <Text type="secondary">-</Text>,
+                },
+              ]
+
+              return (
+                <div style={{ padding: '16px', backgroundColor: '#fafafa' }}>
+                  <Text strong style={{ marginBottom: '12px', display: 'block' }}>
+                    食材详情（共 {record.ingredients.length} 种）
+                  </Text>
+                  <Table
+                    columns={ingredientColumns}
+                    dataSource={record.ingredients}
+                    rowKey={(item, index) => `${item.ingredientId || item.name}-${index}`}
+                    pagination={false}
+                    size="small"
+                    bordered
+                  />
+                </div>
+              )
+            },
+            rowExpandable: (record) => true,
+            expandRowByClick: false,
+          }}
           pagination={{
             ...pagination,
             showSizeChanger: true,

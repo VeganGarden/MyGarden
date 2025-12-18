@@ -263,12 +263,35 @@ const RecipeDetail: React.FC = () => {
         {recipe.ingredients && recipe.ingredients.length > 0 && (
           <>
             <Divider orientation="left">食材列表</Divider>
+            <div style={{ marginBottom: 16 }}>
+              <Space>
+                <Statistic
+                  title="食材种类"
+                  value={recipe.ingredients.length}
+                  suffix="种"
+                />
+                {recipe.ingredients.reduce((sum, ing) => {
+                  const qty = ing.quantity || 0
+                  return sum + qty
+                }, 0) > 0 && (
+                  <Statistic
+                    title="总用量"
+                    value={recipe.ingredients.reduce((sum, ing) => {
+                      const qty = ing.quantity || 0
+                      return sum + qty
+                    }, 0).toFixed(2)}
+                    suffix={recipe.ingredients[0]?.unit || 'g'}
+                  />
+                )}
+              </Space>
+            </div>
             <Table
               columns={ingredientColumns}
               dataSource={recipe.ingredients}
               rowKey={(record, index) => `${record.ingredientId}-${index}`}
               pagination={false}
               size="small"
+              bordered
             />
           </>
         )}
