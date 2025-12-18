@@ -76,6 +76,16 @@ async function checkPermission(event, context, requiredPermission = null, resour
 
   const roleConfig = roleResult.data[0]
 
+  // 调试日志：输出用户角色和权限信息
+  console.log('[permission] 权限检查:', {
+    userId: user._id,
+    username: user.username,
+    role: user.role,
+    requiredPermission,
+    userPermissions: roleConfig.permissions,
+    hasPermission: requiredPermission ? roleConfig.permissions.includes(requiredPermission) : 'N/A'
+  })
+
   // 5. 检查权限
   if (requiredPermission && !roleConfig.permissions.includes(requiredPermission)) {
     // 记录无权限访问日志
@@ -87,7 +97,7 @@ async function checkPermission(event, context, requiredPermission = null, resour
         action: 'unauthorized_access',
         resource: requiredPermission,
         resourceId: '',
-        description: `尝试访问无权限资源: ${requiredPermission}`,
+        description: `尝试访问无权限资源: ${requiredPermission}，用户角色: ${user.role}，拥有权限: ${roleConfig.permissions.join(', ')}`,
         ip: context.requestIp || '',
         userAgent: context.userAgent || '',
         tenantId: user.tenantId || null,
@@ -97,7 +107,7 @@ async function checkPermission(event, context, requiredPermission = null, resour
       }
     })
 
-    throw { code: 403, message: '无权限访问此资源' }
+    throw { code: 403, message: `无权限访问此资源。需要权限: ${requiredPermission}，用户角色: ${user.role}，拥有权限: ${roleConfig.permissions.join(', ')}` }
   }
 
   // 6. 返回用户信息（包含权限上下文）
