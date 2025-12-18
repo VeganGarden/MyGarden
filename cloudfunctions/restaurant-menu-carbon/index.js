@@ -4,69 +4,6 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
- * 区域映射工具
- * 将基准值格式的区域代码转换为因子库格式（向后兼容）
- * 同时支持新格式（统一后）和旧格式（兼容）
- */
-function normalizeRegionForFactor(region) {
-  if (!region) {
-    return 'CN'; // 默认使用国家级
-  }
-  
-  // 区域映射表：基准值格式 -> 因子库格式（向后兼容）
-  const regionMapping = {
-    // 新格式（统一后的基准值格式）
-    'national_average': 'CN',
-    'north_china': 'CN-North',
-    'northeast': 'CN-North', // 东北映射到华北（因子库无独立东北）
-    'east_china': 'CN-East',
-    'central_china': 'CN-East', // 华中映射到华东（因子库无独立华中）
-    'northwest': 'CN-West',
-    'south_china': 'CN-South',
-    
-    // 旧格式（因子库格式，保持不变）
-    'CN': 'CN',
-    'CN-East': 'CN-East',
-    'CN-North': 'CN-North',
-    'CN-South': 'CN-South',
-    'CN-West': 'CN-West',
-    'Global': 'Global',
-  };
-  
-  return regionMapping[region] || 'CN';
-}
-
-/**
- * 区域映射（反向）：因子库格式 -> 基准值格式
- * 用于数据迁移和显示
- */
-function normalizeRegionForBaseline(region) {
-  if (!region) {
-    return 'national_average';
-  }
-  
-  const reverseMapping = {
-    'CN': 'national_average',
-    'CN-East': 'east_china',
-    'CN-North': 'north_china',
-    'CN-South': 'south_china',
-    'CN-West': 'northwest',
-    'Global': 'national_average',
-    
-    // 新格式保持不变
-    'national_average': 'national_average',
-    'north_china': 'north_china',
-    'northeast': 'northeast',
-    'east_china': 'east_china',
-    'central_china': 'central_china',
-    'northwest': 'northwest',
-    'south_china': 'south_china',
-  };
-  
-  return reverseMapping[region] || 'national_average';
-}
-
-/**
  * 餐厅菜谱碳足迹计算云函数
  * 
  * 功能：
@@ -448,7 +385,7 @@ async function calculateCarbonFootprint(data) {
 
           // 获取餐厅地区（用于因子匹配）
   // 优先使用传入的region参数，否则从餐厅信息获取，最后使用默认值
-  let restaurantRegion = 'CN'; // 默认使用全国
+  let restaurantRegion = 'national_average'; // 默认使用全国平均
   if (data.region) {
     restaurantRegion = data.region;
   } else if (data.restaurantId) {
@@ -1061,12 +998,12 @@ function getDefaultWasteRate(category) {
  * @param {string} region - 地区
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
-async function matchEnergyFactor(energyType, region = 'CN') {
+async function matchEnergyFactor(energyType, region = 'national_average') {
   const subCategory = energyType === 'gas' ? 'natural_gas' : 'electricity';
   const name = energyType === 'gas' ? '天然气' : '电力';
   
-  // 将基准值格式的区域转换为因子库格式（向后兼容）
-  const factorRegion = normalizeRegionForFactor(region);
+  // 统一使用新格式
+  const factorRegion = region || 'national_average';
   
   // Level 1: 精确区域匹配
   let factor = await db.collection('carbon_emission_factors')
@@ -1116,7 +1053,7 @@ async function matchEnergyFactor(energyType, region = 'CN') {
     .where({
       category: 'energy',
       subCategory: subCategory,
-      region: 'CN',
+      region: 'national_average',
       status: 'active'
     })
     .orderBy('createdAt', 'desc')
@@ -1142,9 +1079,9 @@ async function matchEnergyFactor(energyType, region = 'CN') {
  * @param {string} region - 地区
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
-async function matchMaterialFactor(materialName, region = 'CN') {
-  // 将基准值格式的区域转换为因子库格式（向后兼容）
-  const factorRegion = normalizeRegionForFactor(region);
+async function matchMaterialFactor(materialName, region = 'national_average') {
+  // 统一使用新格式
+  const factorRegion = region || 'national_average';
   
   // Level 1: 精确名称和区域匹配
   let factor = await db.collection('carbon_emission_factors')
@@ -1220,7 +1157,7 @@ async function matchMaterialFactor(materialName, region = 'CN') {
     .where({
       category: 'material',
       name: materialName,
-      region: 'CN',
+      region: 'national_average',
       status: 'active'
     })
     .limit(1)
@@ -1245,9 +1182,9 @@ async function matchMaterialFactor(materialName, region = 'CN') {
  * @param {string} region - 地区
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
-async function matchTransportFactor(transportMode, region = 'CN') {
-  // 将基准值格式的区域转换为因子库格式（向后兼容）
-  const factorRegion = normalizeRegionForFactor(region);
+async function matchTransportFactor(transportMode, region = 'national_average') {
+  // 统一使用新格式
+  const factorRegion = region || 'national_average';
   
   // Level 1: 精确匹配
   let factor = await db.collection('carbon_emission_factors')
@@ -1275,7 +1212,7 @@ async function matchTransportFactor(transportMode, region = 'CN') {
     .where({
       category: 'transport',
       name: transportMode,
-      region: 'CN',
+      region: 'national_average',
       status: 'active'
     })
     .limit(1)
@@ -1371,7 +1308,7 @@ async function calculateEnergyByStandardModel(cookingMethod, cookingTime, energy
  * 
  * @param {Object} data - 请求数据
  * @param {Array} data.items - 食材列表，每个元素包含 { name, category }
- * @param {string} data.region - 餐厅区域代码，如 "CN-East", "CN"
+ * @param {string} data.region - 餐厅区域代码，统一使用新格式，如 "east_china", "national_average"
  */
 async function getCarbonFactors(data, context) {
   try {
@@ -1445,15 +1382,16 @@ async function getCarbonFactors(data, context) {
  * 匹配因子（多级匹配算法）
  */
 async function matchFactor(inputName, category, restaurantRegion) {
-  // 将基准值格式的区域转换为因子库格式（向后兼容）
-  const factorRegion = normalizeRegionForFactor(restaurantRegion);
+  // 统一使用新格式（national_average, east_china等）
+  // 如果没有提供区域，默认使用全国平均
+  const region = restaurantRegion || 'national_average';
   
   // Level 1: 精确区域匹配 (Exact Region Match)
-  // 查询条件：name == inputName AND region == factorRegion AND status == 'active'
+  // 查询条件：name == inputName AND region == region AND status == 'active'
   let factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: factorRegion,
+      region: region,
       status: 'active'
     })
     .get();
@@ -1466,11 +1404,11 @@ async function matchFactor(inputName, category, restaurantRegion) {
   }
 
   // Level 2: 国家级匹配 (National Fallback)
-  // 查询条件：name == inputName AND region == "CN" AND status == 'active'
+  // 查询条件：name == inputName AND region == "national_average" AND status == 'active'
   factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: 'CN',
+      region: 'national_average',
       status: 'active'
     })
     .get();
@@ -1562,7 +1500,7 @@ async function matchFactor(inputName, category, restaurantRegion) {
       .where({
         category: 'ingredient',
         subCategory: mappedCategory,
-        region: _.or(['CN', factorRegion]),
+        region: _.or(['national_average', region]),
         status: 'active'
       })
       .orderBy('createdAt', 'desc')

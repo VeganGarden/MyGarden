@@ -39,43 +39,17 @@ function mapIngredientCategoryToSubCategory(category) {
 }
 
 /**
- * 区域映射工具（向后兼容）
- * 将基准值格式的区域转换为因子库格式
- */
-function normalizeRegionForFactor(region) {
-  if (!region) return 'CN';
-  
-  const regionMapping = {
-    'national_average': 'CN',
-    'north_china': 'CN-North',
-    'northeast': 'CN-North',
-    'east_china': 'CN-East',
-    'central_china': 'CN-East',
-    'northwest': 'CN-West',
-    'south_china': 'CN-South',
-    'CN': 'CN',
-    'CN-East': 'CN-East',
-    'CN-North': 'CN-North',
-    'CN-South': 'CN-South',
-    'CN-West': 'CN-West',
-    'Global': 'Global',
-  };
-  
-  return regionMapping[region] || 'CN';
-}
-
-/**
  * 匹配因子（多级匹配算法）
  * @param {string} inputName - 食材名称
  * @param {string} category - 食材类别（可选）
- * @param {string} region - 地区（默认'CN'，支持新格式和旧格式）
+ * @param {string} region - 地区（默认'national_average'，统一使用新格式）
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
-async function matchFactor(inputName, category, region = 'CN') {
+async function matchFactor(inputName, category, region = 'national_average') {
   if (!inputName) return null;
 
-  // 将基准值格式的区域转换为因子库格式（向后兼容）
-  const factorRegion = normalizeRegionForFactor(region);
+  // 统一使用新格式（national_average, east_china等）
+  const factorRegion = region || 'national_average';
 
   // Level 1: 精确区域匹配
   let factor = await db.collection('carbon_emission_factors')
@@ -97,7 +71,7 @@ async function matchFactor(inputName, category, region = 'CN') {
   factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: 'CN',
+      region: 'national_average',
       status: 'active'
     })
     .get();
@@ -131,7 +105,7 @@ async function matchFactor(inputName, category, region = 'CN') {
       .where({
         category: 'ingredient',
         subCategory: subCategory,
-        region: _.or(['CN', factorRegion]),
+        region: _.or(['national_average', factorRegion]),
         status: 'active'
       })
       .orderBy('createdAt', 'desc')
@@ -359,7 +333,7 @@ async function calculateCarbonFootprint(ingredients, cookingMethod, mealType, re
 
     // 从因子库查询因子
     try {
-      const matchedFactor = await matchFactor(name, category, region || 'CN')
+      const matchedFactor = await matchFactor(name, category, region || 'national_average')
       if (matchedFactor && matchedFactor.factorValue !== null && matchedFactor.factorValue !== undefined) {
         factor = matchedFactor.factorValue
         factorSource = matchedFactor.matchLevel || 'factor_library'
