@@ -115,27 +115,41 @@ async function createIndexes() {
         continue;
       }
       
-      // 创建索引
-      if (idx.unique) {
-        await db.collection(collectionName)
-          .createIndex({
-            ...idx.index,
-            unique: true
-          }, {
-            name: indexName
-          });
-      } else {
-        await db.collection(collectionName)
-          .createIndex(idx.index, {
-            name: indexName
-          });
+      // 尝试创建索引
+      // 注意：腾讯云数据库可能不支持通过代码创建索引，如果失败需要在控制台手动创建
+      try {
+        if (idx.unique) {
+          await db.collection(collectionName)
+            .createIndex({
+              ...idx.index,
+              unique: true
+            }, {
+              name: indexName
+            });
+        } else {
+          await db.collection(collectionName)
+            .createIndex(idx.index, {
+              name: indexName
+            });
+        }
+        
+        console.log(`  ✅ 索引创建成功: ${indexName}`);
+        results.push({
+          index: indexName,
+          status: 'success'
+        });
+      } catch (createError) {
+        // 如果创建失败，可能是腾讯云限制，提示需要手动创建
+        console.log(`  ⚠️  索引创建失败（可能需要手动创建）: ${indexName}`);
+        console.log(`     错误: ${createError.message}`);
+        results.push({
+          index: indexName,
+          status: 'failed',
+          error: createError.message,
+          needsManual: true,
+          message: '需要在控制台手动创建此索引'
+        });
       }
-      
-      console.log(`  ✅ 索引创建成功: ${indexName}`);
-      results.push({
-        index: indexName,
-        status: 'success'
-      });
     } catch (error) {
       // 外层错误捕获（通常是检查索引时的错误）
       console.error(`  ❌ 处理索引时出错: ${idx.name}`, error.message);
