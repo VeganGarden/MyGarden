@@ -297,10 +297,27 @@ async function listRequests(params, user) {
   if (status) query.status = status;
   if (submitterId) query.submitterId = submitterId;
 
-  // 如果不是系统管理员，只能查看自己提交的或待自己审核的
+  // 权限控制：非管理员角色只能查看自己提交的申请
   if (user.role !== 'system_admin' && user.role !== 'platform_operator') {
-    // 这里应该查询待审核列表，暂时简化处理
-    // 实际应该根据审核节点查询
+    const currentUserId = user._id || user.userId || user.id;
+    if (!submitterId) {
+      // 未指定提交人时，自动过滤为当前用户
+      query.submitterId = currentUserId;
+    } else if (submitterId !== currentUserId) {
+      // 防止越权访问其他用户的申请
+        return {
+          code: 403,
+          success: false,
+          error: '无权限查看其他用户提交的申请',
+          data: [],
+          pagination: {
+            page,
+            pageSize,
+            total: 0,
+            totalPages: 0
+          }
+        };
+    }
   }
 
   try {
@@ -566,12 +583,90 @@ async function processApproval(requestId, action, comment, user) {
           await notifyApprovers(requestId, nextNode, request.title);
         }
       } else {
-        // 所有节点都通过，执行操作
+        // 所有节点都通过，先更新状态，再执行操作
         newStatus = 'approved';
-        await executeApprovedOperation(request);
+        
+        // 先更新状态为已通过
+        try {
+          await db.collection('approval_requests')
+            .doc(request._id)
+            .update({
+              data: {
+                status: newStatus,
+                currentNodeIndex,
+                updatedAt: now,
+                completedAt: now,
+                completedBy: userId
+              }
+            });
+        } catch (statusUpdateError) {
+          console.error('更新审核状态失败:', statusUpdateError);
+          throw new Error(`更新审核状态失败: ${statusUpdateError.message || '未知错误'}`);
+        }
+        
+        // 执行操作（如果失败，记录错误但不影响审核状态）
+        let executionError = null;
+        try {
+          await executeApprovedOperation(request);
+        } catch (operationError) {
+          console.error('执行审核通过的操作失败:', operationError);
+          executionError = operationError.message || '执行操作失败';
+          // 记录执行错误信息
+          try {
+            await db.collection('approval_requests')
+              .doc(request._id)
+              .update({
+                data: {
+                  executionError: executionError,
+                  executionErrorAt: new Date()
+                }
+              });
+          } catch (updateError) {
+            console.error('更新执行错误信息失败:', updateError);
+          }
+        }
+        
+        // 发送通知（无论执行是否成功）
+        try {
+          await sendApprovalNotification(requestId, action, request, userResult.data);
+        } catch (notifyError) {
+          console.error('发送通知失败:', notifyError);
+        }
+
+        // 记录审计日志（无论执行是否成功）
+        try {
+          await addAudit(db, {
+            userId,
+            username: userResult.data.username || userResult.data.name,
+            role: userRole,
+            module: 'approval',
+            action: `approval_${action}`,
+            resource: 'approval_request',
+            resourceId: requestId,
+            description: `审核${action === 'approve' ? '通过' : action === 'reject' ? '拒绝' : '退回'}申请：${request.title}${executionError ? `，但执行操作失败: ${executionError}` : ''}`,
+            status: executionError ? 'partial_success' : 'success'
+          });
+        } catch (auditError) {
+          console.error('记录审计日志失败:', auditError);
+        }
+
+        // 返回结果（即使执行失败，审核也已通过）
+        return {
+          code: executionError ? 200 : 0,
+          success: true,
+          data: {
+            requestId,
+            status: newStatus,
+            executionError: executionError || undefined
+          },
+          message: executionError 
+            ? `审核已通过，但执行操作失败: ${executionError}` 
+            : '审核通过成功'
+        };
       }
     }
 
+    // 对于非最后一个节点的通过操作，或者拒绝/退回操作，更新状态
     await db.collection('approval_requests')
       .doc(request._id)
       .update({
@@ -579,8 +674,8 @@ async function processApproval(requestId, action, comment, user) {
           status: newStatus,
           currentNodeIndex,
           updatedAt: now,
-          completedAt: action === 'reject' || action === 'approved' ? now : null,
-          completedBy: action === 'reject' || action === 'approved' ? userId : null
+          completedAt: action === 'reject' || (action === 'approve' && newStatus === 'approved') ? now : null,
+          completedBy: action === 'reject' || (action === 'approve' && newStatus === 'approved') ? userId : null
         }
       });
 
@@ -878,7 +973,47 @@ exports.main = async (event, context) => {
         } else if (!event.token && event.data && event.data.token) {
           event.token = event.data.token
         }
-        user = await checkPermission(event, context);
+        
+        // cancel 操作只需要验证用户身份，不需要检查角色配置
+        if (action === 'cancel') {
+          const { verifyToken } = require('./permission');
+          const cloud = require('wx-server-sdk');
+          const db = cloud.database();
+          
+          const headerAuth = (event.headers && (event.headers.authorization || event.headers.Authorization)) || ''
+          const eventToken = event.token || (event.data && event.data.token) || ''
+          const authHeader = headerAuth || eventToken || ''
+          const token = authHeader.replace('Bearer ', '').trim()
+          
+          if (!token) {
+            return {
+              code: 401,
+              success: false,
+              error: '未授权访问，请先登录'
+            };
+          }
+          
+          const verifiedUser = await verifyToken(token, db);
+          if (!verifiedUser) {
+            return {
+              code: 401,
+              success: false,
+              error: 'Token无效或已过期'
+            };
+          }
+          
+          if (verifiedUser.status !== 'active') {
+            return {
+              code: 403,
+              success: false,
+              error: '用户已被禁用'
+            };
+          }
+          
+          user = verifiedUser;
+        } else {
+          user = await checkPermission(event, context);
+        }
       } catch (err) {
         // 如果是401错误，直接返回，不要包装成对象
         if (err.code === 401) {

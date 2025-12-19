@@ -252,13 +252,23 @@ async function executeApprovedCreate(factor) {
     };
   }
   
+  // 过滤系统字段，避免被插入
+  const {
+    _id,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    createdBy: _createdBy,
+    updatedBy: _updatedBy,
+    ...cleanFactor
+  } = factor;
+  
   // 添加元数据
   const now = new Date();
   const factorData = {
-    ...factor,
+    ...cleanFactor,
     factorId,
-    alias: factor.alias || [],
-    status: factor.status || 'active',
+    alias: cleanFactor.alias || [],
+    status: cleanFactor.status || 'active',
     createdAt: now,
     updatedAt: now,
     createdBy: 'system',
@@ -402,6 +412,15 @@ async function updateFactor(factorId, updates, openid, user, token) {
  * 执行已审核通过的更新操作
  */
 async function executeApprovedUpdate(factorId, updates) {
+  // 过滤系统字段，避免被更新
+  if (updates && typeof updates === 'object') {
+    delete updates._id;
+    delete updates.createdAt;
+    delete updates.createdBy;
+    delete updates.updatedAt;
+    delete updates.updatedBy;
+  }
+  
   // 查找现有因子
   const existing = await db.collection('carbon_emission_factors')
     .where({
@@ -449,12 +468,30 @@ async function executeApprovedUpdate(factorId, updates) {
     }
   }
   
-  // 更新数据
+  // 定义允许更新的字段白名单
+  const allowedFields = [
+    'name', 'alias', 'category', 'subCategory', 'factorValue', 'unit', 
+    'uncertainty', 'region', 'source', 'year', 'version', 'boundary', 
+    'status', 'notes', 'factorId'
+  ];
+  
+  // 构建更新对象，只包含允许的字段
   const updateData = {
-    ...updates,
     updatedAt: new Date(),
     updatedBy: 'system'
   };
+  
+  // 只添加允许的字段
+  for (const key of allowedFields) {
+    if (updates && updates[key] !== undefined && updates[key] !== null) {
+      // 对于数组类型（如 alias），确保是干净的数组
+      if (key === 'alias' && Array.isArray(updates[key])) {
+        updateData[key] = [...updates[key]];
+      } else {
+        updateData[key] = updates[key];
+      }
+    }
+  }
   
   try {
     await db.collection('carbon_emission_factors')

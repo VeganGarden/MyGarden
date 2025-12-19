@@ -23,19 +23,24 @@ import {
   Table,
   Tag,
   message,
+  Divider,
+  Typography,
 } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import type { ColumnsType } from 'antd/es/table'
+import { useAppSelector } from '@/store/hooks'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 const { Search } = Input
 const { Option } = Select
+const { Title, Text } = Typography
 
 const ApprovalRequestPage: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAppSelector((state: any) => state.auth)
   const [loading, setLoading] = useState(false)
   const [dataSource, setDataSource] = useState<ApprovalRequest[]>([])
   const [pagination, setPagination] = useState({
@@ -54,6 +59,7 @@ const ApprovalRequestPage: React.FC = () => {
   const [actionModalVisible, setActionModalVisible] = useState(false)
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'return' | null>(null)
   const [actionComment, setActionComment] = useState('')
+  const [showAllFields, setShowAllFields] = useState(false)
 
   // 加载数据
   const fetchData = async () => {
@@ -74,8 +80,13 @@ const ApprovalRequestPage: React.FC = () => {
           page: pagination.current,
           pageSize: pagination.pageSize,
         }
-        if (activeTab === 'submitted') {
-          // 这里应该传递当前用户ID，暂时先查询所有
+        // "我提交的"标签页：仅显示当前用户提交的申请
+        if (activeTab === 'submitted' && user?.id) {
+          queryParams.submitterId = user.id
+        }
+        // "全部"标签页：非管理员角色仅显示自己提交的申请
+        if (activeTab === 'all' && user?.id && user?.role !== 'system_admin' && user?.role !== 'platform_operator') {
+          queryParams.submitterId = user.id
         }
         if (filters.businessType) queryParams.businessType = filters.businessType
         if (filters.operationType) queryParams.operationType = filters.operationType
@@ -216,6 +227,338 @@ const ApprovalRequestPage: React.FC = () => {
       [OperationType.ARCHIVE]: '归档',
     }
     return typeMap[type] || type
+  }
+
+  // 比较两个值是否相等
+  const isValueEqual = (oldVal: any, newVal: any): boolean => {
+    // 处理 null 和 undefined
+    if (oldVal === null || oldVal === undefined) {
+      return newVal === null || newVal === undefined
+    }
+    if (newVal === null || newVal === undefined) {
+      return false
+    }
+    // 处理数组
+    if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+      if (oldVal.length !== newVal.length) return false
+      return oldVal.every((item, index) => isValueEqual(item, newVal[index]))
+    }
+    // 处理对象
+    if (typeof oldVal === 'object' && typeof newVal === 'object') {
+      const oldKeys = Object.keys(oldVal).sort()
+      const newKeys = Object.keys(newVal).sort()
+      if (oldKeys.length !== newKeys.length) return false
+      return oldKeys.every((key) => isValueEqual(oldVal[key], newVal[key]))
+    }
+    // 基本类型比较
+    return String(oldVal) === String(newVal)
+  }
+
+  // 渲染变更内容
+  const renderChangeContent = (request: ApprovalRequest) => {
+    const { operationType, currentData, newData } = request
+
+    if (operationType === OperationType.UPDATE) {
+      // 更新操作：显示更新前后对比
+      if (!currentData && !newData) {
+        return <Text type="secondary">暂无变更内容</Text>
+      }
+
+      // 获取所有字段
+      const allFields = new Set<string>()
+      if (currentData) {
+        Object.keys(currentData).forEach((key) => {
+          if (!['_id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'].includes(key)) {
+            allFields.add(key)
+          }
+        })
+      }
+      if (newData) {
+        Object.keys(newData).forEach((key) => {
+          if (!['_id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'].includes(key)) {
+            allFields.add(key)
+          }
+        })
+      }
+
+      // 过滤出实际发生变化的字段
+      const changedFields = Array.from(allFields).filter((field) => {
+        const oldVal = currentData?.[field]
+        const newVal = newData?.[field]
+        return !isValueEqual(oldVal, newVal)
+      })
+
+      // 根据 showAllFields 决定显示哪些字段
+      const fieldsToShow = showAllFields ? Array.from(allFields).sort() : changedFields.sort()
+
+      if (fieldsToShow.length === 0) {
+        return (
+          <div>
+            <Text type="secondary">
+              {showAllFields ? '暂无字段' : '暂无变更内容'}
+            </Text>
+            {!showAllFields && changedFields.length === 0 && allFields.size > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => setShowAllFields(true)}
+                >
+                  显示所有字段
+                </Button>
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      // 字段标签映射
+      const fieldLabels: Record<string, string> = {
+        name: '名称',
+        alias: '别名',
+        category: '类别',
+        subCategory: '子类别',
+        factorValue: '因子值',
+        unit: '单位',
+        uncertainty: '不确定性',
+        region: '区域',
+        source: '来源',
+        year: '年份',
+        version: '版本',
+        boundary: '边界',
+        status: '状态',
+        notes: '备注',
+        factorId: '因子ID',
+        carbonFootprint: '碳足迹',
+        baselineId: '基准值ID',
+        usageCount: '使用次数',
+        description: '描述',
+      }
+
+      return (
+        <div>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text type="secondary">
+              {showAllFields 
+                ? `共 ${fieldsToShow.length} 个字段，其中 ${changedFields.length} 个字段有变更`
+                : `共 ${changedFields.length} 个字段发生变更`}
+            </Text>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => setShowAllFields(!showAllFields)}
+            >
+              {showAllFields ? '仅显示变更字段' : '显示所有字段'}
+            </Button>
+          </div>
+          <Table
+            dataSource={fieldsToShow.map((field) => {
+              const oldVal = currentData?.[field]
+              const newVal = newData?.[field]
+              const isChanged = !isValueEqual(oldVal, newVal)
+              return {
+                key: field,
+                field,
+                oldValue: oldVal,
+                newValue: newVal,
+                isChanged,
+              }
+            })}
+            columns={[
+              {
+                title: '字段',
+                dataIndex: 'field',
+                key: 'field',
+                width: 150,
+                render: (field: string, record: any) => (
+                  <span>
+                    {record.isChanged && (
+                      <Tag color="orange" style={{ marginRight: 4 }}>变更</Tag>
+                    )}
+                    {fieldLabels[field] || field}
+                  </span>
+                ),
+              },
+              {
+                title: '原值',
+                dataIndex: 'oldValue',
+                key: 'oldValue',
+                width: 200,
+                render: (value: any, record: any) => {
+                  let content: React.ReactNode
+                  if (value === null || value === undefined) {
+                    content = <Text type="secondary">-</Text>
+                  } else if (Array.isArray(value)) {
+                    content = <Text>{JSON.stringify(value)}</Text>
+                  } else if (typeof value === 'object') {
+                    content = <Text>{JSON.stringify(value, null, 2)}</Text>
+                  } else {
+                    content = <Text>{String(value)}</Text>
+                  }
+                  return (
+                    <div style={{ 
+                      backgroundColor: record.isChanged ? '#fff7e6' : 'transparent',
+                      padding: record.isChanged ? '4px 8px' : '0',
+                      borderRadius: record.isChanged ? '4px' : '0',
+                    }}>
+                      {content}
+                    </div>
+                  )
+                },
+              },
+              {
+                title: '新值',
+                dataIndex: 'newValue',
+                key: 'newValue',
+                width: 200,
+                render: (value: any, record: any) => {
+                  let content: React.ReactNode
+                  if (value === null || value === undefined) {
+                    content = <Text type="secondary">-</Text>
+                  } else if (Array.isArray(value)) {
+                    content = <Text>{JSON.stringify(value)}</Text>
+                  } else if (typeof value === 'object') {
+                    content = <Text>{JSON.stringify(value, null, 2)}</Text>
+                  } else {
+                    content = <Text strong>{String(value)}</Text>
+                  }
+                  return (
+                    <div style={{ 
+                      backgroundColor: record.isChanged ? '#f6ffed' : 'transparent',
+                      padding: record.isChanged ? '4px 8px' : '0',
+                      borderRadius: record.isChanged ? '4px' : '0',
+                    }}>
+                      {content}
+                    </div>
+                  )
+                },
+              },
+            ]}
+            pagination={false}
+            size="small"
+            rowClassName={(record: any) => record.isChanged ? 'changed-row' : ''}
+          />
+        </div>
+      )
+    } else if (operationType === OperationType.CREATE) {
+      // 创建操作：显示要创建的数据
+      if (!newData) {
+        return <Text type="secondary">暂无数据</Text>
+      }
+
+      const fields = Object.keys(newData).filter(
+        (key) => !['_id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'].includes(key)
+      )
+
+      if (fields.length === 0) {
+        return <Text type="secondary">暂无数据</Text>
+      }
+
+      const fieldLabels: Record<string, string> = {
+        name: '名称',
+        alias: '别名',
+        category: '类别',
+        subCategory: '子类别',
+        factorValue: '因子值',
+        unit: '单位',
+        uncertainty: '不确定性',
+        region: '区域',
+        source: '来源',
+        year: '年份',
+        version: '版本',
+        boundary: '边界',
+        status: '状态',
+        notes: '备注',
+        factorId: '因子ID',
+        carbonFootprint: '碳足迹',
+        baselineId: '基准值ID',
+        usageCount: '使用次数',
+        description: '描述',
+      }
+
+      return (
+        <Descriptions column={1} bordered size="small">
+          {fields.map((field) => {
+            const value = newData[field]
+            let displayValue: React.ReactNode = value
+            if (value === null || value === undefined) {
+              displayValue = <Text type="secondary">-</Text>
+            } else if (Array.isArray(value)) {
+              displayValue = <Text>{JSON.stringify(value)}</Text>
+            } else if (typeof value === 'object') {
+              displayValue = <Text code>{JSON.stringify(value, null, 2)}</Text>
+            } else {
+              displayValue = <Text>{String(value)}</Text>
+            }
+            return (
+              <Descriptions.Item key={field} label={fieldLabels[field] || field}>
+                {displayValue}
+              </Descriptions.Item>
+            )
+          })}
+        </Descriptions>
+      )
+    } else if (operationType === OperationType.DELETE || operationType === OperationType.ARCHIVE) {
+      // 删除/归档操作：显示要删除/归档的数据
+      if (!currentData) {
+        return <Text type="secondary">暂无数据</Text>
+      }
+
+      const fields = Object.keys(currentData).filter(
+        (key) => !['_id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'].includes(key)
+      )
+
+      if (fields.length === 0) {
+        return <Text type="secondary">暂无数据</Text>
+      }
+
+      const fieldLabels: Record<string, string> = {
+        name: '名称',
+        alias: '别名',
+        category: '类别',
+        subCategory: '子类别',
+        factorValue: '因子值',
+        unit: '单位',
+        uncertainty: '不确定性',
+        region: '区域',
+        source: '来源',
+        year: '年份',
+        version: '版本',
+        boundary: '边界',
+        status: '状态',
+        notes: '备注',
+        factorId: '因子ID',
+        carbonFootprint: '碳足迹',
+        baselineId: '基准值ID',
+        usageCount: '使用次数',
+        description: '描述',
+      }
+
+      return (
+        <Descriptions column={1} bordered size="small">
+          {fields.map((field) => {
+            const value = currentData[field]
+            let displayValue: React.ReactNode = value
+            if (value === null || value === undefined) {
+              displayValue = <Text type="secondary">-</Text>
+            } else if (Array.isArray(value)) {
+              displayValue = <Text>{JSON.stringify(value)}</Text>
+            } else if (typeof value === 'object') {
+              displayValue = <Text code>{JSON.stringify(value, null, 2)}</Text>
+            } else {
+              displayValue = <Text>{String(value)}</Text>
+            }
+            return (
+              <Descriptions.Item key={field} label={fieldLabels[field] || field}>
+                {displayValue}
+              </Descriptions.Item>
+            )
+          })}
+        </Descriptions>
+      )
+    }
+
+    return <Text type="secondary">暂无变更内容</Text>
   }
 
   // 表格列定义
@@ -440,34 +783,46 @@ const ApprovalRequestPage: React.FC = () => {
         onCancel={() => {
           setDetailModalVisible(false)
           setSelectedRequest(null)
+          setShowAllFields(false)
         }}
         footer={[
           <Button key="close" onClick={() => setDetailModalVisible(false)}>
             关闭
           </Button>,
         ]}
-        width={800}
+        width={1000}
       >
         {selectedRequest && (
-          <Descriptions column={2} bordered>
-            <Descriptions.Item label="申请ID">{selectedRequest.requestId}</Descriptions.Item>
-            <Descriptions.Item label="标题">{selectedRequest.title}</Descriptions.Item>
-            <Descriptions.Item label="业务类型">{getBusinessTypeLabel(selectedRequest.businessType)}</Descriptions.Item>
-            <Descriptions.Item label="操作类型">{getOperationTypeLabel(selectedRequest.operationType)}</Descriptions.Item>
-            <Descriptions.Item label="状态">{getStatusTag(selectedRequest.status)}</Descriptions.Item>
-            <Descriptions.Item label="提交人">{selectedRequest.submitterName}</Descriptions.Item>
-            <Descriptions.Item label="提交时间">
-              {selectedRequest.submittedAt ? new Date(selectedRequest.submittedAt).toLocaleString('zh-CN') : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="完成时间">
-              {selectedRequest.completedAt ? new Date(selectedRequest.completedAt).toLocaleString('zh-CN') : '-'}
-            </Descriptions.Item>
-            {selectedRequest.description && (
-              <Descriptions.Item label="描述" span={2}>
-                {selectedRequest.description}
+          <>
+            <Descriptions column={2} bordered>
+              <Descriptions.Item label="申请ID">{selectedRequest.requestId}</Descriptions.Item>
+              <Descriptions.Item label="标题">{selectedRequest.title}</Descriptions.Item>
+              <Descriptions.Item label="业务类型">{getBusinessTypeLabel(selectedRequest.businessType)}</Descriptions.Item>
+              <Descriptions.Item label="操作类型">{getOperationTypeLabel(selectedRequest.operationType)}</Descriptions.Item>
+              <Descriptions.Item label="状态">{getStatusTag(selectedRequest.status)}</Descriptions.Item>
+              <Descriptions.Item label="提交人">{selectedRequest.submitterName}</Descriptions.Item>
+              <Descriptions.Item label="提交时间">
+                {selectedRequest.submittedAt ? new Date(selectedRequest.submittedAt).toLocaleString('zh-CN') : '-'}
               </Descriptions.Item>
+              <Descriptions.Item label="完成时间">
+                {selectedRequest.completedAt ? new Date(selectedRequest.completedAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              {selectedRequest.description && (
+                <Descriptions.Item label="描述" span={2}>
+                  {selectedRequest.description}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* 变更内容展示 */}
+            {(selectedRequest.currentData || selectedRequest.newData) && (
+              <>
+                <Divider />
+                <Title level={5}>变更内容</Title>
+                <div style={{ marginTop: 16 }}>{renderChangeContent(selectedRequest)}</div>
+              </>
             )}
-          </Descriptions>
+          </>
         )}
       </Modal>
 

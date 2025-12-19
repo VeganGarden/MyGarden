@@ -211,6 +211,10 @@ const MainLayout: React.FC = () => {
                       key: '/carbon/factor-library',
                       label: t('menu.carbonFactorLibrary'),
                     },
+                    {
+                      key: '/system/approval-request',
+                      label: '审核申请管理',
+                    },
                   ]
                 : []),
             ],

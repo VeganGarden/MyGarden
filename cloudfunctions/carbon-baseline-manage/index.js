@@ -184,10 +184,20 @@ async function executeApprovedCreate(baseline) {
     };
   }
   
+  // 过滤系统字段，避免被插入
+  const {
+    _id,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    createdBy: _createdBy,
+    updatedBy: _updatedBy,
+    ...cleanBaseline
+  } = baseline;
+  
   // 添加元数据
   const now = new Date();
   const baselineData = {
-    ...baseline,
+    ...cleanBaseline,
     baselineId,
     createdAt: now,
     updatedAt: now,
@@ -208,8 +218,10 @@ async function executeApprovedCreate(baseline) {
       }
     };
   } catch (error) {
+    console.error('创建基准值失败:', error);
     return {
       success: false,
+      code: 1,
       error: error.message || '创建失败'
     };
   }
@@ -280,6 +292,15 @@ async function updateBaseline(baselineId, updates, openid, user) {
  * 执行已审核通过的更新操作
  */
 async function executeApprovedUpdate(baselineId, updates) {
+  // 过滤系统字段，避免被更新
+  if (updates && typeof updates === 'object') {
+    delete updates._id;
+    delete updates.createdAt;
+    delete updates.createdBy;
+    delete updates.updatedAt;
+    delete updates.updatedBy;
+  }
+  
   // 查找现有基准值
   const existing = await db.collection('carbon_baselines')
     .where({
@@ -295,17 +316,30 @@ async function executeApprovedUpdate(baselineId, updates) {
     };
   }
   
-  // 更新数据
+  // 定义允许更新的字段白名单
+  const allowedFields = [
+    'category', 'carbonFootprint', 'status', 'baselineId', 'usageCount', 'notes', 'description'
+  ];
+  
+  // 构建更新对象，只包含允许的字段
   const updateData = {
-    ...updates,
     updatedAt: new Date(),
     updatedBy: 'system'
   };
   
+  // 只添加允许的字段
+  for (const key of allowedFields) {
+    if (updates && updates[key] !== undefined && updates[key] !== null) {
+      updateData[key] = updates[key];
+    }
+  }
+  
   try {
     await db.collection('carbon_baselines')
       .doc(existing.data[0]._id)
-      .update(updateData);
+      .update({
+        data: updateData
+      });
     
     return {
       success: true,
@@ -315,8 +349,10 @@ async function executeApprovedUpdate(baselineId, updates) {
       }
     };
   } catch (error) {
+    console.error('更新基准值失败:', error);
     return {
       success: false,
+      code: 1,
       error: error.message || '更新失败'
     };
   }
