@@ -6,7 +6,7 @@ import type { MealSetBaselineFormData } from '@/types/meal-set-baseline'
 import { Button, Card, Form, message, Space, Steps, Alert } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import MealSetBaselineForm from '../components/MealSetBaselineForm'
+import MealSetBaselineForm from './components/MealSetBaselineForm'
 import dayjs from 'dayjs'
 
 const { Step } = Steps
