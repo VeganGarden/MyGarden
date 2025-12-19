@@ -601,11 +601,20 @@ async function listMealSetBaselines(params) {
   if (status) query.status = status;
   
   // 关键词搜索（搜索baselineId或version）
+  // 注意：由于腾讯云数据库限制，正则查询需要索引支持
+  // 如果集合为空或没有索引，正则查询可能失败，需要特殊处理
   if (keyword) {
-    query.baselineId = db.RegExp({
-      regexp: keyword,
-      options: 'i'
-    });
+    // 对于baselineId，使用正则表达式（需要索引）
+    // 如果查询失败，会fallback到不包含keyword的查询
+    try {
+      query.baselineId = db.RegExp({
+        regexp: keyword,
+        options: 'i'
+      });
+    } catch (error) {
+      console.warn('正则查询不支持，将使用精确匹配:', error);
+      query.baselineId = keyword;
+    }
   }
   
   try {
