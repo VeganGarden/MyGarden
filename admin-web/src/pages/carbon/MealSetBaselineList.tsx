@@ -80,7 +80,8 @@ const MealSetBaselineList: React.FC = () => {
 
   useEffect(() => {
     fetchData()
-  }, [pagination.current, pagination.pageSize, filters])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, pagination.pageSize, filters.mealTime, filters.region, filters.energyType, filters.mealStructure, filters.hasSoup, filters.status, filters.keyword])
 
   // 处理筛选
   const handleFilterChange = (key: string, value: any) => {

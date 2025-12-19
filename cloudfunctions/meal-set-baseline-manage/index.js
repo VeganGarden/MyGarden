@@ -584,7 +584,8 @@ async function listMealSetBaselines(params) {
     hasSoup,
     restaurantType,
     consumptionScenario,
-    status, 
+    status,
+    keyword,
     page = 1, 
     pageSize = 20 
   } = params;
@@ -599,20 +600,47 @@ async function listMealSetBaselines(params) {
   if (consumptionScenario) query['category.consumptionScenario'] = consumptionScenario;
   if (status) query.status = status;
   
+  // 关键词搜索（搜索baselineId或version）
+  if (keyword) {
+    query.baselineId = db.RegExp({
+      regexp: keyword,
+      options: 'i'
+    });
+  }
+  
   try {
-    const result = await db.collection('meal_set_baselines')
-      .where(query)
-      .orderBy('createdAt', 'desc')
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .get();
+    let result;
+    let count;
     
-    const count = await db.collection('meal_set_baselines')
-      .where(query)
-      .count();
+    if (keyword) {
+      // 如果有关键词，使用正则查询
+      result = await db.collection('meal_set_baselines')
+        .where(query)
+        .orderBy('createdAt', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get();
+      
+      count = await db.collection('meal_set_baselines')
+        .where(query)
+        .count();
+    } else {
+      // 如果没有关键词，正常查询
+      result = await db.collection('meal_set_baselines')
+        .where(query)
+        .orderBy('createdAt', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get();
+      
+      count = await db.collection('meal_set_baselines')
+        .where(query)
+        .count();
+    }
     
     return {
       success: true,
+      code: 0,
       data: result.data,
       pagination: {
         page,
@@ -622,8 +650,10 @@ async function listMealSetBaselines(params) {
       }
     };
   } catch (error) {
+    console.error('查询一餐饭基准值列表失败:', error);
     return {
       success: false,
+      code: 1,
       error: error.message || '查询失败'
     };
   }
