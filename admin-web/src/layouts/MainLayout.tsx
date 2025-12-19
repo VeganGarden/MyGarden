@@ -180,8 +180,8 @@ const MainLayout: React.FC = () => {
       label: t('menu.dashboard'),
     },
     ...certificationMenu,
-    // 碳足迹核算（餐厅管理员和碳核算专员可见，但菜单项不同）
-    ...(isRestaurantAdmin || isCarbonSpecialist
+    // 碳足迹核算（仅餐厅管理员可见：菜单碳足迹、订单碳统计、碳报告）
+    ...(isRestaurantAdmin
       ? [
           {
             key: '/carbon',
@@ -200,23 +200,30 @@ const MainLayout: React.FC = () => {
                 key: '/carbon/report',
                 label: t('menu.carbonReport'),
               },
-              // 基准值管理和因子库管理仅碳核算专员可见
-              ...(isCarbonSpecialist
-                ? [
-                    {
-                      key: '/carbon/baseline',
-                      label: t('menu.carbonBaseline'),
-                    },
-                    {
-                      key: '/carbon/factor-library',
-                      label: t('menu.carbonFactorLibrary'),
-                    },
-                    {
-                      key: '/system/approval-request',
-                      label: '审核申请管理',
-                    },
-                  ]
-                : []),
+            ],
+          },
+        ]
+      : []),
+    // 碳核算管理（仅碳核算专员可见：基准值管理、因子库管理、审核申请管理）
+    ...(isCarbonSpecialist
+      ? [
+          {
+            key: '/carbon-management',
+            icon: <CalculatorOutlined />,
+            label: '碳核算管理',
+            children: [
+              {
+                key: '/carbon/baseline',
+                label: t('menu.carbonBaseline'),
+              },
+              {
+                key: '/carbon/factor-library',
+                label: t('menu.carbonFactorLibrary'),
+              },
+              {
+                key: '/system/approval-request',
+                label: '审核申请管理',
+              },
             ],
           },
         ]
@@ -594,7 +601,7 @@ const MainLayout: React.FC = () => {
                 }
               )
             )}
-            {!isMobile && <RestaurantSwitcher />}
+            {!isMobile && !isCarbonSpecialist && !isSystemAdmin && <RestaurantSwitcher />}
           </div>
 
           {/* 右侧区域 */}
