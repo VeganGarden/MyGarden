@@ -272,12 +272,14 @@ const RecipeCreate: React.FC<RecipeCreateProps> = ({ editMode = false, initialDa
       key: 'unit',
       width: 120,
       render: (_: any, record: RecipeIngredient, index: number) => (
-        <Input
-          value={record.unit}
-          onChange={(e) => handleUpdateIngredient(index, 'unit', e.target.value)}
-          placeholder="单位"
+        <Select
+          value={record.unit || 'g'}
+          onChange={(value) => handleUpdateIngredient(index, 'unit', value)}
           style={{ width: '100%' }}
-        />
+        >
+          <Option value="g">g（克）</Option>
+          <Option value="ml">ml（毫升）</Option>
+        </Select>
       ),
     },
     {

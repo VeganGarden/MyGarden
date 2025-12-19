@@ -3939,7 +3939,6 @@ async function generateCarbonReport(data) {
     const result = await query.get()
     const orders = result.data || []
 
-    console.log(`生成${type}报告: 查询到 ${orders.length} 条订单数据`)
 
     // 根据报告类型生成数据
     if (type === 'monthly') {
@@ -4513,6 +4512,12 @@ async function getMenuList(data) {
       restaurantRegion: menu.restaurantRegion,
       cookingMethod: menu.cookingMethod,
       cookingTime: menu.cookingTime,
+      // 碳足迹计算明细和相关信息
+      calculationDetails: menu.calculationDetails,
+      baselineInfo: menu.baselineInfo,
+      factorMatchInfo: menu.factorMatchInfo,
+      optimizationFlag: menu.optimizationFlag,
+      calculatedAt: menu.calculatedAt,
     }))
 
     return {
@@ -4759,6 +4764,65 @@ async function createMenuItemFromRecipe(data, user, context) {
     const result = await db.collection('restaurant_menu_items').add({
       data: menuItemData
     })
+
+    // 9. 自动计算碳足迹和计算明细
+    try {
+      // 准备食材数据（转换为计算函数需要的格式）
+      const ingredients = menuItemData.ingredients || []
+      
+      // 调用计算接口
+      const calculateResult = await cloud.callFunction({
+        name: 'restaurant-menu-carbon',
+        data: {
+          action: 'calculateMenuItemCarbon',
+          data: {
+            restaurantId: restaurantId,
+            mealType: menuItemData.mealType || 'meat_simple',
+            energyType: menuItemData.energyType || 'electric',
+            calculationLevel: menuItemData.calculationLevel || 'L2',
+            region: menuItemData.restaurantRegion || restaurantRegion || 'national_average',
+            ingredients: ingredients.map(ing => ({
+              ingredientName: ing.ingredientName || ing.name,
+              quantity: ing.quantity,
+              unit: ing.unit || 'g',
+              category: ing.category,
+              wasteRate: ing.wasteRate,
+              ingredientId: ing.ingredientId || ing._id
+            })),
+            cookingMethod: menuItemData.cookingMethod || null,
+            cookingTime: menuItemData.cookingTime || null,
+            packaging: menuItemData.packaging || null
+          }
+        }
+      })
+
+      // 如果计算成功，更新菜单项的碳足迹和计算明细
+      if (calculateResult.result && calculateResult.result.code === 0) {
+        const carbonData = calculateResult.result.data
+        await db.collection('restaurant_menu_items').doc(result._id).update({
+          data: {
+            carbonFootprint: carbonData.carbonFootprint,
+            baselineInfo: carbonData.baselineInfo,
+            factorMatchInfo: carbonData.factorMatchInfo || [],
+            calculationDetails: carbonData.calculationDetails || null,
+            optimizationFlag: carbonData.optimizationFlag,
+            calculatedAt: carbonData.calculatedAt,
+            calculationLevel: menuItemData.calculationLevel || 'L2'
+          }
+        })
+
+        // 更新返回数据，包含计算后的碳足迹信息
+        menuItemData.carbonFootprint = carbonData.carbonFootprint
+        menuItemData.baselineInfo = carbonData.baselineInfo
+        menuItemData.factorMatchInfo = carbonData.factorMatchInfo || []
+        menuItemData.calculationDetails = carbonData.calculationDetails || null
+        menuItemData.optimizationFlag = carbonData.optimizationFlag
+        menuItemData.calculatedAt = carbonData.calculatedAt
+      }
+    } catch (calculateError) {
+      console.error('自动计算碳足迹失败:', calculateError)
+      // 计算失败不影响创建操作，只记录错误
+    }
 
     return {
       code: 0,
@@ -5035,6 +5099,15 @@ async function updateMenuItem(data, user, context) {
       }
     }
 
+    // 检测是否更新了影响碳足迹的字段
+    const carbonRelatedFields = ['ingredients', 'mealType', 'energyType', 'cookingMethod', 'cookingTime', 'restaurantRegion', 'calculationLevel']
+    const shouldRecalculate = carbonRelatedFields.some(field => {
+      if (field === 'ingredients') {
+        return updateFields.ingredients !== undefined
+      }
+      return updateFields.hasOwnProperty(field) || updateFields.hasOwnProperty('restaurantRegion')
+    })
+
     // 添加更新时间
     updateFields.updatedAt = db.serverDate()
 
@@ -5043,7 +5116,78 @@ async function updateMenuItem(data, user, context) {
       data: updateFields
     })
 
-    // 4. 记录操作日志
+    // 4. 如果更新了影响碳足迹的字段，自动触发重新计算
+    if (shouldRecalculate) {
+      try {
+        // 获取更新后的完整菜单项数据
+        const updatedMenuItemResult = await db.collection('restaurant_menu_items').doc(menuItemId).get()
+        const updatedMenuItem = updatedMenuItemResult.data
+
+        if (updatedMenuItem) {
+          // 获取餐厅信息以确定 region
+          let calculationRegion = updatedMenuItem.restaurantRegion
+          if (!calculationRegion) {
+            try {
+              const restaurantResult = await db.collection('restaurants').doc(restaurantId).get()
+              if (restaurantResult.data && restaurantResult.data.region) {
+                calculationRegion = restaurantResult.data.region
+              }
+            } catch (error) {
+              console.warn('获取餐厅地区失败:', error)
+            }
+          }
+
+          // 准备食材数据（转换为计算函数需要的格式）
+          const ingredients = updatedMenuItem.ingredients || []
+          
+          // 调用计算接口
+          const calculateResult = await cloud.callFunction({
+            name: 'restaurant-menu-carbon',
+            data: {
+              action: 'calculateMenuItemCarbon',
+              data: {
+                restaurantId: restaurantId,
+                mealType: updatedMenuItem.mealType || 'meat_simple',
+                energyType: updatedMenuItem.energyType || 'electric',
+                calculationLevel: updatedMenuItem.calculationLevel || 'L2',
+                region: calculationRegion || 'national_average',
+                ingredients: ingredients.map(ing => ({
+                  ingredientName: ing.ingredientName || ing.name,
+                  quantity: ing.quantity,
+                  unit: ing.unit || 'g',
+                  category: ing.category,
+                  wasteRate: ing.wasteRate,
+                  ingredientId: ing.ingredientId || ing._id
+                })),
+                cookingMethod: updatedMenuItem.cookingMethod || null,
+                cookingTime: updatedMenuItem.cookingTime || null,
+                packaging: updatedMenuItem.packaging || null
+              }
+            }
+          })
+
+          // 如果计算成功，更新碳足迹和计算明细
+          if (calculateResult.result && calculateResult.result.code === 0) {
+            const carbonData = calculateResult.result.data
+            await db.collection('restaurant_menu_items').doc(menuItemId).update({
+              data: {
+                carbonFootprint: carbonData.carbonFootprint,
+                baselineInfo: carbonData.baselineInfo,
+                factorMatchInfo: carbonData.factorMatchInfo || [],
+                calculationDetails: carbonData.calculationDetails || null,
+                optimizationFlag: carbonData.optimizationFlag,
+                calculatedAt: carbonData.calculatedAt
+              }
+            })
+          }
+        }
+      } catch (calculateError) {
+        console.error('自动重新计算碳足迹失败:', calculateError)
+        // 计算失败不影响更新操作，只记录错误
+      }
+    }
+
+    // 5. 记录操作日志
     try {
       await addAudit(db, {
         module: 'tenant',
@@ -5061,7 +5205,7 @@ async function updateMenuItem(data, user, context) {
       // 审计日志失败不影响主流程
     }
 
-    // 5. 获取更新后的数据
+    // 6. 获取更新后的数据
     const updatedResult = await db.collection('restaurant_menu_items').doc(menuItemId).get()
 
     return {

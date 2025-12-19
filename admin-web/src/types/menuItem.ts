@@ -25,6 +25,7 @@ export interface MenuItem {
   carbonScore?: number
   baselineInfo?: BaselineInfo
   factorMatchInfo?: FactorMatchInfo[]
+  calculationDetails?: CalculationDetails
 }
 
 export interface CarbonFootprintData {
@@ -56,4 +57,44 @@ export interface FactorMatchInfo {
   }
 }
 
+export interface CalculationDetails {
+  ingredients: Array<{
+    ingredientName: string
+    category?: string
+    quantity: number
+    unit: string
+    weightInKg: number
+    wasteRate?: number
+    factor?: {
+      value: number
+      unit: string
+      matchLevel?: string
+      source?: string
+    } | null
+    carbonFootprint: number
+    calculation?: {
+      formula: string
+      values: {
+        EF: number
+        M: number
+        W: number
+        result: number
+      }
+    }
+    warning?: string
+  }>
+  energy?: {
+    method?: string
+    time?: number
+    energyType?: string
+    carbonFootprint: number
+  }
+  packaging?: {
+    carbonFootprint: number
+  }
+  transport?: {
+    carbonFootprint: number
+  }
+  total: number
+}
 

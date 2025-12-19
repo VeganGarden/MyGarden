@@ -4,15 +4,21 @@ import type { MenuItem } from '@/types/menuItem'
 import { formatCarbonFootprintValue, getCarbonFootprintValue, transformMenuItemData, transformMenuItemList } from '@/utils/menuItemTransform'
 import {
   CalculatorOutlined,
+  DownOutlined,
   EditOutlined,
+  InfoCircleOutlined,
+  UpOutlined,
 } from '@ant-design/icons'
-import { App, Button, Card, Form, InputNumber, Modal, Select, Space, Table, Tag } from 'antd'
+import { App, Button, Card, Col, Collapse, Descriptions, Divider, Form, InputNumber, Modal, Row, Select, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
-// MenuItem类型已从@/types/menuItem导入
+const { Panel } = Collapse
+const { Text, Title } = Typography
+
+// MenuItem类型已从@/types/menuItem导入，CalculationDetails 也在其中定义
 
 const CarbonMenu: React.FC = () => {
   const { t } = useTranslation()
@@ -23,6 +29,7 @@ const CarbonMenu: React.FC = () => {
   const [dataSource, setDataSource] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([]) // 展开的卡片ID列表
   
   // 编辑菜单项相关状态
   const [editModalVisible, setEditModalVisible] = useState(false)
@@ -36,11 +43,12 @@ const CarbonMenu: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRestaurantId])
 
-  // 检查URL参数，如果有highlightId则高亮显示
+  // 检查URL参数，如果有highlightId则高亮显示并展开
   useEffect(() => {
     const id = searchParams.get('highlightId')
     if (id) {
       setHighlightId(id)
+      setExpandedKeys([id]) // 自动展开
       // 清除URL参数
       const newParams = new URLSearchParams(searchParams)
       newParams.delete('highlightId')
@@ -76,6 +84,8 @@ const CarbonMenu: React.FC = () => {
             // 使用统一的数据转换函数
             const transformedItems = transformMenuItemList(menus)
             setDataSource(transformedItems)
+            
+            // 默认收起所有卡片
           } else {
             setDataSource([])
           }
@@ -98,149 +108,24 @@ const CarbonMenu: React.FC = () => {
     }
   }
 
-  const columns: ColumnsType<MenuItem> = [
-    {
-      title: '菜品名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '碳足迹值 (kg CO₂e)',
-      key: 'carbonFootprintValue',
-      width: 120,
-      render: (_: any, record: MenuItem) => {
-        const value = getCarbonFootprintValue(record.carbonFootprint)
-        return formatCarbonFootprintValue(value, 'kg CO₂e', false)
-      },
-    },
-    {
-      title: '基准值 (kg CO₂e)',
-      key: 'baseline',
-      width: 120,
-      render: (_: any, record: MenuItem) => {
-        const cf = record.carbonFootprint
-        if (!cf || typeof cf !== 'object' || cf.baseline === undefined) {
-          return '-'
-        }
-        return formatCarbonFootprintValue(cf.baseline, 'kg CO₂e', false)
-      },
-    },
-    {
-      title: '减排值 (kg CO₂e)',
-      key: 'reduction',
-      width: 120,
-      render: (_: any, record: MenuItem) => {
-        const cf = record.carbonFootprint
-        if (!cf || typeof cf !== 'object' || cf.reduction === undefined) {
-          return '-'
-        }
-        const reduction = Number(cf.reduction)
-        const color = reduction >= 0 ? '#52c41a' : '#ff4d4f'
-        return <span style={{ color }}>{reduction >= 0 ? '+' : ''}{formatCarbonFootprintValue(reduction, 'kg CO₂e', false)}</span>
-      },
-    },
-    {
-      title: '计算级别',
-      dataIndex: 'calculationLevel',
-      key: 'calculationLevel',
-      width: 100,
-      render: (level: string) => {
-        if (!level) return '-'
-        const config: Record<string, { color: string; text: string }> = {
-          L1: { color: 'blue', text: 'L1估算级' },
-          L2: { color: 'green', text: 'L2核算级' },
-          L3: { color: 'purple', text: 'L3实测级' },
-        }
-        const cfg = config[level] || { color: 'default', text: level }
-        return <Tag color={cfg.color}>{cfg.text}</Tag>
-      },
-    },
-    {
-      title: '碳标签',
-      dataIndex: 'carbonLabel',
-      key: 'carbonLabel',
-      render: (level: string) => {
-        const config: Record<string, { color: string; text: string }> = {
-          ultra_low: { color: 'green', text: '超低碳' },
-          low: { color: 'lime', text: '低碳' },
-          medium: { color: 'orange', text: '中碳' },
-          high: { color: 'red', text: '高碳' },
-        }
-        const cfg = config[level] || config.medium
-        return <Tag color={cfg.color}>{cfg.text}</Tag>
-      },
-    },
-    {
-      title: '碳积分',
-      dataIndex: 'carbonScore',
-      key: 'carbonScore',
-      render: (score: number | string | null | undefined) => {
-        if (score === null || score === undefined || score === '') {
-          return '-'
-        }
-        const numScore = typeof score === 'string' ? parseFloat(score) : Number(score)
-        if (isNaN(numScore)) {
-          return '-'
-        }
-        return `${numScore} 分`
-      },
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          active: { color: 'success', text: '已上架' },
-          inactive: { color: 'default', text: '已下架' },
-          published: { color: 'success', text: '已发布' },
-          draft: { color: 'default', text: '草稿' },
-        }
-        const cfg = statusMap[status] || { color: 'default', text: status || '未知' }
-        return <Tag color={cfg.color as any}>{cfg.text}</Tag>
-      },
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<CalculatorOutlined />}
-            onClick={() => handleCalculate(record.id || record._id || '')}
-          >
-            重新计算
-          </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEditMenuItem(record)}
-          >
-            碳足迹计算配置
-          </Button>
-        </Space>
-      ),
-    },
-  ]
-
-  const handleCalculate = async (id: string) => {
+  const handleCalculate = async (menuItem: MenuItem) => {
     if (!currentRestaurantId) {
       message.warning('请先选择餐厅')
       return
     }
 
+    const menuItemId = menuItem.id || menuItem._id || ''
     try {
       message.loading({ content: '正在重新计算碳足迹...', key: 'calculate', duration: 0 })
       
       const result = await carbonFootprintAPI.recalculateMenuItems({
         restaurantId: currentRestaurantId,
-        menuItemIds: [id],
+        menuItemIds: [menuItemId],
       })
 
       if (result && result.code === 0) {
         message.success({ content: '重新计算成功', key: 'calculate' })
-        // 刷新列表
+        // 刷新列表，新的计算明细会包含在菜单项数据中
         fetchMenuData()
       } else {
         message.error({ content: result?.message || '重新计算失败', key: 'calculate' })
@@ -287,19 +172,11 @@ const CarbonMenu: React.FC = () => {
         updateData.cookingTime = Number(values.cookingTime)
       }
 
-      console.log('[Menu] 准备调用 updateMenuItem:', {
-        menuItemId: editingMenuItem._id || editingMenuItem.id,
-        restaurantId: currentRestaurantId,
-        updateData,
-      })
-
       const result = await tenantAPI.updateMenuItem({
         menuItemId: editingMenuItem._id || editingMenuItem.id,
         restaurantId: currentRestaurantId,
         updateData,
       })
-
-      console.log('[Menu] updateMenuItem 返回结果:', result)
 
       const actualResult = result?.result || result
       
@@ -339,30 +216,221 @@ const CarbonMenu: React.FC = () => {
     }
   }
 
-  // 获取分类显示文本
-  const getCategoryText = (category?: string) => {
-    const categoryMap: Record<string, string> = {
-      hot: '热菜',
-      cold: '凉菜',
-      soup: '汤品',
-      staple: '主食',
-      dessert: '甜品',
-      drink: '饮品',
-    }
-    return categoryMap[category || ''] || category || '-'
+  // 处理面板展开/收起
+  const handlePanelChange = (keys: string | string[]) => {
+    const keyArray = Array.isArray(keys) ? keys : [keys]
+    setExpandedKeys(keyArray)
   }
 
-  // 获取烹饪方式显示文本
-  const getCookingMethodText = (method?: string) => {
-    const methodMap: Record<string, string> = {
-      raw: '生食',
-      steamed: '蒸',
-      boiled: '煮',
-      stir_fried: '炒',
-      fried: '炸',
-      baked: '烤',
+  // 渲染计算明细
+  const renderCalculationDetails = (menuItem: MenuItem) => {
+    // 直接从菜单项数据中读取 calculationDetails
+    const details = menuItem.calculationDetails
+
+    // 检查 details 是否有效（不是 null、undefined 或空对象）
+    const hasValidDetails = details && 
+                           typeof details === 'object' && 
+                           details !== null &&
+                           (details.ingredients || details.total !== undefined)
+
+    if (!hasValidDetails) {
+      return (
+        <div style={{ padding: '24px', textAlign: 'center', color: '#999' }}>
+          <InfoCircleOutlined style={{ fontSize: '24px', marginBottom: '8px' }} />
+          <div>暂无计算明细数据</div>
+          <div style={{ marginTop: '8px', fontSize: '12px' }}>
+            点击"重新计算"按钮获取详细的计算明细
+          </div>
+        </div>
+      )
     }
-    return methodMap[method || ''] || method || '-'
+
+    // 食材明细表格列定义
+    const ingredientColumns: ColumnsType<typeof details.ingredients[0]> = [
+      {
+        title: '食材名称',
+        dataIndex: 'ingredientName',
+        key: 'ingredientName',
+        width: 150,
+      },
+      {
+        title: '用量',
+        key: 'quantity',
+        width: 120,
+        render: (_: any, record) => (
+          <span>
+            {record.quantity} {record.unit}
+            {record.weightInKg > 0 && (
+              <Text type="secondary" style={{ fontSize: '12px', marginLeft: '8px' }}>
+                ({record.weightInKg.toFixed(4)} kg)
+              </Text>
+            )}
+          </span>
+        ),
+      },
+      {
+        title: '类别',
+        dataIndex: 'category',
+        key: 'category',
+        width: 100,
+        render: (category) => category || '-',
+      },
+      {
+        title: '排放因子',
+        key: 'factor',
+        width: 150,
+        render: (_: any, record) => {
+          if (!record.factor) {
+            return <Text type="danger">未匹配</Text>
+          }
+          return (
+            <div>
+              <div>{record.factor.value.toFixed(6)} {record.factor.unit}</div>
+              {record.factor.matchLevel && (
+                <Tag color={record.factor.matchLevel === 'exact_region' ? 'green' : 'orange'}>
+                  {record.factor.matchLevel}
+                </Tag>
+              )}
+            </div>
+          )
+        },
+      },
+      {
+        title: '损耗率',
+        key: 'wasteRate',
+        width: 80,
+        render: (_: any, record) => {
+          const rate = record.wasteRate || 0
+          return `${(rate * 100).toFixed(1)}%`
+        },
+      },
+      {
+        title: '碳足迹',
+        key: 'carbonFootprint',
+        width: 120,
+        align: 'right' as const,
+        render: (_: any, record) => (
+          <Text strong>{formatCarbonFootprintValue(record.carbonFootprint, 'kg CO₂e', false)}</Text>
+        ),
+      },
+      {
+        title: '计算公式',
+        key: 'formula',
+        width: 200,
+        render: (_: any, record) => {
+          if (record.calculation) {
+            return (
+              <Tooltip
+                title={
+                  <div>
+                    <div>公式: {record.calculation.formula}</div>
+                    <div>EF (因子) = {record.calculation.values.EF}</div>
+                    <div>M (重量) = {record.calculation.values.M} kg</div>
+                    <div>W (损耗率) = {(record.calculation.values.W * 100).toFixed(1)}%</div>
+                    <div>结果 = {record.calculation.values.result.toFixed(6)} kg CO₂e</div>
+                  </div>
+                }
+              >
+                <InfoCircleOutlined style={{ color: '#1890ff', cursor: 'pointer' }} />
+                <span style={{ marginLeft: '8px', fontSize: '12px' }}>CF = EF × M × (1 + W)</span>
+              </Tooltip>
+            )
+          }
+          return '-'
+        },
+      },
+    ]
+
+    const totalIngredientsCarbon = details.ingredients.reduce((sum, ing) => sum + ing.carbonFootprint, 0)
+
+    return (
+      <div style={{ marginTop: '16px' }}>
+        <Divider orientation="left">计算明细</Divider>
+        
+        {/* 食材明细 */}
+        <div style={{ marginBottom: '24px' }}>
+          <Title level={5}>食材碳足迹明细</Title>
+          <Table
+            columns={ingredientColumns}
+            dataSource={details.ingredients}
+            rowKey={(record) => `${record.ingredientName}-${record.quantity}-${record.unit}`}
+            pagination={false}
+            size="small"
+            summary={(pageData) => {
+              const total = pageData.reduce((sum, record) => sum + record.carbonFootprint, 0)
+              return (
+                <Table.Summary fixed>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={6}>
+                      <Text strong>食材碳足迹合计</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1} align="right">
+                      <Text strong>{formatCarbonFootprintValue(total, 'kg CO₂e', false)}</Text>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </Table.Summary>
+              )
+            }}
+          />
+        </div>
+
+        {/* 其他明细 */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Card size="small" title="烹饪能耗">
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="烹饪方式">{details.energy?.method || '-'}</Descriptions.Item>
+                <Descriptions.Item label="烹饪时间">{details.energy?.time ? `${details.energy.time} 分钟` : '-'}</Descriptions.Item>
+                <Descriptions.Item label="能源类型">{details.energy?.energyType || '-'}</Descriptions.Item>
+                <Descriptions.Item label="碳足迹">
+                  <Text strong>{formatCarbonFootprintValue(details.energy?.carbonFootprint || 0, 'kg CO₂e', false)}</Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Card size="small" title="包装">
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="碳足迹">
+                  <Text strong>{formatCarbonFootprintValue(details.packaging?.carbonFootprint || 0, 'kg CO₂e', false)}</Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Card size="small" title="运输">
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="碳足迹">
+                  <Text strong>{formatCarbonFootprintValue(details.transport?.carbonFootprint || 0, 'kg CO₂e', false)}</Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 总计 */}
+        <Card 
+          size="small" 
+          style={{ marginTop: '16px', background: '#f0f9ff', borderColor: '#1890ff' }}
+        >
+          <Descriptions column={1}>
+            <Descriptions.Item label="总碳足迹">
+              <Text strong style={{ fontSize: '18px', color: '#1890ff' }}>
+                {formatCarbonFootprintValue(details.total, 'kg CO₂e', false)}
+              </Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="明细构成">
+              <Space direction="vertical" size="small">
+                <Text>食材: {formatCarbonFootprintValue(totalIngredientsCarbon, 'kg CO₂e', false)}</Text>
+                <Text>能耗: {formatCarbonFootprintValue(details.energy?.carbonFootprint || 0, 'kg CO₂e', false)}</Text>
+                <Text>包装: {formatCarbonFootprintValue(details.packaging?.carbonFootprint || 0, 'kg CO₂e', false)}</Text>
+                <Text>运输: {formatCarbonFootprintValue(details.transport?.carbonFootprint || 0, 'kg CO₂e', false)}</Text>
+              </Space>
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+      </div>
+    )
   }
 
   const handleBatchRecalculate = async () => {
@@ -396,6 +464,30 @@ const CarbonMenu: React.FC = () => {
     })
   }
 
+  // 获取碳标签显示
+  const getCarbonLabelTag = (label?: string) => {
+    const config: Record<string, { color: string; text: string }> = {
+      ultra_low: { color: 'green', text: '超低碳' },
+      low: { color: 'lime', text: '低碳' },
+      medium: { color: 'orange', text: '中碳' },
+      high: { color: 'red', text: '高碳' },
+    }
+    const cfg = config[label || ''] || config.medium
+    return <Tag color={cfg.color}>{cfg.text}</Tag>
+  }
+
+  // 获取计算级别显示
+  const getCalculationLevelTag = (level?: string) => {
+    if (!level) return '-'
+    const config: Record<string, { color: string; text: string }> = {
+      L1: { color: 'blue', text: 'L1估算级' },
+      L2: { color: 'green', text: 'L2核算级' },
+      L3: { color: 'purple', text: 'L3实测级' },
+    }
+    const cfg = config[level] || { color: 'default', text: level }
+    return <Tag color={cfg.color}>{cfg.text}</Tag>
+  }
+
   // 如果没有选择餐厅，显示提示
   if (!currentRestaurantId) {
     return (
@@ -414,7 +506,14 @@ const CarbonMenu: React.FC = () => {
   return (
     <div>
       <Card
-        title="菜单碳足迹"
+        title={
+          <div>
+            <span style={{ fontSize: '18px', fontWeight: 500 }}>菜单碳足迹</span>
+            <Tooltip title="展示每个菜品的详细碳足迹计算过程，包括食材、能耗、包装和运输等各个环节的碳足迹明细">
+              <InfoCircleOutlined style={{ marginLeft: '8px', color: '#999', cursor: 'help' }} />
+            </Tooltip>
+          </div>
+        }
         extra={
           <Button
             icon={<CalculatorOutlined />}
@@ -433,24 +532,92 @@ const CarbonMenu: React.FC = () => {
           </Select>
         </Space>
 
-        <Table
-          columns={columns}
-          dataSource={dataSource}
-          rowKey={(record) => record.id || record._id || ''}
-          loading={loading}
-          rowClassName={(record) => {
-            const id = record.id || record._id || ''
-            return highlightId === id ? 'highlight-row' : ''
-          }}
-          locale={{
-            emptyText: dataSource.length === 0 && !loading ? '暂无菜单数据' : undefined
-          }}
-          pagination={{
-            total: dataSource.length,
-            pageSize: 10,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
+        {/* 使用Collapse展示菜单项卡片 */}
+        <Collapse
+          activeKey={expandedKeys}
+          onChange={handlePanelChange}
+          expandIcon={({ isActive }) => isActive ? <UpOutlined /> : <DownOutlined />}
+          style={{ background: 'transparent' }}
+        >
+          {dataSource.map((menuItem) => {
+            const menuItemId = menuItem.id || menuItem._id || ''
+            const carbonValue = getCarbonFootprintValue(menuItem.carbonFootprint)
+            const cf = typeof menuItem.carbonFootprint === 'object' ? menuItem.carbonFootprint : null
+
+            return (
+              <Panel
+                key={menuItemId}
+                header={
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div style={{ flex: 1 }}>
+                      <Space>
+                        <Text strong style={{ fontSize: '16px' }}>{menuItem.name}</Text>
+                        {getCarbonLabelTag(menuItem.carbonLabel)}
+                        {getCalculationLevelTag(menuItem.calculationLevel)}
+                        {menuItem.status && (
+                          <Tag color={menuItem.status === 'active' || menuItem.status === 'published' ? 'success' : 'default'}>
+                            {menuItem.status === 'active' || menuItem.status === 'published' ? '已上架' : '已下架'}
+                          </Tag>
+                        )}
+                      </Space>
+                    </div>
+                    <div style={{ marginRight: '40px' }}>
+                      <Space>
+                        <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
+                          碳足迹: {formatCarbonFootprintValue(carbonValue, 'kg CO₂e', false)}
+                        </Text>
+                        {cf?.baseline !== undefined && (
+                          <Text type="secondary">
+                            基准值: {formatCarbonFootprintValue(cf.baseline, 'kg CO₂e', false)}
+                          </Text>
+                        )}
+                        {cf?.reduction !== undefined && (
+                          <Text style={{ color: cf.reduction >= 0 ? '#52c41a' : '#ff4d4f' }}>
+                            减排: {cf.reduction >= 0 ? '+' : ''}{formatCarbonFootprintValue(cf.reduction, 'kg CO₂e', false)}
+                          </Text>
+                        )}
+                      </Space>
+                    </div>
+                  </div>
+                }
+                extra={
+                  <Space onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<CalculatorOutlined />}
+                      onClick={() => handleCalculate(menuItem)}
+                    >
+                      重新计算
+                    </Button>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => handleEditMenuItem(menuItem)}
+                    >
+                      配置
+                    </Button>
+                  </Space>
+                }
+                style={{
+                  marginBottom: '16px',
+                  background: highlightId === menuItemId ? '#e6f7ff' : '#fff',
+                  border: highlightId === menuItemId ? '2px solid #1890ff' : '1px solid #d9d9d9',
+                  borderRadius: '8px',
+                }}
+              >
+                {renderCalculationDetails(menuItem)}
+              </Panel>
+            )
+          })}
+        </Collapse>
+
+        {dataSource.length === 0 && !loading && (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
+            暂无菜单数据
+          </div>
+        )}
       </Card>
 
       {/* 碳足迹计算配置Modal */}
@@ -477,7 +644,6 @@ const CarbonMenu: React.FC = () => {
             region: 'national_average',
           }}
         >
-
           <Form.Item
             label="餐食类型"
             name="mealType"
@@ -559,10 +725,15 @@ const CarbonMenu: React.FC = () => {
           from { background-color: #fffbe6; }
           to { background-color: #e6f7ff; }
         }
+        .ant-collapse-header {
+          padding: 16px !important;
+        }
+        .ant-collapse-content-box {
+          padding: 16px !important;
+        }
       `}</style>
     </div>
   )
 }
 
 export default CarbonMenu
-

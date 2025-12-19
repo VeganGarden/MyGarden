@@ -60,6 +60,10 @@ export function transformMenuItemData(data: any): MenuItem {
     carbonScore: data.carbonScore,
     baselineInfo: data.baselineInfo,
     factorMatchInfo: data.factorMatchInfo,
+    // 保存计算明细（直接传递，不做严格验证，让前端判断）
+    calculationDetails: data.calculationDetails !== undefined && data.calculationDetails !== null
+                       ? data.calculationDetails 
+                       : undefined,
   }
 }
 

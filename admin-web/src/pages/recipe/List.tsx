@@ -1477,13 +1477,15 @@ const RecipeList: React.FC = () => {
                       key: 'unit',
                       width: 100,
                       render: (_: any, record: RecipeIngredient, index: number) => (
-                        <Input
-                          value={record.unit}
-                          onChange={(e) => handleUpdateEditIngredient(index, 'unit', e.target.value)}
-                          placeholder="单位"
+                        <Select
+                          value={record.unit || 'g'}
+                          onChange={(value) => handleUpdateEditIngredient(index, 'unit', value)}
                           style={{ width: '100%' }}
                           size="small"
-                        />
+                        >
+                          <Select.Option value="g">g（克）</Select.Option>
+                          <Select.Option value="ml">ml（毫升）</Select.Option>
+                        </Select>
                       ),
                     },
                     {
@@ -1687,9 +1689,18 @@ const RecipeList: React.FC = () => {
                     },
                     {
                       title: '单位',
-                      dataIndex: 'unit',
                       key: 'unit',
                       width: 100,
+                      render: (_: any, record: RecipeIngredient, index: number) => (
+                        <Select
+                          value={record.unit || 'g'}
+                          onChange={(value) => handleUpdateRecipeIngredient(index, 'unit', value)}
+                          style={{ width: '100%' }}
+                        >
+                          <Select.Option value="g">g（克）</Select.Option>
+                          <Select.Option value="ml">ml（毫升）</Select.Option>
+                        </Select>
+                      ),
                     },
                     {
                       title: '操作',

@@ -12,8 +12,8 @@ echo ""
 
 # 本次更新修改的云函数列表
 UPDATED_FUNCTIONS=(
-  "restaurant-menu-carbon"  # 修复了碳足迹计算中的食材格式转换问题，添加了详细日志
-  "recipe"                  # 添加了权限检查，防止餐厅管理员创建基础菜谱
+  "restaurant-menu-carbon"  # 保存计算明细到数据库，优化碳足迹计算
+  "tenant"                  # 添加自动计算碳足迹功能（创建和更新菜单项时）
 )
 
 # 检查是否安装了云开发CLI
@@ -96,8 +96,10 @@ echo ""
 echo "✨ 所有云函数部署成功！"
 echo ""
 echo "📝 本次更新内容："
-echo "  1. restaurant-menu-carbon: 修复了食材格式转换问题，添加了详细的计算过程日志"
-echo "  2. recipe: 添加了权限检查，防止餐厅管理员创建基础菜谱"
+echo "  1. restaurant-menu-carbon: 保存计算明细(calculationDetails)到数据库"
+echo "  2. tenant: 添加自动计算碳足迹功能"
+echo "     - 创建菜单项时自动计算并保存计算明细"
+echo "     - 更新影响碳足迹的字段时自动重新计算"
 echo ""
 echo "💡 提示: 部署后可以在云开发控制台查看云函数日志，验证功能是否正常"
 
