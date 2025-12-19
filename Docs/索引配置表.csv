@@ -248,3 +248,11 @@ approval_requests,status_currentNodeIndex_index,status|currentNodeIndex,1|1,否,
 approval_requests,createdAt_index,createdAt,-1,否,高,创建时间索引,按创建时间倒序排序
 approval_records,requestId_index,requestId,1,否,最高,申请ID索引,查询申请的审核记录
 approval_records,approverId_reviewedAt_index,approverId|reviewedAt,1|-1,否,高,审核人和审核时间索引,查询审核人的审核记录
+meal_set_baselines,主查询索引,category.mealTime|category.region|category.energyType|status,1|1|1|1,否,最高,主查询索引,一餐饭基准值主查询（餐次类型、区域、用能方式、状态）
+meal_set_baselines,区域饮食习惯索引,category.region|category.hasSoup|status,1|1|1,否,高,区域饮食习惯索引,按区域和是否有汤查询一餐饭基准值
+meal_set_baselines,餐次类型索引,category.mealTime|category.mealStructure|status,1|1|1,否,高,餐次类型索引,按餐次类型和结构类型查询一餐饭基准值
+meal_set_baselines,baselineId_unique,baselineId,1,是,最高,baselineId唯一索引,baselineId唯一性和查询
+meal_set_baselines,版本查询索引,version|status,1|1,否,中,版本查询索引,按版本和状态查询一餐饭基准值
+meal_set_baselines,时间范围查询索引,effectiveDate|expiryDate,1|1,否,高,时间范围查询索引,按有效日期范围查询一餐饭基准值
+meal_set_baselines,使用状态索引,usage.isForCalculation|usage.researchStatus|status,1|1|1,否,中,使用状态索引,按计算使用状态和研究状态查询一餐饭基准值
+meal_set_baselines,createdAt_index,createdAt,-1,否,中,创建时间索引,按创建时间倒序排序一餐饭基准值

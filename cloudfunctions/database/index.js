@@ -28,6 +28,7 @@ const { main: migrateFactorsIntegration } = require('./migrate-factors-integrati
 const { main: verifyFactorsMigration } = require('./verify-factors-migration');
 const { migrateFactorRegions, rollbackFactorRegions } = require('./migrate-factor-regions');
 const { main: fixRestaurantAdminPermission } = require('./fix-restaurant-admin-permission');
+const { main: initMealSetBaselinesCollection } = require('./init-meal-set-baselines-collection');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -64,6 +65,7 @@ const { main: fixRestaurantAdminPermission } = require('./fix-restaurant-admin-p
  * - migrate-ingredients-reset-all-carbon-coefficient: 强制重置所有食材的碳系数（即使已有值也重新设置）
  * - initVegetarianPersonnelCollections: 初始化素食人员管理模块集合（restaurant_staff, restaurant_customers, vegetarian_personnel_stats）
  * - initVegetarianPersonnelPermissions: 初始化素食人员管理模块权限（vegetarianPersonnel:view, vegetarianPersonnel:manage）
+ * - initMealSetBaselinesCollection: 初始化一餐饭基准值集合（meal_set_baselines）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -176,6 +178,8 @@ exports.main = async (event) => {
       case 'initApprovalConfigs':
         const { initApprovalConfigs } = require('./init-approval-configs');
         return await initApprovalConfigs();
+      case 'initMealSetBaselinesCollection':
+        return await initMealSetBaselinesCollection(event);
       default:
         return await initCollectionsV1(event);
     }

@@ -31,6 +31,10 @@ import BaselineDetail from './pages/carbon/BaselineDetail'
 import BaselineEdit from './pages/carbon/BaselineEdit'
 import BaselineImport from './pages/carbon/BaselineImport'
 import BaselineList from './pages/carbon/BaselineList'
+import MealSetBaselineAdd from './pages/carbon/MealSetBaselineAdd'
+import MealSetBaselineDetail from './pages/carbon/MealSetBaselineDetail'
+import MealSetBaselineEdit from './pages/carbon/MealSetBaselineEdit'
+import MealSetBaselineList from './pages/carbon/MealSetBaselineList'
 import FactorAdd from './pages/carbon/FactorAdd'
 import FactorDetail from './pages/carbon/FactorDetail'
 import FactorEdit from './pages/carbon/FactorEdit'
@@ -231,6 +235,39 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['carbon_specialist']}>
                 <BaselineImport />
+              </RouteGuard>
+            } 
+          />
+          {/* 一餐饭基准值管理（仅碳核算专员可见） */}
+          <Route 
+            path="carbon/meal-set-baselines" 
+            element={
+              <RouteGuard allowedRoles={['carbon_specialist']}>
+                <MealSetBaselineList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/meal-set-baselines/:baselineId" 
+            element={
+              <RouteGuard allowedRoles={['carbon_specialist']}>
+                <MealSetBaselineDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/meal-set-baselines/:baselineId/edit" 
+            element={
+              <RouteGuard allowedRoles={['carbon_specialist']}>
+                <MealSetBaselineEdit />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="carbon/meal-set-baselines/add" 
+            element={
+              <RouteGuard allowedRoles={['carbon_specialist']}>
+                <MealSetBaselineAdd />
               </RouteGuard>
             } 
           />
