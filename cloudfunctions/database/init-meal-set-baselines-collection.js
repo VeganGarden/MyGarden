@@ -125,26 +125,26 @@ exports.main = async (event, context) => {
   try {
     const collectionName = 'meal_set_baselines';
 
-    // 1. 创建集合（通过插入一条临时数据然后删除来创建）
+    // 1. 创建集合
     console.log(`创建集合 ${collectionName}...`);
     try {
-      // 尝试插入一条临时数据来创建集合
-      const tempDoc = {
-        _temp: true,
-        createdAt: new Date()
-      };
-      const addResult = await db.collection(collectionName).add({ data: tempDoc });
-      // 删除临时数据
-      await db.collection(collectionName).doc(addResult._id).remove();
+      // 使用 db.createCollection() 创建集合
+      await db.createCollection(collectionName);
       console.log(`✅ 集合 ${collectionName} 创建成功`);
     } catch (error) {
-      // 如果集合已存在或创建失败，检查是否已存在
-      try {
-        await db.collection(collectionName).limit(1).get();
-        console.log(`ℹ️  集合 ${collectionName} 已存在`);
-      } catch (checkError) {
-        console.error(`❌ 集合 ${collectionName} 创建失败:`, error.message);
-        throw error;
+      // 如果集合已存在，不算错误
+      if (error.message && error.message.includes('already exists')) {
+        console.log(`ℹ️  集合 ${collectionName} 已存在，跳过创建`);
+      } else {
+        // 尝试检查集合是否已存在
+        try {
+          await db.collection(collectionName).limit(1).get();
+          console.log(`ℹ️  集合 ${collectionName} 已存在`);
+        } catch (checkError) {
+          console.error(`❌ 集合 ${collectionName} 创建失败:`, error.message);
+          console.log(`⚠️  提示：如果集合不存在，请在控制台手动创建集合 ${collectionName}`);
+          // 不抛出错误，继续执行索引配置
+        }
       }
     }
 
