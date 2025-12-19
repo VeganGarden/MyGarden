@@ -342,6 +342,8 @@ async function calculateMenuItemCarbon(data, context) {
         },
         baselineInfo: baselineInfo,
         factorMatchInfo: carbonValue.factorMatchInfo || [],
+        // 详细的计算明细（用于前端展示和验证）
+        calculationDetails: carbonValue.calculationDetails || null,
         optimizationFlag: {
           needsOptimization: needsOptimization,
           warningMessage: warningMessage
@@ -403,12 +405,42 @@ async function calculateCarbonFootprint(data) {
 
   // 1. 计算食材碳足迹（使用因子库）
   if (data.ingredients && Array.isArray(data.ingredients)) {
+    console.log('[碳足迹计算] 开始计算食材碳足迹，食材数量:', data.ingredients.length);
+    
     for (const ingredient of data.ingredients) {
       try {
-        let ingredientName = ingredient.name;
+        // 支持两种格式：
+        // 1. 标准格式：{ name, weight(kg), category }
+        // 2. 菜单项格式：{ ingredientName, quantity, unit(g/kg/ml/l), category }
+        let ingredientName = ingredient.name || ingredient.ingredientName;
         let ingredientCategory = ingredient.category || null;
-        const ingredientWeight = ingredient.weight || 0; // weight单位应该是kg
+        let ingredientWeight = 0; // 统一转换为kg
         const wasteRate = ingredient.wasteRate || getDefaultWasteRate(ingredientCategory); // 损耗率，默认值根据类别
+
+        // 处理重量：支持 weight (kg) 或 quantity + unit 格式
+        if (ingredient.weight !== undefined && ingredient.weight !== null) {
+          // 标准格式：weight 已经是 kg
+          ingredientWeight = parseFloat(ingredient.weight) || 0;
+        } else if (ingredient.quantity !== undefined && ingredient.quantity !== null) {
+          // 菜单项格式：需要根据 unit 转换
+          const quantity = parseFloat(ingredient.quantity) || 0;
+          const unit = (ingredient.unit || 'g').toLowerCase();
+          
+          // 单位转换为 kg
+          if (unit === 'kg' || unit === '千克') {
+            ingredientWeight = quantity;
+          } else if (unit === 'g' || unit === '克') {
+            ingredientWeight = quantity / 1000; // g 转 kg
+          } else if (unit === 'l' || unit === '升') {
+            ingredientWeight = quantity; // 假设密度为1，1L ≈ 1kg
+          } else if (unit === 'ml' || unit === '毫升') {
+            ingredientWeight = quantity / 1000; // ml 转 kg (假设密度为1)
+          } else {
+            // 未知单位，默认按 g 处理
+            console.warn(`[碳足迹计算] 未知单位 ${unit}，按克(g)处理`);
+            ingredientWeight = quantity / 1000;
+          }
+        }
 
         // 如果没有名称，从ingredients集合获取
         if (!ingredientName && ingredient.ingredientId) {
@@ -425,9 +457,11 @@ async function calculateCarbonFootprint(data) {
         }
 
         if (!ingredientName) {
-          console.warn(`食材缺少名称，跳过: ${ingredient.ingredientId || 'unknown'}`);
+          console.warn(`[碳足迹计算] 食材缺少名称，跳过: ${ingredient.ingredientId || JSON.stringify(ingredient)}`);
           continue;
         }
+
+        console.log(`[碳足迹计算] 处理食材: ${ingredientName}, 重量: ${ingredientWeight} kg, 类别: ${ingredientCategory || '未指定'}`);
 
         // 从因子库查询因子
         const factor = await matchFactor(ingredientName, ingredientCategory, restaurantRegion);
@@ -438,11 +472,15 @@ async function calculateCarbonFootprint(data) {
           const carbon = coefficient * ingredientWeight * (1 + wasteRate);
           ingredientsCarbon += carbon;
           
-          // 记录因子匹配信息
+          console.log(`[碳足迹计算] ✓ ${ingredientName}: 因子=${coefficient} kg CO₂e/kg, 重量=${ingredientWeight} kg, 损耗率=${(wasteRate * 100).toFixed(1)}%, 碳足迹=${carbon.toFixed(6)} kg CO₂e`);
+          
+          // 记录因子匹配信息（包含详细信息）
           factorMatchInfo.push({
             ingredientName: ingredientName,
             ingredientCategory: ingredientCategory,
             weight: ingredientWeight,
+            originalQuantity: ingredient.quantity || ingredient.weight,
+            originalUnit: ingredient.unit || 'kg',
             wasteRate: wasteRate,
             matchedFactor: {
               factorId: factor.factorId || null,
@@ -453,14 +491,25 @@ async function calculateCarbonFootprint(data) {
               year: factor.year || null,
               region: factor.region || null
             },
-            carbonFootprint: carbon
+            carbonFootprint: carbon,
+            calculation: {
+              formula: 'CF = EF × M × (1 + W)',
+              values: {
+                EF: coefficient,
+                M: ingredientWeight,
+                W: wasteRate,
+                result: carbon
+              }
+            }
           });
         } else {
-          console.warn(`无法匹配因子: ${ingredientName}，使用默认值0`);
+          console.warn(`[碳足迹计算] ✗ 无法匹配因子: ${ingredientName}，使用默认值0`);
           factorMatchInfo.push({
             ingredientName: ingredientName,
             ingredientCategory: ingredientCategory,
             weight: ingredientWeight,
+            originalQuantity: ingredient.quantity || ingredient.weight,
+            originalUnit: ingredient.unit || 'kg',
             wasteRate: wasteRate,
             matchedFactor: null,
             carbonFootprint: 0,
@@ -468,13 +517,22 @@ async function calculateCarbonFootprint(data) {
           });
         }
       } catch (error) {
-        console.error(`获取食材 ${ingredient.name || ingredient.ingredientId} 的因子失败:`, error);
+        console.error(`[碳足迹计算] 获取食材 ${ingredient.name || ingredient.ingredientName || ingredient.ingredientId} 的因子失败:`, error);
+        factorMatchInfo.push({
+          ingredientName: ingredient.name || ingredient.ingredientName || '未知',
+          error: error.message,
+          carbonFootprint: 0,
+          warning: '计算过程出错'
+        });
       }
     }
+    
+    console.log(`[碳足迹计算] 食材碳足迹合计: ${ingredientsCarbon.toFixed(6)} kg CO₂e`);
   }
 
   // 2. 计算烹饪能耗碳足迹（从因子库查询）
   if (data.cookingMethod && (data.cookingTime || data.energyType)) {
+    console.log(`[碳足迹计算] 开始计算烹饪能耗碳足迹，烹饪方式: ${data.cookingMethod}, 时间: ${data.cookingTime || '标准'} 分钟, 能源类型: ${data.energyType || 'electric'}`);
     try {
       // 如果提供了具体能耗数据（功率和时长）
       if (data.power && data.cookingTime) {
@@ -486,6 +544,7 @@ async function calculateCarbonFootprint(data) {
           // 单位转换：功率(kW) × 时长(h) × 因子(kg CO₂e/kWh 或 kg CO₂e/m³)
           const energyConsumption = data.power * (data.cookingTime / 60); // 转换为小时
           cookingEnergyCarbon = energyConsumption * energyFactor.factorValue;
+          console.log(`[碳足迹计算] 烹饪能耗: 功率=${data.power} kW, 时间=${data.cookingTime} 分钟, 能耗=${energyConsumption.toFixed(4)} kWh, 因子=${energyFactor.factorValue}, 碳足迹=${cookingEnergyCarbon.toFixed(6)} kg CO₂e`);
         } else {
           console.warn(`无法匹配${energyType}能耗因子，使用默认计算`);
           // 降级使用标准工时模型
@@ -494,9 +553,10 @@ async function calculateCarbonFootprint(data) {
       } else {
         // 使用标准工时模型（根据烹饪方式估算）
         cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, restaurantRegion);
+        console.log(`[碳足迹计算] 烹饪能耗（标准模型）: ${cookingEnergyCarbon.toFixed(6)} kg CO₂e`);
       }
     } catch (error) {
-      console.error('计算烹饪能耗碳足迹失败:', error);
+      console.error('[碳足迹计算] 计算烹饪能耗碳足迹失败:', error);
     }
   }
 
@@ -545,6 +605,14 @@ async function calculateCarbonFootprint(data) {
 
   const total = ingredientsCarbon + cookingEnergyCarbon + packagingCarbon + transportCarbon;
 
+  console.log(`[碳足迹计算] ===== 碳足迹计算汇总 =====`);
+  console.log(`[碳足迹计算] 食材碳足迹: ${ingredientsCarbon.toFixed(6)} kg CO₂e`);
+  console.log(`[碳足迹计算] 烹饪能耗碳足迹: ${cookingEnergyCarbon.toFixed(6)} kg CO₂e`);
+  console.log(`[碳足迹计算] 包装碳足迹: ${packagingCarbon.toFixed(6)} kg CO₂e`);
+  console.log(`[碳足迹计算] 运输碳足迹: ${transportCarbon.toFixed(6)} kg CO₂e`);
+  console.log(`[碳足迹计算] 总碳足迹: ${total.toFixed(6)} kg CO₂e`);
+  console.log(`[碳足迹计算] =========================`);
+
   return {
     value: total,
     ingredients: ingredientsCarbon,
@@ -557,7 +625,40 @@ async function calculateCarbonFootprint(data) {
       packaging: packagingCarbon,
       transport: transportCarbon
     },
-    factorMatchInfo: factorMatchInfo
+    factorMatchInfo: factorMatchInfo,
+    // 添加详细的计算明细，用于前端展示和验证
+    calculationDetails: {
+      ingredients: factorMatchInfo.map(info => ({
+        name: info.ingredientName,
+        category: info.ingredientCategory,
+        originalQuantity: info.originalQuantity,
+        originalUnit: info.originalUnit,
+        weightInKg: info.weight,
+        wasteRate: info.wasteRate,
+        factor: info.matchedFactor ? {
+          value: info.matchedFactor.factorValue,
+          unit: info.matchedFactor.unit,
+          matchLevel: info.matchedFactor.matchLevel,
+          source: info.matchedFactor.source
+        } : null,
+        carbonFootprint: info.carbonFootprint,
+        calculation: info.calculation,
+        warning: info.warning
+      })),
+      energy: {
+        method: data.cookingMethod,
+        time: data.cookingTime,
+        energyType: data.energyType,
+        carbonFootprint: cookingEnergyCarbon
+      },
+      packaging: {
+        carbonFootprint: packagingCarbon
+      },
+      transport: {
+        carbonFootprint: transportCarbon
+      },
+      total: total
+    }
   };
 }
 
@@ -1572,6 +1673,8 @@ async function recalculateMenuItems(data, context) {
     // 逐个重新计算
     for (const menuItem of menuItems.data) {
       try {
+        console.log(`[重新计算] 开始处理菜单项: ${menuItem.name || menuItem._id}`);
+        
         // 获取计算使用的region：优先使用菜单项的restaurantRegion，否则从餐厅信息获取
         let calculationRegion = menuItem.restaurantRegion;
         if (!calculationRegion) {
@@ -1584,6 +1687,51 @@ async function recalculateMenuItems(data, context) {
             // 无法获取餐厅地区，使用默认值
           }
         }
+        
+        // 获取食材列表：优先使用菜单项的ingredients，如果为空且有关联菜谱，则从菜谱获取
+        let ingredients = menuItem.ingredients || [];
+        
+        // 如果菜单项的ingredients为空或格式不正确，且有关联的菜谱，尝试从菜谱获取
+        if ((!ingredients || ingredients.length === 0) && menuItem.baseRecipeId) {
+          try {
+            console.log(`[重新计算] 菜单项食材为空，尝试从关联菜谱获取: ${menuItem.baseRecipeId}`);
+            const recipe = await db.collection('recipes').doc(menuItem.baseRecipeId).get();
+            if (recipe.data && recipe.data.ingredients) {
+              // 将菜谱的ingredients格式转换为菜单项格式
+              const recipeIngredients = recipe.data.ingredients;
+              if (Array.isArray(recipeIngredients)) {
+                ingredients = recipeIngredients.map((ing, index) => {
+                  if (typeof ing === 'string') {
+                    return {
+                      ingredientName: ing,
+                      quantity: 100, // 默认值
+                      unit: 'g',
+                      isMainIngredient: index === 0
+                    };
+                  } else if (typeof ing === 'object' && ing !== null) {
+                    return {
+                      ingredientName: ing.name || ing.ingredientName || ing.ingredient || String(ing),
+                      quantity: ing.quantity || ing.amount || 100,
+                      unit: ing.unit || 'g',
+                      isMainIngredient: ing.isMainIngredient !== undefined ? ing.isMainIngredient : (index === 0)
+                    };
+                  }
+                  return {
+                    ingredientName: String(ing),
+                    quantity: 100,
+                    unit: 'g',
+                    isMainIngredient: index === 0
+                  };
+                });
+                console.log(`[重新计算] 从菜谱获取到 ${ingredients.length} 个食材`);
+              }
+            }
+          } catch (error) {
+            console.warn(`[重新计算] 从菜谱获取食材失败:`, error);
+          }
+        }
+        
+        console.log(`[重新计算] 使用食材数量: ${ingredients.length}`);
         
         // 调用计算接口（传递所有配置参数）
         // 注意：必须使用菜单项中保存的配置值，如果配置值不存在才使用缺省值（向后兼容）
@@ -1599,7 +1747,7 @@ async function recalculateMenuItems(data, context) {
           energyType: itemEnergyType || 'electric', // 使用配置值，缺失时使用缺省值
           calculationLevel: itemCalculationLevel || 'L2', // 使用配置值，缺失时使用缺省值
           region: calculationRegion || 'national_average', // 使用配置值，缺失时使用缺省值
-          ingredients: menuItem.ingredients || [],
+          ingredients: ingredients,
           cookingMethod: itemCookingMethod || null, // 可选字段，允许为空
           cookingTime: itemCookingTime || null, // 可选字段，允许为空
           packaging: menuItem.packaging || null

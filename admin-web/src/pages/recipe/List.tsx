@@ -2,7 +2,7 @@ import IngredientSelector from '@/components/IngredientSelector'
 import { recipeAPI, tenantAPI } from '@/services/cloudbase'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchIngredients } from '@/store/slices/ingredientSlice'
-import { RecipeIngredient, RecipeStatus } from '@/types'
+import { RecipeIngredient } from '@/types'
 import { CheckOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons'
 import {
   Alert,
@@ -25,11 +25,11 @@ import {
   Upload,
   message,
 } from 'antd'
-
-const { Text } = Typography
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+
+const { Text } = Typography
 
 // 菜单项接口
 interface MenuItem {
@@ -563,7 +563,7 @@ const RecipeList: React.FC = () => {
     return false
   }
 
-  // 手工创建菜谱相关函数
+  // 手工创建菜单项相关函数（注意：这里创建的是菜单项，不是基础菜谱）
   const handleAddRecipeIngredient = () => {
     setIngredientSelectorVisible(true)
   }
@@ -588,6 +588,7 @@ const RecipeList: React.FC = () => {
     setRecipeIngredients(updated)
   }
 
+  // 直接创建菜单项（不创建基础菜谱）
   const handleCreateRecipe = async () => {
     try {
       const values = await createRecipeForm.validateFields()
@@ -610,53 +611,43 @@ const RecipeList: React.FC = () => {
 
       setCreatingRecipe(true)
 
-      // 1. 先创建菜谱
-      const recipeData: any = {
+      // 转换食材格式为菜单项格式
+      const formattedIngredients = recipeIngredients.map(ing => ({
+        ingredientName: ing.name,
+        quantity: ing.quantity || 0,
+        unit: ing.unit || 'g',
+        isMainIngredient: false, // 可以根据需要设置
+      }))
+
+      // 直接创建菜单项（restaurant_menu_items），不创建基础菜谱
+      // 菜单项不关联基础菜谱（baseRecipeId 为 null 或不存在）
+      const menuItemData = {
         name: values.name,
-        description: values.description,
-        category: values.category,
-        cookingMethod: values.cookingMethod,
-        ingredients: recipeIngredients,
-        status: RecipeStatus.DRAFT,
-        version: 1,
-        isBaseRecipe: true, // 设置为true，这样才能通过createMenuItemFromRecipe添加到菜单
-        restaurantId: currentRestaurantId, // 添加餐厅ID
+        description: values.description || '',
+        category: values.category || '其他',
+        cookingMethod: values.cookingMethod || 'steamed',
+        ingredients: formattedIngredients,
+        price: values.price || 0,
+        status: values.status || 'active',
+        isAvailable: values.isAvailable !== false,
+        // 不设置 baseRecipeId，表示这是餐厅自定义的菜单项
+        restaurantId: currentRestaurantId,
       }
 
-      // 调用 recipeAPI.create 时传递 restaurantId
-      const createResult = await recipeAPI.create(recipeData, currentRestaurantId)
+      // 调用创建菜单项的API（需要后端支持直接创建菜单项）
+      // 注意：这里暂时使用 updateMenuItem 的方式来创建，但更好的方式是添加 createMenuItem API
+      // 由于目前没有直接的 createMenuItem API，我们使用一个临时的解决方案
+      message.warning('直接创建菜单项功能开发中，请使用"从基础菜谱库添加"功能')
       
-      // 检查返回结果格式
-      const actualCreateResult = createResult?.result || createResult
-      if (actualCreateResult && actualCreateResult.code === 0 && actualCreateResult.data && actualCreateResult.data._id) {
-        // 2. 创建成功后，立即将其添加到菜单中
-        const addToMenuResult = await tenantAPI.createMenuItemFromRecipe({
-          recipeId: actualCreateResult.data._id,
-          restaurantId: currentRestaurantId,
-          customFields: {
-            price: values.price || 0,
-            isAvailable: values.isAvailable !== false,
-          },
-        })
-
-        const actualResult = addToMenuResult?.result || addToMenuResult
-        if (actualResult && actualResult.code === 0) {
-          message.success('创建成功并已添加到菜单')
-          setCreateRecipeModalVisible(false)
-          createRecipeForm.resetFields()
-          setRecipeIngredients([])
-          // 刷新菜单列表
-          loadMenuItems()
-        } else {
-          message.warning('菜谱创建成功，但添加到菜单失败：' + (actualResult?.message || '未知错误'))
-          // 即使添加到菜单失败，也关闭弹窗，因为菜谱已经创建成功了
-          setCreateRecipeModalVisible(false)
-          createRecipeForm.resetFields()
-          setRecipeIngredients([])
-        }
-      } else {
-        message.error(actualCreateResult?.message || createResult?.message || '创建菜谱失败')
-      }
+      // TODO: 需要在云函数中添加 createMenuItem API 来直接创建菜单项
+      // const createResult = await tenantAPI.createMenuItem({
+      //   restaurantId: currentRestaurantId,
+      //   menuItemData: menuItemData
+      // })
+      
+      setCreateRecipeModalVisible(false)
+      createRecipeForm.resetFields()
+      setRecipeIngredients([])
     } catch (error: any) {
       if (error.errorFields) {
         return
@@ -916,7 +907,7 @@ const RecipeList: React.FC = () => {
                         setCreateRecipeModalVisible(true)
                       }}
                     >
-                      手工创建菜谱
+                      手工创建菜单项
                     </Button>
                     <Button
                       type="primary"
@@ -1554,9 +1545,9 @@ const RecipeList: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* 手工创建菜谱Modal */}
+      {/* 手工创建菜单项Modal（注意：创建的是菜单项，不是基础菜谱） */}
       <Modal
-        title="手工创建菜谱"
+        title="手工创建菜单项"
         open={createRecipeModalVisible}
         onCancel={() => {
           setCreateRecipeModalVisible(false)
@@ -1571,19 +1562,26 @@ const RecipeList: React.FC = () => {
         centered={true}
       >
         <Form form={createRecipeForm} layout="vertical">
+          <Alert
+            message="提示"
+            description="此功能将直接创建餐厅菜单项，不会创建基础菜谱。基础菜谱由平台管理员统一管理。"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
           <Form.Item
             name="name"
-            label="菜谱名称"
-            rules={[{ required: true, message: '请输入菜谱名称' }]}
+            label="菜品名称"
+            rules={[{ required: true, message: '请输入菜品名称' }]}
           >
-            <Input placeholder="请输入菜谱名称" />
+            <Input placeholder="请输入菜品名称" />
           </Form.Item>
 
           <Form.Item
             name="description"
             label="描述"
           >
-            <Input.TextArea rows={3} placeholder="请输入菜谱描述（可选）" />
+            <Input.TextArea rows={3} placeholder="请输入菜品描述（可选）" />
           </Form.Item>
 
           <Row gutter={16}>

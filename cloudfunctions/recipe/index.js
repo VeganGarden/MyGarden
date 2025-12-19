@@ -200,6 +200,15 @@ async function createRecipe(recipeCollection, recipe, openid, tenantId) {
     }
   }
 
+  // 业务规则检查：餐厅管理员不能创建基础菜谱
+  // 基础菜谱（isBaseRecipe: true）只能由平台管理员创建
+  if (recipe.isBaseRecipe === true) {
+    return {
+      code: 403,
+      message: '无权限创建基础菜谱。基础菜谱由平台管理员统一管理，餐厅管理员只能从基础菜谱库导入到自己的菜单中。'
+    }
+  }
+
   // 验证租户ID（餐厅ID）
   if (!tenantId) {
     return {
@@ -209,6 +218,7 @@ async function createRecipe(recipeCollection, recipe, openid, tenantId) {
   }
 
   // 准备菜谱数据
+  // 注意：餐厅管理员创建菜谱时，isBaseRecipe 必须为 false（或不设置，默认为 false）
   const recipeData = {
     name: recipe.name,
     description: recipe.description || '',
@@ -221,7 +231,7 @@ async function createRecipe(recipeCollection, recipe, openid, tenantId) {
     status: recipe.status || 'draft',
     channels: recipe.channels || [],
     version: recipe.version || 1,
-    isBaseRecipe: recipe.isBaseRecipe !== undefined ? recipe.isBaseRecipe : false, // 保留前端传递的 isBaseRecipe 值
+    isBaseRecipe: false, // 强制设置为 false，餐厅管理员不能创建基础菜谱
     tenantId: tenantId, // 使用餐厅ID作为租户ID
     restaurantId: tenantId, // 同时保存餐厅ID字段，便于查询
     createdBy: openid,
