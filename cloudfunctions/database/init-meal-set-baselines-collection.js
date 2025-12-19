@@ -137,11 +137,13 @@ async function createIndexes() {
         status: 'success'
       });
     } catch (error) {
-      console.error(`  ❌ 索引创建失败: ${idx.name}`, error.message);
+      // 外层错误捕获（通常是检查索引时的错误）
+      console.error(`  ❌ 处理索引时出错: ${idx.name}`, error.message);
       results.push({
         index: idx.name,
         status: 'failed',
-        error: error.message
+        error: error.message,
+        needsManual: true
       });
     }
   }
@@ -160,15 +162,27 @@ exports.main = async (event, context) => {
   try {
     const collectionName = 'meal_set_baselines';
 
-    // 1. 检查集合是否存在
-    console.log(`检查集合 ${collectionName} 是否存在...`);
+    // 1. 创建集合（通过插入一条临时数据然后删除来创建）
+    console.log(`创建集合 ${collectionName}...`);
     try {
-      const collectionInfo = await db.collection(collectionName).limit(1).get();
-      console.log(`✅ 集合 ${collectionName} 已存在`);
+      // 尝试插入一条临时数据来创建集合
+      const tempDoc = {
+        _temp: true,
+        createdAt: new Date()
+      };
+      const addResult = await db.collection(collectionName).add({ data: tempDoc });
+      // 删除临时数据
+      await db.collection(collectionName).doc(addResult._id).remove();
+      console.log(`✅ 集合 ${collectionName} 创建成功`);
     } catch (error) {
-      // 集合不存在，创建集合（通过插入一条数据来创建）
-      console.log(`集合 ${collectionName} 不存在，将通过插入示例数据创建...`);
-      // 注意：腾讯云数据库不需要显式创建集合，插入数据时会自动创建
+      // 如果集合已存在或创建失败，检查是否已存在
+      try {
+        await db.collection(collectionName).limit(1).get();
+        console.log(`ℹ️  集合 ${collectionName} 已存在`);
+      } catch (checkError) {
+        console.error(`❌ 集合 ${collectionName} 创建失败:`, error.message);
+        throw error;
+      }
     }
 
     // 2. 创建索引
@@ -184,6 +198,17 @@ exports.main = async (event, context) => {
     console.log(`成功: ${successCount} 个`);
     console.log(`跳过: ${skippedCount} 个`);
     console.log(`失败: ${failedCount} 个`);
+    
+    // 如果有失败的索引，提示需要手动创建
+    const needsManual = indexResults.filter(r => r.needsManual).length;
+    if (needsManual > 0) {
+      console.log('');
+      console.log('⚠️  重要提示：');
+      console.log(`   ${needsManual} 个索引需要在控制台手动创建`);
+      console.log('   请参考：Docs/一餐饭基准值数据库初始化指南.md');
+      console.log('   索引配置：参考索引配置表中的 meal_set_baselines 相关索引');
+    }
+    
     console.log('========================================\n');
 
     return {
