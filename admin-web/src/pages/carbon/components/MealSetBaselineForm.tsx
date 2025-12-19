@@ -15,12 +15,14 @@ interface MealSetBaselineFormProps {
   form: any
   initialValues?: Partial<MealSetBaselineFormData>
   onSubmit?: (values: MealSetBaselineFormData) => void
+  onValuesChange?: (changedValues: any, allValues: any) => void
 }
 
 const MealSetBaselineForm: React.FC<MealSetBaselineFormProps> = ({
   form,
   initialValues,
-  onSubmit
+  onSubmit,
+  onValuesChange
 }) => {
   // 自动计算置信区间
   const calculateConfidenceInterval = (value: number, uncertainty: number) => {
@@ -59,8 +61,7 @@ const MealSetBaselineForm: React.FC<MealSetBaselineFormProps> = ({
   }
 
   // 自动生成结构描述
-  const generateStructureDescription = () => {
-    const typicalStructure = form.getFieldValue('typicalStructure')
+  const generateStructureDescription = (typicalStructure: any) => {
     if (!typicalStructure) return ''
     
     const parts = []
@@ -80,16 +81,48 @@ const MealSetBaselineForm: React.FC<MealSetBaselineFormProps> = ({
     return parts.join('+') || ''
   }
 
-  // 监听典型结构变化，自动生成描述
-  useEffect(() => {
-    const subscription = form.getFieldsValue(['typicalStructure'])
-    if (subscription.typicalStructure) {
-      const description = generateStructureDescription()
-      form.setFieldsValue({
-        'typicalStructure.description': description
-      })
+
+  // 处理表单值变化
+  const handleFormValuesChange = (changedValues: any, allValues: any) => {
+    // 自动计算置信区间
+    if (changedValues.carbonFootprint?.value !== undefined || 
+        changedValues.carbonFootprint?.uncertainty !== undefined) {
+      const value = allValues.carbonFootprint?.value || 0
+      const uncertainty = allValues.carbonFootprint?.uncertainty || 0
+      
+      if (value > 0 && uncertainty >= 0) {
+        const interval = calculateConfidenceInterval(value, uncertainty)
+        form.setFieldsValue({
+          carbonFootprint: {
+            ...allValues.carbonFootprint,
+            confidenceInterval: interval
+          }
+        })
+      }
     }
-  }, [form])
+
+    // 自动生成结构描述
+    if (changedValues.typicalStructure) {
+      const typicalStructure = allValues.typicalStructure
+      if (typicalStructure) {
+        const description = generateStructureDescription(typicalStructure)
+        // 避免无限循环，只在描述变化时更新
+        if (description !== typicalStructure.description) {
+          form.setFieldsValue({
+            typicalStructure: {
+              ...typicalStructure,
+              description
+            }
+          })
+        }
+      }
+    }
+
+    // 调用外部onValuesChange回调
+    if (onValuesChange) {
+      onValuesChange(changedValues, allValues)
+    }
+  }
 
   return (
     <Form
@@ -105,6 +138,7 @@ const MealSetBaselineForm: React.FC<MealSetBaselineFormProps> = ({
         }
       }}
       onFinish={onSubmit}
+      onValuesChange={handleFormValuesChange}
     >
       {/* 基本信息 */}
       <Card title="分类信息" size="small" style={{ marginBottom: 16 }}>

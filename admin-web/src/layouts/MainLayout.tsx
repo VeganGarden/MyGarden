@@ -217,6 +217,10 @@ const MainLayout: React.FC = () => {
                 label: t('menu.carbonBaseline'),
               },
               {
+                key: '/carbon/meal-set-baselines',
+                label: t('menu.carbonMealSetBaseline'),
+              },
+              {
                 key: '/carbon/factor-library',
                 label: t('menu.carbonFactorLibrary'),
               },
