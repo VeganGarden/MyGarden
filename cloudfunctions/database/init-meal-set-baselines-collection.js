@@ -1,13 +1,15 @@
 /**
- * 初始化一餐饭基准值数据库集合
+ * 一餐饭基准值数据库集合初始化脚本（修复版）
  * 
  * 功能：
  * 1. 创建 meal_set_baselines 集合
- * 2. 创建所有必要的索引
+ * 2. 提供索引配置信息（需要在控制台手动创建）
  * 
- * 调用方式：
- * node scripts/init-meal-set-baselines-collection.js
- * 或通过 database 云函数调用
+ * 使用方法：
+ * 通过 database 云函数调用：
+ * {
+ *   action: "initMealSetBaselinesCollection"
+ * }
  */
 
 const cloud = require('wx-server-sdk');
@@ -20,13 +22,11 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
- * 创建索引
+ * 生成索引配置信息
+ * 注意：腾讯云开发数据库不支持通过代码创建索引，所有索引需要在控制台手动创建
  */
-async function createIndexes() {
-  const collectionName = 'meal_set_baselines';
-  console.log(`\n开始为 ${collectionName} 创建索引...\n`);
-
-  const indexes = [
+function getIndexConfigs() {
+  return [
     {
       name: '主查询索引',
       index: {
@@ -34,7 +34,8 @@ async function createIndexes() {
         'category.region': 1,
         'category.energyType': 1,
         status: 1
-      }
+      },
+      unique: false
     },
     {
       name: '区域饮食习惯索引',
@@ -42,7 +43,8 @@ async function createIndexes() {
         'category.region': 1,
         'category.hasSoup': 1,
         status: 1
-      }
+      },
+      unique: false
     },
     {
       name: '餐次类型索引',
@@ -50,7 +52,8 @@ async function createIndexes() {
         'category.mealTime': 1,
         'category.mealStructure': 1,
         status: 1
-      }
+      },
+      unique: false
     },
     {
       name: 'baselineId唯一索引',
@@ -64,14 +67,16 @@ async function createIndexes() {
       index: {
         version: 1,
         status: 1
-      }
+      },
+      unique: false
     },
     {
       name: '时间范围查询索引',
       index: {
         effectiveDate: 1,
         expiryDate: 1
-      }
+      },
+      unique: false
     },
     {
       name: '使用状态索引',
@@ -79,90 +84,34 @@ async function createIndexes() {
         'usage.isForCalculation': 1,
         'usage.researchStatus': 1,
         status: 1
-      }
+      },
+      unique: false
     },
     {
       name: '创建时间索引',
       index: {
         createdAt: -1
-      }
+      },
+      unique: false
     }
   ];
+}
 
-  const results = [];
+/**
+ * 格式化索引配置为可读格式
+ */
+function formatIndexConfig(config) {
+  const fields = Object.keys(config.index).map(field => {
+    const direction = config.index[field] === 1 ? '升序' : '降序';
+    return `${field} (${direction})`;
+  }).join(', ');
   
-  for (let i = 0; i < indexes.length; i++) {
-    const idx = indexes[i];
-    try {
-      console.log(`[${i + 1}/${indexes.length}] 创建索引: ${idx.name}`);
-      
-      // 检查索引是否已存在
-      const existingIndexes = await db.collection(collectionName)
-        .getIndexes();
-      
-      const indexName = idx.name;
-      const indexExists = existingIndexes.indexes.some(
-        existing => existing.name === indexName
-      );
-      
-      if (indexExists) {
-        console.log(`  ⚠️  索引已存在，跳过: ${indexName}`);
-        results.push({
-          index: indexName,
-          status: 'skipped',
-          message: '索引已存在'
-        });
-        continue;
-      }
-      
-      // 尝试创建索引
-      // 注意：腾讯云数据库可能不支持通过代码创建索引，如果失败需要在控制台手动创建
-      try {
-        if (idx.unique) {
-          await db.collection(collectionName)
-            .createIndex({
-              ...idx.index,
-              unique: true
-            }, {
-              name: indexName
-            });
-        } else {
-          await db.collection(collectionName)
-            .createIndex(idx.index, {
-              name: indexName
-            });
-        }
-        
-        console.log(`  ✅ 索引创建成功: ${indexName}`);
-        results.push({
-          index: indexName,
-          status: 'success'
-        });
-      } catch (createError) {
-        // 如果创建失败，可能是腾讯云限制，提示需要手动创建
-        console.log(`  ⚠️  索引创建失败（可能需要手动创建）: ${indexName}`);
-        console.log(`     错误: ${createError.message}`);
-        results.push({
-          index: indexName,
-          status: 'failed',
-          error: createError.message,
-          needsManual: true,
-          message: '需要在控制台手动创建此索引'
-        });
-      }
-    } catch (error) {
-      // 外层错误捕获（通常是检查索引时的错误）
-      console.error(`  ❌ 处理索引时出错: ${idx.name}`, error.message);
-      results.push({
-        index: idx.name,
-        status: 'failed',
-        error: error.message,
-        needsManual: true
-      });
-    }
-  }
-
-  return results;
+  return {
+    name: config.name,
+    fields: config.index,
+    unique: config.unique || false,
+    description: `字段: ${fields}${config.unique ? ', 唯一索引' : ''}`
+  };
 }
 
 /**
@@ -199,30 +148,29 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 2. 创建索引
-    const indexResults = await createIndexes();
-
-    // 3. 统计结果
-    const successCount = indexResults.filter(r => r.status === 'success').length;
-    const skippedCount = indexResults.filter(r => r.status === 'skipped').length;
-    const failedCount = indexResults.filter(r => r.status === 'failed').length;
-
+    // 2. 生成索引配置信息
     console.log('\n========================================');
-    console.log('索引创建完成');
-    console.log(`成功: ${successCount} 个`);
-    console.log(`跳过: ${skippedCount} 个`);
-    console.log(`失败: ${failedCount} 个`);
+    console.log('索引配置信息');
+    console.log('========================================\n');
     
-    // 如果有失败的索引，提示需要手动创建
-    const needsManual = indexResults.filter(r => r.needsManual).length;
-    if (needsManual > 0) {
+    console.log('⚠️  重要提示：腾讯云开发数据库不支持通过代码创建索引');
+    console.log('所有索引需要在控制台手动创建。\n');
+    
+    const indexConfigs = getIndexConfigs();
+    const indexResults = indexConfigs.map(formatIndexConfig);
+    
+    console.log(`📋 需要手动创建 ${indexResults.length} 个索引：\n`);
+    
+    indexResults.forEach((result, idx) => {
+      console.log(`${idx + 1}. ${result.name}`);
+      console.log(`   ${result.description}`);
       console.log('');
-      console.log('⚠️  重要提示：');
-      console.log(`   ${needsManual} 个索引需要在控制台手动创建`);
-      console.log('   请参考：Docs/一餐饭基准值数据库初始化指南.md');
-      console.log('   索引配置：参考索引配置表中的 meal_set_baselines 相关索引');
-    }
-    
+    });
+
+    console.log('📖 参考文档：');
+    console.log('   - Docs/一餐饭基准值数据库初始化指南.md');
+    console.log('   - 索引配置表.csv（meal_set_baselines 相关索引）');
+    console.log('');
     console.log('========================================\n');
 
     return {
@@ -234,10 +182,9 @@ exports.main = async (event, context) => {
         indexes: indexResults,
         summary: {
           total: indexResults.length,
-          success: successCount,
-          skipped: skippedCount,
-          failed: failedCount
-        }
+          needsManual: indexResults.length
+        },
+        note: '所有索引需要在控制台手动创建'
       }
     };
   } catch (error) {
