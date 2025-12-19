@@ -29,6 +29,7 @@ const { main: verifyFactorsMigration } = require('./verify-factors-migration');
 const { migrateFactorRegions, rollbackFactorRegions } = require('./migrate-factor-regions');
 const { main: fixRestaurantAdminPermission } = require('./fix-restaurant-admin-permission');
 const { main: initMealSetBaselinesCollection } = require('./init-meal-set-baselines-collection');
+const { main: initMealSetBaselineSampleData } = require('./init-meal-set-baseline-sample-data');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -66,6 +67,7 @@ const { main: initMealSetBaselinesCollection } = require('./init-meal-set-baseli
  * - initVegetarianPersonnelCollections: 初始化素食人员管理模块集合（restaurant_staff, restaurant_customers, vegetarian_personnel_stats）
  * - initVegetarianPersonnelPermissions: 初始化素食人员管理模块权限（vegetarianPersonnel:view, vegetarianPersonnel:manage）
  * - initMealSetBaselinesCollection: 初始化一餐饭基准值集合（meal_set_baselines）
+ * - initMealSetBaselineSampleData: 初始化一餐饭基准值示例数据
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -180,6 +182,8 @@ exports.main = async (event) => {
         return await initApprovalConfigs();
       case 'initMealSetBaselinesCollection':
         return await initMealSetBaselinesCollection(event);
+      case 'initMealSetBaselineSampleData':
+        return await initMealSetBaselineSampleData(event);
       default:
         return await initCollectionsV1(event);
     }
