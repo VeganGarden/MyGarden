@@ -102,7 +102,7 @@ const BaselineList: React.FC = () => {
       const result = await baselineManageAPI.archive(record.baselineId)
       if (result.success) {
         // 检查是否已提交审核申请
-        if (result.data?.approvalRequired) {
+        if ('data' in result && result.data && typeof result.data === 'object' && 'approvalRequired' in result.data) {
           message.success('归档审核申请已提交，请等待审核')
         } else {
           message.success(t('pages.carbon.baselineList.messages.archiveSuccess'))

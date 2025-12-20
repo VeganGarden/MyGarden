@@ -1351,7 +1351,10 @@ const RecipeList: React.FC = () => {
                     size="large"
                     prefix="¥"
                     formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                    parser={((value: string | undefined) => {
+                      const parsed = (value ?? '').replace(/\$\s?|(,*)/g, '')
+                      return parsed === '' ? 0 : Number(parsed) || 0
+                    }) as any}
                   />
                 </Form.Item>
               </Col>

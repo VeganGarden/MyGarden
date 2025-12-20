@@ -3,11 +3,11 @@
  */
 import { getMealSetBaselineDetail, updateMealSetBaseline } from '@/services/meal-set-baseline'
 import type { MealSetBaseline, MealSetBaselineFormData } from '@/types/meal-set-baseline'
-import { Button, Card, Form, message, Space, Steps, Alert, Spin } from 'antd'
+import { Alert, Button, Card, Form, Space, Spin, Steps, message } from 'antd'
+import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MealSetBaselineForm from './components/MealSetBaselineForm'
-import dayjs from 'dayjs'
 
 const { Step } = Steps
 
@@ -34,11 +34,46 @@ const MealSetBaselineEdit: React.FC = () => {
       const result = await getMealSetBaselineDetail(baselineId)
       if (result.success && result.data) {
         setBaseline(result.data)
-        // 填充表单
-        const formData = {
-          ...result.data,
-          effectiveDate: result.data.effectiveDate ? dayjs(result.data.effectiveDate) : undefined,
-          expiryDate: result.data.expiryDate ? dayjs(result.data.expiryDate) : undefined
+        // 填充表单 - 转换类型
+        const baseline = result.data
+        const formData: Partial<MealSetBaselineFormData> = {
+          category: baseline.category,
+          carbonFootprint: {
+            value: baseline.carbonFootprint.value,
+            uncertainty: baseline.carbonFootprint.uncertainty,
+            confidenceInterval: baseline.carbonFootprint.confidenceInterval
+          },
+          breakdown: baseline.breakdown,
+          typicalStructure: baseline.typicalStructure,
+          source: baseline.source,
+          version: baseline.version,
+          effectiveDate: typeof baseline.effectiveDate === 'string' 
+            ? baseline.effectiveDate 
+            : (baseline.effectiveDate instanceof Date ? baseline.effectiveDate.toISOString().split('T')[0] : ''),
+          expiryDate: typeof baseline.expiryDate === 'string' 
+            ? baseline.expiryDate 
+            : (baseline.expiryDate instanceof Date ? baseline.expiryDate.toISOString().split('T')[0] : ''),
+          usage: {
+            isForCalculation: baseline.usage.isForCalculation,
+            notes: baseline.usage.notes,
+            researchStatus: baseline.usage.researchStatus,
+            observationPeriod: baseline.usage.observationPeriod ? {
+              startDate: typeof baseline.usage.observationPeriod.startDate === 'string'
+                ? baseline.usage.observationPeriod.startDate
+                : (baseline.usage.observationPeriod.startDate instanceof Date 
+                  ? baseline.usage.observationPeriod.startDate.toISOString().split('T')[0] 
+                  : ''),
+              endDate: baseline.usage.observationPeriod.endDate 
+                ? (typeof baseline.usage.observationPeriod.endDate === 'string'
+                  ? baseline.usage.observationPeriod.endDate
+                  : (baseline.usage.observationPeriod.endDate instanceof Date 
+                    ? baseline.usage.observationPeriod.endDate.toISOString().split('T')[0] 
+                    : undefined))
+                : undefined,
+              notes: baseline.usage.observationPeriod.notes
+            } : undefined
+          },
+          notes: baseline.notes
         }
         form.setFieldsValue(formData)
       } else {
@@ -294,7 +329,7 @@ const MealSetBaselineEdit: React.FC = () => {
 
           <MealSetBaselineForm
             form={form}
-            initialValues={baseline}
+            initialValues={undefined}
             onSubmit={handleSubmit}
           />
 

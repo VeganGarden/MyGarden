@@ -131,7 +131,7 @@ const FactorLibrary: React.FC = () => {
       const result = await factorManageAPI.archive(record.factorId)
       if (result.success) {
         // 检查是否已提交审核申请
-        if (result.data?.approvalRequired) {
+        if ('data' in result && result.data && typeof result.data === 'object' && 'approvalRequired' in result.data) {
           message.success('归档审核申请已提交，请等待审核')
         } else {
           message.success(t('pages.carbon.factorLibrary.messages.archiveSuccess'))

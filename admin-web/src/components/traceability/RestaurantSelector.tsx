@@ -64,9 +64,10 @@ const RestaurantSelector: React.FC<RestaurantSelectorProps> = ({
       disabled={disabled}
       allowClear={allowClear}
       showSearch
-      filterOption={(input, option) =>
-        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-      }
+      filterOption={(input, option) => {
+        const label = typeof option?.label === 'string' ? option.label : String(option?.label ?? '')
+        return label.toLowerCase().includes(input.toLowerCase())
+      }}
       style={{ width: '100%' }}
       options={restaurants.map((restaurant: any) => ({
         value: restaurant.id,
