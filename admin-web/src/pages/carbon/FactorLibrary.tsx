@@ -5,7 +5,7 @@ import i18n from '@/i18n'
 import { factorManageAPI } from '@/services/factor'
 import type { CarbonEmissionFactor, FactorQueryParams } from '@/types/factor'
 import { FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
-import { getRegionDisplayName, normalizeRegion } from '@/utils/regionMapper'
+import { getRegionDisplayNameSync } from '@/utils/regionHelper'
 import {
   EditOutlined,
   EyeOutlined,
@@ -252,7 +252,7 @@ const FactorLibrary: React.FC = () => {
       dataIndex: 'region',
       key: 'region',
       width: 100,
-      render: (region: string) => region ? getRegionDisplayName(normalizeRegion(region)) : '-',
+      render: (region: string) => getRegionDisplayNameSync(region),
     },
     {
       title: t('pages.carbon.factorLibrary.table.columns.version'),

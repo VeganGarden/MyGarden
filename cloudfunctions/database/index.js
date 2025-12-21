@@ -26,13 +26,13 @@ const { main: checkDuplicateFactors } = require('./check-duplicate-factors');
 const { main: fixDuplicateFactors } = require('./fix-duplicate-factors');
 const { main: migrateFactorsIntegration } = require('./migrate-factors-integration');
 const { main: verifyFactorsMigration } = require('./verify-factors-migration');
-const { migrateFactorRegions, rollbackFactorRegions } = require('./migrate-factor-regions');
 const { main: fixRestaurantAdminPermission } = require('./fix-restaurant-admin-permission');
 const { main: initMealSetBaselinesCollection } = require('./init-meal-set-baselines-collection');
 const { main: initMealSetBaselineSampleData } = require('./init-meal-set-baseline-sample-data');
 const { main: initRegionConfigs } = require('./init-region-configs');
 const { main: fixRegionConfigDefaults } = require('./fix-region-config-defaults');
 const { main: removeNationalAverage } = require('./remove-national-average');
+const { main: updateAllFactorsRegionToCN } = require('./update-all-factors-region-to-cn');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -161,10 +161,6 @@ exports.main = async (event) => {
         return await migrateFactorsIntegration(event);
       case 'verifyFactorsMigration':
         return await verifyFactorsMigration(event);
-      case 'migrateFactorRegions':
-        return await migrateFactorRegions();
-      case 'rollbackFactorRegions':
-        return await rollbackFactorRegions();
       case 'initVegetarianPersonnelCollections':
         const { main: initVegetarianPersonnelCollections } = require('./init-vegetarian-personnel-collections');
         return await initVegetarianPersonnelCollections(event);
@@ -194,6 +190,8 @@ exports.main = async (event) => {
         return await fixRegionConfigDefaults(event);
       case 'removeNationalAverage':
         return await removeNationalAverage(event);
+      case 'updateAllFactorsRegionToCN':
+        return await updateAllFactorsRegionToCN(event);
       default:
         return await initCollectionsV1(event);
     }

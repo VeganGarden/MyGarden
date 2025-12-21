@@ -3,7 +3,6 @@
  */
 import { factorManageAPI } from '@/services/factor'
 import type { FactorFormData } from '@/types/factor'
-import { normalizeRegion } from '@/utils/regionMapper'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
 import { App, Button, Card, Form, Space } from 'antd'
 import React, { useEffect, useState } from 'react'
@@ -45,7 +44,7 @@ const FactorEdit: React.FC = () => {
           factorValue: data.factorValue,
           unit: data.unit,
           uncertainty: data.uncertainty,
-          region: normalizeRegion(data.region),
+          region: data.region,
           source: data.source,
           year: data.year,
           version: data.version,

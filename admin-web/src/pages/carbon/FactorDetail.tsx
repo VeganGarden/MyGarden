@@ -4,8 +4,8 @@
 import i18n from '@/i18n'
 import { factorManageAPI } from '@/services/factor'
 import type { CarbonEmissionFactor } from '@/types/factor'
-import { getRegionDisplayName, normalizeRegion } from '@/utils/regionMapper'
 import { FactorBoundary, FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
+import { getRegionDisplayNameSync } from '@/utils/regionHelper'
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
 import {
   Button,
@@ -191,7 +191,7 @@ const FactorDetail: React.FC = () => {
         <Card title={t('pages.carbon.factorDetail.sections.sourceRegion')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered>
             <Descriptions.Item label={t('pages.carbon.factorDetail.fields.region')}>
-              {getRegionDisplayName(normalizeRegion(factor.region))}
+              {getRegionDisplayNameSync(factor.region)}
             </Descriptions.Item>
             <Descriptions.Item label={t('pages.carbon.factorDetail.fields.source')}>
               {sourceMap[factor.source] || factor.source}
