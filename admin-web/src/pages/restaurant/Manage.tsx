@@ -1,5 +1,6 @@
 import { useAppSelector } from '@/store/hooks'
 import { tenantAPI } from '@/services/cloudbase'
+import { regionConfigAPI } from '@/services/regionConfig'
 import { parseAddressToRegion, getRegionLabel, REGION_OPTIONS } from '@/utils/addressParser'
 import {
   EditOutlined,
@@ -30,7 +31,8 @@ interface Restaurant {
   address: string
   phone: string
   email: string
-  region?: string
+  region?: string  // 基准值区域代码（如 'east_china'）
+  factorRegion?: string  // 因子区域代码（如 'CN'）
   status: 'active' | 'inactive' | 'pending' | 'suspended'
   certificationLevel?: 'bronze' | 'silver' | 'gold' | 'platinum'
   certificationStatus?: string
@@ -46,6 +48,7 @@ const RestaurantManage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingRecord, setEditingRecord] = useState<Restaurant | null>(null)
   const [form] = Form.useForm()
+  const [factorRegionOptions, setFactorRegionOptions] = useState<Array<{ value: string; label: string }>>([])
   
   // 处理地址输入完成，自动识别地区（在失去焦点时触发）
   const handleAddressBlur = () => {
@@ -71,7 +74,39 @@ const RestaurantManage: React.FC = () => {
     if (currentTenant?.id) {
       fetchRestaurants()
     }
+    // 加载因子区域选项
+    loadFactorRegionOptions()
   }, [currentTenant])
+
+  // 加载因子区域选项
+  const loadFactorRegionOptions = async () => {
+    try {
+      const result = await regionConfigAPI.list({
+        configType: 'factor_region',
+        status: 'active',
+        pageSize: 100
+      })
+      
+      const regions = Array.isArray(result.data) 
+        ? result.data 
+        : result.data?.list || []
+      
+      const options = regions.map((region: any) => ({
+        value: region.code,
+        label: `${region.name} (${region.code})`
+      }))
+      
+      setFactorRegionOptions(options)
+    } catch (error) {
+      console.error('加载因子区域选项失败:', error)
+      // 如果加载失败，使用默认选项
+      setFactorRegionOptions([
+        { value: 'CN', label: '中国 (CN)' },
+        { value: 'US', label: '美国 (US)' },
+        { value: 'JP', label: '日本 (JP)' },
+      ])
+    }
+  }
 
   const fetchRestaurants = async () => {
     if (!currentTenant?.id) {
@@ -95,6 +130,7 @@ const RestaurantManage: React.FC = () => {
             phone: r.phone || '',
             email: r.email || '',
             region: r.region || 'national_average',
+            factorRegion: r.factorRegion || 'CN',
             status: r.status || 'active',
             certificationLevel: r.certificationLevel,
             certificationStatus: r.certificationStatus || 'none',
@@ -122,13 +158,14 @@ const RestaurantManage: React.FC = () => {
 
   const handleEdit = (record: Restaurant) => {
     setEditingRecord(record)
-    form.setFieldsValue({
-      name: record.name,
-      address: record.address,
-      phone: record.phone,
-      email: record.email,
-      region: record.region || 'national_average',
-    })
+      form.setFieldsValue({
+        name: record.name,
+        address: record.address,
+        phone: record.phone,
+        email: record.email,
+        region: record.region || 'national_average',
+        factorRegion: record.factorRegion || 'CN',
+      })
     setIsModalVisible(true)
   }
 
@@ -157,6 +194,7 @@ const RestaurantManage: React.FC = () => {
           phone: values.phone,
           email: values.email,
           region: values.region,
+          factorRegion: values.factorRegion || 'CN',
         })
 
         if (result && result.success) {
@@ -175,6 +213,7 @@ const RestaurantManage: React.FC = () => {
           phone: values.phone,
           email: values.email,
           region: values.region || 'national_average',
+          factorRegion: values.factorRegion || 'CN',
         })
 
         if (result && result.success) {
@@ -211,12 +250,22 @@ const RestaurantManage: React.FC = () => {
       width: 200,
     },
     {
-      title: '地区',
+      title: '地区（基准值）',
       dataIndex: 'region',
       key: 'region',
-      width: 120,
+      width: 140,
       render: (region: string) => {
         return <Tag color="blue">{getRegionLabel(region) || region || '未设置'}</Tag>
+      },
+    },
+    {
+      title: '因子区域',
+      dataIndex: 'factorRegion',
+      key: 'factorRegion',
+      width: 120,
+      render: (factorRegion: string) => {
+        const option = factorRegionOptions.find(opt => opt.value === factorRegion)
+        return <Tag color="green">{option ? option.label : factorRegion || 'CN'}</Tag>
       },
     },
     {
@@ -329,6 +378,7 @@ const RestaurantManage: React.FC = () => {
           initialValues={{
             status: 'active',
             region: 'national_average',
+            factorRegion: 'CN',
           }}
         >
           <Form.Item
@@ -383,13 +433,29 @@ const RestaurantManage: React.FC = () => {
 
           <Form.Item
             name="region"
-            label="地区"
+            label="地区（基准值）"
             rules={[{ required: true, message: '请选择餐厅所在地区' }]}
-            tooltip="地区用于碳足迹计算时的因子匹配和基准值查询。输入地址后系统会自动识别，您也可以手动选择覆盖。"
+            tooltip="地区用于碳足迹计算时的基准值查询。输入地址后系统会自动识别，您也可以手动选择覆盖。"
             initialValue="national_average"
           >
             <Select placeholder="请选择地区（输入地址后将自动识别）">
               {REGION_OPTIONS.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="factorRegion"
+            label="因子区域"
+            rules={[{ required: true, message: '请选择因子区域' }]}
+            tooltip="因子区域用于食材碳足迹因子的匹配。中国的餐厅通常选择'中国 (CN)'。"
+            initialValue="CN"
+          >
+            <Select placeholder="请选择因子区域">
+              {factorRegionOptions.map(option => (
                 <Select.Option key={option.value} value={option.value}>
                   {option.label}
                 </Select.Option>

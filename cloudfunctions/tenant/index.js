@@ -1884,6 +1884,8 @@ async function createRestaurant(data) {
     address: data.address || '',
     phone: data.phone || '',
     email: data.email || '',
+    region: data.region || 'national_average', // 基准值区域代码
+    factorRegion: data.factorRegion || 'CN', // 因子区域代码，默认CN
     status: 'active',
     certificationLevel: null,
     certificationStatus: 'none',
@@ -5083,6 +5085,9 @@ async function updateMenuItem(data, user, context) {
     if (updateData.restaurantRegion !== undefined && updateData.restaurantRegion !== null) {
       updateFields.restaurantRegion = updateData.restaurantRegion
     }
+    if (updateData.factorRegion !== undefined && updateData.factorRegion !== null) {
+      updateFields.factorRegion = updateData.factorRegion
+    }
     if (updateData.cookingTime !== undefined && updateData.cookingTime !== null) {
       updateFields.cookingTime = Number(updateData.cookingTime) || 0
     }
@@ -5100,12 +5105,12 @@ async function updateMenuItem(data, user, context) {
     }
 
     // 检测是否更新了影响碳足迹的字段
-    const carbonRelatedFields = ['ingredients', 'mealType', 'energyType', 'cookingMethod', 'cookingTime', 'restaurantRegion', 'calculationLevel']
+    const carbonRelatedFields = ['ingredients', 'mealType', 'energyType', 'cookingMethod', 'cookingTime', 'restaurantRegion', 'factorRegion', 'calculationLevel']
     const shouldRecalculate = carbonRelatedFields.some(field => {
       if (field === 'ingredients') {
         return updateFields.ingredients !== undefined
       }
-      return updateFields.hasOwnProperty(field) || updateFields.hasOwnProperty('restaurantRegion')
+      return updateFields.hasOwnProperty(field) || updateFields.hasOwnProperty('restaurantRegion') || updateFields.hasOwnProperty('factorRegion')
     })
 
     // 添加更新时间

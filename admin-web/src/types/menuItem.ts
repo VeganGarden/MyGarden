@@ -18,7 +18,8 @@ export interface MenuItem {
   calculationLevel?: 'L1' | 'L2' | 'L3'
   cookingMethod?: string
   cookingTime?: number
-  restaurantRegion?: string
+  restaurantRegion?: string  // 基准值区域代码（如 'east_china'）
+  factorRegion?: string  // 因子区域代码（如 'CN'）
   ingredients?: any[]
   carbonFootprint?: number | CarbonFootprintData
   carbonLabel?: 'ultra_low' | 'low' | 'medium' | 'high'

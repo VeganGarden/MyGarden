@@ -1,4 +1,5 @@
 import { carbonFootprintAPI, tenantAPI } from '@/services/cloudbase'
+import { regionConfigAPI } from '@/services/regionConfig'
 import { useAppSelector } from '@/store/hooks'
 import type { MenuItem } from '@/types/menuItem'
 import { formatCarbonFootprintValue, getCarbonFootprintValue, transformMenuItemData, transformMenuItemList } from '@/utils/menuItemTransform'
@@ -36,12 +37,47 @@ const CarbonMenu: React.FC = () => {
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null)
   const [updating, setUpdating] = useState(false)
   const [editForm] = Form.useForm()
+  const [factorRegionOptions, setFactorRegionOptions] = useState<Array<{ value: string; label: string }>>([])
 
   useEffect(() => {
     // 当餐厅切换时，重新加载数据
     fetchMenuData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRestaurantId])
+
+  // 加载因子区域选项
+  useEffect(() => {
+    loadFactorRegionOptions()
+  }, [])
+
+  const loadFactorRegionOptions = async () => {
+    try {
+      const result = await regionConfigAPI.list({
+        configType: 'factor_region',
+        status: 'active',
+        pageSize: 100
+      })
+      
+      const regions = Array.isArray(result.data) 
+        ? result.data 
+        : result.data?.list || []
+      
+      const options = regions.map((region: any) => ({
+        value: region.code,
+        label: `${region.name} (${region.code})`
+      }))
+      
+      setFactorRegionOptions(options)
+    } catch (error) {
+      console.error('加载因子区域选项失败:', error)
+      // 如果加载失败，使用默认选项
+      setFactorRegionOptions([
+        { value: 'CN', label: '中国 (CN)' },
+        { value: 'US', label: '美国 (US)' },
+        { value: 'JP', label: '日本 (JP)' },
+      ])
+    }
+  }
 
   // 检查URL参数，如果有highlightId则高亮显示并展开
   useEffect(() => {
@@ -116,6 +152,14 @@ const CarbonMenu: React.FC = () => {
 
     const menuItemId = menuItem.id || menuItem._id || ''
     try {
+      console.log('[前端] 开始重新计算碳足迹:', {
+        menuItemId,
+        restaurantId: currentRestaurantId,
+        menuItemName: menuItem.name,
+        calculationLevel: menuItem.calculationLevel,
+        restaurantRegion: menuItem.restaurantRegion
+      })
+      
       message.loading({ content: '正在重新计算碳足迹...', key: 'calculate', duration: 0 })
       
       const result = await carbonFootprintAPI.recalculateMenuItems({
@@ -123,14 +167,25 @@ const CarbonMenu: React.FC = () => {
         menuItemIds: [menuItemId],
       })
 
+      console.log('[前端] 重新计算结果:', result)
+
       if (result && result.code === 0) {
+        console.log('[前端] 重新计算成功，结果详情:', {
+          total: result.data?.total,
+          success: result.data?.success,
+          failed: result.data?.failed,
+          results: result.data?.results
+        })
+        
         message.success({ content: '重新计算成功', key: 'calculate' })
         // 刷新列表，新的计算明细会包含在菜单项数据中
         fetchMenuData()
       } else {
+        console.error('[前端] 重新计算失败:', result)
         message.error({ content: result?.message || '重新计算失败', key: 'calculate' })
       }
     } catch (error: any) {
+      console.error('[前端] 重新计算异常:', error)
       message.error({ content: error.message || '重新计算失败，请稍后重试', key: 'calculate' })
     }
   }
@@ -144,7 +199,8 @@ const CarbonMenu: React.FC = () => {
       mealType: menuItem.mealType || 'meat_simple',
       energyType: menuItem.energyType || 'electric',
       calculationLevel: menuItem.calculationLevel || 'L2',
-      region: menuItem.restaurantRegion || 'national_average',
+      baselineRegion: menuItem.restaurantRegion || 'national_average', // 基准值区域
+      factorRegion: menuItem.factorRegion || 'CN', // 因子区域，默认CN
       cookingTime: menuItem.cookingTime || undefined,
     })
   }
@@ -164,7 +220,8 @@ const CarbonMenu: React.FC = () => {
         mealType: values.mealType,
         energyType: values.energyType,
         calculationLevel: values.calculationLevel,
-        restaurantRegion: values.region,
+        restaurantRegion: values.baselineRegion, // 基准值区域代码
+        factorRegion: values.factorRegion || 'CN', // 因子区域代码，默认CN
       }
       
       // cookingTime 是可选的，只有填写了才更新
@@ -278,17 +335,46 @@ const CarbonMenu: React.FC = () => {
       {
         title: '排放因子',
         key: 'factor',
-        width: 150,
+        width: 180,
         render: (_: any, record) => {
           if (!record.factor) {
-            return <Text type="danger">未匹配</Text>
+            return (
+              <Tooltip
+                title={
+                  <div>
+                    <div style={{ marginBottom: '8px' }}>未匹配到排放因子</div>
+                    <div style={{ fontSize: '12px', color: '#fff' }}>
+                      <div>• 该食材可能未在因子库中</div>
+                      <div>• 建议前往「因子库管理」添加该食材的排放因子</div>
+                      <div>• 或检查食材名称是否正确</div>
+                    </div>
+                  </div>
+                }
+              >
+                <Text type="danger">未匹配</Text>
+              </Tooltip>
+            )
           }
+          
+          // 匹配级别显示文本
+          const matchLevelText: Record<string, string> = {
+            exact_region: '精确匹配',
+            alias_match: '别名匹配',
+            category_fallback: '类别兜底'
+          }
+          
+          const matchLevelColor: Record<string, string> = {
+            exact_region: 'green',
+            alias_match: 'blue',
+            category_fallback: 'orange'
+          }
+          
           return (
             <div>
               <div>{record.factor.value.toFixed(6)} {record.factor.unit}</div>
               {record.factor.matchLevel && (
-                <Tag color={record.factor.matchLevel === 'exact_region' ? 'green' : 'orange'}>
-                  {record.factor.matchLevel}
+                <Tag color={matchLevelColor[record.factor.matchLevel] || 'default'}>
+                  {matchLevelText[record.factor.matchLevel] || record.factor.matchLevel}
                 </Tag>
               )}
             </div>
@@ -343,9 +429,63 @@ const CarbonMenu: React.FC = () => {
 
     const totalIngredientsCarbon = details.ingredients.reduce((sum, ing) => sum + ing.carbonFootprint, 0)
 
+    // 获取计算级别信息
+    const calculationLevel = menuItem.calculationLevel || 'L2'
+    const isEstimated = menuItem.isEstimated || false
+    const calculationMethod = menuItem.calculationMethod || 'standard'
+    
+    // 计算级别说明
+    const levelDescriptions: Record<string, { title: string; description: string; color: string }> = {
+      L1: {
+        title: 'L1 估算级',
+        description: '基于餐食类型和地区的行业基准值进行快速估算，适用于快速铺量、小微餐厅、商户数据缺失场景',
+        color: '#1890ff'
+      },
+      L2: {
+        title: 'L2 核算级',
+        description: '基于标准配方(BOM)和标准能耗模型进行详细计算，适用于常规餐厅和标准菜单',
+        color: '#52c41a'
+      },
+      L3: {
+        title: 'L3 实测级',
+        description: '基于动态BOM、智能电表实测数据和溯源因子的高精度计算，适用于标杆气候餐厅、碳资产开发场景',
+        color: '#722ed1'
+      }
+    }
+    
+    const levelInfo = levelDescriptions[calculationLevel] || levelDescriptions.L2
+
     return (
       <div style={{ marginTop: '16px' }}>
         <Divider orientation="left">计算明细</Divider>
+        
+        {/* 计算级别标识 */}
+        <Card 
+          size="small" 
+          style={{ 
+            marginBottom: '16px', 
+            background: calculationLevel === 'L1' ? '#e6f7ff' : calculationLevel === 'L3' ? '#f9f0ff' : '#f6ffed',
+            borderColor: levelInfo.color
+          }}
+        >
+          <Space>
+            <Tag color={levelInfo.color} style={{ fontSize: '14px', padding: '4px 12px' }}>
+              {levelInfo.title}
+            </Tag>
+            {isEstimated && (
+              <Tag color="orange">估算值</Tag>
+            )}
+            {calculationLevel === 'L3' && menuItem.hasMeterReading && (
+              <Tag color="green">实测能耗</Tag>
+            )}
+            {calculationLevel === 'L3' && menuItem.hasTraceability && (
+              <Tag color="blue">溯源数据</Tag>
+            )}
+            <Tooltip title={levelInfo.description}>
+              <InfoCircleOutlined style={{ color: levelInfo.color, cursor: 'pointer' }} />
+            </Tooltip>
+          </Space>
+        </Card>
         
         {/* 食材明细 */}
         <div style={{ marginBottom: '24px' }}>
@@ -641,7 +781,8 @@ const CarbonMenu: React.FC = () => {
             mealType: 'meat_simple',
             energyType: 'electric',
             calculationLevel: 'L2',
-            region: 'national_average',
+            baselineRegion: 'national_average',
+            factorRegion: 'CN',
           }}
         >
           <Form.Item
@@ -683,12 +824,12 @@ const CarbonMenu: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label="适用区域"
-            name="region"
-            rules={[{ required: true, message: '请选择适用区域' }]}
-            tooltip="用于匹配碳排放因子和基准值，影响碳足迹计算的准确性"
+            label="基准值区域"
+            name="baselineRegion"
+            rules={[{ required: true, message: '请选择基准值区域' }]}
+            tooltip="用于查询碳足迹基准值，影响碳足迹计算的准确性"
           >
-            <Select placeholder="请选择适用区域">
+            <Select placeholder="请选择基准值区域">
               <Select.Option value="north_china">华北区域</Select.Option>
               <Select.Option value="northeast">东北区域</Select.Option>
               <Select.Option value="east_china">华东区域</Select.Option>
@@ -697,6 +838,22 @@ const CarbonMenu: React.FC = () => {
               <Select.Option value="northwest">西北区域</Select.Option>
               <Select.Option value="southwest">西南区域</Select.Option>
               <Select.Option value="national_average">全国平均</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="因子区域"
+            name="factorRegion"
+            rules={[{ required: true, message: '请选择因子区域' }]}
+            tooltip="用于匹配食材碳排放因子，影响碳足迹计算的准确性。中国的餐厅通常选择'中国 (CN)'。"
+            initialValue="CN"
+          >
+            <Select placeholder="请选择因子区域">
+              {factorRegionOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
 

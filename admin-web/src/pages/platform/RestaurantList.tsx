@@ -1,4 +1,5 @@
 import { platformAPI, tenantAPI } from '@/services/cloudbase'
+import { regionConfigAPI } from '@/services/regionConfig'
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -38,6 +39,8 @@ interface Restaurant {
   phone: string
   email: string
   address: string
+  region?: string  // 基准值区域代码
+  factorRegion?: string  // 因子区域代码
   status: 'active' | 'inactive' | 'pending' | 'suspended'
   certificationLevel?: 'bronze' | 'silver' | 'gold' | 'platinum'
   tenantId: string
@@ -55,6 +58,7 @@ const RestaurantList: React.FC = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<Restaurant | null>(null)
   const [form] = Form.useForm()
+  const [factorRegionOptions, setFactorRegionOptions] = useState<Array<{ value: string; label: string }>>([])
   
   // 筛选条件
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -72,7 +76,38 @@ const RestaurantList: React.FC = () => {
 
   useEffect(() => {
     fetchTenantOptions()
+    loadFactorRegionOptions()
   }, [])
+
+  // 加载因子区域选项
+  const loadFactorRegionOptions = async () => {
+    try {
+      const result = await regionConfigAPI.list({
+        configType: 'factor_region',
+        status: 'active',
+        pageSize: 100
+      })
+      
+      const regions = Array.isArray(result.data) 
+        ? result.data 
+        : result.data?.list || []
+      
+      const options = regions.map((region: any) => ({
+        value: region.code,
+        label: `${region.name} (${region.code})`
+      }))
+      
+      setFactorRegionOptions(options)
+    } catch (error) {
+      console.error('加载因子区域选项失败:', error)
+      // 如果加载失败，使用默认选项
+      setFactorRegionOptions([
+        { value: 'CN', label: '中国 (CN)' },
+        { value: 'US', label: '美国 (US)' },
+        { value: 'JP', label: '日本 (JP)' },
+      ])
+    }
+  }
 
   useEffect(() => {
     fetchRestaurants()
@@ -700,9 +735,9 @@ const RestaurantList: React.FC = () => {
           </Form.Item>
           <Form.Item 
             name="region" 
-            label="地区" 
+            label="地区（基准值）" 
             rules={[{ required: true, message: '请选择餐厅所在地区' }]}
-            tooltip="地区用于碳足迹计算时的因子匹配和基准值查询"
+            tooltip="地区用于碳足迹计算时的基准值查询。输入地址后系统会自动识别，您也可以手动选择覆盖。"
           >
             <Select placeholder="请选择地区">
               <Select.Option value="north_china">华北区域</Select.Option>
@@ -713,6 +748,21 @@ const RestaurantList: React.FC = () => {
               <Select.Option value="northwest">西北区域</Select.Option>
               <Select.Option value="southwest">西南区域</Select.Option>
               <Select.Option value="national_average">全国平均</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="factorRegion"
+            label="因子区域"
+            rules={[{ required: true, message: '请选择因子区域' }]}
+            tooltip="因子区域用于食材碳足迹因子的匹配。中国的餐厅通常选择'中国 (CN)'。"
+            initialValue="CN"
+          >
+            <Select placeholder="请选择因子区域">
+              {factorRegionOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item name="status" label={t('pages.platform.restaurantList.form.fields.status')}>

@@ -564,11 +564,19 @@ export const carbonFootprintAPI = {
   recalculateMenuItems: (data: {
     restaurantId: string
     menuItemIds?: string[]
-  }) =>
-    callCloudFunction('restaurant-menu-carbon', {
+  }) => {
+    console.log('[API] 调用 recalculateMenuItems:', data)
+    return callCloudFunction('restaurant-menu-carbon', {
       action: 'recalculateMenuItems',
       data,
-    }),
+    }).then(result => {
+      console.log('[API] recalculateMenuItems 响应:', result)
+      return result
+    }).catch(error => {
+      console.error('[API] recalculateMenuItems 错误:', error)
+      throw error
+    })
+  },
 
   // 获取菜单列表（含碳足迹信息）
   getMenuList: (params: { restaurantId: string; page?: number; pageSize?: number }) =>
@@ -997,7 +1005,8 @@ export const tenantAPI = {
       mealType?: 'meat_simple' | 'meat_full'
       energyType?: 'electric' | 'gas' | 'mixed'
       calculationLevel?: 'L1' | 'L2' | 'L3'
-      restaurantRegion?: string
+      restaurantRegion?: string  // 基准值区域代码
+      factorRegion?: string  // 因子区域代码
       cookingTime?: number
       cookingMethod?: string
       carbonFootprint?: any
