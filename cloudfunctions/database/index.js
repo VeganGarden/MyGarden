@@ -30,6 +30,9 @@ const { migrateFactorRegions, rollbackFactorRegions } = require('./migrate-facto
 const { main: fixRestaurantAdminPermission } = require('./fix-restaurant-admin-permission');
 const { main: initMealSetBaselinesCollection } = require('./init-meal-set-baselines-collection');
 const { main: initMealSetBaselineSampleData } = require('./init-meal-set-baseline-sample-data');
+const { main: initRegionConfigs } = require('./init-region-configs');
+const { main: fixRegionConfigDefaults } = require('./fix-region-config-defaults');
+const { main: removeNationalAverage } = require('./remove-national-average');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -68,6 +71,7 @@ const { main: initMealSetBaselineSampleData } = require('./init-meal-set-baselin
  * - initVegetarianPersonnelPermissions: 初始化素食人员管理模块权限（vegetarianPersonnel:view, vegetarianPersonnel:manage）
  * - initMealSetBaselinesCollection: 初始化一餐饭基准值集合（meal_set_baselines）
  * - initMealSetBaselineSampleData: 初始化一餐饭基准值示例数据
+ * - initRegionConfigs: 初始化区域配置数据（因子区域和基准值区域）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -184,6 +188,12 @@ exports.main = async (event) => {
         return await initMealSetBaselinesCollection(event);
       case 'initMealSetBaselineSampleData':
         return await initMealSetBaselineSampleData(event);
+      case 'initRegionConfigs':
+        return await initRegionConfigs(event);
+      case 'fixRegionConfigDefaults':
+        return await fixRegionConfigDefaults(event);
+      case 'removeNationalAverage':
+        return await removeNationalAverage(event);
       default:
         return await initCollectionsV1(event);
     }
@@ -274,16 +284,21 @@ async function initCollectionsV1(event) {
     results.push(result13);
 
     // 14. 创建plant_templates集合（植物模板数据）
-    console.log('[14/14] 创建plant_templates集合...');
+    console.log('[14/15] 创建plant_templates集合...');
     const result14 = await createCollection('plant_templates');
     results.push(result14);
+
+    // 15. 创建region_configs集合（区域配置表）
+    console.log('[15/15] 创建region_configs集合...');
+    const result15 = await createCollection('region_configs');
+    results.push(result15);
 
     const successCount = results.filter(r => r.status === 'success').length;
 
     console.log('\n========================================');
     console.log('🎉 数据库集合创建完成！');
     console.log('========================================');
-    console.log(`成功创建: ${successCount}/14 个集合`);
+    console.log(`成功创建: ${successCount}/15 个集合`);
     console.log('========================================\n');
     console.log('⚠️  重要提示：');
     console.log('索引需要在云开发控制台手动创建');
@@ -295,7 +310,7 @@ async function initCollectionsV1(event) {
       code: 0,
       message: '数据库集合创建成功',
       summary: {
-        totalCollections: 14,
+        totalCollections: 15,
         successfulCollections: successCount,
         failedCollections: 14 - successCount,
         collections: results

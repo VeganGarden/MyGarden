@@ -39,23 +39,58 @@ function mapIngredientCategoryToSubCategory(category) {
 }
 
 /**
+ * 验证因子区域代码是否有效
+ * 
+ * @param {string} regionCode - 区域代码（如 'CN', 'US' 等）
+ * @returns {Promise<boolean>} 是否在区域配置中存在且为激活状态
+ */
+async function validateRegionCode(regionCode) {
+  try {
+    const result = await db.collection('region_configs')
+      .where({
+        configType: 'factor_region',
+        code: regionCode,
+        status: 'active'
+      })
+      .limit(1)
+      .get();
+    
+    return result.data.length > 0;
+  } catch (error) {
+    console.error('验证区域代码失败:', error);
+    // 验证失败时返回 false，要求明确指定有效的区域代码
+    return false;
+  }
+}
+
+/**
  * 匹配因子（多级匹配算法）
  * @param {string} inputName - 食材名称
  * @param {string} category - 食材类别（可选）
- * @param {string} region - 地区（默认'national_average'，统一使用新格式）
+ * @param {string} region - 地区（国家代码，如 'CN', 'US' 等）
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
-async function matchFactor(inputName, category, region = 'national_average') {
+async function matchFactor(inputName, category, region = null) {
   if (!inputName) return null;
 
-  // 统一使用新格式（national_average, east_china等）
-  const factorRegion = region || 'national_average';
+  // 如果没有指定区域，返回 null（要求明确指定国家）
+  if (!region) {
+    console.warn('未指定区域代码，无法匹配因子');
+    return null;
+  }
+  
+  // 验证区域代码是否在区域配置中存在
+  const isValidRegion = await validateRegionCode(region);
+  if (!isValidRegion) {
+    console.warn(`区域代码 ${region} 不在区域配置中，无法匹配因子`);
+    return null;
+  }
 
   // Level 1: 精确区域匹配
   let factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: factorRegion,
+      region: region,
       status: 'active'
     })
     .get();
@@ -67,26 +102,11 @@ async function matchFactor(inputName, category, region = 'national_average') {
     }
   }
 
-  // Level 2: 国家级匹配
-  factor = await db.collection('carbon_emission_factors')
-    .where({
-      name: inputName,
-      region: 'national_average',
-      status: 'active'
-    })
-    .get();
-
-  if (factor.data.length > 0) {
-    const matched = factor.data[0];
-    if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      return matched;
-    }
-  }
-
-  // Level 3: 别名匹配
+  // Level 2: 别名匹配（优先匹配指定区域的别名）
   let aliasMatch = await db.collection('carbon_emission_factors')
     .where({
       alias: inputName,
+      region: region,
       status: 'active'
     })
     .get();
@@ -98,14 +118,14 @@ async function matchFactor(inputName, category, region = 'national_average') {
     }
   }
 
-  // Level 4: 类别兜底
+  // Level 3: 类别兜底（仅使用指定区域的类别因子）
   if (category) {
     const subCategory = mapIngredientCategoryToSubCategory(category);
     const categoryFactor = await db.collection('carbon_emission_factors')
       .where({
         category: 'ingredient',
         subCategory: subCategory,
-        region: _.or(['national_average', factorRegion]),
+        region: region,
         status: 'active'
       })
       .orderBy('createdAt', 'desc')
@@ -294,7 +314,7 @@ async function queryBaseline(mealType, region, energyType) {
       name: 'carbon-baseline-query',
       data: {
         mealType: mealType || 'meat_simple',
-        region: region || 'national_average',
+        region: region,
         energyType: energyType || 'electric'
       }
     })
@@ -333,7 +353,7 @@ async function calculateCarbonFootprint(ingredients, cookingMethod, mealType, re
 
     // 从因子库查询因子
     try {
-      const matchedFactor = await matchFactor(name, category, region || 'national_average')
+      const matchedFactor = await matchFactor(name, category, region)
       if (matchedFactor && matchedFactor.factorValue !== null && matchedFactor.factorValue !== undefined) {
         factor = matchedFactor.factorValue
         factorSource = matchedFactor.matchLevel || 'factor_library'
@@ -470,11 +490,6 @@ async function compareWithMeat(event) {
     // 计算等效说明
     const equivalents = calculateEquivalents(reduction);
 
-    console.log('对比计算结果:');
-    console.log('素食餐碳足迹:', veganCarbon.toFixed(2), 'kg');
-    console.log('肉食餐碳足迹:', meatCarbon.toFixed(2), 'kg');
-    console.log('减排量:', reduction.toFixed(2), 'kg');
-    console.log('减排比例:', reductionPercent.toFixed(1), '%');
 
     return {
       code: 0,
@@ -594,9 +609,6 @@ async function calculateMealAdvanced(event) {
     // 计算等效说明
     const equivalents = calculator.calculateEquivalents(calculationResult.totalCarbon);
 
-    console.log('高级计算完成:');
-    console.log('总碳足迹:', calculationResult.totalCarbon, 'kg');
-    console.log('详细分解:', calculationResult.breakdown);
 
     return {
       code: 0,
@@ -775,10 +787,6 @@ async function calculateRecipeCarbon(event) {
       carbonScore = Math.max(0, Math.min(49, Math.round(49 - (excessCarbon / 2.0) * 49)));
     }
 
-    console.log('菜谱碳足迹计算结果:');
-    console.log('总碳足迹:', totalCarbon.toFixed(2), 'kg CO₂e');
-    console.log('碳标签:', carbonLabel);
-    console.log('碳评分:', carbonScore);
 
     return {
       code: 0,

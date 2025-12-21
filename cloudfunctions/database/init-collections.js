@@ -22,6 +22,7 @@ const db = cloud.database();
  * 10. friends - 好友关系表
  * 11. posts - 动态表
  * 12. orders - 订单表
+ * 13. region_configs - 区域配置表
  */
 exports.main = async (event) => {
   const results = [];
@@ -87,16 +88,21 @@ exports.main = async (event) => {
     results.push(result11);
 
     // 12. 创建orders集合
-    console.log('[12/12] 创建orders集合...');
+    console.log('[12/13] 创建orders集合...');
     const result12 = await createCollection('orders');
     results.push(result12);
+
+    // 13. 创建region_configs集合
+    console.log('[13/13] 创建region_configs集合...');
+    const result13 = await createCollection('region_configs');
+    results.push(result13);
 
     const successCount = results.filter(r => r.status === 'success').length;
 
     console.log('\n========================================');
     console.log('🎉 数据库集合创建完成！');
     console.log('========================================');
-    console.log(`成功创建: ${successCount}/12 个集合`);
+    console.log(`成功创建: ${successCount}/13 个集合`);
     console.log('========================================\n');
     console.log('⚠️  重要提示：');
     console.log('索引需要在云开发控制台手动创建');
@@ -108,9 +114,9 @@ exports.main = async (event) => {
       code: 0,
       message: '数据库集合创建成功',
       summary: {
-        totalCollections: 12,
+        totalCollections: 13,
         successfulCollections: successCount,
-        failedCollections: 12 - successCount,
+        failedCollections: 13 - successCount,
         collections: results
       },
       nextSteps: {

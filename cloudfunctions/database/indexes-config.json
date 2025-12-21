@@ -328,10 +328,53 @@
           "description": "用户订单列表"
         }
       ]
+    },
+    "region_configs": {
+      "collectionName": "region_configs",
+      "totalIndexes": 4,
+      "indexes": [
+        {
+          "name": "configType_code_unique",
+          "keys": [
+            { "field": "configType", "direction": 1 },
+            { "field": "code", "direction": 1 }
+          ],
+          "unique": true,
+          "priority": "最高",
+          "description": "配置类型和区域代码唯一性"
+        },
+        {
+          "name": "configType_country_index",
+          "keys": [
+            { "field": "configType", "direction": 1 },
+            { "field": "country", "direction": 1 }
+          ],
+          "priority": "高",
+          "description": "按配置类型和国家查询"
+        },
+        {
+          "name": "configType_status_index",
+          "keys": [
+            { "field": "configType", "direction": 1 },
+            { "field": "status", "direction": 1 }
+          ],
+          "priority": "高",
+          "description": "按配置类型和状态查询"
+        },
+        {
+          "name": "configType_parentCode_index",
+          "keys": [
+            { "field": "configType", "direction": 1 },
+            { "field": "parentCode", "direction": 1 }
+          ],
+          "priority": "中",
+          "description": "按配置类型和父级区域查询（用于基准值区域的层级关系）"
+        }
+      ]
     }
   },
   "summary": {
-    "totalMandatory": 24,
+    "totalMandatory": 28,
     "totalOptional": 4,
     "estimatedTime": "15-20分钟"
   }

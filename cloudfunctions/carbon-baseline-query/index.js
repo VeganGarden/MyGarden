@@ -82,10 +82,44 @@ async function updateUsageStats(baselineId) {
 }
 
 /**
+ * 验证基准值区域代码是否有效
+ * @param {string} regionCode - 区域代码
+ * @returns {Promise<boolean>} 是否有效
+ */
+async function validateBaselineRegionCode(regionCode) {
+  try {
+    const db = cloud.database();
+    const result = await db.collection('region_configs')
+      .where({
+        configType: 'baseline_region',
+        code: regionCode,
+        status: 'active'
+      })
+      .limit(1)
+      .get();
+    
+    return result.data.length > 0;
+  } catch (error) {
+    console.error('验证基准值区域代码失败:', error);
+    // 如果验证失败，返回true以保持向后兼容
+    return true;
+  }
+}
+
+/**
  * 单条查询
  */
 async function querySingle(params) {
   const { mealType, region, energyType, city, restaurantType, date } = params;
+  
+  // 验证区域代码
+  if (region) {
+    const isValidRegion = await validateBaselineRegionCode(region);
+    if (!isValidRegion) {
+      console.warn(`基准值区域代码 ${region} 不在区域配置中`);
+      // 区域代码无效时，查询将无法匹配到基准值
+    }
+  }
   
   // 构建查询条件
   const query = {

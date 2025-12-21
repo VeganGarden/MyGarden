@@ -31,15 +31,15 @@ import BaselineDetail from './pages/carbon/BaselineDetail'
 import BaselineEdit from './pages/carbon/BaselineEdit'
 import BaselineImport from './pages/carbon/BaselineImport'
 import BaselineList from './pages/carbon/BaselineList'
-import MealSetBaselineAdd from './pages/carbon/MealSetBaselineAdd'
-import MealSetBaselineDetail from './pages/carbon/MealSetBaselineDetail'
-import MealSetBaselineEdit from './pages/carbon/MealSetBaselineEdit'
-import MealSetBaselineList from './pages/carbon/MealSetBaselineList'
 import FactorAdd from './pages/carbon/FactorAdd'
 import FactorDetail from './pages/carbon/FactorDetail'
 import FactorEdit from './pages/carbon/FactorEdit'
 import FactorImport from './pages/carbon/FactorImport'
 import FactorLibrary from './pages/carbon/FactorLibrary'
+import MealSetBaselineAdd from './pages/carbon/MealSetBaselineAdd'
+import MealSetBaselineDetail from './pages/carbon/MealSetBaselineDetail'
+import MealSetBaselineEdit from './pages/carbon/MealSetBaselineEdit'
+import MealSetBaselineList from './pages/carbon/MealSetBaselineList'
 import CarbonMenu from './pages/carbon/Menu'
 import CarbonOrder from './pages/carbon/Order'
 import CarbonReport from './pages/carbon/Report'
@@ -80,6 +80,7 @@ import AccountApprovals from './pages/platform/AccountApprovals'
 import AdminUsers from './pages/platform/AdminUsers'
 import PlatformCrossTenant from './pages/platform/CrossTenant'
 import OperationLog from './pages/platform/OperationLog'
+import RegionConfig from './pages/platform/RegionConfig'
 import PlatformRestaurantList from './pages/platform/RestaurantList'
 import PlatformStatistics from './pages/platform/Statistics'
 import TenantList from './pages/platform/TenantList'
@@ -541,6 +542,14 @@ const App: React.FC = () => {
           <Route path="platform/account-approvals" element={<AccountApprovals />} />
           <Route path="platform/operation-log" element={<OperationLog />} />
           <Route path="platform/admin-users" element={<AdminUsers />} />
+          <Route 
+            path="platform/region-config" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator', 'system_admin']}>
+                <RegionConfig />
+              </RouteGuard>
+            } 
+          />
           
           {/* 系统管理（仅系统管理员可见 - 由菜单与守卫共同控制） */}
           <Route path="system/users" element={<SystemUsers />} />

@@ -42,9 +42,40 @@ function generateBaselineId(category) {
 }
 
 /**
+ * 验证基准值区域代码是否有效
+ * @param {string} regionCode - 区域代码
+ * @returns {Promise<{valid: boolean, message?: string}>} 验证结果
+ */
+async function validateBaselineRegionCode(regionCode) {
+  try {
+    const result = await db.collection('region_configs')
+      .where({
+        configType: 'baseline_region',
+        code: regionCode,
+        status: 'active'
+      })
+      .limit(1)
+      .get();
+    
+    if (result.data.length === 0) {
+      return {
+        valid: false,
+        message: `基准值区域代码 ${regionCode} 不存在或已归档，请先在区域配置中创建`
+      };
+    }
+    
+    return { valid: true };
+  } catch (error) {
+    console.error('验证基准值区域代码失败:', error);
+    // 如果验证失败，返回true以保持向后兼容（允许使用未配置的区域）
+    return { valid: true };
+  }
+}
+
+/**
  * 验证基准值数据
  */
-function validateBaseline(baseline) {
+async function validateBaseline(baseline) {
   const errors = [];
   
   if (!baseline.category || !baseline.category.mealType) {
@@ -52,6 +83,14 @@ function validateBaseline(baseline) {
   }
   if (!baseline.category || !baseline.category.region) {
     errors.push('category.region 必填');
+  } else {
+    // 验证区域代码（如果区域配置存在）
+    if (baseline.category.region !== 'national_average') {
+      const regionValidation = await validateBaselineRegionCode(baseline.category.region);
+      if (!regionValidation.valid) {
+        errors.push(regionValidation.message || '区域代码无效');
+      }
+    }
   }
   if (!baseline.category || !baseline.category.energyType) {
     errors.push('category.energyType 必填');
@@ -72,11 +111,11 @@ function validateBaseline(baseline) {
 
 /**
  * 检查权限（仅管理员可操作）
+ * 注意：此函数已废弃，权限检查已移至云函数入口处统一处理
+ * @deprecated 使用云函数入口处的权限检查逻辑
  */
 async function checkPermission(openid) {
-  // TODO: 实现权限检查逻辑
-  // 这里简化处理，实际应该查询用户权限表
-  // 暂时允许所有操作，生产环境需要添加权限验证
+  // 权限检查已在云函数入口处统一处理，此函数保留仅为向后兼容
   return true;
 }
 
@@ -85,7 +124,7 @@ async function checkPermission(openid) {
  */
 async function createBaseline(baseline, openid, user) {
   // 验证数据
-  const validation = validateBaseline(baseline);
+  const validation = await validateBaseline(baseline);
   if (!validation.valid) {
     return {
       success: false,
@@ -156,7 +195,7 @@ async function createBaseline(baseline, openid, user) {
  */
 async function executeApprovedCreate(baseline) {
   // 验证数据
-  const validation = validateBaseline(baseline);
+  const validation = await validateBaseline(baseline);
   if (!validation.valid) {
     return {
       success: false,
@@ -248,6 +287,20 @@ async function updateBaseline(baselineId, updates, openid, user) {
   
   const currentBaseline = existing.data[0];
   const newBaselineData = { ...currentBaseline, ...updates };
+  
+  // 如果更新了区域，验证新区域代码
+  if (updates.category && updates.category.region && updates.category.region !== currentBaseline.category.region) {
+    if (updates.category.region !== 'national_average') {
+      const regionValidation = await validateBaselineRegionCode(updates.category.region);
+      if (!regionValidation.valid) {
+        return {
+          success: false,
+          error: '数据验证失败',
+          errors: [regionValidation.message || '区域代码无效']
+        };
+      }
+    }
+  }
   
   // 创建审核申请
   try {

@@ -408,7 +408,7 @@ const MainLayout: React.FC = () => {
         ]
       : []),
     // 平台管理模块（仅平台运营可见）
-    ...(isPlatformAdmin
+    ...(isPlatformAdmin || isSystemAdmin
       ? [
           {
             key: '/platform',
@@ -430,6 +430,10 @@ const MainLayout: React.FC = () => {
               {
                 key: '/platform/statistics',
                 label: t('menu.platformStatistics'),
+              },
+              {
+                key: '/platform/region-config',
+                label: '因子与基准值区域配置',
               },
               {
                 key: '/platform/account-approvals',
