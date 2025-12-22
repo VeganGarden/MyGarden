@@ -32,8 +32,8 @@ export const regionConfigAPI = {
    * 获取区域配置列表
    */
   list: async (params?: RegionConfigListParams) => {
-    return callCloudFunction('region-config-manage', {
-      action: 'list',
+    return callCloudFunction('platform-config-manage', {
+      action: 'region.list',
       ...(params || {})
     })
   },
@@ -42,8 +42,8 @@ export const regionConfigAPI = {
    * 获取单个区域配置详情
    */
   get: async (regionId: string) => {
-    return callCloudFunction('region-config-manage', {
-      action: 'get',
+    return callCloudFunction('platform-config-manage', {
+      action: 'region.get',
       regionId
     })
   },
@@ -52,8 +52,8 @@ export const regionConfigAPI = {
    * 创建区域配置
    */
   create: async (region: Partial<RegionConfig>) => {
-    return callCloudFunction('region-config-manage', {
-      action: 'create',
+    return callCloudFunction('platform-config-manage', {
+      action: 'region.create',
       region
     })
   },
@@ -62,8 +62,8 @@ export const regionConfigAPI = {
    * 更新区域配置
    */
   update: async (regionId: string, region: Partial<RegionConfig>) => {
-    return callCloudFunction('region-config-manage', {
-      action: 'update',
+    return callCloudFunction('platform-config-manage', {
+      action: 'region.update',
       regionId,
       region
     })
@@ -73,8 +73,8 @@ export const regionConfigAPI = {
    * 归档区域配置
    */
   archive: async (regionId: string) => {
-    return callCloudFunction('region-config-manage', {
-      action: 'archive',
+    return callCloudFunction('platform-config-manage', {
+      action: 'region.archive',
       regionId
     })
   },
@@ -83,8 +83,8 @@ export const regionConfigAPI = {
    * 激活区域配置
    */
   activate: async (regionId: string) => {
-    return callCloudFunction('region-config-manage', {
-      action: 'activate',
+    return callCloudFunction('platform-config-manage', {
+      action: 'region.activate',
       regionId
     })
   }

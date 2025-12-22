@@ -3,6 +3,62 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
+// 初始化配置缓存（使用硬编码默认值作为降级方案）
+let configCache = {
+  wasteRates: null,
+  energyFactors: null,
+  cookingTimes: null,
+  cookingPowers: null,
+  lastUpdate: null
+};
+const CACHE_TTL = 5 * 60 * 1000; // 缓存5分钟
+
+/**
+ * 初始化硬编码默认值（作为降级方案）
+ */
+function initDefaultConfigs() {
+  configCache = {
+    wasteRates: {
+      vegetables: 0.20,
+      vegetable: 0.20,
+      leafy: 0.20,
+      meat: 0.05,
+      seafood: 0.15,
+      grains: 0.0,
+      grain: 0.0,
+      nuts: 0.0,
+      spices: 0.0,
+      others: 0.10,
+      other: 0.10,
+      default: 0.10
+    },
+    energyFactors: {
+      electric: 0.5703,
+      gas: 2.16
+    },
+    cookingTimes: {
+      raw: 0,
+      steamed: 15,
+      boiled: 20,
+      stir_fried: 5,
+      fried: 8,
+      baked: 45
+    },
+    cookingPowers: {
+      raw: 0,
+      steamed: 2.0,
+      boiled: 1.5,
+      stir_fried: 3.0,
+      fried: 5.0,
+      baked: 4.0
+    },
+    lastUpdate: Date.now()
+  };
+}
+
+// 初始化默认配置
+initDefaultConfigs();
+
 /**
  * 餐厅菜谱碳足迹计算云函数
  * 
@@ -432,7 +488,7 @@ async function calculateCarbonFootprint(data) {
         const quantity = ingredient.quantity;
         const unit = ingredient.unit || 'g';
         const ingredientCategory = ingredient.category || null;
-        const wasteRate = ingredient.wasteRate || getDefaultWasteRate(ingredientCategory); // 损耗率，默认值根据类别
+        const wasteRate = ingredient.wasteRate || await getDefaultWasteRate(ingredientCategory); // 损耗率，默认值根据类别
 
         // 验证必填字段
         if (!ingredientName) {
@@ -940,7 +996,7 @@ async function calculateCarbonFootprintL3(data, region) {
           const quantity = ingredient.quantity;
           const unit = ingredient.unit || 'g';
           const ingredientCategory = ingredient.category || null;
-          const wasteRate = ingredient.wasteRate || getDefaultWasteRate(ingredientCategory);
+          const wasteRate = ingredient.wasteRate || await getDefaultWasteRate(ingredientCategory);
           
           // 支持溯源信息（L3特有）
           // 溯源信息格式：{ supplierId, supplierName, origin, transportDistance, transportMode, certificateId, etc. }
@@ -1192,38 +1248,71 @@ async function validateRegionCode(regionCode) {
 }
 
 /**
- * 获取默认损耗率
- * 根据食材类别返回默认损耗率
- * @param {string} category - 食材类别
- * @returns {number} 损耗率（比例，如0.2表示20%）
+ * 从数据库加载配置到缓存
  */
-function getDefaultWasteRate(category) {
-  // 行业经验值损耗率
-  const defaultWasteRates = {
-    // 蔬菜类
-    vegetables: 0.20,    // 叶菜类 20%
-    vegetable: 0.20,
-    leafy: 0.20,
-    // 肉类
-    meat: 0.05,          // 肉类 5%
-    // 海鲜
-    seafood: 0.15,       // 海鲜 15%
-    // 干货
-    grains: 0.0,         // 谷物 0%
-    grain: 0.0,
-    nuts: 0.0,           // 坚果 0%
-    spices: 0.0,         // 调料 0%
-    // 其他
-    others: 0.10,        // 其他 10%
-    other: 0.10
-  };
+async function loadConfigs() {
+  const now = Date.now();
   
-  if (category && defaultWasteRates[category]) {
-    return defaultWasteRates[category];
+  // 如果缓存有效，直接返回
+  if (configCache.lastUpdate && (now - configCache.lastUpdate) < CACHE_TTL) {
+    return;
   }
   
-  // 默认值
-  return 0.10; // 10%
+  try {
+    // 加载所有激活的配置
+    const configs = await db.collection('carbon_calculation_configs')
+      .where({
+        status: 'active'
+      })
+      .get();
+    
+    // 重置缓存
+    configCache = {
+      wasteRates: {},
+      energyFactors: {},
+      cookingTimes: {},
+      cookingPowers: {},
+      lastUpdate: now
+    };
+    
+    // 按类型分类
+    for (const config of configs.data) {
+      if (config.configKey === 'ingredient_waste_rate') {
+        configCache.wasteRates[config.category] = config.value;
+      } else if (config.configKey === 'default_electric_factor') {
+        configCache.energyFactors.electric = config.value;
+      } else if (config.configKey === 'default_gas_factor') {
+        configCache.energyFactors.gas = config.value;
+      } else if (config.configKey === 'standard_time_model') {
+        configCache.cookingTimes[config.category] = config.value;
+      } else if (config.configKey === 'standard_power_model') {
+        configCache.cookingPowers[config.category] = config.value;
+      }
+    }
+  } catch (error) {
+    // 加载失败，使用硬编码默认值
+    console.error('加载配置失败，使用默认值:', error);
+    initDefaultConfigs();
+  }
+}
+
+/**
+ * 获取默认损耗率
+ * 根据食材类别返回默认损耗率（从数据库配置读取）
+ * @param {string} category - 食材类别
+ * @returns {Promise<number>} 损耗率（比例，如0.2表示20%）
+ */
+async function getDefaultWasteRate(category) {
+  // 确保配置已加载
+  await loadConfigs();
+  
+  // 先从缓存查找
+  if (category && configCache.wasteRates[category] !== undefined) {
+    return configCache.wasteRates[category];
+  }
+  
+  // 使用默认值
+  return configCache.wasteRates.default || 0.10;
 }
 
 /**
@@ -1475,24 +1564,27 @@ async function matchTransportFactor(transportMode, region = 'national_average') 
  * @returns {Promise<number>} 能耗碳足迹（kg CO₂e）
  */
 async function calculateEnergyByStandardModel(cookingMethod, cookingTime, energyType, region) {
-  // 标准工时模型（分钟）
-  const standardTimeModel = {
-    raw: 0,           // 生食：0分钟
-    steamed: 15,      // 蒸：15分钟
-    boiled: 20,       // 煮：20分钟
-    stir_fried: 5,    // 炒：5分钟
-    fried: 8,         // 炸：8分钟
-    baked: 45         // 烤：45分钟
+  // 确保配置已加载
+  await loadConfigs();
+
+  // 从缓存获取标准工时模型（分钟）
+  const standardTimeModel = configCache.cookingTimes || {
+    raw: 0,
+    steamed: 15,
+    boiled: 20,
+    stir_fried: 5,
+    fried: 8,
+    baked: 45
   };
 
-  // 标准功率模型（kW，根据烹饪方式）
-  const standardPowerModel = {
+  // 从缓存获取标准功率模型（kW）
+  const standardPowerModel = configCache.cookingPowers || {
     raw: 0,
-    steamed: 2.0,     // 蒸锅：2kW
-    boiled: 1.5,      // 煮锅：1.5kW
-    stir_fried: 3.0,  // 炒锅：3kW
-    fried: 5.0,       // 炸锅：5kW
-    baked: 4.0        // 烤箱：4kW
+    steamed: 2.0,
+    boiled: 1.5,
+    stir_fried: 3.0,
+    fried: 5.0,
+    baked: 4.0
   };
 
   // 使用提供的时长或标准工时
@@ -1517,9 +1609,11 @@ async function calculateEnergyByStandardModel(cookingMethod, cookingTime, energy
     }
   }
   
-  // 如果无法查询到因子，使用默认值（降级处理）
-  const defaultElectricFactor = 0.5703; // 2022年全国电网平均排放因子 (kg CO₂e/kWh)
-  const defaultGasFactor = 2.16; // IPCC 天然气因子 (kg CO₂e/m³)
+  // 如果无法查询到因子，使用默认值（从配置缓存读取）
+  await loadConfigs();
+  
+  const defaultElectricFactor = configCache.energyFactors?.electric || 0.5703; // 2022年全国电网平均排放因子 (kg CO₂e/kWh)
+  const defaultGasFactor = configCache.energyFactors?.gas || 2.16; // IPCC 天然气因子 (kg CO₂e/m³)
   
   const timeInHours = timeInMinutes / 60;
   if (energyType === 'gas') {

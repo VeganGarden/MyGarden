@@ -1,0 +1,10 @@
+{
+  "name": "init-carbon-configs",
+  "version": "1.0.0",
+  "description": "初始化碳足迹计算配置数据",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

@@ -45,11 +45,9 @@ async function checkPermission(event, context, requiredPermission = null, resour
   const db = cloud.database()
 
   // 1. 获取Token（支持多种方式传递token）
-  // 前端通过 cloudbase.ts 将 token 放在 payload.token 中，即 event.token
   const headerAuth = (event.headers && (event.headers.authorization || event.headers.Authorization)) || ''
   const eventToken = event.token || (event.data && event.data.token) || ''
-  const authHeader = headerAuth || eventToken || ''
-  const token = authHeader.replace('Bearer ', '').trim()
+  const token = (headerAuth.replace('Bearer ', '').trim() || eventToken).trim()
 
   if (!token) {
     throw { code: 401, message: '未授权访问，请先登录' }
@@ -66,7 +64,7 @@ async function checkPermission(event, context, requiredPermission = null, resour
     throw { code: 403, message: '用户已被禁用' }
   }
 
-  // 4. 获取角色配置
+  // 4. 获取角色权限配置
   const roleResult = await db.collection('role_configs')
     .where({ roleCode: user.role, status: 'active' })
     .get()
@@ -77,9 +75,9 @@ async function checkPermission(event, context, requiredPermission = null, resour
 
   const roleConfig = roleResult.data[0]
 
-  // 5. 检查权限（如果需要）
+  // 5. 检查权限
   if (requiredPermission && !roleConfig.permissions.includes(requiredPermission)) {
-    // 记录权限拒绝日志
+    // 记录无权限访问日志
     await db.collection('audit_logs').add({
       data: {
         userId: user._id,
@@ -95,25 +93,22 @@ async function checkPermission(event, context, requiredPermission = null, resour
         status: 'failed',
         errorMessage: '无权限访问',
         createdAt: new Date(),
-      },
+      }
     })
 
-    throw {
-      code: 403,
-      message: `无权限访问此资源。需要权限: ${requiredPermission}，用户角色: ${user.role}，拥有权限: ${roleConfig.permissions.join(', ')}`
-    }
+    throw { code: 403, message: `无权限访问此资源。需要权限: ${requiredPermission}，用户角色: ${user.role}，拥有权限: ${roleConfig.permissions.join(', ')}` }
   }
 
   // 6. 返回用户信息（包含权限上下文）
   return {
     ...user,
     permissions: roleConfig.permissions || [],
-    moduleAccess: roleConfig.moduleAccess || {}
+    moduleAccess: roleConfig.moduleAccess || {},
   }
 }
 
 module.exports = {
   verifyToken,
-  checkPermission,
+  checkPermission
 }
 

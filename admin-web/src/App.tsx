@@ -78,6 +78,7 @@ import ReportESG from './pages/report/ESG'
 // 平台管理模块（仅平台管理员可见）
 import AccountApprovals from './pages/platform/AccountApprovals'
 import AdminUsers from './pages/platform/AdminUsers'
+import CarbonCalculationConfig from './pages/platform/CarbonCalculationConfig'
 import PlatformCrossTenant from './pages/platform/CrossTenant'
 import OperationLog from './pages/platform/OperationLog'
 import RegionConfig from './pages/platform/RegionConfig'
@@ -547,6 +548,14 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['platform_operator', 'system_admin']}>
                 <RegionConfig />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="platform/carbon-calculation-config" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator', 'system_admin']}>
+                <CarbonCalculationConfig />
               </RouteGuard>
             } 
           />

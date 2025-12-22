@@ -33,6 +33,7 @@ const { main: initRegionConfigs } = require('./init-region-configs');
 const { main: fixRegionConfigDefaults } = require('./fix-region-config-defaults');
 const { main: removeNationalAverage } = require('./remove-national-average');
 const { main: updateAllFactorsRegionToCN } = require('./update-all-factors-region-to-cn');
+const { main: initCarbonCalculationConfigs } = require('./init-carbon-calculation-configs');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -192,6 +193,8 @@ exports.main = async (event) => {
         return await removeNationalAverage(event);
       case 'updateAllFactorsRegionToCN':
         return await updateAllFactorsRegionToCN(event);
+      case 'initCarbonCalculationConfigs':
+        return await initCarbonCalculationConfigs(event);
       default:
         return await initCollectionsV1(event);
     }

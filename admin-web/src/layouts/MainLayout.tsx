@@ -436,6 +436,10 @@ const MainLayout: React.FC = () => {
                 label: '因子与基准值区域配置',
               },
               {
+                key: '/platform/carbon-calculation-config',
+                label: '碳足迹计算默认参数配置',
+              },
+              {
                 key: '/platform/account-approvals',
                 label: t('menu.platformAccountApprovals'),
               },

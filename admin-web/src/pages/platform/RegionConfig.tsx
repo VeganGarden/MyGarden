@@ -50,7 +50,9 @@ const RegionConfigPage: React.FC = () => {
       })
 
       if (result && result.code === 0) {
-        setDataSource(result.data || [])
+        // 确保 data 是数组
+        const dataArray = Array.isArray(result.data) ? result.data : []
+        setDataSource(dataArray)
         setPagination({
           ...pagination,
           total: result.total || result.pagination?.total || 0,
