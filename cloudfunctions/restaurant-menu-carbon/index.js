@@ -17,40 +17,21 @@ const _ = db.command;
 exports.main = async (event, context) => {
   const { action, data } = event;
 
-  // 餐厅菜谱碳足迹计算云函数
-  console.log('[云函数] restaurant-menu-carbon 被调用:', {
-    action,
-    data: {
-      ...data,
-      // 不打印完整数据，只打印关键信息
-      restaurantId: data?.restaurantId,
-      menuItemIds: data?.menuItemIds,
-      items: data?.items?.length || 0
-    },
-    requestId: context.requestId
-  });
-
   try {
     switch (action) {
       case 'calculateMenuItemCarbon':
-        console.log('[云函数] 执行 calculateMenuItemCarbon');
         return await calculateMenuItemCarbon(data, context);
       case 'recalculateMenuItems':
-        console.log('[云函数] 执行 recalculateMenuItems, restaurantId:', data?.restaurantId, 'menuItemIds:', data?.menuItemIds);
         return await recalculateMenuItems(data, context);
       case 'getCarbonFactors':
-        console.log('[云函数] 执行 getCarbonFactors');
         return await getCarbonFactors(data, context);
       default:
-        console.warn('[云函数] 未知的 action:', action);
         return {
           code: 400,
           message: `未知的 action: ${action}`
         };
     }
   } catch (error) {
-    console.error('❌ 云函数执行失败:', error);
-    console.error('错误堆栈:', error.stack);
     return {
       code: 500,
       message: '云函数执行失败',
@@ -120,7 +101,6 @@ async function calculateMenuItemCarbon(data, context) {
       } else {
         // 使用默认值 national_average（基准值区域代码）
         baselineRegion = 'national_average';
-        console.warn('[碳足迹计算] 餐厅未定义基准值区域，使用默认值 national_average');
       }
     }
     
@@ -130,11 +110,9 @@ async function calculateMenuItemCarbon(data, context) {
     if (!data.factorRegion && restaurant.data) {
       if (restaurant.data.factorRegion) {
         factorRegion = restaurant.data.factorRegion;
-        console.log(`[碳足迹计算] 使用餐厅配置的因子区域: ${factorRegion}`);
       } else {
         // 如果没有配置 factorRegion，默认使用 CN
         factorRegion = 'CN';
-        console.log(`[碳足迹计算] 餐厅未配置因子区域，使用默认值 CN`);
       }
     }
 
@@ -270,10 +248,9 @@ async function calculateMenuItemCarbon(data, context) {
         source: baselineData?.source?.organization || null,
         queryDate: new Date()
       };
-    } else {
-      // 基准值查询失败，尝试使用全国平均
-      console.warn('基准值查询失败，尝试使用全国平均基准值');
-      const nationalBaselineResult = await cloud.callFunction({
+      } else {
+        // 基准值查询失败，尝试使用全国平均
+        const nationalBaselineResult = await cloud.callFunction({
         name: 'carbon-baseline-query',
         data: {
           mealType: data.mealType,
@@ -308,7 +285,6 @@ async function calculateMenuItemCarbon(data, context) {
         };
       } else {
         // 仍失败，使用默认值
-        console.warn('全国平均基准值查询也失败，使用默认值');
         baseline = getDefaultBaseline(data.mealType);
         baselineUncertainty = baseline * 0.1;
         baselineLowerBound = Math.max(0, baseline - baselineUncertainty);
@@ -392,7 +368,6 @@ async function calculateMenuItemCarbon(data, context) {
       }
     };
   } catch (error) {
-    console.error('计算菜谱碳足迹失败:', error);
     return {
       code: 500,
       message: '计算失败',
@@ -429,27 +404,18 @@ async function calculateCarbonFootprint(data) {
   if (data.factorRegion) {
     // 优先使用传入的 factorRegion
     factorRegion = data.factorRegion;
-    console.log(`[碳足迹计算] 使用传入的因子区域: ${factorRegion}`);
   } else if (data.restaurantId) {
     // 从餐厅信息获取 factorRegion
     try {
       const restaurant = await db.collection('restaurants')
         .doc(data.restaurantId)
         .get();
-      if (restaurant.data) {
-        if (restaurant.data.factorRegion) {
-          factorRegion = restaurant.data.factorRegion;
-          console.log(`[碳足迹计算] 使用餐厅配置的因子区域: ${factorRegion}`);
-        } else {
-          // 如果没有配置 factorRegion，默认使用 CN
-          factorRegion = 'CN';
-          console.log(`[碳足迹计算] 餐厅未配置因子区域，使用默认值 CN`);
-        }
+      if (restaurant.data && restaurant.data.factorRegion) {
+        factorRegion = restaurant.data.factorRegion;
       }
     } catch (error) {
       // 无法获取餐厅信息，使用默认值CN
       factorRegion = 'CN';
-      console.warn('[碳足迹计算] 无法获取餐厅信息，使用默认因子区域 CN:', error);
     }
   }
   
@@ -480,31 +446,26 @@ async function calculateCarbonFootprint(data) {
               const fetchedName = ingredientDoc.data.name;
               const fetchedCategory = ingredientDoc.data.category;
               if (!fetchedName) {
-                console.warn(`[碳足迹计算] 食材缺少名称，跳过: ${ingredient.ingredientId}`);
                 continue;
               }
               // 使用获取到的名称和类别
               ingredient.ingredientName = fetchedName;
               ingredient.category = ingredientCategory || fetchedCategory;
             } else {
-              console.warn(`[碳足迹计算] 食材ID不存在，跳过: ${ingredient.ingredientId}`);
               continue;
             }
           } else {
-            console.warn(`[碳足迹计算] 食材缺少名称，跳过: ${JSON.stringify(ingredient)}`);
             continue;
           }
         }
 
         if (quantity === undefined || quantity === null) {
-          console.warn(`[碳足迹计算] 食材 ${ingredientName} 缺少用量(quantity)，跳过`);
           continue;
         }
 
         // 将用量转换为kg（用于计算）
         const quantityNum = parseFloat(quantity);
         if (isNaN(quantityNum) || quantityNum <= 0) {
-          console.warn(`[碳足迹计算] 食材 ${ingredientName} 用量无效: ${quantity}，跳过`);
           continue;
         }
 
@@ -518,26 +479,19 @@ async function calculateCarbonFootprint(data) {
         } else if (unitLower === 'ml' || unitLower === '毫升') {
           weightInKg = quantityNum / 1000; // ml 转 kg (假设密度为1)
         } else {
-          // 如果传入其他单位（如kg、l），给出警告但仍尝试处理
-          // 保留对旧数据的兼容性
+          // 如果传入其他单位（如kg、l），保留对旧数据的兼容性
           if (unitLower === 'kg' || unitLower === '千克') {
-            console.warn(`[碳足迹计算] 建议使用 g（克）作为单位，当前使用: ${unit}`);
             weightInKg = quantityNum;
           } else if (unitLower === 'l' || unitLower === '升') {
-            console.warn(`[碳足迹计算] 建议使用 ml（毫升）作为单位，当前使用: ${unit}`);
             weightInKg = quantityNum; // 假设密度为1，1L ≈ 1kg
           } else {
             // 未知单位，默认按 g 处理
-            console.warn(`[碳足迹计算] 未知单位 ${unit}，按克(g)处理`);
             weightInKg = quantityNum / 1000;
           }
         }
 
         const finalIngredientName = ingredient.ingredientName || ingredientName;
         const finalCategory = ingredient.category || ingredientCategory;
-
-        // 记录匹配信息用于调试
-        console.log(`[碳足迹计算] 开始匹配因子: 食材=${finalIngredientName}, 类别=${finalCategory || '未指定'}, 因子区域=${factorRegion}`);
 
         // 从因子库查询因子（使用因子区域代码）
         const factor = await matchFactor(finalIngredientName, finalCategory, factorRegion);
@@ -578,7 +532,6 @@ async function calculateCarbonFootprint(data) {
             }
           });
         } else {
-          console.warn(`[碳足迹计算] ✗ 无法匹配因子: ${finalIngredientName}，使用默认值0`);
           factorMatchInfo.push({
             ingredientName: finalIngredientName,
             ingredientCategory: finalCategory,
@@ -593,7 +546,6 @@ async function calculateCarbonFootprint(data) {
         }
       } catch (error) {
         const ingredientName = ingredient.ingredientName || ingredient.name || '未知';
-        console.error(`[碳足迹计算] 获取食材 ${ingredientName} 的因子失败:`, error);
         factorMatchInfo.push({
           ingredientName: ingredientName,
           error: error.message,
@@ -619,16 +571,15 @@ async function calculateCarbonFootprint(data) {
           const energyConsumption = data.power * (data.cookingTime / 60); // 转换为小时
           cookingEnergyCarbon = energyConsumption * energyFactor.factorValue;
         } else {
-          console.warn(`无法匹配${energyType}能耗因子，使用默认计算`);
           // 降级使用标准工时模型
           cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, factorRegion);
         }
       } else {
         // 使用标准工时模型（根据烹饪方式估算）
-        cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, restaurantRegion);
+        cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, factorRegion);
       }
     } catch (error) {
-      console.error('[碳足迹计算] 计算烹饪能耗碳足迹失败:', error);
+      // 计算失败，跳过能耗部分
     }
   }
 
@@ -650,12 +601,10 @@ async function calculateCarbonFootprint(data) {
         
         if (materialFactor && materialFactor.factorValue) {
           packagingCarbon += materialFactor.factorValue * materialWeight;
-        } else {
-          console.warn(`无法匹配包装材料因子: ${materialName}`);
         }
       }
     } catch (error) {
-      console.error('计算包装碳足迹失败:', error);
+      // 计算失败，跳过包装部分
     }
   }
 
@@ -671,7 +620,7 @@ async function calculateCarbonFootprint(data) {
         transportCarbon = data.transport.distance * transportFactor.factorValue * transportWeight;
       }
     } catch (error) {
-      console.error('计算运输碳排放失败:', error);
+      // 计算失败，跳过运输部分
     }
   }
 
@@ -806,10 +755,9 @@ async function calculateCarbonFootprintL1(data, region) {
           uncertainty: baselineUncertainty
         }
       };
-    } else {
-      // 查询失败，尝试使用全国平均
-      console.warn('L1基准值查询失败，尝试使用全国平均基准值');
-      const nationalBaselineResult = await cloud.callFunction({
+      } else {
+        // 查询失败，尝试使用全国平均
+        const nationalBaselineResult = await cloud.callFunction({
         name: 'carbon-baseline-query',
         data: {
           mealType: data.mealType || 'meat_simple',
@@ -894,7 +842,6 @@ async function calculateCarbonFootprintL1(data, region) {
       calculationMethod: 'baseline_estimation' // 计算方法标识
     };
   } catch (error) {
-    console.error('L1级别计算失败:', error);
     // 降级使用默认值
     const defaultValue = getDefaultBaseline(data.mealType || 'meat_simple');
     return {
@@ -1001,7 +948,7 @@ async function calculateCarbonFootprintL3(data, region) {
           
           // 验证溯源信息格式（如果提供）
           if (traceabilityInfo && typeof traceabilityInfo !== 'object') {
-            console.warn(`[L3计算] 食材 ${ingredientName} 的溯源信息格式错误，忽略溯源信息`);
+            // 忽略格式错误的溯源信息
           }
 
           if (!ingredientName || quantity === undefined || quantity === null) {
@@ -1024,12 +971,10 @@ async function calculateCarbonFootprintL3(data, region) {
           } else if (unitLower === 'ml' || unitLower === '毫升') {
             weightInKg = quantityNum / 1000; // ml 转 kg (假设密度为1)
           } else {
-            // 如果传入其他单位，保留兼容性但给出警告
+            // 如果传入其他单位，保留兼容性
             if (unitLower === 'kg' || unitLower === '千克') {
-              console.warn(`[L3计算] 建议使用 g（克）作为单位，当前使用: ${unit}`);
               weightInKg = quantityNum;
             } else if (unitLower === 'l' || unitLower === '升') {
-              console.warn(`[L3计算] 建议使用 ml（毫升）作为单位，当前使用: ${unit}`);
               weightInKg = quantityNum; // 假设密度为1
             } else {
               weightInKg = quantityNum / 1000; // 默认按g处理
@@ -1065,8 +1010,7 @@ async function calculateCarbonFootprintL3(data, region) {
             });
           }
         } catch (error) {
-          const ingredientName = ingredient.ingredientName || ingredient.name || '未知';
-          console.error(`L3获取食材因子失败 ${ingredientName}:`, error);
+          // 获取因子失败，跳过该食材
         }
       }
     }
@@ -1106,7 +1050,7 @@ async function calculateCarbonFootprintL3(data, region) {
           }
         }
       } catch (error) {
-        console.error('L3计算包装碳足迹失败:', error);
+        // 计算失败，跳过包装部分
       }
     }
 
@@ -1133,7 +1077,7 @@ async function calculateCarbonFootprintL3(data, region) {
           transportCarbon = data.transport.distance * transportFactor.factorValue * transportWeight;
         }
       } catch (error) {
-        console.error('L3计算运输碳排放失败:', error);
+        // 计算失败，跳过运输部分
       }
     }
 
@@ -1163,7 +1107,7 @@ async function calculateCarbonFootprintL3(data, region) {
       // 可以在这里将审计日志写入数据库（如果需要）
       // await db.collection('carbon_calculation_audit_logs').add({ data: auditLog });
     } catch (error) {
-      console.error('L3记录审计日志失败:', error);
+      // 记录审计日志失败，不影响计算结果
     }
 
     // 检查L3级别的数据完整性
@@ -1199,7 +1143,6 @@ async function calculateCarbonFootprintL3(data, region) {
       description: '基于动态BOM、智能电表实测数据和溯源因子的高精度计算，适用于标杆气候餐厅、碳资产开发场景'
     };
   } catch (error) {
-    console.error('L3级别计算失败:', error);
     // L3级别计算失败，抛出错误（不降级，因为L3需要高精度）
     throw new Error(`L3级别计算失败: ${error.message}`);
   }
@@ -1243,7 +1186,6 @@ async function validateRegionCode(regionCode) {
     
     return result.data.length > 0;
   } catch (error) {
-    console.error('验证区域代码失败:', error);
     // 验证失败时返回 false，要求明确指定有效的区域代码
     return false;
   }
@@ -1576,7 +1518,6 @@ async function calculateEnergyByStandardModel(cookingMethod, cookingTime, energy
   }
   
   // 如果无法查询到因子，使用默认值（降级处理）
-  console.warn('无法查询能耗因子，使用默认值计算');
   const defaultElectricFactor = 0.5703; // 2022年全国电网平均排放因子 (kg CO₂e/kWh)
   const defaultGasFactor = 2.16; // IPCC 天然气因子 (kg CO₂e/m³)
   
@@ -1639,7 +1580,6 @@ async function getCarbonFactors(data, context) {
           success: factor !== null
         });
       } catch (error) {
-        console.error(`匹配因子失败 ${name}:`, error);
         results.push({
           input: name,
           success: false,
@@ -1657,7 +1597,6 @@ async function getCarbonFactors(data, context) {
       }
     };
   } catch (error) {
-    console.error('获取碳排放因子失败:', error);
     return {
       code: 500,
       message: '获取因子失败',
@@ -1674,25 +1613,15 @@ async function getCarbonFactors(data, context) {
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
 async function matchFactor(inputName, category, region = null) {
-  if (!inputName) {
-    console.warn('[因子匹配] 食材名称为空');
-    return null;
-  }
-
-  // 如果没有指定区域，返回 null（要求明确指定国家）
-  if (!region) {
-    console.warn(`[因子匹配] 未指定区域代码，无法匹配因子: ${inputName}`);
+  if (!inputName || !region) {
     return null;
   }
   
   // 验证区域代码是否在区域配置中存在
   const isValidRegion = await validateRegionCode(region);
   if (!isValidRegion) {
-    console.warn(`[因子匹配] 区域代码 ${region} 不在区域配置中，无法匹配因子: ${inputName}`);
     return null;
   }
-
-  console.log(`[因子匹配] 开始匹配: 食材=${inputName}, 类别=${category || '未指定'}, 区域=${region}`);
 
   // Level 1: 精确区域匹配
   let factor = await db.collection('carbon_emission_factors')
@@ -1706,12 +1635,9 @@ async function matchFactor(inputName, category, region = null) {
   if (factor.data.length > 0) {
     const matched = factor.data[0];
     if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      console.log(`[因子匹配] ✓ Level 1 精确匹配成功: ${inputName} -> ${matched.factorValue} ${matched.unit || 'kg CO₂e/kg'}`);
       return matched;
     }
   }
-
-  console.log(`[因子匹配] Level 1 精确匹配失败: ${inputName}`);
 
   // Level 2: 别名匹配（优先匹配指定区域的别名）
   let aliasMatch = await db.collection('carbon_emission_factors')
@@ -1725,12 +1651,9 @@ async function matchFactor(inputName, category, region = null) {
   if (aliasMatch.data.length > 0) {
     const matched = aliasMatch.data[0];
     if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      console.log(`[因子匹配] ✓ Level 2 别名匹配成功: ${inputName} -> ${matched.factorValue} ${matched.unit || 'kg CO₂e/kg'}`);
       return matched;
     }
   }
-
-  console.log(`[因子匹配] Level 2 别名匹配失败: ${inputName}`);
 
   // Level 3: 类别兜底（仅使用指定区域的类别因子）
   // 如果类别为空，尝试使用默认类别（vegetable）进行匹配
@@ -1740,17 +1663,14 @@ async function matchFactor(inputName, category, region = null) {
     const nameLower = inputName.toLowerCase();
     if (nameLower.includes('瓜') || nameLower.includes('菜') || nameLower.includes('豆') || nameLower.includes('茄') || nameLower.includes('椒')) {
       categoryToUse = 'vegetable';
-      console.log(`[因子匹配] 类别为空，推断为蔬菜类: ${inputName}`);
     } else {
       // 默认使用 vegetable 类别
       categoryToUse = 'vegetable';
-      console.log(`[因子匹配] 类别为空，使用默认类别 vegetable: ${inputName}`);
     }
   }
 
   if (categoryToUse) {
     const subCategory = mapIngredientCategoryToSubCategory(categoryToUse);
-    console.log(`[因子匹配] Level 3 尝试类别兜底: ${inputName}, subCategory=${subCategory}, region=${region}`);
     
     const categoryFactor = await db.collection('carbon_emission_factors')
       .where({
@@ -1766,15 +1686,11 @@ async function matchFactor(inputName, category, region = null) {
     if (categoryFactor.data.length > 0) {
       const matched = categoryFactor.data[0];
       if (matched.factorValue !== null && matched.factorValue !== undefined) {
-        console.log(`[因子匹配] ✓ Level 3 类别兜底成功: ${inputName} -> ${matched.factorValue} ${matched.unit || 'kg CO₂e/kg'} (类别: ${subCategory})`);
         return matched;
       }
     }
-    
-    console.log(`[因子匹配] Level 3 类别兜底失败: ${inputName}, subCategory=${subCategory}, region=${region}`);
   }
 
-  console.warn(`[因子匹配] ✗ 所有级别匹配失败: ${inputName}, 类别=${categoryToUse || '未指定'}, 区域=${region}`);
   return null;
 }
 
@@ -1828,42 +1744,26 @@ async function recalculateMenuItems(data, context) {
     let successCount = 0;
     let failedCount = 0;
 
+    // 预先获取餐厅信息（避免在循环中重复查询）
+    let restaurantData = null;
+    try {
+      const restaurant = await db.collection('restaurants').doc(data.restaurantId).get();
+      restaurantData = restaurant.data;
+    } catch (error) {
+      // 无法获取餐厅信息，使用默认值
+    }
+
+    // 从餐厅信息获取默认配置
+    const defaultFactorRegion = restaurantData?.factorRegion || 'CN';
+    const defaultBaselineRegion = restaurantData?.region || 'national_average';
+
     // 逐个重新计算
     for (const menuItem of menuItems.data) {
       try {
-        // 获取计算使用的region：优先使用菜单项的restaurantRegion，否则从餐厅信息获取，最后使用默认值CN
+        // 获取计算使用的region：优先使用菜单项的restaurantRegion，否则从餐厅信息获取，最后使用默认值
         // 注意：restaurantRegion 是基准值区域代码，因子匹配需要使用 factorRegion
-        let calculationRegion = menuItem.restaurantRegion; // 用于基准值查询
-        let factorRegion = 'CN'; // 用于因子匹配，默认使用CN
-        
-        // 从餐厅信息获取因子区域代码
-        try {
-          const restaurant = await db.collection('restaurants').doc(data.restaurantId).get();
-          if (restaurant.data) {
-            // 优先使用餐厅配置的 factorRegion
-            if (restaurant.data.factorRegion) {
-              factorRegion = restaurant.data.factorRegion;
-              console.log(`[重新计算] 使用餐厅配置的因子区域: ${factorRegion}`);
-            } else {
-              // 如果没有配置 factorRegion，默认使用 CN
-              factorRegion = 'CN';
-              console.log(`[重新计算] 餐厅未配置因子区域，使用默认值 CN`);
-            }
-            
-            // 如果没有 calculationRegion，使用餐厅的 region（基准值区域）
-            if (!calculationRegion && restaurant.data.region) {
-              calculationRegion = restaurant.data.region;
-            }
-          }
-        } catch (error) {
-          // 无法获取餐厅信息，使用默认值
-          factorRegion = 'CN';
-          console.warn('[重新计算] 无法获取餐厅信息，使用默认因子区域 CN:', error);
-        }
-        
-        if (!calculationRegion) {
-          calculationRegion = 'CN'; // 如果都没有，使用CN作为基准值区域的默认值
-        }
+        let calculationRegion = menuItem.restaurantRegion || defaultBaselineRegion; // 用于基准值查询
+        let factorRegion = menuItem.factorRegion || defaultFactorRegion; // 用于因子匹配
         
         // 获取食材列表：优先使用菜单项的ingredients，如果为空且有关联菜谱，则从菜谱获取
         let ingredients = menuItem.ingredients || [];
@@ -1902,7 +1802,7 @@ async function recalculateMenuItems(data, context) {
               }
             }
           } catch (error) {
-            console.warn(`[重新计算] 从菜谱获取食材失败:`, error);
+            // 从菜谱获取食材失败，使用菜单项的ingredients
           }
         }
         
@@ -1943,26 +1843,21 @@ async function recalculateMenuItems(data, context) {
           factorRegion: factorRegion // 保存因子区域代码
           };
 
-          // 如果 baselineInfo 是 null，先删除再设置
+          // 构建完整的更新数据，包含需要删除的字段
+          const finalUpdateData = { ...updateData };
+          
+          // 如果 baselineInfo 是 null，需要删除该字段
           if (menuItem.baselineInfo === null) {
-            await menuItemsCollection.doc(menuItem._id).update({
-              data: {
-                baselineInfo: _.remove()
-              }
-            });
+            finalUpdateData.baselineInfo = _.remove();
           }
-
-          // 如果 carbonFootprint 是数字（旧格式），先删除再设置
+          
+          // 如果 carbonFootprint 是数字（旧格式），需要删除该字段
           if (typeof menuItem.carbonFootprint === 'number') {
-            await menuItemsCollection.doc(menuItem._id).update({
-              data: {
-                carbonFootprint: _.remove()
-              }
-            });
+            finalUpdateData.carbonFootprint = _.remove();
           }
 
           await menuItemsCollection.doc(menuItem._id).update({
-            data: updateData
+            data: finalUpdateData
           });
 
           results.push({
@@ -1971,7 +1866,6 @@ async function recalculateMenuItems(data, context) {
           });
           successCount++;
         } else {
-          console.error(`菜谱 ${menuItem._id} 计算失败:`, calculateResult.message, calculateResult.error);
           results.push({
             menuItemId: menuItem._id,
             success: false,
@@ -1981,7 +1875,6 @@ async function recalculateMenuItems(data, context) {
           failedCount++;
         }
       } catch (error) {
-        console.error(`重新计算菜谱 ${menuItem._id} 失败:`, error);
         results.push({
           menuItemId: menuItem._id,
           success: false,
@@ -2003,7 +1896,6 @@ async function recalculateMenuItems(data, context) {
       }
     };
   } catch (error) {
-    console.error('批量重新计算失败:', error);
     return {
       code: 500,
       message: '批量重新计算失败',

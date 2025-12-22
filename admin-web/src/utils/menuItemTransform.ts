@@ -54,6 +54,7 @@ export function transformMenuItemData(data: any): MenuItem {
     cookingMethod: data.cookingMethod,
     cookingTime: data.cookingTime,
     restaurantRegion: data.restaurantRegion !== undefined && data.restaurantRegion !== null ? data.restaurantRegion : undefined,
+    factorRegion: data.factorRegion !== undefined && data.factorRegion !== null ? data.factorRegion : undefined,
     ingredients,
     carbonFootprint,
     carbonLabel: data.carbonLabel || data.carbonLevel,

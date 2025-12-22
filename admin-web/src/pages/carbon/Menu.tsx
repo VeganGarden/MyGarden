@@ -69,7 +69,6 @@ const CarbonMenu: React.FC = () => {
       
       setFactorRegionOptions(options)
     } catch (error) {
-      console.error('加载因子区域选项失败:', error)
       // 如果加载失败，使用默认选项
       setFactorRegionOptions([
         { value: 'CN', label: '中国 (CN)' },
@@ -152,14 +151,6 @@ const CarbonMenu: React.FC = () => {
 
     const menuItemId = menuItem.id || menuItem._id || ''
     try {
-      console.log('[前端] 开始重新计算碳足迹:', {
-        menuItemId,
-        restaurantId: currentRestaurantId,
-        menuItemName: menuItem.name,
-        calculationLevel: menuItem.calculationLevel,
-        restaurantRegion: menuItem.restaurantRegion
-      })
-      
       message.loading({ content: '正在重新计算碳足迹...', key: 'calculate', duration: 0 })
       
       const result = await carbonFootprintAPI.recalculateMenuItems({
@@ -167,25 +158,14 @@ const CarbonMenu: React.FC = () => {
         menuItemIds: [menuItemId],
       })
 
-      console.log('[前端] 重新计算结果:', result)
-
       if (result && result.code === 0) {
-        console.log('[前端] 重新计算成功，结果详情:', {
-          total: result.data?.total,
-          success: result.data?.success,
-          failed: result.data?.failed,
-          results: result.data?.results
-        })
-        
         message.success({ content: '重新计算成功', key: 'calculate' })
         // 刷新列表，新的计算明细会包含在菜单项数据中
         fetchMenuData()
       } else {
-        console.error('[前端] 重新计算失败:', result)
         message.error({ content: result?.message || '重新计算失败', key: 'calculate' })
       }
     } catch (error: any) {
-      console.error('[前端] 重新计算异常:', error)
       message.error({ content: error.message || '重新计算失败，请稍后重试', key: 'calculate' })
     }
   }
@@ -227,6 +207,9 @@ const CarbonMenu: React.FC = () => {
       // cookingTime 是可选的，只有填写了才更新
       if (values.cookingTime !== undefined && values.cookingTime !== null && values.cookingTime !== '') {
         updateData.cookingTime = Number(values.cookingTime)
+      } else if (editingMenuItem.cookingTime !== undefined) {
+        // 如果原来有值但现在清空了，需要删除该字段
+        updateData.cookingTime = null
       }
 
       const result = await tenantAPI.updateMenuItem({
@@ -238,7 +221,7 @@ const CarbonMenu: React.FC = () => {
       const actualResult = result?.result || result
       
       if (actualResult && actualResult.code === 0) {
-        message.success('更新成功')
+        message.success('配置已更新，建议重新计算碳足迹以应用新配置')
         setEditModalVisible(false)
         setEditingMenuItem(null)
         editForm.resetFields()
@@ -262,7 +245,6 @@ const CarbonMenu: React.FC = () => {
         message.error(errorMsg)
       }
     } catch (error: any) {
-      console.error('[Menu] updateMenuItem 错误:', error)
       if (error.errorFields) {
         // 表单验证错误
         return
@@ -303,7 +285,7 @@ const CarbonMenu: React.FC = () => {
     }
 
     // 食材明细表格列定义
-    const ingredientColumns: ColumnsType<typeof details.ingredients[0]> = [
+    const ingredientColumns: ColumnsType<NonNullable<typeof details.ingredients>[0]> = [
       {
         title: '食材名称',
         dataIndex: 'ingredientName',
@@ -427,7 +409,7 @@ const CarbonMenu: React.FC = () => {
       },
     ]
 
-    const totalIngredientsCarbon = details.ingredients.reduce((sum, ing) => sum + ing.carbonFootprint, 0)
+    const totalIngredientsCarbon = (details.ingredients || []).reduce((sum, ing) => sum + (ing.carbonFootprint || 0), 0)
 
     // 获取计算级别信息
     const calculationLevel = menuItem.calculationLevel || 'L2'
@@ -492,8 +474,8 @@ const CarbonMenu: React.FC = () => {
           <Title level={5}>食材碳足迹明细</Title>
           <Table
             columns={ingredientColumns}
-            dataSource={details.ingredients}
-            rowKey={(record) => `${record.ingredientName}-${record.quantity}-${record.unit}`}
+            dataSource={details.ingredients || []}
+            rowKey={(record, index) => `${record.ingredientName}-${record.quantity}-${record.unit}-${index}`}
             pagination={false}
             size="small"
             summary={(pageData) => {
@@ -663,14 +645,7 @@ const CarbonMenu: React.FC = () => {
           </Button>
         }
       >
-        <Space style={{ marginBottom: 16 }}>
-          <Select placeholder="按碳标签筛选" style={{ width: 150 }} allowClear>
-            <Select.Option value="ultra_low">超低碳</Select.Option>
-            <Select.Option value="low">低碳</Select.Option>
-            <Select.Option value="medium">中碳</Select.Option>
-            <Select.Option value="high">高碳</Select.Option>
-          </Select>
-        </Space>
+        {/* 筛选功能暂时隐藏，后续可扩展 */}
 
         {/* 使用Collapse展示菜单项卡片 */}
         <Collapse
