@@ -83,12 +83,15 @@ export interface CalculationDetails {
       }
     }
     warning?: string
+    traceability?: any // L3级别特有：溯源信息
   }>
   energy?: {
     method?: string
     time?: number
     energyType?: string
     carbonFootprint: number
+    meterReading?: any // L3级别特有：实测能耗信息
+    isMeasured?: boolean // L3级别特有：是否使用实测数据
   }
   packaging?: {
     carbonFootprint: number
@@ -97,5 +100,7 @@ export interface CalculationDetails {
     carbonFootprint: number
   }
   total: number
+  calculationMethod?: string // 计算方法标识
+  dataCompleteness?: any // L3级别特有：数据完整性信息
 }
 

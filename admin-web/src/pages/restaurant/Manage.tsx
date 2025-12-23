@@ -1,17 +1,17 @@
-import { useAppSelector } from '@/store/hooks'
 import { tenantAPI } from '@/services/cloudbase'
 import { regionConfigAPI } from '@/services/regionConfig'
-import { parseAddressToRegion, getRegionLabel, REGION_OPTIONS } from '@/utils/addressParser'
+import { useAppSelector } from '@/store/hooks'
+import { getRegionLabel, parseAddressToRegion } from '@/utils/addressParser'
 import {
   EditOutlined,
   PlusOutlined,
   ShopOutlined,
 } from '@ant-design/icons'
 import {
+  AutoComplete,
   Button,
   Card,
   Form,
-  AutoComplete,
   Input,
   Modal,
   Select,
@@ -49,6 +49,7 @@ const RestaurantManage: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<Restaurant | null>(null)
   const [form] = Form.useForm()
   const [factorRegionOptions, setFactorRegionOptions] = useState<Array<{ value: string; label: string }>>([])
+  const [baselineRegionOptions, setBaselineRegionOptions] = useState<Array<{ value: string; label: string }>>([])
   
   // 处理地址输入完成，自动识别地区（在失去焦点时触发）
   const handleAddressBlur = () => {
@@ -74,8 +75,9 @@ const RestaurantManage: React.FC = () => {
     if (currentTenant?.id) {
       fetchRestaurants()
     }
-    // 加载因子区域选项
+    // 加载因子区域选项和基准值区域选项
     loadFactorRegionOptions()
+    loadBaselineRegionOptions()
   }, [currentTenant])
 
   // 加载因子区域选项
@@ -91,10 +93,14 @@ const RestaurantManage: React.FC = () => {
         ? result.data 
         : result.data?.list || []
       
-      const options = regions.map((region: any) => ({
-        value: region.code,
-        label: `${region.name} (${region.code})`
-      }))
+      // 只加载国家级别（level=1）的因子区域
+      const options = regions
+        .filter((region: any) => region.level === 1)
+        .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map((region: any) => ({
+          value: region.code,
+          label: `${region.name} (${region.code})`
+        }))
       
       setFactorRegionOptions(options)
     } catch (error) {
@@ -104,6 +110,44 @@ const RestaurantManage: React.FC = () => {
         { value: 'CN', label: '中国 (CN)' },
         { value: 'US', label: '美国 (US)' },
         { value: 'JP', label: '日本 (JP)' },
+      ])
+    }
+  }
+
+  // 加载基准值区域选项
+  const loadBaselineRegionOptions = async () => {
+    try {
+      const result = await regionConfigAPI.list({
+        configType: 'baseline_region',
+        status: 'active',
+        pageSize: 100
+      })
+      
+      const regions = Array.isArray(result.data) 
+        ? result.data 
+        : result.data?.list || []
+      
+      // 加载所有激活的基准值区域，按sortOrder排序
+      const options = regions
+        .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map((region: any) => ({
+          value: region.code,
+          label: region.name
+        }))
+      
+      setBaselineRegionOptions(options)
+    } catch (error) {
+      console.error('加载基准值区域选项失败:', error)
+      // 如果加载失败，使用默认选项（与addressParser.ts中的REGION_OPTIONS保持一致）
+      setBaselineRegionOptions([
+        { value: 'north_china', label: '华北区域' },
+        { value: 'northeast', label: '东北区域' },
+        { value: 'east_china', label: '华东区域' },
+        { value: 'central_china', label: '华中区域' },
+        { value: 'south_china', label: '华南区域' },
+        { value: 'northwest', label: '西北区域' },
+        { value: 'southwest', label: '西南区域' },
+        { value: 'national_average', label: '全国平均' },
       ])
     }
   }
@@ -435,11 +479,11 @@ const RestaurantManage: React.FC = () => {
             name="region"
             label="地区（基准值）"
             rules={[{ required: true, message: '请选择餐厅所在地区' }]}
-            tooltip="地区用于碳足迹计算时的基准值查询。输入地址后系统会自动识别，您也可以手动选择覆盖。"
+            tooltip="用于基准值查询和电力因子匹配。输入地址后系统会自动识别，您也可以手动选择覆盖。"
             initialValue="national_average"
           >
             <Select placeholder="请选择地区（输入地址后将自动识别）">
-              {REGION_OPTIONS.map(option => (
+              {baselineRegionOptions.map(option => (
                 <Select.Option key={option.value} value={option.value}>
                   {option.label}
                 </Select.Option>
@@ -451,7 +495,7 @@ const RestaurantManage: React.FC = () => {
             name="factorRegion"
             label="因子区域"
             rules={[{ required: true, message: '请选择因子区域' }]}
-            tooltip="因子区域用于食材碳足迹因子的匹配。中国的餐厅通常选择'中国 (CN)'。"
+            tooltip="用于食材、材料、运输、燃气因子的匹配。中国的餐厅通常选择'中国 (CN)'。"
             initialValue="CN"
           >
             <Select placeholder="请选择因子区域">

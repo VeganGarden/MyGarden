@@ -1,10 +1,11 @@
 /**
  * 碳排放因子表单组件
  */
-import React from 'react'
-import { Form, Input, InputNumber, Select, Row, Col, Tag } from 'antd'
+import { regionConfigAPI, type RegionConfig } from '@/services/regionConfig'
+import { FactorBoundary, FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
 import type { FormInstance } from 'antd'
-import { FactorCategory, FactorSource, FactorBoundary, FactorStatus, Region } from '@/types/factor'
+import { Col, Form, Input, InputNumber, Row, Select, Tag } from 'antd'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const { Option } = Select
@@ -22,6 +23,94 @@ const FactorForm: React.FC<FactorFormProps> = ({
   onValuesChange,
 }) => {
   const { t } = useTranslation()
+  const [regionOptions, setRegionOptions] = useState<Array<{ value: string; label: string }>>([])
+  const [loadingRegions, setLoadingRegions] = useState(false)
+
+  // 监听表单的category和subCategory变化
+  const category = Form.useWatch('category', form)
+  const subCategory = Form.useWatch('subCategory', form)
+
+  // 根据分类加载区域选项
+  useEffect(() => {
+    const loadRegionOptions = async () => {
+      // 如果category或subCategory未选择，不加载
+      if (!category) {
+        setRegionOptions([])
+        return
+      }
+
+      setLoadingRegions(true)
+      try {
+        let options: Array<{ value: string; label: string }> = []
+
+        // 能源分类：电力使用电网区域，燃气使用国家级别
+        if (category === FactorCategory.ENERGY) {
+          if (subCategory === 'electricity') {
+            // 电力：加载电网区域选项（factor_region，level=2，parentCode=CN）
+            const result = await regionConfigAPI.list({
+              configType: 'factor_region',
+              status: 'active',
+              parentCode: 'CN',
+              pageSize: 100
+            })
+            const regions = Array.isArray(result.data) ? result.data : []
+            options = regions
+              .filter((r: RegionConfig) => r.level === 2) // 只取子区域
+              .sort((a: RegionConfig, b: RegionConfig) => (a.sortOrder || 0) - (b.sortOrder || 0))
+              .map((r: RegionConfig) => ({
+                value: r.code,
+                label: r.name
+              }))
+          } else {
+            // 燃气或其他能源：加载国家级别选项（factor_region，level=1）
+            const result = await regionConfigAPI.list({
+              configType: 'factor_region',
+              status: 'active',
+              pageSize: 100
+            })
+            const regions = Array.isArray(result.data) ? result.data : []
+            options = regions
+              .filter((r: RegionConfig) => r.level === 1) // 只取国家级别
+              .sort((a: RegionConfig, b: RegionConfig) => (a.sortOrder || 0) - (b.sortOrder || 0))
+              .map((r: RegionConfig) => ({
+                value: r.code,
+                label: r.name
+              }))
+          }
+        } else {
+          // 其他分类（食材、材料、运输）：加载国家级别选项
+          const result = await regionConfigAPI.list({
+            configType: 'factor_region',
+            status: 'active',
+            pageSize: 100
+          })
+          const regions = Array.isArray(result.data) ? result.data : []
+          options = regions
+            .filter((r: RegionConfig) => r.level === 1) // 只取国家级别
+            .sort((a: RegionConfig, b: RegionConfig) => (a.sortOrder || 0) - (b.sortOrder || 0))
+            .map((r: RegionConfig) => ({
+              value: r.code,
+              label: r.name
+            }))
+        }
+
+        setRegionOptions(options)
+
+        // 如果当前region值不在新选项中，清空region字段
+        const currentRegion = form.getFieldValue('region')
+        if (currentRegion && !options.find(opt => opt.value === currentRegion)) {
+          form.setFieldsValue({ region: undefined })
+        }
+      } catch (error) {
+        console.error('加载区域选项失败:', error)
+        setRegionOptions([])
+      } finally {
+        setLoadingRegions(false)
+      }
+    }
+
+    loadRegionOptions()
+  }, [category, subCategory, form])
 
   return (
     <Form
@@ -154,15 +243,24 @@ const FactorForm: React.FC<FactorFormProps> = ({
               name="region"
               label={t('pages.carbon.factorForm.fields.region')}
               rules={[{ required: true, message: t('pages.carbon.factorForm.validation.regionRequired') }]}
+              tooltip={
+                category === FactorCategory.ENERGY && subCategory === 'electricity'
+                  ? '电力因子需要使用电网区域配置，以精确匹配不同区域的电网排放因子'
+                  : category === FactorCategory.ENERGY
+                  ? '燃气因子使用国家级别配置'
+                  : '其他因子使用国家级别配置'
+              }
             >
-              <Select placeholder={t('pages.carbon.factorForm.placeholders.region')}>
-                <Option value={Region.NATIONAL_AVERAGE}>全国平均</Option>
-                <Option value={Region.NORTH_CHINA}>华北区域</Option>
-                <Option value={Region.NORTHEAST}>东北区域</Option>
-                <Option value={Region.EAST_CHINA}>华东区域</Option>
-                <Option value={Region.CENTRAL_CHINA}>华中区域</Option>
-                <Option value={Region.NORTHWEST}>西北区域</Option>
-                <Option value={Region.SOUTH_CHINA}>南方区域</Option>
+              <Select 
+                placeholder={t('pages.carbon.factorForm.placeholders.region')}
+                loading={loadingRegions}
+                disabled={loadingRegions || !category}
+              >
+                {regionOptions.map(option => (
+                  <Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>

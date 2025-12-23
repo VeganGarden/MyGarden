@@ -38,6 +38,7 @@ const CarbonMenu: React.FC = () => {
   const [updating, setUpdating] = useState(false)
   const [editForm] = Form.useForm()
   const [factorRegionOptions, setFactorRegionOptions] = useState<Array<{ value: string; label: string }>>([])
+  const [baselineRegionOptions, setBaselineRegionOptions] = useState<Array<{ value: string; label: string }>>([])
 
   useEffect(() => {
     // 当餐厅切换时，重新加载数据
@@ -45,9 +46,10 @@ const CarbonMenu: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRestaurantId])
 
-  // 加载因子区域选项
+  // 加载因子区域选项和基准值区域选项
   useEffect(() => {
     loadFactorRegionOptions()
+    loadBaselineRegionOptions()
   }, [])
 
   const loadFactorRegionOptions = async () => {
@@ -62,18 +64,61 @@ const CarbonMenu: React.FC = () => {
         ? result.data 
         : result.data?.list || []
       
-      const options = regions.map((region: any) => ({
-        value: region.code,
-        label: `${region.name} (${region.code})`
-      }))
+      // 只加载国家级别（level=1）的因子区域
+      const options = regions
+        .filter((region: any) => region.level === 1)
+        .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map((region: any) => ({
+          value: region.code,
+          label: `${region.name} (${region.code})`
+        }))
       
       setFactorRegionOptions(options)
     } catch (error) {
+      console.error('加载因子区域选项失败:', error)
       // 如果加载失败，使用默认选项
       setFactorRegionOptions([
         { value: 'CN', label: '中国 (CN)' },
         { value: 'US', label: '美国 (US)' },
         { value: 'JP', label: '日本 (JP)' },
+      ])
+    }
+  }
+
+  // 加载基准值区域选项
+  const loadBaselineRegionOptions = async () => {
+    try {
+      const result = await regionConfigAPI.list({
+        configType: 'baseline_region',
+        status: 'active',
+        pageSize: 100
+      })
+      
+      const regions = Array.isArray(result.data) 
+        ? result.data 
+        : result.data?.list || []
+      
+      // 加载所有激活的基准值区域，按sortOrder排序
+      const options = regions
+        .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map((region: any) => ({
+          value: region.code,
+          label: region.name
+        }))
+      
+      setBaselineRegionOptions(options)
+    } catch (error) {
+      console.error('加载基准值区域选项失败:', error)
+      // 如果加载失败，使用默认选项
+      setBaselineRegionOptions([
+        { value: 'north_china', label: '华北区域' },
+        { value: 'northeast', label: '东北区域' },
+        { value: 'east_china', label: '华东区域' },
+        { value: 'central_china', label: '华中区域' },
+        { value: 'south_china', label: '华南区域' },
+        { value: 'northwest', label: '西北区域' },
+        { value: 'southwest', label: '西南区域' },
+        { value: 'national_average', label: '全国平均' },
       ])
     }
   }
@@ -267,10 +312,11 @@ const CarbonMenu: React.FC = () => {
     const details = menuItem.calculationDetails
 
     // 检查 details 是否有效（不是 null、undefined 或空对象）
+    // 对于L2和L3级别，即使ingredients为空数组，只要有total字段就认为是有效的
     const hasValidDetails = details && 
                            typeof details === 'object' && 
                            details !== null &&
-                           (details.ingredients || details.total !== undefined)
+                           (Array.isArray(details.ingredients) || details.total !== undefined)
 
     if (!hasValidDetails) {
       return (
@@ -413,8 +459,10 @@ const CarbonMenu: React.FC = () => {
 
     // 获取计算级别信息
     const calculationLevel = menuItem.calculationLevel || 'L2'
-    const isEstimated = menuItem.isEstimated || false
-    const calculationMethod = menuItem.calculationMethod || 'standard'
+    // 从calculationDetails中获取估算标识（L1级别是估算级）
+    const isEstimated = calculationLevel === 'L1'
+    // 从calculationDetails中获取计算方法，如果没有则根据计算级别推断
+    const calculationMethod = (details as any)?.calculationMethod || (calculationLevel === 'L1' ? 'baseline_estimation' : calculationLevel === 'L3' ? 'measured_data' : 'standard')
     
     // 计算级别说明
     const levelDescriptions: Record<string, { title: string; description: string; color: string }> = {
@@ -457,10 +505,10 @@ const CarbonMenu: React.FC = () => {
             {isEstimated && (
               <Tag color="orange">估算值</Tag>
             )}
-            {calculationLevel === 'L3' && menuItem.hasMeterReading && (
+            {calculationLevel === 'L3' && (details?.energy as any)?.isMeasured && (
               <Tag color="green">实测能耗</Tag>
             )}
-            {calculationLevel === 'L3' && menuItem.hasTraceability && (
+            {calculationLevel === 'L3' && details?.ingredients?.some(ing => (ing as any).traceability) && (
               <Tag color="blue">溯源数据</Tag>
             )}
             <Tooltip title={levelInfo.description}>
@@ -802,17 +850,14 @@ const CarbonMenu: React.FC = () => {
             label="基准值区域"
             name="baselineRegion"
             rules={[{ required: true, message: '请选择基准值区域' }]}
-            tooltip="用于查询碳足迹基准值，影响碳足迹计算的准确性"
+            tooltip="用于基准值查询和电力因子匹配，影响碳足迹计算的准确性"
           >
             <Select placeholder="请选择基准值区域">
-              <Select.Option value="north_china">华北区域</Select.Option>
-              <Select.Option value="northeast">东北区域</Select.Option>
-              <Select.Option value="east_china">华东区域</Select.Option>
-              <Select.Option value="central_china">华中区域</Select.Option>
-              <Select.Option value="south_china">华南区域</Select.Option>
-              <Select.Option value="northwest">西北区域</Select.Option>
-              <Select.Option value="southwest">西南区域</Select.Option>
-              <Select.Option value="national_average">全国平均</Select.Option>
+              {baselineRegionOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
 
@@ -820,7 +865,7 @@ const CarbonMenu: React.FC = () => {
             label="因子区域"
             name="factorRegion"
             rules={[{ required: true, message: '请选择因子区域' }]}
-            tooltip="用于匹配食材碳排放因子，影响碳足迹计算的准确性。中国的餐厅通常选择'中国 (CN)'。"
+            tooltip="用于食材、材料、运输、燃气因子的匹配，影响碳足迹计算的准确性。中国的餐厅通常选择'中国 (CN)'。"
             initialValue="CN"
           >
             <Select placeholder="请选择因子区域">
