@@ -3,6 +3,25 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
+// 引入配置常量
+const {
+  DEFAULT_BASELINES,
+  DEFAULT_WASTE_RATES,
+  DEFAULT_ENERGY_FACTORS,
+  STANDARD_COOKING_TIMES,
+  STANDARD_COOKING_POWERS,
+  DEFAULT_REGIONS,
+  DEFAULT_CALCULATION_LEVEL,
+  DEFAULT_MEAL_TYPE,
+  DEFAULT_ENERGY_TYPE,
+  DEFAULT_BASELINE_UNCERTAINTY_RATIO,
+  VALIDATION_THRESHOLDS,
+  CACHE_TTL,
+  CACHE_CLEANUP_THRESHOLD,
+  VALID_ENUMS,
+  COOKING_TIME_RANGE
+} = require('./constants');
+
 // 初始化配置缓存（使用硬编码默认值作为降级方案）
 let configCache = {
   wasteRates: null,
@@ -11,47 +30,23 @@ let configCache = {
   cookingPowers: null,
   lastUpdate: null
 };
-const CACHE_TTL = 5 * 60 * 1000; // 缓存5分钟
+// 使用常量文件中的缓存TTL
+const CONFIG_CACHE_TTL = CACHE_TTL.config;
+const FACTOR_CACHE_TTL = CACHE_TTL.factor;
+
+// 因子匹配结果缓存（键为 name+category+region，值为因子对象）
+const factorMatchCache = new Map();
+const factorCacheTimestamps = new Map(); // 记录缓存时间戳
 
 /**
  * 初始化硬编码默认值（作为降级方案）
  */
 function initDefaultConfigs() {
   configCache = {
-    wasteRates: {
-      vegetables: 0.20,
-      vegetable: 0.20,
-      leafy: 0.20,
-      meat: 0.05,
-      seafood: 0.15,
-      grains: 0.0,
-      grain: 0.0,
-      nuts: 0.0,
-      spices: 0.0,
-      others: 0.10,
-      other: 0.10,
-      default: 0.10
-    },
-    energyFactors: {
-      electric: 0.5703,
-      gas: 2.16
-    },
-    cookingTimes: {
-      raw: 0,
-      steamed: 15,
-      boiled: 20,
-      stir_fried: 5,
-      fried: 8,
-      baked: 45
-    },
-    cookingPowers: {
-      raw: 0,
-      steamed: 2.0,
-      boiled: 1.5,
-      stir_fried: 3.0,
-      fried: 5.0,
-      baked: 4.0
-    },
+    wasteRates: { ...DEFAULT_WASTE_RATES },
+    energyFactors: { ...DEFAULT_ENERGY_FACTORS },
+    cookingTimes: { ...STANDARD_COOKING_TIMES },
+    cookingPowers: { ...STANDARD_COOKING_POWERS },
     lastUpdate: Date.now()
   };
 }
@@ -118,34 +113,85 @@ async function calculateMenuItemCarbon(data, context) {
       };
     }
 
-    // 验证枚举值
-    const validMealTypes = ['meat_simple', 'meat_full'];
-    const validEnergyTypes = ['electric', 'gas', 'mixed'];
-    
-    if (!validMealTypes.includes(data.mealType)) {
+  // 验证枚举值（使用常量文件中的定义）
+  if (!VALID_ENUMS.mealTypes.includes(data.mealType)) {
+    return {
+      code: 400,
+      message: `无效的 mealType: ${data.mealType}，有效值：${VALID_ENUMS.mealTypes.join(', ')}`
+    };
+  }
+  
+  if (!VALID_ENUMS.energyTypes.includes(data.energyType)) {
+    return {
+      code: 400,
+      message: `无效的 energyType: ${data.energyType}，有效值：${VALID_ENUMS.energyTypes.join(', ')}`
+    };
+  }
+
+  // 验证计算级别
+  if (data.calculationLevel && !VALID_ENUMS.calculationLevels.includes(data.calculationLevel)) {
+    return {
+      code: 400,
+      message: `无效的 calculationLevel: ${data.calculationLevel}，有效值：${VALID_ENUMS.calculationLevels.join(', ')}`
+    };
+  }
+
+  // 验证烹饪时间范围（使用常量文件中的定义）
+  if (data.cookingTime !== undefined && data.cookingTime !== null) {
+    const cookingTime = Number(data.cookingTime);
+    if (isNaN(cookingTime) || cookingTime < COOKING_TIME_RANGE.min || cookingTime > COOKING_TIME_RANGE.max) {
       return {
         code: 400,
-        message: `无效的 mealType: ${data.mealType}，有效值：${validMealTypes.join(', ')}`
+        message: `无效的 cookingTime: ${data.cookingTime}，有效范围：${COOKING_TIME_RANGE.min}-${COOKING_TIME_RANGE.max}分钟`
       };
     }
-    
-    if (!validEnergyTypes.includes(data.energyType)) {
-      return {
-        code: 400,
-        message: `无效的 energyType: ${data.energyType}，有效值：${validEnergyTypes.join(', ')}`
-      };
+  }
+
+  // 验证食材数据格式
+  if (data.ingredients && Array.isArray(data.ingredients)) {
+    for (let i = 0; i < data.ingredients.length; i++) {
+      const ingredient = data.ingredients[i];
+      const ingredientName = ingredient.ingredientName || ingredient.name;
+      
+      // 验证用量
+      if (ingredient.quantity !== undefined && ingredient.quantity !== null) {
+        const quantity = parseFloat(ingredient.quantity);
+        if (isNaN(quantity) || quantity <= 0) {
+          return {
+            code: 400,
+            message: `食材[${i}](${ingredientName || '未知'})的用量无效: ${ingredient.quantity}，必须大于0`
+          };
+        }
+      }
+
+      // 验证单位（使用常量文件中的定义）
+      if (ingredient.unit) {
+        const unit = ingredient.unit.toLowerCase();
+        if (!VALID_ENUMS.units.includes(unit)) {
+          return {
+            code: 400,
+            message: `食材[${i}](${ingredientName || '未知'})的单位无效: ${ingredient.unit}，有效值：${VALID_ENUMS.units.join(', ')}`
+          };
+        }
+      }
     }
+  }
 
     // 2. 获取餐厅信息（获取地区）
-    const restaurant = await db.collection('restaurants')
-      .doc(data.restaurantId)
-      .get();
-
+    // 如果已经传入餐厅信息，直接使用（批量计算时避免重复查询）
+    let restaurant = { data: data.restaurantData || null };
     if (!restaurant.data) {
-      return {
-        code: 404,
-        message: '餐厅不存在'
-      };
+      const restaurantDoc = await db.collection('restaurants')
+        .doc(data.restaurantId)
+        .get();
+      restaurant = restaurantDoc;
+
+      if (!restaurant.data) {
+        return {
+          code: 404,
+          message: '餐厅不存在'
+        };
+      }
     }
 
     // 获取基准值区域代码（用于基准值查询）
@@ -155,25 +201,25 @@ async function calculateMenuItemCarbon(data, context) {
       if (restaurant.data && restaurant.data.region) {
         baselineRegion = restaurant.data.region;
       } else {
-        // 使用默认值 national_average（基准值区域代码）
-        baselineRegion = 'national_average';
+        // 使用默认值（基准值区域代码）
+        baselineRegion = DEFAULT_REGIONS.baselineRegion;
       }
     }
     
     // 获取因子区域代码（用于因子匹配）
-    // 优先使用传入的 factorRegion 参数，否则从餐厅信息获取，最后使用默认值CN
-    let factorRegion = data.factorRegion || 'CN';
+    // 优先使用传入的 factorRegion 参数，否则从餐厅信息获取，最后使用默认值
+    let factorRegion = data.factorRegion || DEFAULT_REGIONS.factorRegion;
     if (!data.factorRegion && restaurant.data) {
       if (restaurant.data.factorRegion) {
         factorRegion = restaurant.data.factorRegion;
       } else {
-        // 如果没有配置 factorRegion，默认使用 CN
-        factorRegion = 'CN';
+        // 如果没有配置 factorRegion，使用默认值
+        factorRegion = DEFAULT_REGIONS.factorRegion;
       }
     }
 
     // 3. 计算菜谱碳足迹值（根据计算级别）
-    const calculationLevel = data.calculationLevel || 'L2';
+    const calculationLevel = data.calculationLevel || DEFAULT_CALCULATION_LEVEL;
     let carbonValue;
     
     if (calculationLevel === 'L1') {
@@ -240,7 +286,8 @@ async function calculateMenuItemCarbon(data, context) {
       // 确保 data 中包含 factorRegion 和 baselineRegion
       data.factorRegion = factorRegion;
       data.baselineRegion = baselineRegion;
-      carbonValue = await calculateCarbonFootprint(data);
+      // 传递餐厅信息避免重复查询
+      carbonValue = await calculateCarbonFootprint(data, restaurant.data);
     } else if (calculationLevel === 'L3') {
       // L3级别：动态BOM + 智能电表实测 + 溯源因子
       data.factorRegion = factorRegion;
@@ -249,7 +296,8 @@ async function calculateMenuItemCarbon(data, context) {
       // 默认使用L2级别
       data.factorRegion = factorRegion;
       data.baselineRegion = baselineRegion;
-      carbonValue = await calculateCarbonFootprint(data);
+      // 传递餐厅信息避免重复查询
+      carbonValue = await calculateCarbonFootprint(data, restaurant.data);
     }
     
     // 设置计算级别
@@ -292,8 +340,8 @@ async function calculateMenuItemCarbon(data, context) {
         baselineLowerBound = Math.max(0, baseline - baselineUncertainty);
         baselineUpperBound = baseline + baselineUncertainty;
       } else {
-        // 如果没有置信区间信息，使用默认的不确定性（10%）
-        baselineUncertainty = baseline * 0.1;
+        // 如果没有置信区间信息，使用默认的不确定性（使用常量文件中的比例）
+        baselineUncertainty = baseline * DEFAULT_BASELINE_UNCERTAINTY_RATIO;
         baselineLowerBound = Math.max(0, baseline - baselineUncertainty);
         baselineUpperBound = baseline + baselineUncertainty;
       }
@@ -328,7 +376,7 @@ async function calculateMenuItemCarbon(data, context) {
           baselineLowerBound = Math.max(0, baseline - baselineUncertainty);
           baselineUpperBound = baseline + baselineUncertainty;
         } else {
-          baselineUncertainty = baseline * 0.1;
+          baselineUncertainty = baseline * DEFAULT_BASELINE_UNCERTAINTY_RATIO;
           baselineLowerBound = Math.max(0, baseline - baselineUncertainty);
           baselineUpperBound = baseline + baselineUncertainty;
         }
@@ -342,7 +390,7 @@ async function calculateMenuItemCarbon(data, context) {
       } else {
         // 仍失败，使用默认值
         baseline = getDefaultBaseline(data.mealType);
-        baselineUncertainty = baseline * 0.1;
+        baselineUncertainty = baseline * DEFAULT_BASELINE_UNCERTAINTY_RATIO;
         baselineLowerBound = Math.max(0, baseline - baselineUncertainty);
         baselineUpperBound = baseline + baselineUncertainty;
         baselineInfo = {
@@ -419,7 +467,7 @@ async function calculateMenuItemCarbon(data, context) {
         },
         // 基于置信区间的减排认定级别（low: 显著减排, medium: 行业达标, high: 高碳排放）
         carbonLevel: carbonLevel,
-        calculationLevel: carbonValue.calculationLevel || 'L2', // 标识计算级别
+        calculationLevel: carbonValue.calculationLevel || DEFAULT_CALCULATION_LEVEL, // 标识计算级别
         calculatedAt: new Date()
       }
     };
@@ -443,8 +491,11 @@ async function calculateMenuItemCarbon(data, context) {
  * - M_i: 食材i的净重 (kg)
  * - EF_i: 食材i的排放因子 (kg CO₂e/kg)，从因子库查询
  * - W_i: 食材i的损耗率 (Ratio)
+ * 
+ * @param {Object} data - 计算数据
+ * @param {Object} restaurantData - 餐厅信息（可选，避免重复查询）
  */
-async function calculateCarbonFootprint(data) {
+async function calculateCarbonFootprint(data, restaurantData = null) {
   let ingredientsCarbon = 0;
   let cookingEnergyCarbon = 0;
   let packagingCarbon = 0;
@@ -460,8 +511,11 @@ async function calculateCarbonFootprint(data) {
   if (data.factorRegion) {
     // 优先使用传入的 factorRegion
     factorRegion = data.factorRegion;
-  } else if (data.restaurantId) {
-    // 从餐厅信息获取 factorRegion
+  } else if (restaurantData && restaurantData.factorRegion) {
+    // 使用传入的餐厅信息（避免重复查询）
+    factorRegion = restaurantData.factorRegion;
+  } else if (data.restaurantId && !restaurantData) {
+    // 只有在没有传入餐厅信息时才查询
     try {
       const restaurant = await db.collection('restaurants')
         .doc(data.restaurantId)
@@ -470,12 +524,35 @@ async function calculateCarbonFootprint(data) {
         factorRegion = restaurant.data.factorRegion;
       }
     } catch (error) {
-      // 无法获取餐厅信息，使用默认值CN
-      factorRegion = 'CN';
+      // 无法获取餐厅信息，使用默认值
+      factorRegion = DEFAULT_REGIONS.factorRegion;
     }
   }
   
-  // 注意：data.region 是基准值区域代码，不用于因子匹配
+  // 获取基准值区域代码（用于基准值查询和电力因子匹配）
+  // 优先使用传入的 region 参数，否则从餐厅信息获取，最后使用默认值national_average
+  let baselineRegion = DEFAULT_REGIONS.baselineRegion; // 默认使用national_average（基准值区域代码）
+  
+  if (data.region || data.baselineRegion) {
+    // 优先使用传入的 region 或 baselineRegion
+    baselineRegion = data.region || data.baselineRegion;
+  } else if (restaurantData && restaurantData.region) {
+    // 使用传入的餐厅信息（避免重复查询）
+    baselineRegion = restaurantData.region;
+  } else if (data.restaurantId && !restaurantData) {
+    // 只有在没有传入餐厅信息时才查询
+    try {
+      const restaurant = await db.collection('restaurants')
+        .doc(data.restaurantId)
+        .get();
+      if (restaurant.data && restaurant.data.region) {
+        baselineRegion = restaurant.data.region;
+      }
+    } catch (error) {
+      // 无法获取餐厅信息，使用默认值
+      baselineRegion = DEFAULT_REGIONS.baselineRegion;
+    }
+  }
 
   // 1. 计算食材碳足迹（直接使用菜单项的数据格式：{ ingredientName, quantity, unit, category }）
   if (data.ingredients && Array.isArray(data.ingredients)) {
@@ -519,31 +596,15 @@ async function calculateCarbonFootprint(data) {
           continue;
         }
 
-        // 将用量转换为kg（用于计算）
+        // 将用量转换为kg（用于计算）- 使用统一的转换函数
         const quantityNum = parseFloat(quantity);
         if (isNaN(quantityNum) || quantityNum <= 0) {
           continue;
         }
 
-        const unitLower = unit.toLowerCase();
-        let weightInKg = 0; // 统一转换为kg进行计算
-        
-        // 单位转换为 kg（前端统一使用 g 和 ml 作为输入单位）
-        // g（克）和 ml（毫升）都转换为 kg：除以 1000
-        if (unitLower === 'g' || unitLower === '克') {
-          weightInKg = quantityNum / 1000; // g 转 kg
-        } else if (unitLower === 'ml' || unitLower === '毫升') {
-          weightInKg = quantityNum / 1000; // ml 转 kg (假设密度为1)
-        } else {
-          // 如果传入其他单位（如kg、l），保留对旧数据的兼容性
-          if (unitLower === 'kg' || unitLower === '千克') {
-            weightInKg = quantityNum;
-          } else if (unitLower === 'l' || unitLower === '升') {
-            weightInKg = quantityNum; // 假设密度为1，1L ≈ 1kg
-          } else {
-            // 未知单位，默认按 g 处理
-            weightInKg = quantityNum / 1000;
-          }
+        const weightInKg = convertToKg(quantityNum, unit);
+        if (weightInKg <= 0) {
+          continue;
         }
 
         const finalIngredientName = ingredient.ingredientName || ingredientName;
@@ -616,11 +677,14 @@ async function calculateCarbonFootprint(data) {
   // 2. 计算烹饪能耗碳足迹（从因子库查询）
   if (data.cookingMethod && (data.cookingTime || data.energyType)) {
     try {
+      // 确定能源因子匹配区域
+      // 电力因子使用基准值区域（电网区域），燃气因子使用因子区域（国家级别）
+      const energyType = data.energyType || 'electric';
+      const energyFactorRegion = energyType === 'electric' ? baselineRegion : factorRegion;
+      
       // 如果提供了具体能耗数据（功率和时长）
       if (data.power && data.cookingTime) {
-        // 使用配置的能源类型（如果缺失则使用缺省值，用于向后兼容）
-        const energyType = data.energyType || 'electric';
-        const energyFactor = await matchEnergyFactor(energyType, factorRegion);
+        const energyFactor = await matchEnergyFactor(energyType, energyFactorRegion);
         
         if (energyFactor && energyFactor.factorValue) {
           // 单位转换：功率(kW) × 时长(h) × 因子(kg CO₂e/kWh 或 kg CO₂e/m³)
@@ -628,11 +692,11 @@ async function calculateCarbonFootprint(data) {
           cookingEnergyCarbon = energyConsumption * energyFactor.factorValue;
         } else {
           // 降级使用标准工时模型
-          cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, factorRegion);
+          cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, energyFactorRegion);
         }
       } else {
         // 使用标准工时模型（根据烹饪方式估算）
-        cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, factorRegion);
+        cookingEnergyCarbon = await calculateEnergyByStandardModel(data.cookingMethod, data.cookingTime, data.energyType, energyFactorRegion);
       }
     } catch (error) {
       // 计算失败，跳过能耗部分
@@ -682,6 +746,38 @@ async function calculateCarbonFootprint(data) {
 
   const total = ingredientsCarbon + cookingEnergyCarbon + packagingCarbon + transportCarbon;
 
+  // 根据计算级别处理因子匹配失败
+  const calculationLevel = data.calculationLevel || DEFAULT_CALCULATION_LEVEL;
+  const factorMatchFailure = handleFactorMatchFailure(calculationLevel, factorMatchInfo);
+  
+  if (factorMatchFailure.warnings.length > 0) {
+    console.warn('因子匹配失败处理:', factorMatchFailure.warnings);
+  }
+
+  // L3级别如果因子匹配失败，抛出错误
+  if (!factorMatchFailure.allowContinue) {
+    throw new Error(`L3级别计算失败: ${factorMatchFailure.warnings.join('; ')}`);
+  }
+
+  // 验证计算结果合理性
+  const validationResult = validateCalculationResult({
+    total,
+    ingredients: ingredientsCarbon,
+    energy: cookingEnergyCarbon,
+    packaging: packagingCarbon,
+    transport: transportCarbon,
+    factorMatchInfo
+  });
+
+  if (!validationResult.isValid) {
+    console.warn('计算结果合理性验证失败:', validationResult.warnings);
+    // 如果计算结果异常，记录警告但不中断（允许继续计算，但标记为可疑）
+    factorMatchInfo.push({
+      note: '计算结果合理性验证失败',
+      warnings: validationResult.warnings,
+      carbonFootprint: 0
+    });
+  }
 
   return {
     value: total,
@@ -736,12 +832,8 @@ async function calculateCarbonFootprint(data) {
  * 获取默认基准值
  */
 function getDefaultBaseline(mealType) {
-  // 默认基准值（kg CO₂e）
-  const defaultBaselines = {
-    meat_simple: 5.0,  // 肉食简餐
-    meat_full: 7.5     // 肉食正餐
-  };
-  return defaultBaselines[mealType] || 5.0;
+  // 使用常量文件中的默认基准值
+  return DEFAULT_BASELINES[mealType] || DEFAULT_BASELINES.meat_simple;
 }
 
 /**
@@ -763,9 +855,9 @@ async function calculateCarbonFootprintL1(data, region) {
     const baselineResult = await cloud.callFunction({
       name: 'carbon-baseline-query',
       data: {
-        mealType: data.mealType || 'meat_simple',
-        region: region || 'national_average',
-        energyType: data.energyType || 'electric'
+        mealType: data.mealType || DEFAULT_MEAL_TYPE,
+        region: region || DEFAULT_REGIONS.baselineRegion,
+        energyType: data.energyType || DEFAULT_ENERGY_TYPE
       }
     });
 
@@ -795,7 +887,7 @@ async function calculateCarbonFootprintL1(data, region) {
         baselineLowerBound = Math.max(0, estimatedValue - baselineUncertainty);
         baselineUpperBound = estimatedValue + baselineUncertainty;
       } else {
-        baselineUncertainty = estimatedValue * 0.1;
+        baselineUncertainty = estimatedValue * DEFAULT_BASELINE_UNCERTAINTY_RATIO;
         baselineLowerBound = Math.max(0, estimatedValue - baselineUncertainty);
         baselineUpperBound = estimatedValue + baselineUncertainty;
       }
@@ -835,7 +927,7 @@ async function calculateCarbonFootprintL1(data, region) {
           baselineLowerBound = Math.max(0, estimatedValue - baselineUncertainty);
           baselineUpperBound = estimatedValue + baselineUncertainty;
         } else {
-          baselineUncertainty = estimatedValue * 0.1;
+          baselineUncertainty = estimatedValue * DEFAULT_BASELINE_UNCERTAINTY_RATIO;
           baselineLowerBound = Math.max(0, estimatedValue - baselineUncertainty);
           baselineUpperBound = estimatedValue + baselineUncertainty;
         }
@@ -854,7 +946,7 @@ async function calculateCarbonFootprintL1(data, region) {
       } else {
         // 仍失败，使用默认值
         estimatedValue = getDefaultBaseline(data.mealType || 'meat_simple');
-        baselineUncertainty = estimatedValue * 0.1;
+        baselineUncertainty = estimatedValue * DEFAULT_BASELINE_UNCERTAINTY_RATIO;
         baselineLowerBound = Math.max(0, estimatedValue - baselineUncertainty);
         baselineUpperBound = estimatedValue + baselineUncertainty;
         baselineInfo = {
@@ -944,6 +1036,31 @@ async function calculateCarbonFootprintL1(data, region) {
  */
 async function calculateCarbonFootprintL3(data, region) {
   try {
+    // 获取因子区域代码（用于因子匹配）
+    // 优先使用传入的 factorRegion 参数，否则从餐厅信息获取，最后使用默认值CN
+    let factorRegion = 'CN'; // 默认使用CN（因子区域代码）
+    
+    if (data.factorRegion) {
+      // 优先使用传入的 factorRegion
+      factorRegion = data.factorRegion;
+    } else if (data.restaurantId) {
+      // 从餐厅信息获取 factorRegion
+      try {
+        const restaurant = await db.collection('restaurants')
+          .doc(data.restaurantId)
+          .get();
+        if (restaurant.data && restaurant.data.factorRegion) {
+          factorRegion = restaurant.data.factorRegion;
+        }
+      } catch (error) {
+        // 无法获取餐厅信息，使用默认值CN
+        factorRegion = 'CN';
+      }
+    }
+    
+    // region参数是基准值区域，用于基准值查询和电力因子匹配
+    const baselineRegion = region || 'national_average';
+    
     // L3级别基于L2级别的计算逻辑，但使用实测数据
     // 1. 如果提供了实测能耗数据（meterReading），使用实测值
     let actualEnergyCarbon = 0;
@@ -961,7 +1078,9 @@ async function calculateCarbonFootprintL3(data, region) {
       
       // 使用实测能耗数据
       const energyType = data.energyType || 'electric';
-      const energyFactor = await matchEnergyFactor(energyType, region);
+      // 电力因子使用基准值区域（电网区域），燃气因子使用因子区域（国家级别）
+      const energyFactorRegion = energyType === 'electric' ? baselineRegion : factorRegion;
+      const energyFactor = await matchEnergyFactor(energyType, energyFactorRegion);
       
       if (energyFactor && energyFactor.factorValue) {
         // 实测能耗（kWh或m³）
@@ -1011,33 +1130,19 @@ async function calculateCarbonFootprintL3(data, region) {
             continue;
           }
 
-          // 将用量转换为kg（用于计算）
+          // 将用量转换为kg（用于计算）- 使用统一的转换函数
           const quantityNum = parseFloat(quantity);
           if (isNaN(quantityNum) || quantityNum <= 0) {
             continue;
           }
 
-          const unitLower = unit.toLowerCase();
-          let weightInKg = 0;
-          
-          // 单位转换为 kg（前端统一使用 g 和 ml 作为输入单位）
-          // g（克）和 ml（毫升）都转换为 kg：除以 1000
-          if (unitLower === 'g' || unitLower === '克') {
-            weightInKg = quantityNum / 1000; // g 转 kg
-          } else if (unitLower === 'ml' || unitLower === '毫升') {
-            weightInKg = quantityNum / 1000; // ml 转 kg (假设密度为1)
-          } else {
-            // 如果传入其他单位，保留兼容性
-            if (unitLower === 'kg' || unitLower === '千克') {
-              weightInKg = quantityNum;
-            } else if (unitLower === 'l' || unitLower === '升') {
-              weightInKg = quantityNum; // 假设密度为1
-            } else {
-              weightInKg = quantityNum / 1000; // 默认按g处理
-            }
+          const weightInKg = convertToKg(quantityNum, unit);
+          if (weightInKg <= 0) {
+            continue;
           }
 
-          const factor = await matchFactor(ingredientName, ingredientCategory, region);
+          // 食材因子使用因子区域（国家级别）
+          const factor = await matchFactor(ingredientName, ingredientCategory, factorRegion);
           
           if (factor && factor.factorValue !== null && factor.factorValue !== undefined) {
             const coefficient = factor.factorValue;
@@ -1076,11 +1181,14 @@ async function calculateCarbonFootprintL3(data, region) {
     if (actualEnergyCarbon === 0) {
       // 降级使用标准计算
       if (data.cookingMethod && (data.cookingTime || data.energyType)) {
+        // 确定能源因子匹配区域：电力使用基准值区域，燃气使用因子区域
+        const energyType = data.energyType || 'electric';
+        const energyFactorRegion = energyType === 'electric' ? baselineRegion : factorRegion;
         cookingEnergyCarbon = await calculateEnergyByStandardModel(
           data.cookingMethod, 
           data.cookingTime, 
           data.energyType, 
-          region
+          energyFactorRegion
         );
       }
     }
@@ -1099,7 +1207,8 @@ async function calculateCarbonFootprintL3(data, region) {
             continue;
           }
           
-          const materialFactor = await matchMaterialFactor(materialName, region);
+          // 材料因子使用因子区域（国家级别）
+          const materialFactor = await matchMaterialFactor(materialName, factorRegion);
           
           if (materialFactor && materialFactor.factorValue) {
             packagingCarbon += materialFactor.factorValue * materialWeight;
@@ -1124,8 +1233,8 @@ async function calculateCarbonFootprintL3(data, region) {
             matchLevel: 'traceability'
           };
         } else {
-          // 降级使用因子库查询
-          transportFactor = await matchTransportFactor(data.transport.mode, region);
+          // 降级使用因子库查询（使用因子区域）
+          transportFactor = await matchTransportFactor(data.transport.mode, factorRegion);
         }
         
         if (transportFactor && transportFactor.factorValue) {
@@ -1175,6 +1284,46 @@ async function calculateCarbonFootprintL3(data, region) {
       completeness: actualEnergyCarbon > 0 && hasTraceability ? 'high' : (actualEnergyCarbon > 0 || hasTraceability ? 'medium' : 'low')
     };
     
+    // 构建calculationDetails（与L2格式保持一致，但包含L3特有信息）
+    const calculationDetails = {
+      ingredients: factorMatchInfo.map(info => ({
+        ingredientName: info.ingredientName,
+        category: info.ingredientCategory,
+        quantity: info.quantity, // 原始用量
+        unit: info.unit, // 原始单位
+        weightInKg: info.weightInKg, // 转换后的重量（kg）
+        wasteRate: info.wasteRate,
+        factor: info.matchedFactor ? {
+          value: info.matchedFactor.factorValue,
+          unit: info.matchedFactor.unit,
+          matchLevel: info.matchedFactor.matchLevel,
+          source: info.matchedFactor.source
+        } : null,
+        carbonFootprint: info.carbonFootprint,
+        calculation: info.calculation,
+        warning: info.warning,
+        traceability: info.traceability // L3特有：溯源信息
+      })),
+      energy: {
+        method: data.cookingMethod,
+        time: data.cookingTime,
+        energyType: data.energyType,
+        carbonFootprint: cookingEnergyCarbon,
+        meterReading: meterReadingInfo, // L3特有：实测能耗信息
+        isMeasured: actualEnergyCarbon > 0 && !!data.meterReading
+      },
+      packaging: {
+        carbonFootprint: packagingCarbon
+      },
+      transport: {
+        carbonFootprint: transportCarbon
+      },
+      total: total,
+      dataCompleteness: dataCompleteness, // L3特有：数据完整性信息
+      calculationMethod: 'measured_data', // L3计算方法标识
+      accuracy: 'high' // L3级别精度高
+    };
+
     return {
       value: total,
       ingredients: ingredientsCarbon,
@@ -1188,6 +1337,7 @@ async function calculateCarbonFootprintL3(data, region) {
         transport: transportCarbon
       },
       factorMatchInfo: factorMatchInfo,
+      calculationDetails: calculationDetails, // 添加详细的计算明细
       calculationLevel: 'L3',
       calculationMethod: 'measured_data', // 计算方法标识
       meterReadingInfo: meterReadingInfo, // 实测能耗信息
@@ -1201,6 +1351,124 @@ async function calculateCarbonFootprintL3(data, region) {
   } catch (error) {
     // L3级别计算失败，抛出错误（不降级，因为L3需要高精度）
     throw new Error(`L3级别计算失败: ${error.message}`);
+  }
+}
+
+/**
+ * 验证计算结果合理性
+ * @param {Object} result - 计算结果
+ * @param {number} result.total - 总碳足迹
+ * @param {number} result.ingredients - 食材碳足迹
+ * @param {number} result.energy - 能耗碳足迹
+ * @param {number} result.packaging - 包装碳足迹
+ * @param {number} result.transport - 运输碳足迹
+ * @param {Array} result.factorMatchInfo - 因子匹配信息
+ * @returns {Object} { isValid: boolean, warnings: string[] }
+ */
+function validateCalculationResult(result) {
+  const warnings = [];
+  const { total, ingredients, energy, packaging, transport, factorMatchInfo } = result;
+
+  // 检查总碳足迹是否为负数
+  if (total < 0) {
+    warnings.push(`总碳足迹为负数: ${total} kg CO₂e，计算结果异常`);
+  }
+
+  // 检查总碳足迹是否过大（使用常量文件中的阈值）
+  if (total > VALIDATION_THRESHOLDS.maxCarbonFootprint) {
+    warnings.push(`总碳足迹过大: ${total} kg CO₂e，单道菜通常不超过${VALIDATION_THRESHOLDS.maxCarbonFootprint} kg CO₂e`);
+  }
+
+  // 检查各部分是否为负数
+  if (ingredients < 0) warnings.push(`食材碳足迹为负数: ${ingredients} kg CO₂e`);
+  if (energy < 0) warnings.push(`能耗碳足迹为负数: ${energy} kg CO₂e`);
+  if (packaging < 0) warnings.push(`包装碳足迹为负数: ${packaging} kg CO₂e`);
+  if (transport < 0) warnings.push(`运输碳足迹为负数: ${transport} kg CO₂e`);
+
+  // 检查各部分之和是否等于总碳足迹（使用常量文件中的容差）
+  const sum = ingredients + energy + packaging + transport;
+  const diff = Math.abs(total - sum);
+  if (diff > VALIDATION_THRESHOLDS.sumTolerance) {
+    warnings.push(`各部分碳足迹之和(${sum})与总碳足迹(${total})不一致，差值: ${diff} kg CO₂e`);
+  }
+
+  // 检查是否有因子匹配失败的情况
+  if (factorMatchInfo && Array.isArray(factorMatchInfo)) {
+    const failedMatches = factorMatchInfo.filter(info => !info.matchedFactor && !info.error);
+    if (failedMatches.length > 0) {
+      warnings.push(`${failedMatches.length}个食材因子匹配失败，可能导致计算结果不准确`);
+    }
+  }
+
+  return {
+    isValid: warnings.length === 0,
+    warnings
+  };
+}
+
+/**
+ * 根据计算级别处理因子匹配失败
+ * @param {string} calculationLevel - 计算级别：'L1' | 'L2' | 'L3'
+ * @param {Array} factorMatchInfo - 因子匹配信息
+ * @returns {Object} { allowContinue: boolean, warnings: string[] }
+ */
+function handleFactorMatchFailure(calculationLevel, factorMatchInfo) {
+  const warnings = [];
+  const failedMatches = factorMatchInfo.filter(info => !info.matchedFactor && !info.error);
+
+  if (failedMatches.length === 0) {
+    return { allowContinue: true, warnings: [] };
+  }
+
+  const failedIngredientNames = failedMatches.map(info => info.ingredientName).join(', ');
+
+  if (calculationLevel === 'L1') {
+    // L1级别允许因子匹配失败（因为是估算级）
+    warnings.push(`L1估算级：${failedMatches.length}个食材因子匹配失败(${failedIngredientNames})，已跳过计算`);
+    return { allowContinue: true, warnings };
+  } else if (calculationLevel === 'L2') {
+    // L2级别警告但不中断
+    warnings.push(`L2核算级：${failedMatches.length}个食材因子匹配失败(${failedIngredientNames})，可能导致计算结果不准确，建议添加具体因子`);
+    return { allowContinue: true, warnings };
+  } else if (calculationLevel === 'L3') {
+    // L3级别必须匹配成功（实测级需要高精度）
+    warnings.push(`L3实测级：${failedMatches.length}个食材因子匹配失败(${failedIngredientNames})，L3级别要求所有食材必须匹配到因子`);
+    return { allowContinue: false, warnings };
+  }
+
+  return { allowContinue: true, warnings };
+}
+
+/**
+ * 单位转换为kg（统一处理）
+ * @param {number} quantity - 数量
+ * @param {string} unit - 单位（g, kg, ml, l, 克, 千克, 毫升, 升）
+ * @returns {number} 转换为kg后的重量
+ */
+function convertToKg(quantity, unit) {
+  if (quantity === undefined || quantity === null || isNaN(quantity) || quantity <= 0) {
+    return 0;
+  }
+
+  const quantityNum = parseFloat(quantity);
+  if (isNaN(quantityNum) || quantityNum <= 0) {
+    return 0;
+  }
+
+  const unitLower = (unit || 'g').toLowerCase();
+  
+  // g（克）和 ml（毫升）都转换为 kg：除以 1000
+  if (unitLower === 'g' || unitLower === '克') {
+    return quantityNum / 1000; // g 转 kg
+  } else if (unitLower === 'ml' || unitLower === '毫升') {
+    return quantityNum / 1000; // ml 转 kg (假设密度为1)
+  } else if (unitLower === 'kg' || unitLower === '千克') {
+    return quantityNum;
+  } else if (unitLower === 'l' || unitLower === '升') {
+    return quantityNum; // 假设密度为1，1L ≈ 1kg
+  } else {
+    // 未知单位，默认按 g 处理
+    return quantityNum / 1000;
   }
 }
 
@@ -1225,11 +1493,17 @@ function mapIngredientCategoryToSubCategory(category) {
 
 /**
  * 验证因子区域代码是否有效
+ * 如果验证失败，使用默认区域（CN）作为降级策略
  * 
  * @param {string} regionCode - 区域代码（如 'CN', 'US' 等）
- * @returns {Promise<boolean>} 是否在区域配置中存在且为激活状态
+ * @returns {Promise<{isValid: boolean, regionCode: string, warning?: string}>} 验证结果和实际使用的区域代码
  */
 async function validateRegionCode(regionCode) {
+  if (!regionCode) {
+    console.warn('区域代码为空，使用默认值CN');
+    return { isValid: false, regionCode: 'CN', warning: '区域代码为空，已降级使用默认值CN' };
+  }
+
   try {
     const result = await db.collection('region_configs')
       .where({
@@ -1240,10 +1514,25 @@ async function validateRegionCode(regionCode) {
       .limit(1)
       .get();
     
-    return result.data.length > 0;
+    if (result.data.length > 0) {
+      return { isValid: true, regionCode: regionCode };
+    } else {
+      // 验证失败，降级使用默认值CN
+      console.warn(`区域代码 ${regionCode} 不在区域配置中，已降级使用默认值CN`);
+      return { 
+        isValid: false, 
+        regionCode: 'CN', 
+        warning: `区域代码 ${regionCode} 不在区域配置中，已降级使用默认值CN` 
+      };
+    }
   } catch (error) {
-    // 验证失败时返回 false，要求明确指定有效的区域代码
-    return false;
+    // 验证过程出错，降级使用默认值CN
+    console.error('验证区域代码失败:', error);
+    return { 
+      isValid: false, 
+      regionCode: 'CN', 
+      warning: `验证区域代码时出错: ${error.message}，已降级使用默认值CN` 
+    };
   }
 }
 
@@ -1254,7 +1543,7 @@ async function loadConfigs() {
   const now = Date.now();
   
   // 如果缓存有效，直接返回
-  if (configCache.lastUpdate && (now - configCache.lastUpdate) < CACHE_TTL) {
+  if (configCache.lastUpdate && (now - configCache.lastUpdate) < CONFIG_CACHE_TTL) {
     return;
   }
   
@@ -1307,33 +1596,39 @@ async function getDefaultWasteRate(category) {
   await loadConfigs();
   
   // 先从缓存查找
-  if (category && configCache.wasteRates[category] !== undefined) {
+  if (category && configCache.wasteRates && configCache.wasteRates[category] !== undefined) {
     return configCache.wasteRates[category];
   }
   
-  // 使用默认值
-  return configCache.wasteRates.default || 0.10;
+  // 使用默认值（从常量文件读取）
+  return DEFAULT_WASTE_RATES[category] || DEFAULT_WASTE_RATES.default;
 }
 
 /**
  * 匹配能源因子（电力或天然气）
+ * 只使用精确区域匹配，不进行降级策略
+ * - 电力因子使用基准值区域（电网区域，如 east_china, north_china 等）
+ * - 燃气因子使用因子区域（国家级别，如 CN, US 等）
+ * 
  * @param {string} energyType - 能源类型：'electric' | 'gas'
- * @param {string} region - 地区
+ * @param {string} region - 地区（电力因子使用基准值区域，燃气因子使用因子区域）
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
-async function matchEnergyFactor(energyType, region = 'national_average') {
+async function matchEnergyFactor(energyType, region = null) {
+  if (!region) {
+    console.warn('能源因子匹配：未指定区域代码，无法匹配');
+    return null;
+  }
+
   const subCategory = energyType === 'gas' ? 'natural_gas' : 'electricity';
-  const name = energyType === 'gas' ? '天然气' : '电力';
   
-  // 统一使用新格式
-  const factorRegion = region || 'national_average';
-  
-  // Level 1: 精确区域匹配
-  let factor = await db.collection('carbon_emission_factors')
+  // 精确区域匹配（仅此一级）
+  // 电网区域可以覆盖全国范围，不存在需要降级到国家级别的情况
+  const factor = await db.collection('carbon_emission_factors')
     .where({
       category: 'energy',
       subCategory: subCategory,
-      region: factorRegion,
+      region: region,
       status: 'active'
     })
     .orderBy('createdAt', 'desc')
@@ -1350,49 +1645,8 @@ async function matchEnergyFactor(energyType, region = 'national_average') {
     }
   }
 
-  // Level 2: 名称匹配（如果因子库中有具体名称）
-  factor = await db.collection('carbon_emission_factors')
-    .where({
-      category: 'energy',
-      name: name,
-      status: 'active'
-    })
-    .orderBy('createdAt', 'desc')
-    .limit(1)
-    .get();
-
-  if (factor.data.length > 0) {
-    const matched = factor.data[0];
-    if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      return {
-        ...matched,
-        matchLevel: 'name_match'
-      };
-    }
-  }
-
-  // Level 3: 国家级匹配
-  factor = await db.collection('carbon_emission_factors')
-    .where({
-      category: 'energy',
-      subCategory: subCategory,
-      region: 'national_average',
-      status: 'active'
-    })
-    .orderBy('createdAt', 'desc')
-    .limit(1)
-    .get();
-
-  if (factor.data.length > 0) {
-    const matched = factor.data[0];
-    if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      return {
-        ...matched,
-        matchLevel: 'national_fallback'
-      };
-    }
-  }
-
+  // 精确匹配失败，返回null并记录警告
+  console.warn(`能源因子匹配失败：energyType=${energyType}, region=${region}, subCategory=${subCategory}，请添加对应区域的能源因子`);
   return null;
 }
 
@@ -1560,7 +1814,7 @@ async function matchTransportFactor(transportMode, region = 'national_average') 
  * @param {string} cookingMethod - 烹饪方式
  * @param {number} cookingTime - 烹饪时间（分钟，可选）
  * @param {string} energyType - 能源类型
- * @param {string} region - 地区
+ * @param {string} region - 地区（电力因子使用基准值区域，燃气因子使用因子区域）
  * @returns {Promise<number>} 能耗碳足迹（kg CO₂e）
  */
 async function calculateEnergyByStandardModel(cookingMethod, cookingTime, energyType, region) {
@@ -1609,11 +1863,11 @@ async function calculateEnergyByStandardModel(cookingMethod, cookingTime, energy
     }
   }
   
-  // 如果无法查询到因子，使用默认值（从配置缓存读取）
+  // 如果无法查询到因子，使用默认值（从配置缓存读取，如果缓存中没有则使用常量文件中的默认值）
   await loadConfigs();
   
-  const defaultElectricFactor = configCache.energyFactors?.electric || 0.5703; // 2022年全国电网平均排放因子 (kg CO₂e/kWh)
-  const defaultGasFactor = configCache.energyFactors?.gas || 2.16; // IPCC 天然气因子 (kg CO₂e/m³)
+  const defaultElectricFactor = configCache.energyFactors?.electric || DEFAULT_ENERGY_FACTORS.electric;
+  const defaultGasFactor = configCache.energyFactors?.gas || DEFAULT_ENERGY_FACTORS.gas;
   
   const timeInHours = timeInMinutes / 60;
   if (energyType === 'gas') {
@@ -1700,92 +1954,111 @@ async function getCarbonFactors(data, context) {
 }
 
 /**
- * 匹配因子（多级匹配算法）
+ * 匹配因子（多级匹配算法，带缓存机制）
  * @param {string} inputName - 食材名称
  * @param {string} category - 食材类别（可选）
  * @param {string} region - 地区（国家代码，如 'CN', 'US' 等）
  * @returns {Promise<Object|null>} 匹配到的因子对象，或null
  */
 async function matchFactor(inputName, category, region = null) {
-  if (!inputName || !region) {
+  if (!inputName) {
     return null;
   }
   
-  // 验证区域代码是否在区域配置中存在
-  const isValidRegion = await validateRegionCode(region);
-  if (!isValidRegion) {
+  // 验证区域代码是否在区域配置中存在（带降级策略）
+  const regionValidation = await validateRegionCode(region);
+  const actualRegion = regionValidation.regionCode;
+  
+  // 如果验证失败但有降级值，记录警告但继续使用降级值
+  if (!regionValidation.isValid && regionValidation.warning) {
+    console.warn(`因子匹配区域验证: ${regionValidation.warning}`);
+  }
+  
+  if (!actualRegion) {
     return null;
   }
 
-  // Level 1: 精确区域匹配
+  // 检查缓存（键为 name+category+region）
+  const cacheKey = `${inputName}|${category || ''}|${actualRegion}`;
+  const now = Date.now();
+  const cachedResult = factorMatchCache.get(cacheKey);
+  const cacheTimestamp = factorCacheTimestamps.get(cacheKey);
+  
+  if (cachedResult !== undefined && cacheTimestamp && (now - cacheTimestamp) < FACTOR_CACHE_TTL) {
+    // 缓存命中且未过期
+    return cachedResult;
+  }
+  
+  // 缓存未命中或已过期，执行匹配
+
+  // Level 1: 精确区域匹配（使用实际区域代码，可能是降级后的值）
   let factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
-      region: region,
+      region: actualRegion,
       status: 'active'
     })
     .get();
 
+  let result = null;
   if (factor.data.length > 0) {
     const matched = factor.data[0];
     if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      return matched;
+      // 设置匹配级别：精确区域匹配
+      result = {
+        ...matched,
+        matchLevel: 'exact_region'
+      };
     }
   }
 
-  // Level 2: 别名匹配（优先匹配指定区域的别名）
-  let aliasMatch = await db.collection('carbon_emission_factors')
-    .where({
-      alias: inputName,
-      region: region,
-      status: 'active'
-    })
-    .get();
-
-  if (aliasMatch.data.length > 0) {
-    const matched = aliasMatch.data[0];
-    if (matched.factorValue !== null && matched.factorValue !== undefined) {
-      return matched;
-    }
-  }
-
-  // Level 3: 类别兜底（仅使用指定区域的类别因子）
-  // 如果类别为空，尝试使用默认类别（vegetable）进行匹配
-  let categoryToUse = category;
-  if (!categoryToUse) {
-    // 根据食材名称推断可能的类别（简单启发式）
-    const nameLower = inputName.toLowerCase();
-    if (nameLower.includes('瓜') || nameLower.includes('菜') || nameLower.includes('豆') || nameLower.includes('茄') || nameLower.includes('椒')) {
-      categoryToUse = 'vegetable';
-    } else {
-      // 默认使用 vegetable 类别
-      categoryToUse = 'vegetable';
-    }
-  }
-
-  if (categoryToUse) {
-    const subCategory = mapIngredientCategoryToSubCategory(categoryToUse);
-    
-    const categoryFactor = await db.collection('carbon_emission_factors')
+  // Level 2: 别名匹配（优先匹配指定区域的别名，使用实际区域代码）
+  if (!result) {
+    let aliasMatch = await db.collection('carbon_emission_factors')
       .where({
-        category: 'ingredient',
-        subCategory: subCategory,
-        region: region,
+        alias: inputName,
+        region: actualRegion,
         status: 'active'
       })
-      .orderBy('createdAt', 'desc')
-      .limit(1)
       .get();
 
-    if (categoryFactor.data.length > 0) {
-      const matched = categoryFactor.data[0];
+    if (aliasMatch.data.length > 0) {
+      const matched = aliasMatch.data[0];
       if (matched.factorValue !== null && matched.factorValue !== undefined) {
-        return matched;
+        // 设置匹配级别：别名匹配
+        result = {
+          ...matched,
+          matchLevel: 'alias_match'
+        };
       }
     }
   }
 
-  return null;
+  // Level 3类别兜底匹配已取消：类别匹配过于粗糙（如vegetable类别包含多种差异很大的蔬菜），
+  // 使用orderBy('createdAt', 'desc').limit(1)取最新因子不够准确，可能导致计算结果偏差。
+  // 如果Level 1和Level 2都匹配失败，返回null并记录警告，提示用户需要添加具体的因子数据。
+
+  // 如果仍未匹配到，result为null
+  
+  // 将结果存入缓存（无论是否匹配成功都缓存，避免重复查询）
+  factorMatchCache.set(cacheKey, result);
+  factorCacheTimestamps.set(cacheKey, now);
+  
+  // 定期清理过期缓存（使用常量文件中的阈值，避免内存泄漏）
+  if (factorMatchCache.size > CACHE_CLEANUP_THRESHOLD) {
+    const expiredKeys = [];
+    for (const [key, timestamp] of factorCacheTimestamps.entries()) {
+      if (now - timestamp >= FACTOR_CACHE_TTL) {
+        expiredKeys.push(key);
+      }
+    }
+    expiredKeys.forEach(key => {
+      factorMatchCache.delete(key);
+      factorCacheTimestamps.delete(key);
+    });
+  }
+  
+  return result;
 }
 
 /**
@@ -1924,24 +2197,49 @@ async function recalculateMenuItems(data, context) {
         if (calculateResult.code === 0) {
           // 更新菜谱数据（处理旧格式兼容）
           // 重要：保持原有的配置值（calculationLevel等），不要使用计算结果中的值
-          const preservedCalculationLevel = itemCalculationLevel || menuItem.calculationLevel || 'L2'
+          const preservedCalculationLevel = itemCalculationLevel || menuItem.calculationLevel || DEFAULT_CALCULATION_LEVEL
+          
+          // 处理calculationDetails：确保从null更新为有效对象时能正确写入
+          // L1级别不返回calculationDetails（估算级），L2和L3级别返回calculationDetails
+          let calculationDetailsToUpdate = null;
+          if (calculateResult.data.calculationDetails !== undefined && calculateResult.data.calculationDetails !== null) {
+            // 如果计算结果中有calculationDetails，使用它
+            calculationDetailsToUpdate = calculateResult.data.calculationDetails;
+          } else if (preservedCalculationLevel === 'L2' || preservedCalculationLevel === 'L3') {
+            // 如果是L2或L3级别但计算结果中没有calculationDetails，这不应该发生
+            // 记录警告，但为了容错，我们保留原有的calculationDetails（如果有）
+            console.warn(`[recalculateMenuItems] L${preservedCalculationLevel}级别计算未返回calculationDetails，菜单项ID: ${menuItem._id}`);
+            calculationDetailsToUpdate = menuItem.calculationDetails || null;
+          } else {
+            // L1级别不需要calculationDetails
+            calculationDetailsToUpdate = null;
+          }
+          
+          // 调试日志：记录calculationDetails的更新情况
+          if (preservedCalculationLevel === 'L2' || preservedCalculationLevel === 'L3') {
+            if (calculationDetailsToUpdate) {
+              console.log(`[recalculateMenuItems] L${preservedCalculationLevel}级别计算明细已更新，菜单项ID: ${menuItem._id}，ingredients数量: ${calculationDetailsToUpdate.ingredients?.length || 0}，total: ${calculationDetailsToUpdate.total}`);
+            } else {
+              console.warn(`[recalculateMenuItems] L${preservedCalculationLevel}级别计算明细为null，菜单项ID: ${menuItem._id}`);
+            }
+          }
+          
           const updateData = {
             carbonFootprint: calculateResult.data.carbonFootprint,
             baselineInfo: calculateResult.data.baselineInfo,
             factorMatchInfo: calculateResult.data.factorMatchInfo || [],
-            calculationDetails: calculateResult.data.calculationDetails || null, // 保存计算明细
-          calculationLevel: preservedCalculationLevel, // 保持原有的计算级别
-          optimizationFlag: calculateResult.data.optimizationFlag,
-          calculatedAt: calculateResult.data.calculatedAt,
-          restaurantRegion: menuItem.restaurantRegion || calculationRegion || 'national_average',
-          factorRegion: factorRegion // 保存因子区域代码
+            calculationLevel: preservedCalculationLevel, // 保持原有的计算级别
+            optimizationFlag: calculateResult.data.optimizationFlag,
+            calculatedAt: calculateResult.data.calculatedAt,
+            restaurantRegion: menuItem.restaurantRegion || calculationRegion || 'national_average',
+            factorRegion: factorRegion // 保存因子区域代码
           };
 
           // 构建完整的更新数据，包含需要删除的字段
           const finalUpdateData = { ...updateData };
           
           // 如果 baselineInfo 是 null，需要删除该字段
-          if (menuItem.baselineInfo === null) {
+          if (menuItem.baselineInfo === null && calculateResult.data.baselineInfo === null) {
             finalUpdateData.baselineInfo = _.remove();
           }
           
@@ -1949,7 +2247,19 @@ async function recalculateMenuItems(data, context) {
           if (typeof menuItem.carbonFootprint === 'number') {
             finalUpdateData.carbonFootprint = _.remove();
           }
+          
+          // 处理calculationDetails字段：简化更新逻辑
+          // 使用统一的方式处理：如果值存在则设置，如果L1级别或值为null则删除
+          if (calculationDetailsToUpdate !== null && calculationDetailsToUpdate !== undefined) {
+            // 有值则设置（无论原来是否为null，直接覆盖）
+            finalUpdateData.calculationDetails = calculationDetailsToUpdate;
+          } else if (preservedCalculationLevel === 'L1') {
+            // L1级别不需要calculationDetails，删除该字段
+            finalUpdateData.calculationDetails = _.remove();
+          }
+          // 如果calculationDetailsToUpdate是null且不是L1，不更新该字段（保持原值）
 
+          // 执行更新
           await menuItemsCollection.doc(menuItem._id).update({
             data: finalUpdateData
           });
