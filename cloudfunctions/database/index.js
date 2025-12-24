@@ -35,6 +35,8 @@ const { main: removeNationalAverage } = require('./remove-national-average');
 const { main: updateAllFactorsRegionToCN } = require('./update-all-factors-region-to-cn');
 const { main: initCarbonCalculationConfigs } = require('./init-carbon-calculation-configs');
 const { main: initGridRegions } = require('./init-grid-regions');
+const { main: initPosInterfaceCollections } = require('./init-pos-interface-collections');
+const { main: initMenuDisplayConfigCollections } = require('./init-menu-display-config-collections');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -74,6 +76,8 @@ const { main: initGridRegions } = require('./init-grid-regions');
  * - initMealSetBaselinesCollection: 初始化一餐饭基准值集合（meal_set_baselines）
  * - initMealSetBaselineSampleData: 初始化一餐饭基准值示例数据
  * - initRegionConfigs: 初始化区域配置数据（因子区域和基准值区域）
+ * - initPosInterfaceCollections: 初始化收银系统接口集合（pos_integrations, pos_sync_logs）
+ * - initMenuDisplayConfigCollections: 初始化菜单展示配置集合（restaurant_menu_display_configs）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -198,6 +202,10 @@ exports.main = async (event) => {
         return await initCarbonCalculationConfigs(event);
       case 'initGridRegions':
         return await initGridRegions(event);
+      case 'initPosInterfaceCollections':
+        return await initPosInterfaceCollections(event);
+      case 'initMenuDisplayConfigCollections':
+        return await initMenuDisplayConfigCollections(event);
       default:
         return await initCollectionsV1(event);
     }

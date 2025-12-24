@@ -1,0 +1,10 @@
+{
+  "name": "pos-interface",
+  "version": "1.0.0",
+  "description": "收银系统接口云函数 - 支持菜单推送和订单同步",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

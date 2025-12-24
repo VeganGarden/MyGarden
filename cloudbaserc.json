@@ -240,6 +240,13 @@
       "envVariables": {},
       "runtime": "Nodejs10.15",
       "memorySize": 256
+    },
+    {
+      "name": "menu-carbon-label",
+      "timeout": 10,
+      "envVariables": {},
+      "runtime": "Nodejs16.13",
+      "memorySize": 256
     }
   ]
 }
