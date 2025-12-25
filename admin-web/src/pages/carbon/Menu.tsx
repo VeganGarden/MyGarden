@@ -330,6 +330,9 @@ const CarbonMenu: React.FC = () => {
       )
     }
 
+    // 过滤掉没有ingredientName的食材数据（避免显示空行）
+    const validIngredients = (details.ingredients || []).filter(ing => ing.ingredientName && ing.ingredientName.trim())
+    
     // 食材明细表格列定义
     const ingredientColumns: ColumnsType<NonNullable<typeof details.ingredients>[0]> = [
       {
@@ -455,7 +458,7 @@ const CarbonMenu: React.FC = () => {
       },
     ]
 
-    const totalIngredientsCarbon = (details.ingredients || []).reduce((sum, ing) => sum + (ing.carbonFootprint || 0), 0)
+    const totalIngredientsCarbon = validIngredients.reduce((sum, ing) => sum + (ing.carbonFootprint || 0), 0)
 
     // 获取计算级别信息
     const calculationLevel = menuItem.calculationLevel || 'L2'
@@ -522,7 +525,7 @@ const CarbonMenu: React.FC = () => {
           <Title level={5}>食材碳足迹明细</Title>
           <Table
             columns={ingredientColumns}
-            dataSource={details.ingredients || []}
+            dataSource={validIngredients}
             rowKey={(record, index) => `${record.ingredientName}-${record.quantity}-${record.unit}-${index}`}
             pagination={false}
             size="small"
