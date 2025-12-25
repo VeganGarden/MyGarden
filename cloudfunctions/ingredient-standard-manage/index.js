@@ -24,10 +24,6 @@ exports.main = async (event, context) => {
   // 获取userInfo（兼容Node.js 10.15，不使用可选链）
   const userInfo = (context && context.userInfo) || event.userInfo || null;
 
-  console.log('========================================');
-  console.log(`食材标准库管理 - Action: ${actualSubAction}`);
-  console.log('========================================\n');
-
   try {
     switch (actualSubAction) {
       // 标准名称管理

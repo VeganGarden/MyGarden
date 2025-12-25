@@ -64,7 +64,7 @@ async function mapIngredientCategoryToSubCategory(category) {
     }
   }
   // 回退到硬编码映射
-  const categoryMap = {
+  const categoryMap = categoryUtils?.getFallbackCategoryMap() || {
     'vegetables': 'vegetable',
     'beans': 'bean_product',
     'grains': 'grain',

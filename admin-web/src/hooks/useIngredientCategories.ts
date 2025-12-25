@@ -1,5 +1,5 @@
 import { ingredientStandardAPI } from '@/services/ingredientStandard'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { IngredientCategory } from '@/types/ingredientCategory'
 
 /**
@@ -21,7 +21,7 @@ export const useIngredientCategories = (options?: {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const fetchCategories = async (forceRefresh = false) => {
+  const fetchCategories = useCallback(async (forceRefresh = false) => {
     // 如果使用缓存且未过期，直接返回缓存
     if (!forceRefresh && categoryCache && Date.now() - categoryCacheTimestamp < CACHE_TTL) {
       setCategories(categoryCache)
@@ -55,11 +55,11 @@ export const useIngredientCategories = (options?: {
     } finally {
       setLoading(false)
     }
-  }
+  }, [options?.status])
 
   useEffect(() => {
     fetchCategories(options?.refresh)
-  }, [options?.status, options?.refresh])
+  }, [fetchCategories, options?.refresh])
 
   return {
     categories,
@@ -78,14 +78,18 @@ export const useCategoryOptions = (options?: {
 }) => {
   const { categories, loading } = useIngredientCategories({ status: options?.status })
 
-  const categoryOptions = categories.map(cat => ({
-    label: cat.categoryName,
-    value: cat.categoryCode,
-  }))
-
-  if (options?.includeAll) {
-    categoryOptions.unshift({ label: '全部', value: 'all' })
-  }
+  const categoryOptions = options?.includeAll
+    ? [
+        { label: '全部', value: 'all' },
+        ...categories.map(cat => ({
+          label: cat.categoryName,
+          value: cat.categoryCode,
+        }))
+      ]
+    : categories.map(cat => ({
+        label: cat.categoryName,
+        value: cat.categoryCode,
+      }))
 
   return {
     options: categoryOptions,

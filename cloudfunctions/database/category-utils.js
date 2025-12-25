@@ -139,19 +139,27 @@ async function mapCategoryToFactorSubCategory(categoryCode) {
  * 回退的类别映射逻辑（硬编码，向后兼容）
  */
 function mapCategoryToFactorSubCategoryFallback(categoryCode) {
-  const categoryMap = {
-    'vegetables': 'vegetable',
-    'beans': 'bean_product',
-    'grains': 'grain',
-    'fruits': 'fruit',
-    'nuts': 'nut',
-    'mushrooms': 'mushroom',
-    'seafood': 'seafood',
-    'dairy': 'dairy',
-    'spices': 'spice',
-    'others': 'other'
-  };
+  const categoryMap = getFallbackCategoryMap();
   return categoryMap[categoryCode] || 'other';
+}
+
+/**
+ * 获取硬编码的类别映射（作为fallback）
+ * 当类别工具模块不可用时使用
+ */
+function getFallbackCategoryMap() {
+  return {
+    vegetables: 'vegetable',
+    beans: 'bean_product',
+    grains: 'grain',
+    fruits: 'fruit',
+    nuts: 'nut',
+    mushrooms: 'mushroom',
+    seafood: 'seafood',
+    dairy: 'dairy',
+    spices: 'spice',
+    others: 'other'
+  };
 }
 
 module.exports = {
@@ -159,6 +167,7 @@ module.exports = {
   getCategoryByCode,
   inferCategory,
   mapCategoryToFactorSubCategory,
+  getFallbackCategoryMap,
   clearCategoryCache
 };
 
