@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>正在加载...</title>
   <script>
-    // SPA 路由支持：将所有 404 请求重定向到 index.html
-    // 保存当前路径，以便 React Router 可以处理
-    var path = window.location.pathname;
-    var search = window.location.search;
-    var hash = window.location.hash;
+    // SPA 路由支持：将 404 请求重定向到 index.html
+    // 这个文件会被腾讯云静态网站托管在 404 错误时返回
+    // 我们需要将请求重定向到 index.html，让 React Router 处理路由
     
-    // 如果不是根路径或index.html，重定向到index.html并保留路径
-    if (path !== '/' && path !== '/index.html' && !path.startsWith('/assets/') && !path.startsWith('/static/')) {
-      // 重定向到 index.html，保留路径信息
-      window.location.replace('/index.html' + path + search + hash);
-    } else {
-      // 如果已经是index.html，则说明可能是其他问题，直接跳转到首页
-      window.location.replace('/');
+    var path = window.location.pathname;
+    var search = window.location.search || '';
+    var hash = window.location.hash || '';
+    
+    // 过滤掉静态资源路径（这些应该返回实际的 404，不应该重定向）
+    var isStaticResource = path.startsWith('/assets/') || 
+                          path.startsWith('/static/') || 
+                          path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json)$/i);
+    
+    if (!isStaticResource) {
+      // 对于非静态资源的 404，我们需要跳转到 index.html
+      // 但是不能使用 window.location.replace('/index.html' + path)，因为这会导致路径拼接错误
+      // 最好的方式是：保存路径到 sessionStorage，然后跳转到根路径，让 React Router 处理
+      // 或者：直接跳转到根路径，因为腾讯云控制台应该配置了错误页面重定向
+      
+      // 方案1：尝试跳转到根路径（如果控制台配置了错误页面重定向到 index.html，这是最安全的）
+      window.location.replace('/' + search + hash);
     }
   </script>
 </head>
@@ -25,12 +33,9 @@
   <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
     <p>正在加载...</p>
     <script>
-      // 备用重定向方案
+      // 备用方案：如果上面的重定向没有生效，再次尝试跳转到根路径
       setTimeout(function() {
-        var path = window.location.pathname;
-        if (path !== '/' && path !== '/index.html') {
-          window.location.href = '/index.html' + path + window.location.search + window.location.hash;
-        } else {
+        if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/assets/') && !window.location.pathname.startsWith('/static/')) {
           window.location.href = '/';
         }
       }, 500);
