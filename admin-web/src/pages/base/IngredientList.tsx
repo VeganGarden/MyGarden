@@ -1,5 +1,5 @@
-import { ingredientAPI } from '@/services/cloudbase'
 import { useCategoryMap, useCategoryOptions } from '@/hooks/useIngredientCategories'
+import { ingredientAPI } from '@/services/cloudbase'
 import { debounce } from '@/utils/debounce'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import {
@@ -439,13 +439,6 @@ const IngredientList: React.FC = () => {
                   {opt.label}
                 </Option>
               ))}
-            </Select>
-              <Option value="vegetables">蔬菜类</Option>
-              <Option value="beans">豆制品</Option>
-              <Option value="grains">谷物类</Option>
-              <Option value="nuts">坚果类</Option>
-              <Option value="fruits">水果类</Option>
-              <Option value="mushrooms">菌菇类</Option>
             </Select>
           </Form.Item>
         </Form>

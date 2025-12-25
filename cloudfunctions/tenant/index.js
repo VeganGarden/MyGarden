@@ -4600,29 +4600,32 @@ async function createMenuItemFromRecipe(data, user, context) {
 
     // 4. 转换 ingredients 结构
     // recipes 的 ingredients 可能是简单数组或对象数组
-    // restaurant_menu_items 需要详细结构：{ ingredientName, quantity, unit, isMainIngredient }
+    // restaurant_menu_items 需要详细结构：{ name, quantity, unit, isMainIngredient, ingredientId }
     let formattedIngredients = []
     if (Array.isArray(recipe.ingredients)) {
       formattedIngredients = recipe.ingredients.map((ing, index) => {
         if (typeof ing === 'string') {
           // 简单字符串格式
           return {
-            ingredientName: ing,
+            name: ing,
             quantity: 100, // 默认值，需要餐厅填写
             unit: 'g',
             isMainIngredient: index === 0 // 第一个作为主食材
           }
         } else if (typeof ing === 'object' && ing !== null) {
           // 对象格式，尝试提取信息
+          const name = ing.name || ing.ingredientName || ing.ingredient || String(ing)
           return {
-            ingredientName: ing.name || ing.ingredientName || ing.ingredient || String(ing),
+            name: name,
             quantity: ing.quantity || ing.amount || 100,
             unit: ing.unit || 'g',
+            ingredientId: ing.ingredientId || ing._id || ing.id || undefined, // 保留 ingredientId 如果存在
+            notes: ing.notes || ing.note || '', // 保留备注信息
             isMainIngredient: ing.isMainIngredient !== undefined ? ing.isMainIngredient : (index === 0)
           }
         } else {
           return {
-            ingredientName: String(ing),
+            name: String(ing),
             quantity: 100,
             unit: 'g',
             isMainIngredient: index === 0
@@ -4784,7 +4787,7 @@ async function createMenuItemFromRecipe(data, user, context) {
             calculationLevel: menuItemData.calculationLevel || 'L2',
             region: menuItemData.restaurantRegion || restaurantRegion || 'national_average',
             ingredients: ingredients.map(ing => ({
-              ingredientName: ing.ingredientName || ing.name,
+              name: ing.name || ing.ingredientName,
               quantity: ing.quantity,
               unit: ing.unit || 'g',
               category: ing.category,
@@ -5157,7 +5160,7 @@ async function updateMenuItem(data, user, context) {
                 calculationLevel: updatedMenuItem.calculationLevel || 'L2',
                 region: calculationRegion || 'national_average',
                 ingredients: ingredients.map(ing => ({
-                  ingredientName: ing.ingredientName || ing.name,
+                  name: ing.name || ing.ingredientName,
                   quantity: ing.quantity,
                   unit: ing.unit || 'g',
                   category: ing.category,
