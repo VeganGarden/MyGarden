@@ -85,7 +85,7 @@ const CategoryDetail: React.FC = () => {
           categoryCode: values.categoryCode,
           categoryName: values.categoryName,
           categoryNameEn: values.categoryNameEn,
-          parentCategoryCode: values.parentCategoryCode,
+          parentCategoryCode: values.parentCategoryCode || undefined,
           level: values.level,
           sortOrder: values.sortOrder,
           mapping: values.mapping || {
@@ -99,7 +99,7 @@ const CategoryDetail: React.FC = () => {
         result = await ingredientStandardAPI.category.update(originalCategoryCode, {
           categoryName: values.categoryName,
           categoryNameEn: values.categoryNameEn,
-          parentCategoryCode: values.parentCategoryCode,
+          parentCategoryCode: values.parentCategoryCode || undefined,
           level: values.level,
           sortOrder: values.sortOrder,
           mapping: values.mapping,

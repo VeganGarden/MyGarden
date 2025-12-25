@@ -141,7 +141,7 @@ const CarbonCalculationConfigPage: React.FC = () => {
     record: CarbonCalculationConfig,
     dataIndex: string,
     inputType: 'number' | 'text' = 'text'
-  ) => {
+  ): React.ReactNode => {
     const isEditing = editingKey === record._id
 
     if (isEditing && dataIndex !== 'category' && dataIndex !== 'configKey') {
@@ -174,7 +174,8 @@ const CarbonCalculationConfigPage: React.FC = () => {
       return `${record.value} ${record.unit}`
     }
 
-    return record[dataIndex as keyof CarbonCalculationConfig] || '-'
+    const value = record[dataIndex as keyof CarbonCalculationConfig]
+    return value != null ? String(value) : '-'
   }
 
   // 获取当前tab的配置组
