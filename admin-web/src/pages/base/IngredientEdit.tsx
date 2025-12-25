@@ -1,4 +1,5 @@
 import { ingredientAPI } from '@/services/cloudbase'
+import { useCategoryOptions } from '@/hooks/useIngredientCategories'
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Card, Collapse, Form, Input, InputNumber, Select, Space, Spin, Switch, message } from 'antd'
 import React, { useEffect, useState } from 'react'
@@ -7,16 +8,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 const { TextArea } = Input
 const { Option } = Select
 const { Panel } = Collapse
-
-// 食材分类选项
-const CATEGORY_OPTIONS = [
-  { label: '蔬菜类', value: 'vegetables' },
-  { label: '豆制品', value: 'beans' },
-  { label: '谷物类', value: 'grains' },
-  { label: '坚果类', value: 'nuts' },
-  { label: '水果类', value: 'fruits' },
-  { label: '菌菇类', value: 'mushrooms' },
-]
 
 // 状态选项
 const STATUS_OPTIONS = [
@@ -78,6 +69,11 @@ const IngredientEdit: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const isEdit = !!id
+  
+  // 获取类别选项
+  const { options: categoryOptions, loading: categoriesLoading } = useCategoryOptions({
+    status: 'active',
+  })
 
   useEffect(() => {
     if (isEdit) {
@@ -168,19 +164,23 @@ const IngredientEdit: React.FC = () => {
                 <Input placeholder="请输入英文名称" />
               </Form.Item>
 
-              <Form.Item
-                name="category"
-                label="分类"
-                rules={[{ required: true, message: '请选择分类' }]}
-              >
-                <Select placeholder="请选择分类">
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <Option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
+                <Form.Item
+                  name="category"
+                  label="分类"
+                  rules={[{ required: true, message: '请选择分类' }]}
+                >
+                  <Select 
+                    placeholder="请选择分类"
+                    loading={categoriesLoading}
+                    notFoundContent={categoriesLoading ? '加载中...' : '暂无类别'}
+                  >
+                    {categoryOptions.map((opt) => (
+                      <Option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
 
               <Form.Item name="description" label="描述">
                 <TextArea rows={4} placeholder="请输入食材描述" />

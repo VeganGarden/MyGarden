@@ -37,6 +37,10 @@ const { main: initCarbonCalculationConfigs } = require('./init-carbon-calculatio
 const { main: initGridRegions } = require('./init-grid-regions');
 const { main: initPosInterfaceCollections } = require('./init-pos-interface-collections');
 const { main: initMenuDisplayConfigCollections } = require('./init-menu-display-config-collections');
+const { main: importIngredientsFromList } = require('./import-ingredients-from-list');
+const { main: importRecipesFromList } = require('./import-recipes-from-list');
+const { main: deleteIncorrectRecipes } = require('./delete-incorrect-recipes');
+const { main: analyzeDuplicateIngredients } = require('./analyze-duplicate-ingredients');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -206,6 +210,49 @@ exports.main = async (event) => {
         return await initPosInterfaceCollections(event);
       case 'initMenuDisplayConfigCollections':
         return await initMenuDisplayConfigCollections(event);
+      case 'importIngredientsFromList':
+        return await importIngredientsFromList(event);
+      case 'importRecipesFromList':
+        return await importRecipesFromList(event);
+      case 'deleteIncorrectRecipes':
+        return await deleteIncorrectRecipes(event);
+      case 'analyzeDuplicateIngredients':
+        return await analyzeDuplicateIngredients(event);
+      case 'initIngredientStandardCollections':
+        const { main: initIngredientStandardCollections } = require('./init-ingredient-standard-collections');
+        return await initIngredientStandardCollections(event);
+      case 'initIngredientCategories':
+        const { main: initIngredientCategories } = require('./init-ingredient-categories');
+        return await initIngredientCategories(event);
+      case 'expandIngredientCategories':
+        const { main: expandIngredientCategories } = require('./expand-ingredient-categories');
+        return await expandIngredientCategories(event);
+      case 'standardizeIngredientCategories':
+        const { main: standardizeIngredientCategories } = require('./migrate-standardize-ingredient-categories');
+        return await standardizeIngredientCategories(event);
+      case 'migrateIngredientsAddStandardizationFields':
+        const { main: migrateIngredientsAddStandardizationFields } = require('./migrate-ingredients-add-standardization-fields');
+        return await migrateIngredientsAddStandardizationFields(event);
+      case 'initIngredientStandardsData':
+        const { main: initIngredientStandardsData } = require('./init-ingredient-standards-data');
+        return await initIngredientStandardsData(event);
+      case 'migrateStandardizeExistingIngredients':
+        const { main: migrateStandardizeExistingIngredients } = require('./migrate-standardize-existing-ingredients');
+        return await migrateStandardizeExistingIngredients(event);
+      // 注意：业务操作已迁移到 ingredient-standard-manage 云函数
+      // 以下路由已废弃，保留仅为向后兼容，建议使用新的 ingredient-standard-manage 云函数
+      case 'manageIngredientStandards':
+        console.warn('⚠️  manageIngredientStandards 已废弃，请使用 ingredient-standard-manage 云函数');
+        const { main: manageIngredientStandards } = require('./manage-ingredient-standards');
+        return await manageIngredientStandards(event);
+      case 'syncStandardAliasesToFactors':
+        console.warn('⚠️  syncStandardAliasesToFactors 已废弃，请使用 ingredient-standard-manage 云函数');
+        const { main: syncStandardAliasesToFactors } = require('./sync-standard-aliases-to-factors');
+        return await syncStandardAliasesToFactors(event);
+      case 'syncStandardNameToIngredients':
+        console.warn('⚠️  syncStandardNameToIngredients 已废弃，请使用 ingredient-standard-manage 云函数');
+        const { main: syncStandardNameToIngredients } = require('./sync-standard-name-to-ingredients');
+        return await syncStandardNameToIngredients(event);
       default:
         return await initCollectionsV1(event);
     }

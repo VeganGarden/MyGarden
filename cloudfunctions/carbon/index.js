@@ -6,6 +6,22 @@ cloud.init({
 // 引入高级碳计算器
 const CarbonCalculator = require('./carbon-calculator')
 
+// 引入标准化服务模块（如果存在）
+let standardizer = null;
+try {
+  standardizer = require('../common/ingredient-standardizer');
+} catch (error) {
+  console.warn('标准化服务模块未找到，将使用原有匹配逻辑');
+}
+
+// 引入类别工具模块
+let categoryUtils = null;
+try {
+  categoryUtils = require('./category-utils');
+} catch (error) {
+  console.warn('类别工具模块未找到，将使用原有映射逻辑');
+}
+
 const db = cloud.database()
 const _ = db.command
 
@@ -21,8 +37,18 @@ const COOKING_FACTORS = {
 
 /**
  * 映射ingredients的category到因子库的subCategory
+ * 使用类别工具模块（如果可用），否则回退到硬编码映射
  */
-function mapIngredientCategoryToSubCategory(category) {
+async function mapIngredientCategoryToSubCategory(category) {
+  if (categoryUtils) {
+    try {
+      return await categoryUtils.mapCategoryToFactorSubCategory(category);
+    } catch (error) {
+      console.warn('使用类别工具模块映射失败，使用回退逻辑:', error);
+    }
+  }
+  
+  // 回退到硬编码的映射逻辑
   const categoryMap = {
     vegetables: 'vegetable',
     beans: 'bean_product',
@@ -86,7 +112,50 @@ async function matchFactor(inputName, category, region = null) {
     return null;
   }
 
-  // Level 1: 精确区域匹配
+  // Level 0: 使用标准化名称匹配（如果标准化服务可用）
+  let standardizedName = null;
+  if (standardizer) {
+    try {
+      standardizedName = await standardizer.standardizeIngredientName(inputName);
+      if (standardizedName) {
+        // Level 1: 使用标准化名称精确匹配因子库的name字段
+        let factor = await db.collection('carbon_emission_factors')
+          .where({
+            name: standardizedName,
+            region: region,
+            status: 'active'
+          })
+          .get();
+
+        if (factor.data.length > 0) {
+          const matched = factor.data[0];
+          if (matched.factorValue !== null && matched.factorValue !== undefined) {
+            return matched;
+          }
+        }
+
+        // Level 2: 使用标准化名称匹配因子库的alias字段（数组包含）
+        let aliasMatch = await db.collection('carbon_emission_factors')
+          .where({
+            alias: standardizedName,
+            region: region,
+            status: 'active'
+          })
+          .get();
+
+        if (aliasMatch.data.length > 0) {
+          const matched = aliasMatch.data[0];
+          if (matched.factorValue !== null && matched.factorValue !== undefined) {
+            return matched;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('标准化服务调用失败，回退到原有逻辑:', error.message);
+    }
+  }
+
+  // Level 3: 使用原始名称精确匹配因子库的name字段（向后兼容）
   let factor = await db.collection('carbon_emission_factors')
     .where({
       name: inputName,
@@ -102,7 +171,7 @@ async function matchFactor(inputName, category, region = null) {
     }
   }
 
-  // Level 2: 别名匹配（优先匹配指定区域的别名）
+  // Level 4: 使用原始名称匹配因子库的alias字段（向后兼容）
   let aliasMatch = await db.collection('carbon_emission_factors')
     .where({
       alias: inputName,
@@ -118,9 +187,9 @@ async function matchFactor(inputName, category, region = null) {
     }
   }
 
-  // Level 3: 类别兜底（仅使用指定区域的类别因子）
+  // Level 5: 类别兜底（仅使用指定区域的类别因子）
   if (category) {
-    const subCategory = mapIngredientCategoryToSubCategory(category);
+    const subCategory = await mapIngredientCategoryToSubCategory(category);
     const categoryFactor = await db.collection('carbon_emission_factors')
       .where({
         category: 'ingredient',

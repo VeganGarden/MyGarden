@@ -42,10 +42,28 @@ function generateFactorId(name, category, subCategory, region, year) {
   return `ef_${namePart}${subCategoryPart}${regionPart}${yearPart}`;
 }
 
+// 引入类别工具模块
+let categoryUtils = null;
+try {
+  categoryUtils = require('./category-utils');
+} catch (error) {
+  console.warn('类别工具模块未找到，将使用原有映射逻辑');
+}
+
 /**
  * 映射ingredients的category到因子库的subCategory
+ * 使用类别工具模块（如果可用），否则回退到硬编码映射
  */
-function mapIngredientCategoryToSubCategory(category) {
+async function mapIngredientCategoryToSubCategory(category) {
+  if (categoryUtils) {
+    try {
+      const categoryDoc = await categoryUtils.getCategoryByCode(category);
+      return categoryDoc?.mapping?.factorSubCategory || category || 'other';
+    } catch (error) {
+      console.error('从类别工具模块获取因子子类别失败，回退到硬编码映射:', error);
+    }
+  }
+  // 回退到硬编码映射
   const categoryMap = {
     'vegetables': 'vegetable',
     'beans': 'bean_product',
@@ -58,7 +76,7 @@ function mapIngredientCategoryToSubCategory(category) {
     'spices': 'spice',
     'others': 'other'
   };
-  return categoryMap[category] || 'other';
+  return categoryMap[category] || category || 'other';
 }
 
 /**
@@ -155,9 +173,9 @@ async function getExistingFactorNames() {
 /**
  * 将ingredient转换为因子格式
  */
-function convertIngredientToFactor(ingredient) {
+async function convertIngredientToFactor(ingredient) {
   const name = ingredient.name || '';
-  const category = mapIngredientCategoryToSubCategory(ingredient.category || 'other');
+  const category = await mapIngredientCategoryToSubCategory(ingredient.category || 'other');
   
   return {
     name: name,
@@ -230,23 +248,23 @@ exports.main = async (event) => {
     const skipped = [];
 
     // 处理ingredients
-    ingredients.forEach(ingredient => {
+    for (const ingredient of ingredients) {
       const name = ingredient.name;
       if (!name) {
         skipped.push({ source: 'ingredients', reason: '名称为空', data: ingredient });
-        return;
+        continue;
       }
       
       // 检查是否已存在
       if (existingNames.has(name)) {
         skipped.push({ source: 'ingredients', name, reason: '已存在于因子库' });
-        return;
+        continue;
       }
 
-      const factor = convertIngredientToFactor(ingredient);
+      const factor = await convertIngredientToFactor(ingredient);
       newFactors.push(factor);
       existingNames.add(name); // 添加到集合中，避免后续重复
-    });
+    }
 
     // 处理meat_products
     meatProducts.forEach(meatProduct => {

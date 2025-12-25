@@ -1,4 +1,5 @@
 import { ingredientAPI, recipeAPI } from '@/services/cloudbase'
+import { useCategoryMap } from '@/hooks/useIngredientCategories'
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -51,6 +52,9 @@ const Import: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [importType, setImportType] = useState<'ingredient' | 'recipe'>('ingredient')
+  
+  // 获取类别映射
+  const { getCategoryName, categories } = useCategoryMap()
 
   useEffect(() => {
     const type = searchParams.get('type')
@@ -65,6 +69,18 @@ const Import: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
+  
+  // 生成类别说明文本
+  const getCategoryDescription = () => {
+    if (importType === 'ingredient') {
+      const categoryList = categories
+        .map(cat => `${cat.categoryCode}（${cat.categoryName}）`)
+        .join('、')
+      return categoryList || 'vegetables（蔬菜类）、beans（豆制品）、grains（谷物类）、nuts（坚果类）、fruits（水果类）、mushrooms（菌菇类）'
+    } else {
+      return 'staple（主食）、dish（菜品）、soup（汤品）、dessert（甜品）、drink（饮品）、snack（小食）'
+    }
+  }
 
   // 步骤配置
   const steps: ImportStep[] = [
@@ -281,7 +297,7 @@ const Import: React.FC = () => {
                   <ul>
                     <li>必填字段：食材名称、分类</li>
                     <li>可选字段：英文名称、描述、状态</li>
-                    <li>分类选项：vegetables（蔬菜类）、beans（豆制品）、grains（谷物类）、nuts（坚果类）、fruits（水果类）、mushrooms（菌菇类）</li>
+                    <li>分类选项：{getCategoryDescription()}</li>
                     <li>状态选项：draft（草稿）、published（已发布）、archived（已归档）</li>
                   </ul>
                 ) : (

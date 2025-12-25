@@ -1,4 +1,5 @@
 import { ingredientAPI } from '@/services/cloudbase'
+import { useCategoryMap, useCategoryOptions } from '@/hooks/useIngredientCategories'
 import { debounce } from '@/utils/debounce'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import {
@@ -52,6 +53,10 @@ const IngredientList: React.FC = () => {
     pageSize: 20,
     total: 0,
   })
+  
+  // 获取类别映射和选项
+  const { getCategoryName } = useCategoryMap()
+  const { options: categoryOptions } = useCategoryOptions({ status: 'active' })
 
   // 使用 useCallback 优化 fetchIngredients
   const fetchIngredients = useCallback(async () => {
@@ -249,10 +254,11 @@ const IngredientList: React.FC = () => {
       key: 'nameEn',
       width: 150,
     },
-    {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
+      {
+        title: '分类',
+        dataIndex: 'category',
+        key: 'category',
+        render: (category: string) => getCategoryName(category) || category,
       width: 120,
     },
     {
@@ -427,7 +433,13 @@ const IngredientList: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item name="category" label="分类">
-            <Select placeholder="选择分类（留空则不更新）">
+            <Select placeholder="选择分类（留空则不更新）" allowClear>
+              {categoryOptions.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Option>
+              ))}
+            </Select>
               <Option value="vegetables">蔬菜类</Option>
               <Option value="beans">豆制品</Option>
               <Option value="grains">谷物类</Option>

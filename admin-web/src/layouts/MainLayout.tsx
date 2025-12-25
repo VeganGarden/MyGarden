@@ -347,6 +347,10 @@ const MainLayout: React.FC = () => {
                 key: '/restaurant/manage',
                 label: '我的餐厅',
               },
+              {
+                key: '/restaurant/menu/display-config',
+                label: t('menu.menuDisplayConfig'),
+              },
             ],
           },
         ]
@@ -398,6 +402,14 @@ const MainLayout: React.FC = () => {
               {
                 key: '/base/recipes',
                 label: '基础食谱',
+              },
+              {
+                key: '/base/standards',
+                label: '食材标准库',
+              },
+              {
+                key: '/base/categories',
+                label: '食材类别管理',
               },
               {
                 key: '/base/statistics',

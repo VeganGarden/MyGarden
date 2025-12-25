@@ -47,10 +47,28 @@ function generateFactorId(name, category, subCategory, region, year) {
   return `ef_${namePart}${subCategoryPart}${regionPart}${yearPart}`;
 }
 
+// 引入类别工具模块
+let categoryUtils = null;
+try {
+  categoryUtils = require('./category-utils');
+} catch (error) {
+  console.warn('类别工具模块未找到，将使用原有映射逻辑');
+}
+
 /**
  * 映射ingredients的category到因子库的subCategory
+ * 使用类别工具模块（如果可用），否则回退到硬编码映射
  */
-function mapIngredientCategoryToSubCategory(category) {
+async function mapIngredientCategoryToSubCategory(category) {
+  if (categoryUtils) {
+    try {
+      const categoryDoc = await categoryUtils.getCategoryByCode(category);
+      return categoryDoc?.mapping?.factorSubCategory || category || 'other';
+    } catch (error) {
+      console.error('从类别工具模块获取因子子类别失败，回退到硬编码映射:', error);
+    }
+  }
+  // 回退到硬编码映射
   const categoryMap = {
     vegetables: "vegetable",
     beans: "bean_product",
@@ -166,7 +184,7 @@ async function verifyIngredientsMigration() {
     results.withFactorValue++;
 
     // 查找因子库中对应的记录
-    const subCategory = mapIngredientCategoryToSubCategory(
+    const subCategory = await mapIngredientCategoryToSubCategory(
       ingredient.category
     );
     const existingFactors = await db

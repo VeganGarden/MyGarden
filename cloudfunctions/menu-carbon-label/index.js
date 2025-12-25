@@ -11,6 +11,8 @@ const _ = db.command;
  * - getMenuItemsCarbonLabels: 批量获取菜单项的碳标签信息
  * - getOrderCarbonLabel: 获取订单的碳足迹标签信息
  * - getMenuDisplayConfig: 获取餐厅的菜单展示配置
+ * - createMenuDisplayConfig: 创建餐厅的菜单展示配置
+ * - updateMenuDisplayConfig: 更新餐厅的菜单展示配置
  */
 exports.main = async (event, context) => {
   const { action, data } = event;
@@ -25,6 +27,10 @@ exports.main = async (event, context) => {
         return await getOrderCarbonLabel(data, context);
       case 'getMenuDisplayConfig':
         return await getMenuDisplayConfig(data, context);
+      case 'createMenuDisplayConfig':
+        return await createMenuDisplayConfig(data, context);
+      case 'updateMenuDisplayConfig':
+        return await updateMenuDisplayConfig(data, context);
       default:
         return {
           code: 400,
@@ -810,5 +816,207 @@ function getDefaultShowContent() {
     baseline: false,
     qrCode: false
   };
+}
+
+/**
+ * 创建餐厅的菜单展示配置
+ * 
+ * @param {Object} data - 请求数据
+ * @param {string} data.restaurantId - 餐厅ID（必填）
+ * @param {Object} data.config - 配置对象（必填）
+ */
+async function createMenuDisplayConfig(data, context) {
+  try {
+    const { restaurantId, config } = data;
+
+    if (!restaurantId || !config) {
+      return {
+        code: 400,
+        message: '缺少必填字段：restaurantId 或 config'
+      };
+    }
+
+    // 检查是否已存在配置
+    const existingConfig = await db.collection('restaurant_menu_display_configs')
+      .where({
+        restaurantId: restaurantId,
+        status: 'active'
+      })
+      .get();
+
+    if (existingConfig.data.length > 0) {
+      return {
+        code: 409,
+        message: '配置已存在，请使用更新接口'
+      };
+    }
+
+    // 获取餐厅信息以获取tenantId
+    const restaurantDoc = await db.collection('restaurants')
+      .doc(restaurantId)
+      .get();
+
+    if (!restaurantDoc.data) {
+      return {
+        code: 404,
+        message: '餐厅不存在'
+      };
+    }
+
+    const tenantId = restaurantDoc.data.tenantId;
+
+    // 构建配置文档
+    const now = new Date();
+    const configDoc = {
+      restaurantId: restaurantId,
+      tenantId: tenantId,
+      globalConfig: config.globalConfig || getDefaultGlobalConfig(),
+      mediaConfig: config.mediaConfig || getDefaultMediaConfig(),
+      styleConfig: config.styleConfig || getDefaultStyleConfig(),
+      features: config.features || getDefaultFeatures(),
+      textConfig: config.textConfig || getDefaultTextConfig(),
+      createdAt: now,
+      updatedAt: now,
+      createdBy: context.OPENID || 'system',
+      updatedBy: context.OPENID || 'system',
+      version: 1,
+      status: 'active'
+    };
+
+    // 插入配置
+    const result = await db.collection('restaurant_menu_display_configs')
+      .add({
+        data: configDoc
+      });
+
+    // 清除缓存
+    delete configCache[restaurantId];
+
+    return {
+      code: 0,
+      message: '配置创建成功',
+      data: {
+        _id: result._id,
+        restaurantId: restaurantId,
+        version: 1
+      },
+      requestId: context.requestId,
+      timestamp: now.toISOString()
+    };
+  } catch (error) {
+    console.error('创建配置失败:', error);
+    return {
+      code: 500,
+      message: '创建配置失败',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 更新餐厅的菜单展示配置
+ * 
+ * @param {Object} data - 请求数据
+ * @param {string} data.restaurantId - 餐厅ID（必填）
+ * @param {Object} data.config - 配置对象（必填）
+ * @param {number} data.version - 当前版本号（必填，用于乐观锁）
+ */
+async function updateMenuDisplayConfig(data, context) {
+  try {
+    const { restaurantId, config, version } = data;
+
+    if (!restaurantId || !config) {
+      return {
+        code: 400,
+        message: '缺少必填字段：restaurantId 或 config'
+      };
+    }
+
+    // 获取当前配置
+    const currentConfig = await db.collection('restaurant_menu_display_configs')
+      .where({
+        restaurantId: restaurantId,
+        status: 'active'
+      })
+      .orderBy('version', 'desc')
+      .limit(1)
+      .get();
+
+    if (currentConfig.data.length === 0) {
+      // 如果不存在配置，则创建
+      return await createMenuDisplayConfig(data, context);
+    }
+
+    const current = currentConfig.data[0];
+
+    // 版本检查（乐观锁）
+    if (version && current.version !== version) {
+      return {
+        code: 409,
+        message: '配置已被其他用户修改，请刷新后重试',
+        data: {
+          currentVersion: current.version,
+          requestedVersion: version
+        }
+      };
+    }
+
+    // 合并配置（保留未更新的字段）
+    const now = new Date();
+    const updatedConfig = {
+      globalConfig: { ...current.globalConfig, ...config.globalConfig },
+      mediaConfig: { ...current.mediaConfig, ...config.mediaConfig },
+      styleConfig: { ...current.styleConfig, ...config.styleConfig },
+      features: { ...current.features, ...config.features },
+      textConfig: { ...current.textConfig, ...config.textConfig },
+      updatedAt: now,
+      updatedBy: context.OPENID || 'system',
+      version: current.version + 1
+    };
+
+    // 将旧配置标记为非活跃
+    await db.collection('restaurant_menu_display_configs')
+      .doc(current._id)
+      .update({
+        data: {
+          status: 'inactive'
+        }
+      });
+
+    // 创建新配置
+    const result = await db.collection('restaurant_menu_display_configs')
+      .add({
+        data: {
+          restaurantId: restaurantId,
+          tenantId: current.tenantId,
+          ...updatedConfig,
+          createdAt: current.createdAt,
+          createdBy: current.createdBy,
+          status: 'active'
+        }
+      });
+
+    // 清除缓存
+    delete configCache[restaurantId];
+
+    return {
+      code: 0,
+      message: '配置更新成功',
+      data: {
+        _id: result._id,
+        restaurantId: restaurantId,
+        version: updatedConfig.version
+      },
+      requestId: context.requestId,
+      timestamp: now.toISOString()
+    };
+  } catch (error) {
+    console.error('更新配置失败:', error);
+    return {
+      code: 500,
+      message: '更新配置失败',
+      error: error.message
+    };
+  }
 }
 

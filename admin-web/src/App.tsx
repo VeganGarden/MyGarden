@@ -86,6 +86,7 @@ import PlatformRestaurantList from './pages/platform/RestaurantList'
 import PlatformStatistics from './pages/platform/Statistics'
 import TenantList from './pages/platform/TenantList'
 import RestaurantManage from './pages/restaurant/Manage'
+import MenuDisplayConfig from './pages/restaurant/MenuDisplayConfig'
 
 // 个人中心
 import OnboardingApply from './pages/onboarding/Apply'
@@ -109,6 +110,10 @@ import BaseMeatIngredientList from './pages/base/MeatIngredientList'
 import BaseRecipeDetail from './pages/base/RecipeDetail'
 import BaseRecipeEdit from './pages/base/RecipeEdit'
 import BaseRecipeList from './pages/base/RecipeList'
+import StandardDetail from './pages/base/StandardDetail'
+import StandardList from './pages/base/StandardList'
+import CategoryList from './pages/base/CategoryList'
+import CategoryDetail from './pages/base/CategoryDetail'
 import BaseStatistics from './pages/base/Statistics'
 
 // 素食人员管理模块（懒加载）
@@ -529,7 +534,22 @@ const App: React.FC = () => {
           />
           
           {/* 餐厅管理（仅餐厅管理员可见） */}
-          <Route path="restaurant/manage" element={<RestaurantManage />} />
+          <Route 
+            path="restaurant/manage" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <RestaurantManage />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="restaurant/menu/display-config" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <MenuDisplayConfig />
+              </RouteGuard>
+            } 
+          />
           
           {/* 餐厅认证路由（兼容旧路径） */}
           <Route path="admin/restaurants/:restaurantId/certification" element={<CertificationApply />} />
@@ -595,6 +615,56 @@ const App: React.FC = () => {
           <Route path="base/recipes/:id" element={<BaseRecipeDetail />} />
           <Route path="base/statistics" element={<BaseStatistics />} />
           <Route path="base/import" element={<BaseImport />} />
+          {/* 食材标准库管理（仅平台运营者） */}
+          <Route 
+            path="base/standards" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator']}>
+                <StandardList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="base/standards/new" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator']}>
+                <StandardDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="base/standards/:standardName" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator']}>
+                <StandardDetail />
+              </RouteGuard>
+            } 
+          />
+          {/* 食材类别管理（仅平台运营者） */}
+          <Route 
+            path="base/categories" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator']}>
+                <CategoryList />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="base/categories/new" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator']}>
+                <CategoryDetail />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="base/categories/:categoryCode" 
+            element={
+              <RouteGuard allowedRoles={['platform_operator']}>
+                <CategoryDetail />
+              </RouteGuard>
+            } 
+          />
           
           {/* 素食人员管理模块（仅餐厅管理员可见） */}
           <Route 

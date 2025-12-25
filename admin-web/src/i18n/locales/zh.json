@@ -179,6 +179,7 @@
     "recipeList": "餐厅菜谱列表",
     "recipeCreate": "创建餐厅菜谱",
     "recipeCategories": "菜谱分类",
+    "menuDisplayConfig": "菜单环保信息展示配置",
     "platform": "平台管理",
     "platformTenants": "租户列表管理",
     "platformRestaurants": "餐厅列表管理",
