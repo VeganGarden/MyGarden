@@ -2256,10 +2256,25 @@ async function recalculateMenuItems(data, context) {
           // 构建完整的更新数据，包含需要删除的字段
           const finalUpdateData = { ...updateData };
           
-          // 如果 baselineInfo 是 null，需要删除该字段
-          if (menuItem.baselineInfo === null && calculateResult.data.baselineInfo === null) {
+          // 处理 baselineInfo 字段：
+          // 如果原来的 baselineInfo 是 null，而新的也是 null，则删除该字段
+          // 如果原来的 baselineInfo 是 null，而新的是对象，需要分两步更新：先删除，再设置
+          let needsTwoStepUpdate = false;
+          if (menuItem.baselineInfo === null || menuItem.baselineInfo === undefined) {
+            if (calculateResult.data.baselineInfo === null || calculateResult.data.baselineInfo === undefined) {
+              // 原来和现在都是 null，删除字段
+              finalUpdateData.baselineInfo = _.remove();
+            } else {
+              // 原来是 null，现在要设置为对象，需要先删除再设置（避免在 null 上创建嵌套字段的错误）
+              // 先从更新数据中移除 baselineInfo，我们将分两步更新
+              delete finalUpdateData.baselineInfo;
+              needsTwoStepUpdate = true;
+            }
+          } else if (calculateResult.data.baselineInfo === null || calculateResult.data.baselineInfo === undefined) {
+            // 原来有值，现在要设置为 null，删除字段
             finalUpdateData.baselineInfo = _.remove();
           }
+          // 如果原来和现在都有值，直接覆盖即可（已在 updateData 中设置）
           
           // 如果 carbonFootprint 是数字（旧格式），需要删除该字段
           if (typeof menuItem.carbonFootprint === 'number') {
@@ -2278,9 +2293,25 @@ async function recalculateMenuItems(data, context) {
           // 如果calculationDetailsToUpdate是null且不是L1，不更新该字段（保持原值）
 
           // 执行更新
-          await menuItemsCollection.doc(menuItem._id).update({
-            data: finalUpdateData
-          });
+          // 如果需要两步更新（原来是 null，现在要设置为对象），先删除字段再设置
+          if (needsTwoStepUpdate) {
+            // 第一步：先删除 baselineInfo 字段（如果存在）
+            await menuItemsCollection.doc(menuItem._id).update({
+              data: {
+                baselineInfo: _.remove()
+              }
+            });
+            // 第二步：设置 baselineInfo 为新的对象值，同时更新其他字段
+            finalUpdateData.baselineInfo = calculateResult.data.baselineInfo;
+            await menuItemsCollection.doc(menuItem._id).update({
+              data: finalUpdateData
+            });
+          } else {
+            // 正常更新
+            await menuItemsCollection.doc(menuItem._id).update({
+              data: finalUpdateData
+            });
+          }
 
           results.push({
             menuItemId: menuItem._id,
