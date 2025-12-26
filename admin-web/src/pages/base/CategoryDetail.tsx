@@ -3,6 +3,7 @@
  * 仅平台运营角色可见
  */
 import { ingredientStandardAPI } from '@/services/ingredientStandard'
+import type { IngredientCategory } from '@/types/ingredientCategory'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
 import {
   Button,
@@ -14,12 +15,10 @@ import {
   Space,
   Spin,
   Tabs,
-  message,
-  Tag,
+  message
 } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { IngredientCategory } from '@/types/ingredientCategory'
 import CategoryKeywordManagement from './components/CategoryKeywordManagement'
 
 const { Option } = Select
