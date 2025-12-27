@@ -4,12 +4,10 @@
 import { menuDisplayConfigAPI } from '@/services/menuDisplayConfig'
 import { useAppSelector } from '@/store/hooks'
 import {
-  CheckCircleOutlined,
   EyeOutlined,
-  InfoCircleOutlined,
   ReloadOutlined,
   SaveOutlined,
-  SettingOutlined,
+  SettingOutlined
 } from '@ant-design/icons'
 import {
   Alert,
@@ -31,9 +29,8 @@ import {
   Switch,
   Tabs,
   Tag,
-  Tooltip,
   Typography,
-  message,
+  message
 } from 'antd'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
@@ -543,26 +540,56 @@ const MenuDisplayConfigPage: React.FC = () => {
   // 渲染预览
   const renderPreview = () => {
     const values = form.getFieldsValue()
-    const displayLevel = values.defaultDisplayLevel || 'basic'
+    
+    // 获取当前选择的媒介配置
+    const useGlobal = values[`${previewMedia}_useGlobal`] ?? true
+    const mediaDisplayLevel = useGlobal 
+      ? (values.defaultDisplayLevel || 'basic')
+      : (values[`${previewMedia}_displayLevel`] || values.defaultDisplayLevel || 'basic')
+    
     const iconSize = values.iconSize || 'medium'
     const colorScheme = values.colorScheme || 'standard'
+    
+    // 获取媒介的显示内容配置
+    const showIcon = useGlobal ? true : (values[`${previewMedia}_showIcon`] ?? true)
+    const showLevelText = useGlobal 
+      ? (mediaDisplayLevel !== 'minimal')
+      : (values[`${previewMedia}_showLevelText`] ?? false)
+    const showValue = useGlobal
+      ? (mediaDisplayLevel === 'detailed' || mediaDisplayLevel === 'comprehensive')
+      : (values[`${previewMedia}_showValue`] ?? false)
+    const showReductionPercent = useGlobal
+      ? (mediaDisplayLevel === 'basic' || mediaDisplayLevel === 'detailed' || mediaDisplayLevel === 'comprehensive')
+      : (values[`${previewMedia}_showReductionPercent`] ?? false)
+    const showBaseline = useGlobal
+      ? (mediaDisplayLevel === 'comprehensive')
+      : (values[`${previewMedia}_showBaseline`] ?? false)
+    
+    // 获取当前媒介信息
+    const currentMedia = MEDIA_TYPES.find(m => m.key === previewMedia)
+    const mediaLabel = currentMedia?.label || '未知媒介'
 
     return (
       <Card title="预览效果" extra={<Button onClick={() => setShowPreview(false)}>关闭预览</Button>}>
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Form.Item label="选择预览媒介">
-            <Select
-              value={previewMedia}
-              onChange={setPreviewMedia}
-              style={{ width: 200 }}
-            >
-              {MEDIA_TYPES.map((media) => (
-                <Select.Option key={media.key} value={media.key}>
-                  {media.icon} {media.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+          <Row align="middle" gutter={8}>
+            <Col flex="none">
+              <Text>选择预览媒介：</Text>
+            </Col>
+            <Col flex="auto">
+              <Select
+                value={previewMedia}
+                onChange={setPreviewMedia}
+                style={{ width: 200 }}
+              >
+                {MEDIA_TYPES.map((media) => (
+                  <Select.Option key={media.key} value={media.key}>
+                    {media.icon} {media.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
 
           <Card
             style={{
@@ -573,7 +600,7 @@ const MenuDisplayConfigPage: React.FC = () => {
           >
             <div style={{ marginBottom: '16px' }}>
               <Text strong>示例菜品：宫保鸡丁</Text>
-              {iconSize !== 'small' && (
+              {showIcon && iconSize !== 'small' && (
                 <Tag
                   color={
                     colorScheme === 'colorful'
@@ -582,13 +609,49 @@ const MenuDisplayConfigPage: React.FC = () => {
                   }
                   style={{ marginLeft: '8px' }}
                 >
-                  {iconSize === 'large' ? '🌱' : '🌿'} 达标
+                  {iconSize === 'large' ? '🌱' : '🌿'} 
+                  {showLevelText && ' 达标'}
                 </Tag>
               )}
+              {showIcon && iconSize === 'small' && (
+                <span style={{ marginLeft: '8px' }}>
+                  {iconSize === 'large' ? '🌱' : '🌿'}
+                </span>
+              )}
             </div>
-            <Text type="secondary">
-              展示级别：{displayLevel} | 图标尺寸：{iconSize} | 颜色方案：
-              {colorScheme}
+            
+            {/* 根据配置显示不同内容 */}
+            {showValue && (
+              <div style={{ marginBottom: '8px' }}>
+                <Text type="secondary">碳足迹：0.45 kg CO₂e</Text>
+              </div>
+            )}
+            
+            {showReductionPercent && (
+              <div style={{ marginBottom: '8px' }}>
+                <Text type="secondary">相比基准减排：62%</Text>
+              </div>
+            )}
+            
+            {showBaseline && (
+              <div style={{ marginBottom: '8px' }}>
+                <Text type="secondary">行业基准：1.20 kg CO₂e</Text>
+              </div>
+            )}
+            
+            <Divider style={{ margin: '12px 0' }} />
+            
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              <div>预览媒介：{mediaLabel}</div>
+              <div>配置方式：{useGlobal ? '使用全局配置' : '使用媒介专属配置'}</div>
+              <div>展示级别：{mediaDisplayLevel} | 图标尺寸：{iconSize} | 颜色方案：{colorScheme}</div>
+              <div style={{ marginTop: '4px' }}>
+                显示内容：图标{showIcon ? '✓' : '✗'} | 
+                等级文字{showLevelText ? '✓' : '✗'} | 
+                数值{showValue ? '✓' : '✗'} | 
+                减排百分比{showReductionPercent ? '✓' : '✗'} | 
+                基准值{showBaseline ? '✓' : '✗'}
+              </div>
             </Text>
           </Card>
         </Space>
@@ -658,11 +721,14 @@ const MenuDisplayConfigPage: React.FC = () => {
             </Button>
           </Space>
 
-          {/* 预览区域 */}
-          {showPreview && renderPreview()}
-
           {/* 配置表单 */}
           <Form form={form} layout="vertical">
+            {/* 预览区域 - 放在 Form 内部以便响应表单值变化 */}
+            {showPreview && (
+              <Form.Item noStyle shouldUpdate>
+                {() => renderPreview()}
+              </Form.Item>
+            )}
             <Tabs activeKey={activeTab} onChange={setActiveTab}>
               {/* 全局配置 */}
               <TabPane tab="全局配置" key="global">

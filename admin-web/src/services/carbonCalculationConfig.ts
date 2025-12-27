@@ -6,9 +6,9 @@ import { callCloudFunction } from './cloudbase'
 export interface CarbonCalculationConfig {
   _id?: string
   configKey: string
-  configType: 'waste_rate' | 'energy_factor' | 'cooking_time' | 'cooking_power' | 'packaging'
+  configType: 'waste_rate' | 'energy_factor' | 'cooking_time' | 'cooking_power' | 'packaging' | 'carbon_level'
   category: string
-  value: number
+  value: number | string // 对于颜色配置，value 是字符串（十六进制颜色值）
   unit: string
   description?: string
   source?: string
@@ -38,7 +38,7 @@ export interface UpdateConfigParams {
   id?: string
   configKey?: string
   category?: string
-  value?: number
+  value?: number | string // 对于颜色配置，value 是字符串
   description?: string
   source?: string
   version?: string

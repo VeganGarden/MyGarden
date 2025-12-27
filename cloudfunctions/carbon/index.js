@@ -22,6 +22,12 @@ try {
   console.warn('类别工具模块未找到，将使用原有映射逻辑');
 }
 
+// 引入碳等级配置工具
+const {
+  getCarbonLevelThresholds,
+  determineCarbonLevel
+} = require('../common/carbon-level-config');
+
 const db = cloud.database()
 const _ = db.command
 
@@ -830,30 +836,51 @@ async function calculateRecipeCarbon(event) {
     totalCarbon *= cookingFactor;
 
     // 计算碳标签（超低碳/低碳/中碳/高碳）
-    // 超低碳：< 0.5 kg CO₂e (🟢 绿色，90-100分)
-    // 低碳：0.5 - 1.0 kg CO₂e (🟡 黄色，70-89分)
-    // 中碳：1.0 - 2.0 kg CO₂e (🟠 橙色，50-69分)
-    // 高碳：> 2.0 kg CO₂e (🔴 红色，0-49分)
+    // 从配置中读取阈值并确定碳等级
     let carbonLabel = 'medium';
     let carbonScore = 0;
     
-    if (totalCarbon < 0.5) {
-      carbonLabel = 'ultraLow';
-      // 超低碳：90-100分，线性映射 0-0.5 kg → 100-90分
-      carbonScore = Math.max(90, Math.min(100, Math.round(100 - (totalCarbon / 0.5) * 10)));
-    } else if (totalCarbon < 1.0) {
-      carbonLabel = 'low';
-      // 低碳：70-89分，线性映射 0.5-1.0 kg → 89-70分
-      carbonScore = Math.max(70, Math.min(89, Math.round(89 - ((totalCarbon - 0.5) / 0.5) * 19)));
-    } else if (totalCarbon <= 2.0) {
-      carbonLabel = 'medium';
-      // 中碳：50-69分，线性映射 1.0-2.0 kg → 69-50分
-      carbonScore = Math.max(50, Math.min(69, Math.round(69 - ((totalCarbon - 1.0) / 1.0) * 19)));
-    } else {
-      carbonLabel = 'high';
-      // 高碳：0-49分，线性映射 2.0+ kg → 49-0分（2.0-4.0 kg范围）
-      const excessCarbon = Math.min(totalCarbon - 2.0, 2.0); // 限制在2.0-4.0 kg范围内
-      carbonScore = Math.max(0, Math.min(49, Math.round(49 - (excessCarbon / 2.0) * 49)));
+    try {
+      const thresholds = await getCarbonLevelThresholds();
+      const level = await determineCarbonLevel(totalCarbon, thresholds);
+      
+      // 将配置中的等级格式（ultra_low）转换为代码中使用的格式（ultraLow）
+      const levelMap = {
+        'ultra_low': 'ultraLow',
+        'low': 'low',
+        'medium': 'medium',
+        'high': 'high'
+      };
+      carbonLabel = levelMap[level] || 'medium';
+      
+      // 计算碳分数（基于阈值范围）
+      if (level === 'ultra_low') {
+        // 超低碳：90-100分，线性映射 0-thresholds.ultra_low kg → 100-90分
+        carbonScore = Math.max(90, Math.min(100, Math.round(100 - (totalCarbon / thresholds.ultra_low) * 10)));
+      } else if (level === 'low') {
+        // 低碳：70-89分，线性映射 thresholds.ultra_low-thresholds.low kg → 89-70分
+        const range = thresholds.low - thresholds.ultra_low;
+        const position = (totalCarbon - thresholds.ultra_low) / range;
+        carbonScore = Math.max(70, Math.min(89, Math.round(89 - position * 19)));
+      } else if (level === 'medium') {
+        // 中碳：50-69分，线性映射 thresholds.low-thresholds.medium kg → 69-50分
+        const range = thresholds.medium - thresholds.low;
+        const position = (totalCarbon - thresholds.low) / range;
+        carbonScore = Math.max(50, Math.min(69, Math.round(69 - position * 19)));
+      } else {
+        // 高碳：0-49分，线性映射 thresholds.medium+ kg → 49-0分（限制在 thresholds.medium 到 thresholds.medium*2 范围内）
+        const maxRange = thresholds.medium;
+        const excessCarbon = Math.min(totalCarbon - thresholds.medium, maxRange);
+        carbonScore = Math.max(0, Math.min(49, Math.round(49 - (excessCarbon / maxRange) * 49)));
+      }
+    } catch (error) {
+      console.error('碳等级配置读取失败:', error);
+      return {
+        code: 500,
+        message: '碳等级配置未初始化，请联系管理员执行初始化脚本或通过管理界面创建配置',
+        error: error.message,
+        details: '请执行：tcb fn invoke database --params \'{"action":"initCarbonCalculationConfigs"}\' 或通过管理界面创建配置'
+      };
     }
 
 

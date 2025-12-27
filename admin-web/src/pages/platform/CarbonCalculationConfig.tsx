@@ -10,6 +10,7 @@ import { EditOutlined, SaveOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
+  ColorPicker,
   Form,
   Input,
   InputNumber,
@@ -40,7 +41,8 @@ const CarbonCalculationConfigPage: React.FC = () => {
     energy_factor: { label: '默认能源因子', key: 'default_electric_factor' },
     cooking_time: { label: '标准工时模型', key: 'standard_time_model' },
     cooking_power: { label: '标准功率模型', key: 'standard_power_model' },
-    packaging: { label: '包装重量', key: 'packaging_weight' }
+    packaging: { label: '包装重量', key: 'packaging_weight' },
+    carbon_level: { label: '碳等级配置', key: 'carbon_level_threshold' }
   }
 
   // 获取配置数据
@@ -140,9 +142,11 @@ const CarbonCalculationConfigPage: React.FC = () => {
   const renderEditableCell = (
     record: CarbonCalculationConfig,
     dataIndex: string,
-    inputType: 'number' | 'text' = 'text'
+    inputType: 'number' | 'text' | 'color' = 'text'
   ): React.ReactNode => {
     const isEditing = editingKey === record._id
+    const isColorConfig = record.configKey === 'carbon_level_color'
+    const isThresholdConfig = record.configKey === 'carbon_level_threshold'
 
     if (isEditing && dataIndex !== 'category' && dataIndex !== 'configKey') {
       return (
@@ -153,10 +157,78 @@ const CarbonCalculationConfigPage: React.FC = () => {
             {
               required: dataIndex === 'value',
               message: '此字段必填'
-            }
+            },
+            ...(isColorConfig && dataIndex === 'value'
+              ? [
+                  {
+                    pattern: /^#[0-9A-Fa-f]{6}$/,
+                    message: '颜色值必须是有效的十六进制格式（如 #52c41a）'
+                  }
+                ]
+              : []),
+            ...(isThresholdConfig && dataIndex === 'value'
+              ? [
+                  {
+                    validator: async (_, value) => {
+                      if (value === undefined || value === null) {
+                        return Promise.reject(new Error('阈值不能为空'))
+                      }
+                      // 验证阈值逻辑：ultra_low < low < medium < high
+                      const currentGroup = getCurrentConfigGroup()
+                      if (currentGroup && currentGroup.items) {
+                        const thresholds: Record<string, number> = {}
+                        currentGroup.items.forEach((item) => {
+                          if (item.category && item._id !== record._id) {
+                            thresholds[item.category] = Number(item.value)
+                          }
+                        })
+                        thresholds[record.category] = Number(value)
+
+                        if (
+                          thresholds.ultra_low !== undefined &&
+                          thresholds.low !== undefined &&
+                          thresholds.ultra_low >= thresholds.low
+                        ) {
+                          return Promise.reject(
+                            new Error('超低碳阈值必须小于低碳阈值')
+                          )
+                        }
+                        if (
+                          thresholds.low !== undefined &&
+                          thresholds.medium !== undefined &&
+                          thresholds.low >= thresholds.medium
+                        ) {
+                          return Promise.reject(
+                            new Error('低碳阈值必须小于中碳阈值')
+                          )
+                        }
+                        if (
+                          thresholds.medium !== undefined &&
+                          thresholds.high !== undefined &&
+                          thresholds.medium >= thresholds.high
+                        ) {
+                          return Promise.reject(
+                            new Error('中碳阈值必须小于高碳阈值')
+                          )
+                        }
+                      }
+                      return Promise.resolve()
+                    }
+                  }
+                ]
+              : [])
           ]}
         >
-          {inputType === 'number' ? (
+          {inputType === 'color' || isColorConfig ? (
+            <ColorPicker
+              showText
+              format="hex"
+              style={{ width: '100%' }}
+              onChange={(color) => {
+                form.setFieldValue('value', color.toHexString())
+              }}
+            />
+          ) : inputType === 'number' ? (
             <InputNumber
               style={{ width: '100%' }}
               min={0}
@@ -171,6 +243,22 @@ const CarbonCalculationConfigPage: React.FC = () => {
 
     // 显示值
     if (dataIndex === 'value') {
+      if (isColorConfig) {
+        return (
+          <Space>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                backgroundColor: String(record.value),
+                border: '1px solid #d9d9d9',
+                borderRadius: 4
+              }}
+            />
+            <span>{String(record.value)}</span>
+          </Space>
+        )
+      }
       return `${record.value} ${record.unit}`
     }
 
@@ -182,6 +270,31 @@ const CarbonCalculationConfigPage: React.FC = () => {
   const getCurrentConfigGroup = (): ConfigGroup | undefined => {
     const configTypeInfo = configTypeMap[activeTab]
     if (!configTypeInfo) return undefined
+
+    // 对于碳等级配置，需要合并阈值和颜色两个配置组
+    if (activeTab === 'carbon_level') {
+      const thresholdGroup = configGroups.find(
+        (group) => group.configKey === 'carbon_level_threshold'
+      )
+      const colorGroup = configGroups.find(
+        (group) => group.configKey === 'carbon_level_color'
+      )
+
+      if (thresholdGroup && colorGroup) {
+        // 返回合并后的配置组，先显示阈值，再显示颜色
+        return {
+          configKey: 'carbon_level',
+          configType: 'carbon_level',
+          description: '碳等级阈值和颜色配置',
+          items: [...thresholdGroup.items, ...colorGroup.items]
+        }
+      } else if (thresholdGroup) {
+        return thresholdGroup
+      } else if (colorGroup) {
+        return colorGroup
+      }
+      return undefined
+    }
 
     return configGroups.find((group) => group.configKey === configTypeInfo.key)
   }
@@ -211,7 +324,11 @@ const CarbonCalculationConfigPage: React.FC = () => {
             baked: '烤',
             meal_box: '简餐盒',
             beverage_cup: '饮料杯',
-            paper_bag: '纸袋'
+            paper_bag: '纸袋',
+            ultra_low: '超低碳',
+            low: '低碳',
+            medium: '中碳',
+            high: '高碳'
           }
           return categoryNames[text] || text
         }
@@ -221,7 +338,15 @@ const CarbonCalculationConfigPage: React.FC = () => {
         dataIndex: 'value',
         key: 'value',
         width: 200,
-        render: (_, record) => renderEditableCell(record, 'value', 'number')
+        render: (_, record) => {
+          const inputType =
+            record.configKey === 'carbon_level_color'
+              ? 'color'
+              : record.configKey === 'carbon_level_threshold'
+                ? 'number'
+                : 'number'
+          return renderEditableCell(record, 'value', inputType)
+        }
       },
       {
         title: '单位',
@@ -298,7 +423,7 @@ const CarbonCalculationConfigPage: React.FC = () => {
       <Card>
         <Title level={4}>碳足迹计算默认参数配置</Title>
         <Text type="secondary">
-          管理碳足迹计算相关的默认参数，包括食材损耗率、默认能源因子、标准工时模型、标准功率模型和包装重量等配置项。
+          管理碳足迹计算相关的默认参数，包括食材损耗率、默认能源因子、标准工时模型、标准功率模型、包装重量和碳等级配置等配置项。
         </Text>
 
         <div style={{ marginTop: 24 }}>
@@ -313,15 +438,24 @@ const CarbonCalculationConfigPage: React.FC = () => {
             >
               {Object.entries(configTypeMap).map(([key, { label }]) => (
                 <TabPane tab={label} key={key}>
-                  {currentGroup && currentGroup.items ? (
-                    <Table
-                      columns={getColumns()}
-                      dataSource={currentGroup.items}
-                      rowKey="_id"
-                      loading={loading}
-                      pagination={false}
-                      size="small"
-                    />
+                  {currentGroup && currentGroup && currentGroup.items ? (
+                    <>
+                      {key === 'carbon_level' && (
+                        <div style={{ marginBottom: 16 }}>
+                          <Text type="secondary">
+                            配置碳等级的阈值和颜色。阈值必须满足：超低碳 &lt; 低碳 &lt; 中碳 &lt; 高碳
+                          </Text>
+                        </div>
+                      )}
+                      <Table
+                        columns={getColumns()}
+                        dataSource={currentGroup.items}
+                        rowKey="_id"
+                        loading={loading}
+                        pagination={false}
+                        size="small"
+                      />
+                    </>
                   ) : (
                     <div style={{ textAlign: 'center', padding: 40 }}>
                       {loading ? '加载中...' : '暂无配置数据'}

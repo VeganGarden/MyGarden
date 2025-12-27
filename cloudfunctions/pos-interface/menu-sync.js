@@ -10,6 +10,11 @@
 const { logSuccess, logError } = require('./logging');
 const { getAdapter } = require('./adapters');
 
+// 引入碳等级配置工具
+const {
+  determineCarbonLevel: determineCarbonLevelByThreshold
+} = require('../common/carbon-level-config');
+
 /**
  * 推送菜单数据到收银系统
  * @param {Object} data - 请求数据
@@ -73,7 +78,7 @@ async function pushMenu(data, integrationConfig, db, cloud) {
     }
 
     // 3. 转换菜单数据格式
-    const formattedMenuItems = menuItems.map(item => formatMenuItem(item));
+    const formattedMenuItems = await Promise.all(menuItems.map(item => formatMenuItem(item)));
 
     // 4. 获取适配器
     const adapter = getAdapter(integrationConfig.posSystem);
@@ -157,9 +162,9 @@ async function pushMenu(data, integrationConfig, db, cloud) {
 /**
  * 格式化菜单项数据
  * @param {Object} menuItem - 数据库中的菜单项
- * @returns {Object} 格式化后的菜单项
+ * @returns {Promise<Object>} 格式化后的菜单项
  */
-function formatMenuItem(menuItem) {
+async function formatMenuItem(menuItem) {
   return {
     itemId: menuItem._id || menuItem.itemId,
     itemName: menuItem.name || menuItem.itemName,
@@ -176,7 +181,7 @@ function formatMenuItem(menuItem) {
     })),
     cookingMethod: menuItem.cookingMethod || null,
     carbonFootprint: formatCarbonFootprint(menuItem.carbonFootprint),
-    carbonLabel: formatCarbonLabel(menuItem.carbonFootprint),
+    carbonLabel: await formatCarbonLabel(menuItem.carbonFootprint),
     updatedAt: (menuItem.updatedAt || menuItem.calculatedAt || new Date()).toISOString()
   };
 }
@@ -211,18 +216,44 @@ function formatCarbonFootprint(carbonFootprint) {
 /**
  * 格式化碳标签数据
  * @param {Object} carbonFootprint - 碳足迹数据
- * @returns {Object} 碳标签数据
+ * @returns {Promise<Object>} 碳标签数据
  */
-function formatCarbonLabel(carbonFootprint) {
+async function formatCarbonLabel(carbonFootprint) {
   if (!carbonFootprint) {
     return null;
   }
 
-  const carbonLevel = carbonFootprint.carbonLevel || 
-                      determineCarbonLevel(
-                        carbonFootprint.value || 0,
-                        carbonFootprint.baseline || 0
-                      );
+  let carbonLevel;
+  try {
+    // 优先使用配置中的绝对阈值判断
+    if (carbonFootprint.value !== undefined && carbonFootprint.value !== null) {
+      const level = await determineCarbonLevelByThreshold(carbonFootprint.value);
+      // 将配置格式（ultra_low）转换为代码格式（ultraLow或low）
+      const levelMap = {
+        'ultra_low': 'low',
+        'low': 'low',
+        'medium': 'medium',
+        'high': 'high'
+      };
+      carbonLevel = levelMap[level] || 'medium';
+    } else if (carbonFootprint.carbonLevel) {
+      // 如果已有碳等级，直接使用
+      carbonLevel = carbonFootprint.carbonLevel;
+    } else {
+      // 回退到基于基准值的相对判断（兼容旧逻辑）
+      carbonLevel = determineCarbonLevelByBaseline(
+        carbonFootprint.value || 0,
+        carbonFootprint.baseline || 0
+      );
+    }
+  } catch (error) {
+    console.error('碳等级配置读取失败，使用回退逻辑:', error);
+    // 配置读取失败时，使用基于基准值的回退逻辑
+    carbonLevel = determineCarbonLevelByBaseline(
+      carbonFootprint.value || 0,
+      carbonFootprint.baseline || 0
+    );
+  }
 
   return {
     level: carbonLevel,
@@ -233,12 +264,12 @@ function formatCarbonLabel(carbonFootprint) {
 }
 
 /**
- * 确定碳等级
+ * 确定碳等级（基于基准值的相对判断，作为回退逻辑）
  * @param {number} value - 碳足迹值
  * @param {number} baseline - 基准值
  * @returns {string} 碳等级: low/medium/high
  */
-function determineCarbonLevel(value, baseline) {
+function determineCarbonLevelByBaseline(value, baseline) {
   if (!baseline || baseline === 0) {
     return 'medium';
   }

@@ -3,6 +3,11 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
+// 引入碳等级配置工具
+const {
+  determineCarbonLevel: determineCarbonLevelByThreshold
+} = require('./common/carbon-level-config');
+
 /**
  * 菜单环保信息标签查询云函数
  * 
@@ -368,7 +373,7 @@ async function getOrderCarbonLabel(data, context) {
     const reductionPercent = totalBaseline > 0 ? (carbonReduction / totalBaseline) * 100 : 0;
 
     // 5. 确定订单碳等级
-    const carbonLevel = determineCarbonLevel(totalCarbonFootprint, totalBaseline);
+    const carbonLevel = await determineCarbonLevel(totalCarbonFootprint, totalBaseline);
 
     // 6. 格式化展示文本
     const textConfig = config.textConfig[language] || config.textConfig.zh_CN;
@@ -628,8 +633,26 @@ function generateDisplaySuggestion(carbonLevel, carbonFootprint, config) {
 
 /**
  * 确定碳等级
+ * @param {number} carbonFootprint - 碳足迹值
+ * @param {number} baseline - 基准值（可选，如果提供则优先使用配置的绝对阈值）
+ * @returns {Promise<string>} 碳等级
  */
-function determineCarbonLevel(carbonFootprint, baseline) {
+async function determineCarbonLevel(carbonFootprint, baseline) {
+  try {
+    // 优先使用配置中的绝对阈值判断
+    if (carbonFootprint !== undefined && carbonFootprint !== null) {
+      const level = await determineCarbonLevelByThreshold(carbonFootprint);
+      // 将配置格式转换为代码格式（ultra_low -> low, 其他保持不变）
+      if (level === 'ultra_low') {
+        return 'low';
+      }
+      return level;
+    }
+  } catch (error) {
+    console.error('碳等级配置读取失败，使用回退逻辑:', error);
+  }
+
+  // 回退到基于基准值的相对判断（兼容旧逻辑）
   if (!baseline || baseline === 0) {
     return 'medium';
   }

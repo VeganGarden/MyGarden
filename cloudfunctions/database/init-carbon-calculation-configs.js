@@ -482,17 +482,136 @@ async function initCarbonCalculationConfigs() {
       status: 'active',
       createdAt: now,
       updatedAt: now
+    },
+    
+    // 8. 碳等级阈值配置
+    {
+      configKey: 'carbon_level_threshold',
+      configType: 'carbon_level',
+      category: 'ultra_low',
+      value: 0.5,
+      unit: 'kg CO₂e',
+      description: '超低碳阈值上限（< 0.5 kg CO₂e）',
+      source: '气候餐厅碳等级标准 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      configKey: 'carbon_level_threshold',
+      configType: 'carbon_level',
+      category: 'low',
+      value: 1.0,
+      unit: 'kg CO₂e',
+      description: '低碳阈值上限（0.5 - 1.0 kg CO₂e）',
+      source: '气候餐厅碳等级标准 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      configKey: 'carbon_level_threshold',
+      configType: 'carbon_level',
+      category: 'medium',
+      value: 2.0,
+      unit: 'kg CO₂e',
+      description: '中碳阈值上限（1.0 - 2.0 kg CO₂e）',
+      source: '气候餐厅碳等级标准 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      configKey: 'carbon_level_threshold',
+      configType: 'carbon_level',
+      category: 'high',
+      value: 999999,
+      unit: 'kg CO₂e',
+      description: '高碳阈值（> 2.0 kg CO₂e，无上限）',
+      source: '气候餐厅碳等级标准 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    
+    // 9. 碳等级颜色配置
+    {
+      configKey: 'carbon_level_color',
+      configType: 'carbon_level',
+      category: 'ultra_low',
+      value: '#52c41a',
+      unit: 'hex',
+      description: '超低碳颜色（绿色）',
+      source: '气候餐厅视觉设计规范 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      configKey: 'carbon_level_color',
+      configType: 'carbon_level',
+      category: 'low',
+      value: '#a0d911',
+      unit: 'hex',
+      description: '低碳颜色（浅绿色）',
+      source: '气候餐厅视觉设计规范 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      configKey: 'carbon_level_color',
+      configType: 'carbon_level',
+      category: 'medium',
+      value: '#faad14',
+      unit: 'hex',
+      description: '中碳颜色（橙色）',
+      source: '气候餐厅视觉设计规范 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      configKey: 'carbon_level_color',
+      configType: 'carbon_level',
+      category: 'high',
+      value: '#ff4d4f',
+      unit: 'hex',
+      description: '高碳颜色（红色）',
+      source: '气候餐厅视觉设计规范 v1.0',
+      version: '1.0',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
     }
   ];
 
   try {
-    // 检查集合是否存在，不存在则创建
-    const collections = await db.listCollections();
-    const collectionNames = collections.data.map(c => c.name);
-    
-    if (!collectionNames.includes('carbon_calculation_configs')) {
+    // 尝试创建集合（如果已存在会抛出错误，我们捕获它）
+    try {
       await db.createCollection('carbon_calculation_configs');
       console.log('✓ 创建 carbon_calculation_configs 集合\n');
+    } catch (error) {
+      // 如果集合已存在，不算错误（检查错误码或错误消息）
+      if (
+        (error.errCode === -501001) ||
+        (error.message && (
+          error.message.includes('already exists') ||
+          error.message.includes('Table exist') ||
+          error.message.includes('ResourceExist')
+        ))
+      ) {
+        console.log('ℹ  carbon_calculation_configs 集合已存在，继续初始化配置数据\n');
+      } else {
+        throw error; // 其他错误继续抛出
+      }
     }
 
     // 逐个插入配置（如果已存在则跳过）
