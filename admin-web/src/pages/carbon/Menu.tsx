@@ -720,11 +720,15 @@ const CarbonMenu: React.FC = () => {
                         <Text strong style={{ fontSize: '16px' }}>{menuItem.name}</Text>
                         {getCarbonLabelTag(menuItem.carbonLabel)}
                         {getCalculationLevelTag(menuItem.calculationLevel)}
-                        {menuItem.status && (
-                          <Tag color={menuItem.status === 'active' || menuItem.status === 'published' ? 'success' : 'default'}>
-                            {menuItem.status === 'active' || menuItem.status === 'published' ? '已上架' : '已下架'}
-                          </Tag>
-                        )}
+                        {(() => {
+                          // 统一使用 isAvailable 字段判断状态
+                          const isAvailable = menuItem.isAvailable !== false // 默认为 true
+                          return isAvailable ? (
+                            <Tag color="success">已上架</Tag>
+                          ) : (
+                            <Tag color="default">已下架</Tag>
+                          )
+                        })()}
                       </Space>
                     </div>
                     <div style={{ marginRight: '40px' }}>

@@ -131,8 +131,8 @@ async function syncOrder(data, integrationConfig, db, cloud) {
       
       const restaurant = restaurantResult.data;
       const mealType = items.length <= 2 ? 'meat_simple' : 'meat_full';
-      const region = restaurant?.region || 'national_average';
-      const energyType = restaurant?.energyType || 'electric';
+      const region = (restaurant && restaurant.region) ? restaurant.region : 'national_average';
+      const energyType = (restaurant && restaurant.energyType) ? restaurant.energyType : 'electric';
 
       // 调用基准值查询云函数
       const baselineResult = await cloud.callFunction({
@@ -238,10 +238,10 @@ async function syncOrder(data, integrationConfig, db, cloud) {
     const duration = Date.now() - startTime;
     await logError({
       action: 'syncOrder',
-      restaurantId: data?.restaurantId,
-      posSystem: integrationConfig?.posSystem,
+      restaurantId: data && data.restaurantId ? data.restaurantId : undefined,
+      posSystem: integrationConfig && integrationConfig.posSystem ? integrationConfig.posSystem : undefined,
       requestData: {
-        orderId: data?.orderId
+        orderId: data && data.orderId ? data.orderId : undefined
       },
       error: error.message,
       stack: error.stack,
@@ -310,7 +310,7 @@ async function batchSyncOrders(data, integrationConfig, db, cloud) {
           results.push({
             orderId: orderData.orderId,
             status: 'success',
-            carbonFootprint: result.data?.carbonImpact?.totalCarbonFootprint || 0
+            carbonFootprint: (result.data && result.data.carbonImpact && result.data.carbonImpact.totalCarbonFootprint) ? result.data.carbonImpact.totalCarbonFootprint : 0
           });
         } else {
           failedCount++;
@@ -365,8 +365,8 @@ async function batchSyncOrders(data, integrationConfig, db, cloud) {
     const duration = Date.now() - startTime;
     await logError({
       action: 'batchSyncOrders',
-      restaurantId: data?.restaurantId,
-      posSystem: integrationConfig?.posSystem,
+      restaurantId: data && data.restaurantId ? data.restaurantId : undefined,
+      posSystem: integrationConfig && integrationConfig.posSystem ? integrationConfig.posSystem : undefined,
       error: error.message,
       stack: error.stack,
       duration

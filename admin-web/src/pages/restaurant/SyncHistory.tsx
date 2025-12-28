@@ -10,6 +10,7 @@ import {
   SearchOutlined,
 } from '@ant-design/icons'
 import {
+  App,
   Button,
   Card,
   DatePicker,
@@ -20,10 +21,8 @@ import {
   Space,
   Table,
   Tag,
-  message,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -31,6 +30,7 @@ const { RangePicker } = DatePicker
 
 const SyncHistoryPage: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
   const [form] = Form.useForm()
   const [dataSource, setDataSource] = useState<SyncLog[]>([])

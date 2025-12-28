@@ -9,8 +9,7 @@ export interface MenuItem {
   description?: string
   price?: number
   category?: string
-  status?: string
-  isAvailable?: boolean
+  isAvailable?: boolean  // 统一使用 isAvailable 字段，true=上架/可用，false=下架/不可用
   baseRecipeId?: string
   restaurantId: string
   mealType?: 'meat_simple' | 'meat_full'

@@ -35,6 +35,15 @@ export function transformMenuItemData(data: any): MenuItem {
     }
   }
 
+  // 处理 isAvailable 字段：统一使用 availability.isAvailable 或顶层 isAvailable
+  let isAvailable = true // 默认值：上架
+  if (data.isAvailable !== undefined) {
+    isAvailable = data.isAvailable !== false
+  } else if (data.availability && data.availability.isAvailable !== undefined) {
+    isAvailable = data.availability.isAvailable !== false
+  }
+  // 注意：不再兼容 status 字段，迁移后应统一使用 isAvailable
+
   return {
     _id: data._id,
     id: data.id || data._id || '',
@@ -42,8 +51,7 @@ export function transformMenuItemData(data: any): MenuItem {
     description: data.description,
     price: data.price,
     category: data.category,
-    status: data.status || 'draft',
-    isAvailable: data.isAvailable !== false,
+    isAvailable: isAvailable,
     baseRecipeId: data.baseRecipeId,
     restaurantId: data.restaurantId || '',
     // 以下字段如果缺失，使用缺省值（用于向后兼容旧数据）

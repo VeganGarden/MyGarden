@@ -66,7 +66,7 @@ async function sendWebhook(eventData, integrationConfig) {
     if (db) {
       await logError({
         action: 'sendWebhook',
-        restaurantId: eventData?.restaurantId,
+        restaurantId: eventData && eventData.restaurantId ? eventData.restaurantId : undefined,
         error: error.message,
         stack: error.stack
       }, db);

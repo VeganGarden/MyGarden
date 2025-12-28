@@ -10,6 +10,7 @@ export interface PosIntegration {
   _id: string
   restaurantId: string
   posSystem: string // 收银系统类型
+  name?: string // 接口名称（用于区分多个相同类型的接口）
   apiUrl: string // API地址
   apiKey: string // API密钥
   secretKey?: string // 签名密钥（加密存储，查询时不返回）
@@ -31,6 +32,7 @@ export interface PosIntegration {
 export interface CreateIntegrationData {
   restaurantId: string
   posSystem: string
+  name?: string // 接口名称（用于区分多个相同类型的接口）
   apiUrl: string
   apiKey: string
   secretKey: string
@@ -42,6 +44,7 @@ export interface CreateIntegrationData {
  * 更新集成配置数据
  */
 export interface UpdateIntegrationData {
+  name?: string // 接口名称（用于区分多个相同类型的接口）
   apiUrl?: string
   apiKey?: string
   secretKey?: string
@@ -118,25 +121,18 @@ export const posIntegrationAPI = {
    */
   getIntegrations: async (restaurantId: string): Promise<PosIntegration[]> => {
     try {
-      const result = await callCloudFunction('tenant', {
-        action: 'queryCollection',
+      const result = await callCloudFunction('pos-interface', {
+        action: 'getIntegrations',
         data: {
-          collection: 'pos_integrations',
-          where: {
-            restaurantId,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
+          restaurantId,
         },
       })
 
       if (result.code === 0 && result.data) {
-        return Array.isArray(result.data) ? result.data : result.data.list || []
+        return Array.isArray(result.data) ? result.data : []
       }
       return []
     } catch (error: any) {
-      console.error('获取集成配置失败:', error)
       throw new Error(error.message || '获取集成配置失败')
     }
   },
@@ -148,22 +144,9 @@ export const posIntegrationAPI = {
     data: CreateIntegrationData
   ): Promise<PosIntegration> => {
     try {
-      const result = await callCloudFunction('tenant', {
-        action: 'addDocument',
-        data: {
-          collection: 'pos_integrations',
-          data: {
-            ...data,
-            status: data.status || 'active',
-            syncStats: {
-              totalSyncs: 0,
-              successSyncs: 0,
-              failedSyncs: 0,
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        },
+      const result = await callCloudFunction('pos-interface', {
+        action: 'createIntegration',
+        data,
       })
 
       if (result.code === 0 && result.data) {
@@ -171,7 +154,6 @@ export const posIntegrationAPI = {
       }
       throw new Error(result.message || '创建集成配置失败')
     } catch (error: any) {
-      console.error('创建集成配置失败:', error)
       throw new Error(error.message || '创建集成配置失败')
     }
   },
@@ -184,15 +166,11 @@ export const posIntegrationAPI = {
     data: UpdateIntegrationData
   ): Promise<PosIntegration> => {
     try {
-      const result = await callCloudFunction('tenant', {
-        action: 'updateDocument',
+      const result = await callCloudFunction('pos-interface', {
+        action: 'updateIntegration',
         data: {
-          collection: 'pos_integrations',
-          docId: id,
-          data: {
-            ...data,
-            updatedAt: new Date().toISOString(),
-          },
+          id,
+          data,
         },
       })
 
@@ -201,7 +179,6 @@ export const posIntegrationAPI = {
       }
       throw new Error(result.message || '更新集成配置失败')
     } catch (error: any) {
-      console.error('更新集成配置失败:', error)
       throw new Error(error.message || '更新集成配置失败')
     }
   },
@@ -211,11 +188,10 @@ export const posIntegrationAPI = {
    */
   deleteIntegration: async (id: string): Promise<void> => {
     try {
-      const result = await callCloudFunction('tenant', {
-        action: 'deleteDocument',
+      const result = await callCloudFunction('pos-interface', {
+        action: 'deleteIntegration',
         data: {
-          collection: 'pos_integrations',
-          docId: id,
+          id,
         },
       })
 
@@ -223,7 +199,6 @@ export const posIntegrationAPI = {
         throw new Error(result.message || '删除集成配置失败')
       }
     } catch (error: any) {
-      console.error('删除集成配置失败:', error)
       throw new Error(error.message || '删除集成配置失败')
     }
   },
@@ -235,22 +210,11 @@ export const posIntegrationAPI = {
     id: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
-      // 先获取集成配置
-      const integration = await posIntegrationAPI.getIntegrations('')
-      const config = integration.find((item) => item._id === id)
-
-      if (!config) {
-        return {
-          success: false,
-          message: '集成配置不存在',
-        }
-      }
-
       // 调用pos-interface云函数测试连接
       const result = await callCloudFunction('pos-interface', {
         action: 'testConnection',
         data: {
-          integrationId: id,
+          id,
         },
       })
 
@@ -266,7 +230,6 @@ export const posIntegrationAPI = {
         message: result.message || '连接失败',
       }
     } catch (error: any) {
-      console.error('测试连接失败:', error)
       return {
         success: false,
         message: error.message || '测试连接失败',
@@ -289,7 +252,6 @@ export const posIntegrationAPI = {
       }
       throw new Error(result.message || '发布菜单失败')
     } catch (error: any) {
-      console.error('发布菜单失败:', error)
       throw new Error(error.message || '发布菜单失败')
     }
   },
@@ -301,59 +263,20 @@ export const posIntegrationAPI = {
     params: SyncHistoryParams
   ): Promise<{ list: SyncLog[]; total: number }> => {
     try {
-      const { restaurantId, page = 1, pageSize = 20, ...filters } = params
-
-      // 构建查询条件
-      const where: any = {
-        restaurantId,
-      }
-
-      if (filters.status) {
-        where.status = filters.status
-      }
-
-      if (filters.action) {
-        where.action = filters.action
-      }
-
-      if (filters.startDate || filters.endDate) {
-        where.createdAt = {}
-        if (filters.startDate) {
-          where.createdAt.$gte = filters.startDate
-        }
-        if (filters.endDate) {
-          where.createdAt.$lte = filters.endDate
-        }
-      }
-
-      const result = await callCloudFunction('tenant', {
-        action: 'queryCollection',
-        data: {
-          collection: 'pos_sync_logs',
-          where,
-          orderBy: {
-            createdAt: 'desc',
-          },
-          page,
-          pageSize,
-        },
+      const result = await callCloudFunction('pos-interface', {
+        action: 'getSyncHistory',
+        data: params,
       })
 
       if (result.code === 0 && result.data) {
-        const list = Array.isArray(result.data)
-          ? result.data
-          : result.data.list || []
-        const total =
-          result.data.total !== undefined
-            ? result.data.total
-            : result.data.count || list.length
-
-        return { list, total }
+        return {
+          list: result.data.list || [],
+          total: result.data.total || 0,
+        }
       }
 
       return { list: [], total: 0 }
     } catch (error: any) {
-      console.error('获取发布历史失败:', error)
       throw new Error(error.message || '获取发布历史失败')
     }
   },
@@ -364,11 +287,10 @@ export const posIntegrationAPI = {
   retrySync: async (syncId: string): Promise<PublishMenuResult> => {
     try {
       // 先获取原始同步记录
-      const historyResult = await callCloudFunction('tenant', {
-        action: 'getDocument',
+      const historyResult = await callCloudFunction('pos-interface', {
+        action: 'getSyncLog',
         data: {
-          collection: 'pos_sync_logs',
-          docId: syncId,
+          id: syncId,
         },
       })
 
@@ -396,7 +318,6 @@ export const posIntegrationAPI = {
       }
       throw new Error(result.message || '重试发布失败')
     } catch (error: any) {
-      console.error('重试发布失败:', error)
       throw new Error(error.message || '重试发布失败')
     }
   },

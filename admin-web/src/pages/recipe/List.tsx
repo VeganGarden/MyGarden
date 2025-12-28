@@ -94,7 +94,7 @@ const RecipeList: React.FC = () => {
   
   // 搜索和筛选
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>('all') // 改为 availabilityFilter
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   
   // 基础菜谱选择器相关状态
@@ -403,8 +403,7 @@ const RecipeList: React.FC = () => {
       description: menuItem.description || '',
       price: menuItem.price || 0,
       category: menuItem.category || '',
-      status: menuItem.status || 'active',
-      isAvailable: menuItem.isAvailable !== false, // 默认为true
+      isAvailable: menuItem.isAvailable !== false, // 默认为true，统一使用 isAvailable
     })
     // 设置食材列表
     if (menuItem.ingredients && menuItem.ingredients.length > 0) {
@@ -442,8 +441,7 @@ const RecipeList: React.FC = () => {
           description: values.description,
           price: values.price,
           category: values.category,
-          status: values.status,
-          isAvailable: values.isAvailable,
+          isAvailable: values.isAvailable, // 统一使用 isAvailable，移除 status
           ingredients: ingredientsData, // 添加食材数据
         },
       })
@@ -628,8 +626,7 @@ const RecipeList: React.FC = () => {
         cookingMethod: values.cookingMethod || 'steamed',
         ingredients: formattedIngredients,
         price: values.price || 0,
-        status: values.status || 'active',
-        isAvailable: values.isAvailable !== false,
+        isAvailable: values.isAvailable !== false, // 统一使用 isAvailable，移除 status
         // 不设置 baseRecipeId，表示这是餐厅自定义的菜单项
         restaurantId: currentRestaurantId,
       }
@@ -681,17 +678,17 @@ const RecipeList: React.FC = () => {
     },
     {
       title: '状态',
-      dataIndex: 'status',
-      key: 'status',
+      dataIndex: 'isAvailable',
+      key: 'isAvailable',
       width: 100,
-      render: (status: string, record: MenuItem) => {
-        if (record.isAvailable === false) {
-          return <Tag color="red">不可用</Tag>
-        }
-        if (status === 'active' || !status) {
-          return <Tag color="green">可用</Tag>
-        }
-        return <Tag>{status}</Tag>
+      render: (isAvailable: boolean, record: MenuItem) => {
+        // 统一使用 isAvailable 字段
+        const available = record.isAvailable !== false // 默认为 true
+        return available ? (
+          <Tag color="green">已上架</Tag>
+        ) : (
+          <Tag color="red">已下架</Tag>
+        )
       },
     },
     {
@@ -1378,29 +1375,13 @@ const RecipeList: React.FC = () => {
               </Col>
               <Col span={8}>
                 <Form.Item
-                  name="status"
-                  label={<span style={{ fontWeight: 500 }}>状态</span>}
-                >
-                  <Select placeholder="请选择状态" size="large">
-                    <Select.Option value="active">可用</Select.Option>
-                    <Select.Option value="inactive">不可用</Select.Option>
-                    <Select.Option value="available">上架</Select.Option>
-                    <Select.Option value="unavailable">下架</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
                   name="isAvailable"
-                  label={<span style={{ fontWeight: 500 }}>是否可用</span>}
+                  label={<span style={{ fontWeight: 500 }}>上架状态</span>}
                   valuePropName="checked"
                 >
                   <Switch 
-                    checkedChildren="可用" 
-                    unCheckedChildren="不可用"
+                    checkedChildren="已上架" 
+                    unCheckedChildren="已下架"
                     size="default"
                   />
                 </Form.Item>

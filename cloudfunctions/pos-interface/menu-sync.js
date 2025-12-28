@@ -13,7 +13,7 @@ const { getAdapter } = require('./adapters');
 // 引入碳等级配置工具
 const {
   determineCarbonLevel: determineCarbonLevelByThreshold
-} = require('../common/carbon-level-config');
+} = require('./carbon-level-config');
 
 /**
  * 推送菜单数据到收银系统
@@ -47,9 +47,9 @@ async function pushMenu(data, integrationConfig, db, cloud) {
 
     // 2. 查询菜单数据
     const menuItemsCollection = db.collection('restaurant_menu_items');
+    // 统一使用 isAvailable 字段，只同步上架的菜品
     let query = menuItemsCollection.where({
       restaurantId: restaurantId,
-      status: 'active' // 只同步上架的菜品
     });
 
     // 如果指定了菜单项ID列表，则只同步这些菜单项
@@ -60,7 +60,22 @@ async function pushMenu(data, integrationConfig, db, cloud) {
     }
 
     const menuItemsResult = await query.get();
-    const menuItems = menuItemsResult.data || [];
+    let menuItems = menuItemsResult.data || [];
+    
+    // 在代码中过滤：只保留上架的菜单项
+    // 统一使用 isAvailable 字段（存储在 availability.isAvailable 或顶层 isAvailable）
+    menuItems = menuItems.filter(item => {
+      // 优先使用顶层 isAvailable 字段
+      if (item.isAvailable !== undefined) {
+        return item.isAvailable !== false; // 默认为 true（上架）
+      }
+      // 使用 availability.isAvailable
+      if (item.availability && item.availability.isAvailable !== undefined) {
+        return item.availability.isAvailable !== false;
+      }
+      // 如果都不存在，默认返回 true（上架）
+      return true;
+    });
 
     if (menuItems.length === 0) {
       return {
@@ -144,8 +159,8 @@ async function pushMenu(data, integrationConfig, db, cloud) {
     const duration = Date.now() - startTime;
     await logError({
       action: 'pushMenu',
-      restaurantId: data?.restaurantId,
-      posSystem: integrationConfig?.posSystem,
+      restaurantId: data && data.restaurantId ? data.restaurantId : undefined,
+      posSystem: integrationConfig && integrationConfig.posSystem ? integrationConfig.posSystem : undefined,
       error: error.message,
       stack: error.stack,
       duration
@@ -171,7 +186,19 @@ async function formatMenuItem(menuItem) {
     category: menuItem.category || '其他',
     price: menuItem.price || 0,
     unit: menuItem.unit || '份',
-    status: menuItem.status === 'active' ? 'active' : 'inactive',
+    // 统一使用 isAvailable 字段判断状态
+    status: (() => {
+      // 优先使用顶层 isAvailable 字段
+      if (menuItem.isAvailable !== undefined) {
+        return menuItem.isAvailable !== false ? 'active' : 'inactive';
+      }
+      // 使用 availability.isAvailable
+      if (menuItem.availability && menuItem.availability.isAvailable !== undefined) {
+        return menuItem.availability.isAvailable !== false ? 'active' : 'inactive';
+      }
+      // 如果都不存在，默认返回 active（上架）
+      return 'active';
+    })(),
     description: menuItem.description || null,
     imageUrl: menuItem.imageUrl || menuItem.image || null,
     ingredients: (menuItem.ingredients || []).map(ing => ({
@@ -198,7 +225,7 @@ function formatCarbonFootprint(carbonFootprint) {
 
   // 兼容新旧格式
   const value = carbonFootprint.value || carbonFootprint.carbonFootprint || 0;
-  const baseline = carbonFootprint.baseline || (carbonFootprint.baselineInfo?.value) || 0;
+  const baseline = carbonFootprint.baseline || (carbonFootprint.baselineInfo && carbonFootprint.baselineInfo.value ? carbonFootprint.baselineInfo.value : 0) || 0;
   const reduction = baseline - value;
 
   return {

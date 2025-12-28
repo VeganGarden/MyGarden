@@ -42,6 +42,7 @@ const { main: importRecipesFromList } = require('./import-recipes-from-list');
 const { main: deleteIncorrectRecipes } = require('./delete-incorrect-recipes');
 const { main: analyzeDuplicateIngredients } = require('./analyze-duplicate-ingredients');
 const { main: unifyFactorSubCategory } = require('./unify-factor-subcategory');
+const { migrateMenuItemStatus, cleanupStatusField } = require('./migrate-menu-item-status');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -83,6 +84,8 @@ const { main: unifyFactorSubCategory } = require('./unify-factor-subcategory');
  * - initRegionConfigs: 初始化区域配置数据（因子区域和基准值区域）
  * - initPosInterfaceCollections: 初始化收银系统接口集合（pos_integrations, pos_sync_logs）
  * - initMenuDisplayConfigCollections: 初始化菜单展示配置集合（restaurant_menu_display_configs）
+ * - migrateMenuItemStatus: 迁移菜单项状态字段（将 status 转换为 isAvailable）
+ * - cleanupMenuItemStatus: 清理已迁移的 status 字段（可选，谨慎使用）
  */
 exports.main = async (event) => {
   const { action = 'init-v1' } = event;
@@ -256,6 +259,12 @@ exports.main = async (event) => {
         return await syncStandardNameToIngredients(event);
       case 'unifyFactorSubCategory':
         return await unifyFactorSubCategory(event);
+      case 'migrateMenuItemStatus':
+        // 迁移菜单项状态字段：将 status 转换为 isAvailable
+        return await migrateMenuItemStatus();
+      case 'cleanupMenuItemStatus':
+        // 清理已迁移的 status 字段（可选，谨慎使用）
+        return await cleanupStatusField();
       default:
         return await initCollectionsV1(event);
     }

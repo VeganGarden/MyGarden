@@ -181,7 +181,7 @@
     "recipeCategories": "菜谱分类",
     "menuDisplayConfig": "菜单环保信息展示配置",
     "menuPublish": "菜单发布管理",
-    "posIntegration": "收银系统集成",
+    "posIntegration": "系统集成接口配置",
     "syncHistory": "发布历史记录",
     "platform": "平台管理",
     "platformTenants": "租户列表管理",

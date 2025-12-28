@@ -4,15 +4,14 @@
 import { posIntegrationAPI, type PosIntegration } from '@/services/posIntegration'
 import { useAppSelector } from '@/store/hooks'
 import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   ReloadOutlined,
-  SettingOutlined,
+  SettingOutlined
 } from '@ant-design/icons'
 import {
+  App,
   Button,
   Card,
   Form,
@@ -24,7 +23,6 @@ import {
   Switch,
   Table,
   Tag,
-  message,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useState } from 'react'
@@ -32,6 +30,7 @@ import { useTranslation } from 'react-i18next'
 
 const PosIntegrationPage: React.FC = () => {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const { currentRestaurantId } = useAppSelector((state: any) => state.tenant)
   const [dataSource, setDataSource] = useState<PosIntegration[]>([])
   const [loading, setLoading] = useState(false)
@@ -72,6 +71,7 @@ const PosIntegrationPage: React.FC = () => {
     setEditingRecord(record)
     form.setFieldsValue({
       posSystem: record.posSystem,
+      name: record.name,
       apiUrl: record.apiUrl,
       apiKey: record.apiKey,
       webhookUrl: record.webhookUrl,
@@ -114,15 +114,21 @@ const PosIntegrationPage: React.FC = () => {
         return
       }
 
+      // 处理name字段：如果为空字符串，转换为undefined（不保存空字符串）
+      const submitData = {
+        ...values,
+        name: values.name && values.name.trim() ? values.name.trim() : undefined,
+      }
+
       if (editingRecord) {
         // 更新
-        await posIntegrationAPI.updateIntegration(editingRecord._id, values)
+        await posIntegrationAPI.updateIntegration(editingRecord._id, submitData)
         message.success('更新成功')
       } else {
         // 创建
         await posIntegrationAPI.createIntegration({
           restaurantId: currentRestaurantId,
-          ...values,
+          ...submitData,
         })
         message.success('创建成功')
       }
@@ -142,10 +148,45 @@ const PosIntegrationPage: React.FC = () => {
 
   const columns: ColumnsType<PosIntegration> = [
     {
-      title: '收银系统',
-      dataIndex: 'posSystem',
-      key: 'posSystem',
-      width: 150,
+      title: '接口名称',
+      key: 'displayName',
+      width: 200,
+      render: (_: any, record: PosIntegration) => {
+        // 优先显示自定义名称，如果没有则根据系统类型生成显示文本
+        let displayName = record.name
+        if (!displayName || !displayName.trim()) {
+          if (record.posSystem === 'custom') {
+            // 自定义系统：显示"自定义系统" + API地址的域名部分
+            try {
+              const url = new URL(record.apiUrl)
+              const hostname = url.hostname.replace('www.', '')
+              displayName = `自定义系统 - ${hostname}`
+            } catch {
+              displayName = `自定义系统 - ${record.apiUrl.substring(0, 30)}...`
+            }
+          } else {
+            // 其他系统类型：显示系统类型名称
+            const systemNames: Record<string, string> = {
+              meituan: '美团收银',
+              dianping: '大众点评',
+              alipay: '支付宝收银',
+              wechat: '微信收银',
+            }
+            displayName = systemNames[record.posSystem] || record.posSystem
+          }
+        }
+        
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>{displayName}</div>
+            {record.name && record.name.trim() && (
+              <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                {record.posSystem === 'custom' ? '自定义系统' : record.posSystem}
+              </div>
+            )}
+          </div>
+        )
+      },
     },
     {
       title: 'API地址',
@@ -288,6 +329,17 @@ const PosIntegrationPage: React.FC = () => {
               <Select.Option value="alipay">支付宝收银</Select.Option>
               <Select.Option value="wechat">微信收银</Select.Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="name"
+            label="接口名称"
+            tooltip="用于区分多个相同类型的接口，例如：美团收银-门店A、美团收银-门店B"
+            rules={[
+              { max: 50, message: '接口名称不能超过50个字符' },
+            ]}
+          >
+            <Input placeholder="请输入接口名称（可选，用于区分多个相同类型的接口）" />
           </Form.Item>
 
           <Form.Item

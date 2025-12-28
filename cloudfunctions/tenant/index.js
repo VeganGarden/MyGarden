@@ -4742,7 +4742,7 @@ async function createMenuItemFromRecipe(data, user, context) {
       // 系统字段
       restaurantId: restaurantId,
       tenantId: tenantId,
-      status: customFields.status || 'available',
+      // 移除 status 字段，统一使用 availability.isAvailable
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -5016,12 +5016,12 @@ async function updateMenuItem(data, user, context) {
     }
 
     // 2. 构建更新数据（只更新允许的字段）
+    // 注意：已移除 status 字段，统一使用 isAvailable（通过 availability.isAvailable 存储）
     const allowedFields = [
       'name',
       'description',
       'price',
       'category',
-      'status',
       'tags',
       'ingredients'
     ]
@@ -5041,9 +5041,7 @@ async function updateMenuItem(data, user, context) {
     if (updateData.category !== undefined) {
       updateFields.category = updateData.category
     }
-    if (updateData.status !== undefined) {
-      updateFields.status = updateData.status
-    }
+    // 移除 status 字段处理，统一使用 isAvailable
     if (updateData.tags !== undefined) {
       updateFields.tags = updateData.tags
     }
