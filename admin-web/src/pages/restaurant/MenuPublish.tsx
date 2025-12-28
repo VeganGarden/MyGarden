@@ -238,6 +238,12 @@ const MenuPublishPage: React.FC = () => {
         setPublishing(false)
         setTimeout(() => setPublishProgress(0), 2000)
       }
+    } catch (error: any) {
+      // 处理表单验证错误或其他错误
+      message.error(error.message || '操作失败')
+      setPublishing(false)
+      setPublishProgress(0)
+    }
   }
 
   const handleViewDetail = (record: SyncLog) => {

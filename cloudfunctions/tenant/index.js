@@ -4503,7 +4503,8 @@ async function getMenuList(data) {
       carbonScore: menu.carbonScore || menu.carbon_score || 0,
       ingredients: menu.ingredients || menu.ingredient_list || menu.ingredientList || [],
       status: menu.status || 'active',
-      isAvailable: menu.isAvailable !== undefined ? menu.isAvailable : true,
+      // 统一使用 isAvailable 字段：优先使用顶层 isAvailable，其次使用 availability.isAvailable，默认 true
+      isAvailable: menu.isAvailable !== undefined ? menu.isAvailable : (menu.availability && menu.availability.isAvailable !== undefined ? menu.availability.isAvailable : true),
       restaurantId: menu.restaurantId || restaurantId,
       baseRecipeId: menu.baseRecipeId || undefined,
       category: menu.category || '',

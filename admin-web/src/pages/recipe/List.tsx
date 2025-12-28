@@ -3,6 +3,7 @@ import { recipeAPI, tenantAPI } from '@/services/cloudbase'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchIngredients } from '@/store/slices/ingredientSlice'
 import { RecipeIngredient } from '@/types'
+import type { MenuItem } from '@/types/menuItem'
 import { CheckOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons'
 import {
   Alert,
@@ -31,42 +32,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const { Text } = Typography
 
-// 菜单项接口
-interface MenuItem {
-  _id: string
-  id: string
-  name: string
-  description?: string
-  price?: number
-  carbonFootprint?: number | {
-    value: number
-    baseline: number
-    reduction: number
-    breakdown?: {
-      ingredients: number
-      energy: number
-      packaging: number
-      transport: number
-    }
-  }
-  carbonLabel?: string
-  category?: string
-  ingredients?: any[]
-  status?: string
-  isAvailable?: boolean
-  baseRecipeId?: string
-  restaurantId: string
-  mealType?: 'meat_simple' | 'meat_full'
-  energyType?: 'electric' | 'gas' | 'mixed'
-  calculationLevel?: 'L1' | 'L2' | 'L3'
-  cookingMethod?: string
-  cookingTime?: number
-  baselineInfo?: {
-    baselineId: string | null
-    version: string | null
-    source: string | null
-  }
-}
+// 使用统一的 MenuItem 类型定义
 
 // 基础菜谱接口
 interface BaseRecipe {
