@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchIngredients } from '@/store/slices/ingredientSlice'
 import { RecipeIngredient } from '@/types'
 import type { MenuItem } from '@/types/menuItem'
+import { BASE_RECIPE_CATEGORIES, RECIPE_CATEGORIES, getRecipeCategoryLabel } from '@/utils/recipeConstants'
 import { CheckOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, UploadOutlined } from '@ant-design/icons'
 import {
   Alert,
@@ -694,17 +695,9 @@ const RecipeList: React.FC = () => {
     },
   ]
 
-  // 获取分类显示文本
+  // 获取分类显示文本（使用统一常量）
   const getCategoryText = (category?: string) => {
-    const categoryMap: Record<string, string> = {
-      hot: '热菜',
-      cold: '凉菜',
-      soup: '汤品',
-      staple: '主食',
-      dessert: '甜品',
-      drink: '饮品',
-    }
-    return categoryMap[category || ''] || category || '-'
+    return getRecipeCategoryLabel(category)
   }
 
   // 获取烹饪方式显示文本
@@ -1040,12 +1033,11 @@ const RecipeList: React.FC = () => {
                   placeholder="选择分类"
                 >
                   <Select.Option value="all">全部分类</Select.Option>
-                  <Select.Option value="hot">热菜</Select.Option>
-                  <Select.Option value="cold">凉菜</Select.Option>
-                  <Select.Option value="soup">汤品</Select.Option>
-                  <Select.Option value="staple">主食</Select.Option>
-                  <Select.Option value="dessert">甜品</Select.Option>
-                  <Select.Option value="drink">饮品</Select.Option>
+                  {BASE_RECIPE_CATEGORIES.map(cat => (
+                    <Select.Option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </Select.Option>
+                  ))}
                 </Select>
               </Col>
               <Col span={6}>
@@ -1327,15 +1319,11 @@ const RecipeList: React.FC = () => {
                   label={<span style={{ fontWeight: 500 }}>分类</span>}
                 >
                   <Select placeholder="请选择分类" allowClear size="large">
-                    <Select.Option value="hot">热菜</Select.Option>
-                    <Select.Option value="cold">凉菜</Select.Option>
-                    <Select.Option value="soup">汤品</Select.Option>
-                    <Select.Option value="staple">主食</Select.Option>
-                    <Select.Option value="dessert">甜品</Select.Option>
-                    <Select.Option value="drink">饮品</Select.Option>
-                    <Select.Option value="asian_fusion">亚洲融合</Select.Option>
-                    <Select.Option value="western">西式</Select.Option>
-                    <Select.Option value="other">其他</Select.Option>
+                    {RECIPE_CATEGORIES.map(cat => (
+                      <Select.Option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </Select.Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -1544,12 +1532,11 @@ const RecipeList: React.FC = () => {
                 rules={[{ required: true, message: '请选择分类' }]}
               >
                 <Select placeholder="请选择分类">
-                  <Select.Option value="hot">热菜</Select.Option>
-                  <Select.Option value="cold">凉菜</Select.Option>
-                  <Select.Option value="soup">汤品</Select.Option>
-                  <Select.Option value="staple">主食</Select.Option>
-                  <Select.Option value="dessert">甜品</Select.Option>
-                  <Select.Option value="drink">饮品</Select.Option>
+                  {BASE_RECIPE_CATEGORIES.map(cat => (
+                    <Select.Option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </Select.Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>

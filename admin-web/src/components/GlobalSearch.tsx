@@ -62,7 +62,6 @@ const GlobalSearch: React.FC = () => {
       
       // 菜谱管理
       { key: 'recipe-list', label: '餐厅菜谱列表', path: '/recipe/list', type: 'menu' },
-      { key: 'recipe-categories', label: '菜谱分类', path: '/recipe/categories', type: 'menu' },
       
       // 个人中心
       { key: 'profile', label: '个人中心', path: '/profile', type: 'menu' },

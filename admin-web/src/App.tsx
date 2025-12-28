@@ -5,7 +5,6 @@ import AuthGuard from './components/AuthGuard'
 import RouteGuard from './components/RouteGuard'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
-import RecipeCategories from './pages/recipe/Categories'
 import RecipeDetail from './pages/recipe/Detail'
 import RecipeEdit from './pages/recipe/Edit'
 import RecipeList from './pages/recipe/List'
@@ -105,6 +104,8 @@ import MessageDetail from './pages/messages/Detail'
 import MessageList from './pages/messages/List'
 
 // 基础数据管理（仅平台运营者）
+import CategoryDetail from './pages/base/CategoryDetail'
+import CategoryList from './pages/base/CategoryList'
 import BaseImport from './pages/base/Import'
 import BaseIngredientEdit from './pages/base/IngredientEdit'
 import BaseIngredientList from './pages/base/IngredientList'
@@ -115,8 +116,6 @@ import BaseRecipeEdit from './pages/base/RecipeEdit'
 import BaseRecipeList from './pages/base/RecipeList'
 import StandardDetail from './pages/base/StandardDetail'
 import StandardList from './pages/base/StandardList'
-import CategoryList from './pages/base/CategoryList'
-import CategoryDetail from './pages/base/CategoryDetail'
 import BaseStatistics from './pages/base/Statistics'
 
 // 素食人员管理模块（懒加载）
@@ -524,14 +523,6 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['restaurant_admin']}>
                 <RecipeDetail />
-              </RouteGuard>
-            } 
-          />
-          <Route 
-            path="recipe/categories" 
-            element={
-              <RouteGuard allowedRoles={['restaurant_admin']}>
-                <RecipeCategories />
               </RouteGuard>
             } 
           />

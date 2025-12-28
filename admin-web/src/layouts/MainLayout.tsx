@@ -12,7 +12,6 @@ import { logout } from '@/store/slices/authSlice'
 import {
   ApartmentOutlined,
   BarChartOutlined,
-  BookOutlined,
   CalculatorOutlined,
   DashboardOutlined,
   DatabaseOutlined,
@@ -315,26 +314,6 @@ const MainLayout: React.FC = () => {
         },
       ],
     },
-    // 菜谱管理（仅餐厅管理员可见）
-    ...(isRestaurantAdmin
-      ? [
-          {
-            key: '/recipe',
-            icon: <BookOutlined />,
-            label: t('menu.recipe'),
-            children: [
-              {
-                key: '/recipe/list',
-                label: t('menu.recipeList'),
-              },
-              {
-                key: '/recipe/categories',
-                label: t('menu.recipeCategories'),
-              },
-            ],
-          },
-        ]
-      : []),
     // 餐厅管理（仅餐厅管理员可见）
     ...(isRestaurantAdmin
       ? [
@@ -346,6 +325,10 @@ const MainLayout: React.FC = () => {
               {
                 key: '/restaurant/manage',
                 label: '我的餐厅',
+              },
+              {
+                key: '/recipe/list',
+                label: t('menu.recipeList'),
               },
               {
                 key: '/restaurant/menu/display-config',
