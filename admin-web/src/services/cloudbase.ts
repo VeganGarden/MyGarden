@@ -1473,7 +1473,7 @@ export const systemAPI = {
       data: params || {},
     }),
 
-  // 系统监控
+  // 数据库监控
   getSystemMetrics: () =>
     callCloudFunction('tenant', {
       action: 'getSystemMetrics',

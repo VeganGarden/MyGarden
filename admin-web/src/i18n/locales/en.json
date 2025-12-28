@@ -139,7 +139,7 @@
     "systemUsers": "User Management",
     "systemRoles": "Role & Permission",
     "systemAudit": "Audit Log",
-    "systemMonitor": "System Monitor",
+    "systemMonitor": "Database Monitor",
     "systemBackup": "Data Backup",
     "climateRestaurant": "Climate Restaurant",
     "certificationApplication": "Certification Application",
@@ -175,6 +175,9 @@
     "recipeCreate": "Create Recipe",
     "recipeCategories": "Category Management",
     "menuDisplayConfig": "Menu Environmental Info Display Config",
+    "menuPublish": "Menu Publish Management",
+    "posIntegration": "POS System Integration",
+    "syncHistory": "Sync History",
     "platform": "Platform Management",
     "platformTenants": "Tenant List Management",
     "platformRestaurants": "Restaurant List",
@@ -2026,7 +2029,7 @@
         }
       },
       "monitor": {
-        "title": "System Monitor",
+        "title": "Database Monitor",
         "filters": {
           "domain": "Filter by Domain"
         },
@@ -2038,8 +2041,10 @@
             "count": "Document Count"
           }
         },
-        "storage": {
-          "label": "Storage Usage (Simulated)"
+        "stats": {
+          "totalCollections": "Total Collections",
+          "totalDocuments": "Total Documents",
+          "collectionsByDomain": "Collections by Domain"
         }
       },
       "backup": {
@@ -2957,7 +2962,7 @@
         "quickActions": "Quick Actions",
         "userManagement": "User Management",
         "roleManagement": "Role & Permission",
-        "systemMonitor": "System Monitor",
+        "systemMonitor": "Database Monitor",
         "dataBackup": "Data Backup",
         "operationLog": "Operation Log",
         "auditLog": "Audit Log",

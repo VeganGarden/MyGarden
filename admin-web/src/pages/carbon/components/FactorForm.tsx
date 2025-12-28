@@ -1,10 +1,11 @@
 /**
  * 碳排放因子表单组件
  */
+import { ingredientStandardAPI } from '@/services/ingredientStandard'
 import { regionConfigAPI, type RegionConfig } from '@/services/regionConfig'
 import { FactorBoundary, FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
 import type { FormInstance } from 'antd'
-import { Col, Form, Input, InputNumber, Row, Select, Tag } from 'antd'
+import { AutoComplete, Col, Form, Input, InputNumber, Row, Select, Spin, Tag } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -25,10 +26,16 @@ const FactorForm: React.FC<FactorFormProps> = ({
   const { t } = useTranslation()
   const [regionOptions, setRegionOptions] = useState<Array<{ value: string; label: string }>>([])
   const [loadingRegions, setLoadingRegions] = useState(false)
+  
+  // 基础食材库选项（用于食材因子）
+  const [standardOptions, setStandardOptions] = useState<Array<{ value: string; label: string; category: string }>>([])
+  const [loadingStandards, setLoadingStandards] = useState(false)
+  const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map()) // categoryCode -> factorSubCategory
 
   // 监听表单的category和subCategory变化
   const category = Form.useWatch('category', form)
   const subCategory = Form.useWatch('subCategory', form)
+  const name = Form.useWatch('name', form)
 
   // 根据分类加载区域选项
   useEffect(() => {
@@ -112,6 +119,105 @@ const FactorForm: React.FC<FactorFormProps> = ({
     loadRegionOptions()
   }, [category, subCategory, form])
 
+  // 加载食材类别映射（用于将category映射到factorSubCategory）
+  useEffect(() => {
+    const loadCategoryMap = async () => {
+      if (category !== FactorCategory.INGREDIENT) {
+        setCategoryMap(new Map())
+        return
+      }
+      
+      try {
+        const result = await ingredientStandardAPI.category.list({
+          status: 'active',
+          pageSize: 1000
+        })
+        if (result?.code === 0 && result.data?.list) {
+          const map = new Map<string, string>()
+          result.data.list.forEach((cat: any) => {
+            if (cat.mapping?.factorSubCategory) {
+              map.set(cat.categoryCode, cat.mapping.factorSubCategory)
+            }
+          })
+          setCategoryMap(map)
+        }
+      } catch (error) {
+        console.error('加载类别映射失败:', error)
+      }
+    }
+    loadCategoryMap()
+  }, [category])
+
+  // 加载基础食材库选项（当选择食材分类时）
+  useEffect(() => {
+    const loadStandards = async () => {
+      if (category !== FactorCategory.INGREDIENT) {
+        setStandardOptions([])
+        return
+      }
+
+      setLoadingStandards(true)
+      try {
+        const result = await ingredientStandardAPI.standard.list({
+          status: 'active',
+          pageSize: 1000
+        })
+        
+        if (result?.code === 0 && result.data) {
+          const standards = result.data.data || result.data.list || []
+          const options = standards.map((std: any) => ({
+            value: std.standardName,
+            label: std.standardName,
+            category: std.category
+          }))
+          setStandardOptions(options)
+        }
+      } catch (error) {
+        console.error('加载基础食材库失败:', error)
+        setStandardOptions([])
+      } finally {
+        setLoadingStandards(false)
+      }
+    }
+    loadStandards()
+  }, [category])
+
+  // 当选择基础食材库中的标准名称时，自动填充subCategory
+  const handleStandardSelect = async (value: string) => {
+    if (category !== FactorCategory.INGREDIENT) return
+    
+    try {
+      const result = await ingredientStandardAPI.standard.get(value)
+      if (result?.code === 0 && result.data) {
+        const standard = result.data
+        // 从标准名称的category映射到factorSubCategory
+        const factorSubCategory = categoryMap.get(standard.category)
+        if (factorSubCategory) {
+          form.setFieldsValue({
+            name: value,
+            subCategory: factorSubCategory
+          })
+          // 触发onValuesChange
+          if (onValuesChange) {
+            const allValues = form.getFieldsValue()
+            onValuesChange({ name: value, subCategory: factorSubCategory }, { ...allValues, name: value, subCategory: factorSubCategory })
+          }
+        } else {
+          // 如果找不到映射，只设置名称
+          form.setFieldsValue({ name: value })
+          if (onValuesChange) {
+            const allValues = form.getFieldsValue()
+            onValuesChange({ name: value }, { ...allValues, name: value })
+          }
+        }
+      }
+    } catch (error) {
+      console.error('获取标准名称详情失败:', error)
+      // 即使获取失败，也设置名称
+      form.setFieldsValue({ name: value })
+    }
+  }
+
   return (
     <Form
       form={form}
@@ -128,8 +234,34 @@ const FactorForm: React.FC<FactorFormProps> = ({
               name="name"
               label={t('pages.carbon.factorForm.fields.name')}
               rules={[{ required: true, message: t('pages.carbon.factorForm.validation.nameRequired') }]}
+              tooltip={category === FactorCategory.INGREDIENT ? '食材因子必须从基础食材库中选择标准名称' : undefined}
             >
-              <Input placeholder={t('pages.carbon.factorForm.placeholders.name')} />
+              {category === FactorCategory.INGREDIENT ? (
+                <Spin spinning={loadingStandards}>
+                  <AutoComplete
+                    options={standardOptions.map(opt => ({
+                      value: opt.value,
+                      label: opt.label
+                    }))}
+                    placeholder="从基础食材库中选择标准名称"
+                    onSelect={handleStandardSelect}
+                    onChange={(value) => {
+                      form.setFieldsValue({ name: value })
+                      if (onValuesChange) {
+                        const allValues = form.getFieldsValue()
+                        onValuesChange({ name: value }, { ...allValues, name: value })
+                      }
+                    }}
+                    value={name}
+                    filterOption={(inputValue, option) =>
+                      option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                    }
+                    allowClear
+                  />
+                </Spin>
+              ) : (
+                <Input placeholder={t('pages.carbon.factorForm.placeholders.name')} />
+              )}
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -162,8 +294,12 @@ const FactorForm: React.FC<FactorFormProps> = ({
               name="subCategory"
               label={t('pages.carbon.factorForm.fields.subCategory')}
               rules={[{ required: true, message: t('pages.carbon.factorForm.validation.subCategoryRequired') }]}
+              tooltip={category === FactorCategory.INGREDIENT ? '选择基础食材库中的标准名称后会自动填充' : undefined}
             >
-              <Input placeholder={t('pages.carbon.factorForm.placeholders.subCategory')} />
+              <Input 
+                placeholder={category === FactorCategory.INGREDIENT ? '选择标准名称后自动填充' : t('pages.carbon.factorForm.placeholders.subCategory')} 
+                disabled={category === FactorCategory.INGREDIENT}
+              />
             </Form.Item>
           </Col>
         </Row>

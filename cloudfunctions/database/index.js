@@ -41,6 +41,7 @@ const { main: importIngredientsFromList } = require('./import-ingredients-from-l
 const { main: importRecipesFromList } = require('./import-recipes-from-list');
 const { main: deleteIncorrectRecipes } = require('./delete-incorrect-recipes');
 const { main: analyzeDuplicateIngredients } = require('./analyze-duplicate-ingredients');
+const { main: unifyFactorSubCategory } = require('./unify-factor-subcategory');
 
 /**
  * 数据库管理云函数 - 统一入口
@@ -253,6 +254,8 @@ exports.main = async (event) => {
         console.warn('⚠️  syncStandardNameToIngredients 已废弃，请使用 ingredient-standard-manage 云函数');
         const { main: syncStandardNameToIngredients } = require('./sync-standard-name-to-ingredients');
         return await syncStandardNameToIngredients(event);
+      case 'unifyFactorSubCategory':
+        return await unifyFactorSubCategory(event);
       default:
         return await initCollectionsV1(event);
     }

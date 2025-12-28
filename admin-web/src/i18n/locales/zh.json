@@ -142,7 +142,7 @@
     "systemUsers": "用户管理",
     "systemRoles": "角色权限配置",
     "systemAudit": "审计日志",
-    "systemMonitor": "系统监控",
+    "systemMonitor": "数据库监控",
     "systemBackup": "数据备份",
     "climateRestaurant": "气候餐厅认证",
     "certificationApplication": "认证申请",
@@ -180,6 +180,9 @@
     "recipeCreate": "创建餐厅菜谱",
     "recipeCategories": "菜谱分类",
     "menuDisplayConfig": "菜单环保信息展示配置",
+    "menuPublish": "菜单发布管理",
+    "posIntegration": "收银系统集成",
+    "syncHistory": "发布历史记录",
     "platform": "平台管理",
     "platformTenants": "租户列表管理",
     "platformRestaurants": "餐厅列表管理",
@@ -373,7 +376,7 @@
             "factorId": "因子ID",
             "name": "名称",
             "category": "分类",
-            "subCategory": "子分类",
+            "subCategory": "子类别（食材分类）",
             "factorValue": "因子值",
             "source": "数据来源",
             "year": "年份",
@@ -394,7 +397,8 @@
           "search": "搜索因子ID、名称、别名",
           "category": "分类",
           "source": "数据来源",
-          "status": "状态"
+          "status": "状态",
+          "subCategory": "子类别"
         },
         "categories": {
           "ingredient": "食材",
@@ -2323,7 +2327,7 @@
         }
       },
       "monitor": {
-        "title": "系统监控",
+        "title": "数据库监控",
         "filters": {
           "domain": "按域筛选"
         },
@@ -2335,8 +2339,10 @@
             "count": "文档数"
           }
         },
-        "storage": {
-          "label": "存储空间使用（模拟）"
+        "stats": {
+          "totalCollections": "集合总数",
+          "totalDocuments": "文档总数",
+          "collectionsByDomain": "按域统计"
         }
       },
       "backup": {
@@ -3355,7 +3361,7 @@
         "quickActions": "快速操作",
         "userManagement": "用户管理",
         "roleManagement": "角色权限配置",
-        "systemMonitor": "系统监控",
+        "systemMonitor": "数据库监控",
         "dataBackup": "数据备份",
         "operationLog": "操作日志",
         "auditLog": "审计日志",

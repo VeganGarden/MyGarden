@@ -3,8 +3,10 @@
  */
 import i18n from '@/i18n'
 import { factorManageAPI } from '@/services/factor'
+import { ingredientStandardAPI } from '@/services/ingredientStandard'
 import type { CarbonEmissionFactor, FactorQueryParams } from '@/types/factor'
 import { FactorCategory, FactorSource, FactorStatus } from '@/types/factor'
+import type { IngredientCategory } from '@/types/ingredientCategory'
 import { getRegionDisplayNameSync } from '@/utils/regionHelper'
 import {
   EditOutlined,
@@ -59,6 +61,12 @@ const FactorLibrary: React.FC = () => {
   
   // 搜索框的值（用于显示）
   const [searchValue, setSearchValue] = useState(initialKeyword || '')
+  
+  // 食材类别映射：subCategory -> categoryName
+  const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map())
+  
+  // 子类别筛选选项
+  const [subCategoryOptions, setSubCategoryOptions] = useState<Array<{value: string, label: string}>>([])
 
   // 获取列表数据
   const fetchData = async () => {
@@ -88,17 +96,83 @@ const FactorLibrary: React.FC = () => {
     }
   }
 
+  // 加载食材类别列表
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const result = await ingredientStandardAPI.category.list({
+          status: 'active',
+          pageSize: 1000
+        })
+        if (result?.code === 0 && result.data?.list) {
+          const map = new Map<string, string>()
+          result.data.list.forEach((cat: IngredientCategory) => {
+            if (cat.mapping?.factorSubCategory) {
+              map.set(cat.mapping.factorSubCategory, cat.categoryName)
+            }
+          })
+          setCategoryMap(map)
+        }
+      } catch (error) {
+        console.error('加载食材类别失败:', error)
+      }
+    }
+    loadCategories()
+  }, [])
+
+  // 根据category筛选值动态更新子类别选项
+  useEffect(() => {
+    const updateSubCategoryOptions = async () => {
+      if (filters.category === FactorCategory.INGREDIENT) {
+        // 食材：显示类别名称
+        try {
+          const result = await ingredientStandardAPI.category.list({
+            status: 'active',
+            pageSize: 1000
+          })
+          if (result?.code === 0 && result.data?.list) {
+            const options = result.data.list
+              .filter((cat: IngredientCategory) => cat.mapping?.factorSubCategory)
+              .map((cat: IngredientCategory) => ({
+                value: cat.mapping.factorSubCategory,
+                label: cat.categoryName
+              }))
+            setSubCategoryOptions(options)
+          }
+        } catch (error) {
+          console.error('加载食材类别选项失败:', error)
+          setSubCategoryOptions([])
+        }
+      } else {
+        // 其他分类：从当前数据中提取所有subCategory值
+        const uniqueSubCategories = Array.from(
+          new Set(dataSource.map(f => f.subCategory).filter(Boolean))
+        ).map(subCat => ({
+          value: subCat,
+          label: subCat
+        }))
+        setSubCategoryOptions(uniqueSubCategories)
+      }
+    }
+    updateSubCategoryOptions()
+  }, [filters.category, dataSource])
+
   useEffect(() => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.current, pagination.pageSize, filters.category, filters.source, filters.status, filters.keyword])
+  }, [pagination.current, pagination.pageSize, filters.category, filters.source, filters.status, filters.keyword, filters.subCategory])
 
   // 处理筛选
   const handleFilterChange = (key: string, value: any) => {
-    setFilters({
+    const newFilters = {
       ...filters,
       [key]: value || undefined,
-    })
+    }
+    // 当切换分类时，清空子类别筛选
+    if (key === 'category') {
+      newFilters.subCategory = undefined
+    }
+    setFilters(newFilters)
     setPagination({ ...pagination, current: 1 })
   }
 
@@ -203,7 +277,16 @@ const FactorLibrary: React.FC = () => {
       dataIndex: 'subCategory',
       key: 'subCategory',
       width: 120,
-      render: (subCategory: string) => subCategory || '-',
+      render: (subCategory: string, record: CarbonEmissionFactor) => {
+        if (record.category === FactorCategory.INGREDIENT) {
+          // 食材因子：显示类别名称
+          const categoryName = categoryMap.get(subCategory) || subCategory || '-'
+          return categoryName
+        } else {
+          // 其他因子：显示subCategory
+          return subCategory || '-'
+        }
+      },
     },
     {
       title: t('pages.carbon.factorLibrary.table.columns.factorValue'),
@@ -416,6 +499,18 @@ const FactorLibrary: React.FC = () => {
             <Option value={FactorStatus.ACTIVE}>{t('pages.carbon.factorLibrary.status.active')}</Option>
             <Option value={FactorStatus.ARCHIVED}>{t('pages.carbon.factorLibrary.status.archived')}</Option>
             <Option value={FactorStatus.DRAFT}>{t('pages.carbon.factorLibrary.status.draft')}</Option>
+          </Select>
+          <Select
+            placeholder={t('pages.carbon.factorLibrary.filters.subCategory')}
+            allowClear
+            style={{ width: 150 }}
+            value={filters.subCategory}
+            onChange={(value) => handleFilterChange('subCategory', value)}
+            disabled={!filters.category}
+          >
+            {subCategoryOptions.map(opt => (
+              <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+            ))}
           </Select>
           <Button
             icon={<ReloadOutlined />}

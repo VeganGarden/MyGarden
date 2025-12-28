@@ -87,6 +87,9 @@ import PlatformStatistics from './pages/platform/Statistics'
 import TenantList from './pages/platform/TenantList'
 import RestaurantManage from './pages/restaurant/Manage'
 import MenuDisplayConfig from './pages/restaurant/MenuDisplayConfig'
+import MenuPublish from './pages/restaurant/MenuPublish'
+import PosIntegration from './pages/restaurant/PosIntegration'
+import SyncHistory from './pages/restaurant/SyncHistory'
 
 // 个人中心
 import OnboardingApply from './pages/onboarding/Apply'
@@ -547,6 +550,30 @@ const App: React.FC = () => {
             element={
               <RouteGuard allowedRoles={['restaurant_admin']}>
                 <MenuDisplayConfig />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="restaurant/menu-publish" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <MenuPublish />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="restaurant/pos-integration" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <PosIntegration />
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="restaurant/sync-history" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <SyncHistory />
               </RouteGuard>
             } 
           />

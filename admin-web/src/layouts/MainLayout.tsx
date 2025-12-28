@@ -351,6 +351,18 @@ const MainLayout: React.FC = () => {
                 key: '/restaurant/menu/display-config',
                 label: t('menu.menuDisplayConfig'),
               },
+              {
+                key: '/restaurant/menu-publish',
+                label: t('menu.menuPublish'),
+              },
+              {
+                key: '/restaurant/pos-integration',
+                label: t('menu.posIntegration'),
+              },
+              {
+                key: '/restaurant/sync-history',
+                label: t('menu.syncHistory'),
+              },
             ],
           },
         ]
