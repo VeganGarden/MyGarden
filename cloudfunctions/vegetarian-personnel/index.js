@@ -47,6 +47,16 @@ async function createStaff(staffData, user) {
     const now = new Date()
     const staffId = generateStaffId()
 
+    // 处理素食开始日期和年份：如果提供了精确日期，自动计算年份
+    let vegetarianStartYear = staffData.vegetarianInfo.vegetarianStartYear || null
+    let vegetarianStartDate = staffData.vegetarianInfo.vegetarianStartDate || null
+    
+    if (vegetarianStartDate && !vegetarianStartYear) {
+      // 从精确日期自动计算年份
+      const startDate = new Date(vegetarianStartDate)
+      vegetarianStartYear = startDate.getFullYear()
+    }
+
     const staff = {
       staffId: staffId,
       restaurantId: staffData.restaurantId,
@@ -61,7 +71,11 @@ async function createStaff(staffData, user) {
       vegetarianInfo: {
         isVegetarian: staffData.vegetarianInfo.isVegetarian || false,
         vegetarianType: staffData.vegetarianInfo.vegetarianType || 'other',
-        vegetarianStartYear: staffData.vegetarianInfo.vegetarianStartYear || null,
+        vegetarianStartYear: vegetarianStartYear,
+        vegetarianStartDate: vegetarianStartDate ? new Date(vegetarianStartDate) : null,  // V2新增
+        dataQuality: staffData.vegetarianInfo.dataQuality || null,  // V2新增
+        lastVerifiedDate: staffData.vegetarianInfo.lastVerifiedDate ? new Date(staffData.vegetarianInfo.lastVerifiedDate) : null,  // V2新增
+        verificationStatus: staffData.vegetarianInfo.verificationStatus || null,  // V2新增
         vegetarianReason: staffData.vegetarianInfo.vegetarianReason || '',
         notes: staffData.vegetarianInfo.notes || '',
       },
@@ -133,7 +147,23 @@ async function updateStaff(staffId, updateData, user) {
     if (updateData.vegetarianInfo) {
       if (updateData.vegetarianInfo.isVegetarian !== undefined) update['vegetarianInfo.isVegetarian'] = updateData.vegetarianInfo.isVegetarian
       if (updateData.vegetarianInfo.vegetarianType !== undefined) update['vegetarianInfo.vegetarianType'] = updateData.vegetarianInfo.vegetarianType
-      if (updateData.vegetarianInfo.vegetarianStartYear !== undefined) update['vegetarianInfo.vegetarianStartYear'] = updateData.vegetarianInfo.vegetarianStartYear
+      
+      // 处理素食开始日期和年份：如果提供了精确日期，自动计算年份
+      let vegetarianStartYear = updateData.vegetarianInfo.vegetarianStartYear
+      if (updateData.vegetarianInfo.vegetarianStartDate && !vegetarianStartYear) {
+        const startDate = new Date(updateData.vegetarianInfo.vegetarianStartDate)
+        vegetarianStartYear = startDate.getFullYear()
+      }
+      if (vegetarianStartYear !== undefined) update['vegetarianInfo.vegetarianStartYear'] = vegetarianStartYear
+      
+      if (updateData.vegetarianInfo.vegetarianStartDate !== undefined) {
+        update['vegetarianInfo.vegetarianStartDate'] = new Date(updateData.vegetarianInfo.vegetarianStartDate)
+      }
+      if (updateData.vegetarianInfo.dataQuality !== undefined) update['vegetarianInfo.dataQuality'] = updateData.vegetarianInfo.dataQuality
+      if (updateData.vegetarianInfo.lastVerifiedDate !== undefined) {
+        update['vegetarianInfo.lastVerifiedDate'] = updateData.vegetarianInfo.lastVerifiedDate ? new Date(updateData.vegetarianInfo.lastVerifiedDate) : null
+      }
+      if (updateData.vegetarianInfo.verificationStatus !== undefined) update['vegetarianInfo.verificationStatus'] = updateData.vegetarianInfo.verificationStatus
       if (updateData.vegetarianInfo.vegetarianReason !== undefined) update['vegetarianInfo.vegetarianReason'] = updateData.vegetarianInfo.vegetarianReason
       if (updateData.vegetarianInfo.notes !== undefined) update['vegetarianInfo.notes'] = updateData.vegetarianInfo.notes
     }
@@ -298,11 +328,27 @@ async function createOrUpdateCustomer(customerData, user) {
       })
       .get()
 
+    // 处理素食开始日期和年份：如果提供了精确日期，自动计算年份
+    let vegetarianStartYear = customerData.vegetarianInfo.vegetarianStartYear || null
+    let vegetarianStartDate = customerData.vegetarianInfo.vegetarianStartDate || null
+    
+    if (vegetarianStartDate && !vegetarianStartYear) {
+      // 从精确日期自动计算年份
+      const startDate = new Date(vegetarianStartDate)
+      vegetarianStartYear = startDate.getFullYear()
+    }
+
     const vegetarianInfo = {
       isVegetarian: customerData.vegetarianInfo.isVegetarian || false,
       vegetarianType: customerData.vegetarianInfo.vegetarianType || 'other',
       vegetarianYears: customerData.vegetarianInfo.vegetarianYears || '',
-      vegetarianStartYear: customerData.vegetarianInfo.vegetarianStartYear || null,
+      vegetarianStartYear: vegetarianStartYear,
+      vegetarianStartDate: vegetarianStartDate ? new Date(vegetarianStartDate) : null,  // V2新增
+      vegetarianFrequency: customerData.vegetarianInfo.vegetarianFrequency || null,  // V2新增
+      dataQuality: customerData.vegetarianInfo.dataQuality || null,  // V2新增
+      lastVerifiedDate: customerData.vegetarianInfo.lastVerifiedDate ? new Date(customerData.vegetarianInfo.lastVerifiedDate) : null,  // V2新增
+      verificationStatus: customerData.vegetarianInfo.verificationStatus || null,  // V2新增
+      firstRecordDate: customerData.vegetarianInfo.firstRecordDate ? new Date(customerData.vegetarianInfo.firstRecordDate) : now,
       lastUpdateDate: now
     }
 

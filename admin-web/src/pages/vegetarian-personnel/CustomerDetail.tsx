@@ -5,10 +5,11 @@
 import { customerAPI } from '@/services/vegetarianPersonnel'
 import { useAppSelector } from '@/store/hooks'
 import type { Customer } from '@/types/vegetarianPersonnel'
+import { DataQuality } from '@/types/vegetarianPersonnel'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { Button, Card, Descriptions, Space, Tag, Timeline, message } from 'antd'
-import { useTranslation } from 'react-i18next'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
 const CustomerDetailPage: React.FC = () => {
@@ -58,13 +59,6 @@ const CustomerDetailPage: React.FC = () => {
     return translated !== yearsKey ? translated : years
   }
 
-  const formatDate = (date: Date | string | undefined) => {
-    if (!date) return '-'
-    if (typeof date === 'string') {
-      return date.split('T')[0]
-    }
-    return date.toISOString().split('T')[0]
-  }
 
   if (!customer) {
     return null
@@ -111,6 +105,41 @@ const CustomerDetailPage: React.FC = () => {
                 </Descriptions.Item>
                 <Descriptions.Item label={t('pages.vegetarianPersonnel.customerDetail.fields.vegetarianStartYear')}>
                   {customer.vegetarianInfo?.vegetarianStartYear || '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('pages.vegetarianPersonnel.customerDetail.fields.vegetarianStartDate')}>
+                  {customer.vegetarianInfo?.vegetarianStartDate ? (
+                    <Tag color={customer.vegetarianInfo?.dataQuality === DataQuality.PRECISE_DATE ? 'green' : 'default'}>
+                      {formatDate(customer.vegetarianInfo.vegetarianStartDate)}
+                    </Tag>
+                  ) : '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('pages.vegetarianPersonnel.customerDetail.fields.vegetarianFrequency')}>
+                  {customer.vegetarianInfo?.vegetarianFrequency ? (
+                    (() => {
+                      const freqKey = `pages.vegetarianPersonnel.customerDetail.vegetarianFrequency.${customer.vegetarianInfo.vegetarianFrequency}`
+                      const translated = t(freqKey)
+                      return translated !== freqKey ? translated : customer.vegetarianInfo.vegetarianFrequency
+                    })()
+                  ) : '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('pages.vegetarianPersonnel.customerDetail.fields.dataQuality')}>
+                  {customer.vegetarianInfo?.dataQuality ? (
+                    (() => {
+                      const qualityKey = `pages.vegetarianPersonnel.customerDetail.dataQuality.${customer.vegetarianInfo.dataQuality}`
+                      const translated = t(qualityKey)
+                      const colorMap: Record<string, string> = {
+                        [DataQuality.PRECISE_DATE]: 'green',
+                        [DataQuality.PRECISE_YEAR]: 'blue',
+                        [DataQuality.RANGE_ESTIMATE]: 'orange',
+                        [DataQuality.INCOMPLETE]: 'red'
+                      }
+                      return (
+                        <Tag color={colorMap[customer.vegetarianInfo.dataQuality] || 'default'}>
+                          {translated !== qualityKey ? translated : customer.vegetarianInfo.dataQuality}
+                        </Tag>
+                      )
+                    })()
+                  ) : '-'}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('pages.vegetarianPersonnel.customerDetail.fields.firstRecordDate')}>
                   {formatDate(customer.vegetarianInfo?.firstRecordDate)}

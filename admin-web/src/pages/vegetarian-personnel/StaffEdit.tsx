@@ -5,12 +5,12 @@
 import { staffAPI } from '@/services/vegetarianPersonnel'
 import { useAppSelector } from '@/store/hooks'
 import type { Staff } from '@/types/vegetarianPersonnel'
-import { StaffVegetarianType, VegetarianReason } from '@/types/vegetarianPersonnel'
+import { DataQuality, StaffVegetarianType, VegetarianReason } from '@/types/vegetarianPersonnel'
 import { ArrowLeftOutlined } from '@ant-design/icons'
-import { Button, Card, Col, Form, Input, Row, Select, Space, Switch, message } from 'antd'
-import { useTranslation } from 'react-i18next'
+import { Alert, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Switch, message } from 'antd'
 import dayjs from 'dayjs'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
 const StaffEditPage: React.FC = () => {
@@ -57,6 +57,7 @@ const StaffEditPage: React.FC = () => {
           joinDate: staffData.basicInfo.joinDate ? dayjs(staffData.basicInfo.joinDate).format('YYYY-MM-DD') : undefined,
           isVegetarian: staffData.vegetarianInfo?.isVegetarian || false,
           vegetarianType: staffData.vegetarianInfo?.vegetarianType,
+          vegetarianStartDate: staffData.vegetarianInfo?.vegetarianStartDate ? dayjs(staffData.vegetarianInfo.vegetarianStartDate) : undefined,
           vegetarianStartYear: staffData.vegetarianInfo?.vegetarianStartYear,
           vegetarianReason: staffData.vegetarianInfo?.vegetarianReason,
           notes: staffData.vegetarianInfo?.notes
@@ -76,6 +77,26 @@ const StaffEditPage: React.FC = () => {
     if (!id || !staff) return
     setLoading(true)
     try {
+      // 处理素食开始日期和年份
+      let vegetarianStartDate: string | undefined
+      let vegetarianStartYear: number | undefined
+      let dataQuality: DataQuality | undefined
+
+      if (isVegetarian && values.vegetarianStartDate) {
+        // 优先使用精确日期
+        vegetarianStartDate = dayjs(values.vegetarianStartDate).format('YYYY-MM-DD')
+        vegetarianStartYear = dayjs(values.vegetarianStartDate).year()
+        dataQuality = DataQuality.PRECISE_DATE
+      } else if (isVegetarian && values.vegetarianStartYear) {
+        // 使用年份
+        vegetarianStartYear = values.vegetarianStartYear
+        dataQuality = DataQuality.PRECISE_YEAR
+      } else if (isVegetarian && staff.vegetarianInfo?.vegetarianStartYear) {
+        // 保留原有年份
+        vegetarianStartYear = staff.vegetarianInfo.vegetarianStartYear
+        dataQuality = DataQuality.PRECISE_YEAR
+      }
+
       const formData = {
         restaurantId: staff.restaurantId,
         tenantId: staff.tenantId,
@@ -89,7 +110,9 @@ const StaffEditPage: React.FC = () => {
         vegetarianInfo: {
           isVegetarian: isVegetarian,
           vegetarianType: isVegetarian ? values.vegetarianType : undefined,
-          vegetarianStartYear: isVegetarian ? values.vegetarianStartYear : undefined,
+          vegetarianStartYear: vegetarianStartYear,
+          vegetarianStartDate: vegetarianStartDate,
+          dataQuality: dataQuality,
           vegetarianReason: isVegetarian ? values.vegetarianReason : undefined,
           notes: isVegetarian ? values.notes : undefined
         }
@@ -209,6 +232,7 @@ const StaffEditPage: React.FC = () => {
                   if (!checked) {
                     form.setFieldsValue({
                       vegetarianType: undefined,
+                      vegetarianStartDate: undefined,
                       vegetarianStartYear: undefined,
                       vegetarianReason: undefined,
                       notes: undefined
@@ -222,6 +246,12 @@ const StaffEditPage: React.FC = () => {
 
         {isVegetarian && (
           <>
+            <Alert
+              message={t('pages.vegetarianPersonnel.staffEdit.tips.preciseDate')}
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -237,13 +267,40 @@ const StaffEditPage: React.FC = () => {
                   </Select>
                 </Form.Item>
               </Col>
-                  <Col span={12}>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="vegetarianStartDate"
+                  label={t('pages.vegetarianPersonnel.staffEdit.form.fields.vegetarianStartDate')}
+                  tooltip={t('pages.vegetarianPersonnel.staffEdit.form.tooltips.vegetarianStartDate')}
+                >
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    format="YYYY-MM-DD"
+                    disabledDate={(current) => current && current > dayjs().endOf('day')}
+                    placeholder={t('pages.vegetarianPersonnel.staffEdit.form.placeholders.vegetarianStartDate')}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
                 <Form.Item
                   name="vegetarianStartYear"
                   label={t('pages.vegetarianPersonnel.staffEdit.form.fields.vegetarianStartYear')}
+                  tooltip={t('pages.vegetarianPersonnel.staffEdit.form.tooltips.vegetarianStartYear')}
                   rules={[
-                    { required: true, message: t('pages.vegetarianPersonnel.staffEdit.form.rules.vegetarianStartYearRequired') },
-                    { type: 'number', min: 1900, max: new Date().getFullYear(), message: t('pages.vegetarianPersonnel.staffEdit.form.rules.yearRange', { year: new Date().getFullYear() }) }
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!getFieldValue('vegetarianStartDate') && !value) {
+                          return Promise.reject(new Error(t('pages.vegetarianPersonnel.staffEdit.form.rules.vegetarianStartDateOrYearRequired')))
+                        }
+                        if (value && (value < 1900 || value > new Date().getFullYear())) {
+                          return Promise.reject(new Error(t('pages.vegetarianPersonnel.staffEdit.form.rules.yearRange', { year: new Date().getFullYear() })))
+                        }
+                        return Promise.resolve()
+                      }
+                    })
                   ]}
                 >
                   <Input 

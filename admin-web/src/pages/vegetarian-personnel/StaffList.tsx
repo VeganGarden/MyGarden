@@ -2,14 +2,16 @@
  * 餐厅员工管理页面
  */
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Button, Card, Input, Select, Table, Space, Tag, message, Modal, Skeleton } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { staffAPI } from '@/services/vegetarianPersonnel'
+import { useAppSelector } from '@/store/hooks'
+import type { Staff } from '@/types/vegetarianPersonnel'
+import { DataQuality } from '@/types/vegetarianPersonnel'
+import { formatDateWithQuality } from '@/utils/dateUtils'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import { Button, Card, Input, Modal, Skeleton, Space, Table, Tag, Tooltip, message } from 'antd'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAppSelector } from '@/store/hooks'
-import { staffAPI } from '@/services/vegetarianPersonnel'
-import type { Staff } from '@/types/vegetarianPersonnel'
 
 const { Search } = Input
 
@@ -145,6 +147,43 @@ const StaffListPage: React.FC = () => {
       dataIndex: ['vegetarianInfo', 'vegetarianStartYear'],
       key: 'vegetarianStartYear',
       render: (year: number) => year || '-'
+    },
+    {
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.vegetarianStartDate'),
+      dataIndex: ['vegetarianInfo', 'vegetarianStartDate'],
+      key: 'vegetarianStartDate',
+      render: (date: string | Date | undefined, record: Staff) => {
+        const { dateStr, isPrecise } = formatDateWithQuality(date, record.vegetarianInfo?.dataQuality)
+        if (dateStr === '-') return '-'
+        if (isPrecise) {
+          return (
+            <Tooltip title={t('pages.vegetarianPersonnel.staffList.tooltips.preciseDate')}>
+              <Tag color="green">{dateStr}</Tag>
+            </Tooltip>
+          )
+        }
+        return dateStr
+      }
+    },
+    {
+      title: t('pages.vegetarianPersonnel.staffList.table.columns.dataQuality'),
+      dataIndex: ['vegetarianInfo', 'dataQuality'],
+      key: 'dataQuality',
+      render: (quality: string | undefined) => {
+        if (!quality) return '-'
+        const qualityKey = `pages.vegetarianPersonnel.staffList.dataQuality.${quality}`
+        const translated = t(qualityKey)
+        const colorMap: Record<string, string> = {
+          [DataQuality.PRECISE_DATE]: 'green',
+          [DataQuality.PRECISE_YEAR]: 'blue',
+          [DataQuality.INCOMPLETE]: 'orange'
+        }
+        return (
+          <Tag color={colorMap[quality] || 'default'}>
+            {translated !== qualityKey ? translated : quality}
+          </Tag>
+        )
+      }
     },
     {
       title: t('pages.vegetarianPersonnel.staffList.table.columns.actions'),

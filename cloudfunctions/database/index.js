@@ -265,6 +265,9 @@ exports.main = async (event) => {
       case 'cleanupMenuItemStatus':
         // 清理已迁移的 status 字段（可选，谨慎使用）
         return await cleanupStatusField();
+      case 'initVegetarianCarbonConfigs':
+        const { main: initVegetarianCarbonConfigs } = require('./init-vegetarian-carbon-configs');
+        return await initVegetarianCarbonConfigs(event);
       default:
         return await initCollectionsV1(event);
     }

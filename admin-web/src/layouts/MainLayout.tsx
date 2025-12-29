@@ -376,6 +376,21 @@ const MainLayout: React.FC = () => {
               },
             ],
           },
+          {
+            key: '/vegetarian-personnel-v2',
+            icon: <TeamOutlined />,
+            label: '素食人员管理 V2',
+            children: [
+              {
+                key: '/vegetarian-personnel-v2/dashboard',
+                label: '减碳分析 V2',
+              },
+              {
+                key: '/vegetarian-personnel-v2/comparison',
+                label: '新旧对比',
+              },
+            ],
+          },
         ]
       : []),
     // 基础数据管理（仅平台运营可见）

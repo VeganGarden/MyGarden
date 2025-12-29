@@ -119,6 +119,7 @@ import StandardList from './pages/base/StandardList'
 import BaseStatistics from './pages/base/Statistics'
 
 // 素食人员管理模块（懒加载）
+const CustomerAdd = lazy(() => import('./pages/vegetarian-personnel/CustomerAdd'))
 const CustomerDetail = lazy(() => import('./pages/vegetarian-personnel/CustomerDetail'))
 const CustomerList = lazy(() => import('./pages/vegetarian-personnel/CustomerList'))
 const VegetarianPersonnelDashboard = lazy(() => import('./pages/vegetarian-personnel/Dashboard'))
@@ -126,6 +127,10 @@ const StaffAdd = lazy(() => import('./pages/vegetarian-personnel/StaffAdd'))
 const StaffEdit = lazy(() => import('./pages/vegetarian-personnel/StaffEdit'))
 const StaffList = lazy(() => import('./pages/vegetarian-personnel/StaffList'))
 const StaffStats = lazy(() => import('./pages/vegetarian-personnel/StaffStats'))
+
+// 素食人员管理模块 V2版本（懒加载）
+const DashboardV2 = lazy(() => import('./pages/vegetarian-personnel-v2/DashboardV2'))
+const Comparison = lazy(() => import('./pages/vegetarian-personnel-v2/Comparison'))
 
 // 加载中的占位组件
 const LoadingFallback: React.FC = () => (
@@ -756,11 +761,43 @@ const App: React.FC = () => {
             } 
           />
           <Route 
+            path="vegetarian-personnel/customers/add" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerAdd />
+                </Suspense>
+              </RouteGuard>
+            } 
+          />
+          <Route 
             path="vegetarian-personnel/customers/:id" 
             element={
               <RouteGuard allowedRoles={['restaurant_admin']}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CustomerDetail />
+                </Suspense>
+              </RouteGuard>
+            } 
+          />
+          
+          {/* 素食人员管理 V2版本路由 */}
+          <Route 
+            path="vegetarian-personnel-v2/dashboard" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <DashboardV2 />
+                </Suspense>
+              </RouteGuard>
+            } 
+          />
+          <Route 
+            path="vegetarian-personnel-v2/comparison" 
+            element={
+              <RouteGuard allowedRoles={['restaurant_admin']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Comparison />
                 </Suspense>
               </RouteGuard>
             } 

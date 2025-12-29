@@ -36,6 +36,21 @@ export enum VegetarianReason {
   OTHER = 'other'             // 其他
 }
 
+// 数据质量等级
+export enum DataQuality {
+  PRECISE_DATE = 'precise_date',      // 精确日期
+  PRECISE_YEAR = 'precise_year',       // 精确年份
+  RANGE_ESTIMATE = 'range_estimate',  // 范围估算（仅客户）
+  INCOMPLETE = 'incomplete'           // 不完整
+}
+
+// 素食频率（仅客户）
+export enum VegetarianFrequency {
+  DAILY = 'daily',           // 每日
+  WEEKLY = 'weekly',         // 每周
+  OCCASIONAL = 'occasional'  // 偶尔
+}
+
 // 员工接口
 export interface Staff {
   _id?: string
@@ -53,6 +68,10 @@ export interface Staff {
     isVegetarian: boolean
     vegetarianType: StaffVegetarianType | string
     vegetarianStartYear?: number
+    vegetarianStartDate?: Date | string  // V2新增：精确的素食开始日期
+    dataQuality?: DataQuality | string   // V2新增：数据质量等级
+    lastVerifiedDate?: Date | string    // V2新增：最后验证日期
+    verificationStatus?: 'verified' | 'unverified' | 'needs_review'  // V2新增：验证状态
     vegetarianReason?: VegetarianReason | string
     notes?: string
   }
@@ -80,6 +99,11 @@ export interface Customer {
     vegetarianType: CustomerVegetarianType | string
     vegetarianYears: VegetarianYears | string
     vegetarianStartYear?: number
+    vegetarianStartDate?: Date | string  // V2新增：精确的素食开始日期
+    vegetarianFrequency?: VegetarianFrequency | string  // V2新增：素食频率
+    dataQuality?: DataQuality | string   // V2新增：数据质量等级
+    lastVerifiedDate?: Date | string      // V2新增：最后验证日期
+    verificationStatus?: 'verified' | 'unverified' | 'needs_review'  // V2新增：验证状态
     firstRecordDate: Date | string
     lastUpdateDate: Date | string
   }
@@ -116,6 +140,8 @@ export interface StaffFormData {
     isVegetarian: boolean
     vegetarianType?: StaffVegetarianType | string
     vegetarianStartYear?: number
+    vegetarianStartDate?: Date | string  // V2新增：精确的素食开始日期
+    dataQuality?: DataQuality | string   // V2新增：数据质量等级
     vegetarianReason?: VegetarianReason | string
     notes?: string
   }
@@ -136,6 +162,9 @@ export interface CustomerFormData {
     vegetarianType: CustomerVegetarianType | string
     vegetarianYears: VegetarianYears | string
     vegetarianStartYear?: number
+    vegetarianStartDate?: Date | string  // V2新增：精确的素食开始日期
+    vegetarianFrequency?: VegetarianFrequency | string  // V2新增：素食频率
+    dataQuality?: DataQuality | string   // V2新增：数据质量等级
   }
 }
 

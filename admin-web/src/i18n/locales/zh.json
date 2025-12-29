@@ -3661,8 +3661,18 @@
             "isVegetarian": "是否素食",
             "vegetarianType": "素食类型",
             "vegetarianStartYear": "素食开始年份",
+            "vegetarianStartDate": "素食开始日期",
+            "dataQuality": "数据质量",
             "actions": "操作"
           }
+        },
+        "tooltips": {
+          "preciseDate": "精确日期（V2版本优先使用）"
+        },
+        "dataQuality": {
+          "precise_date": "精确日期",
+          "precise_year": "精确年份",
+          "incomplete": "不完整"
         },
         "filters": {
           "search": "搜索姓名或员工ID"
@@ -3704,6 +3714,7 @@
             "isVegetarian": "是否素食",
             "vegetarianType": "素食类型",
             "vegetarianStartYear": "素食开始年份",
+            "vegetarianStartDate": "素食开始日期",
             "vegetarianReason": "素食原因",
             "notes": "备注"
           },
@@ -3713,9 +3724,14 @@
             "phone": "请输入11位手机号",
             "email": "请输入邮箱地址",
             "vegetarianType": "请选择素食类型",
-            "vegetarianStartYear": "例如：{{year}}",
+            "vegetarianStartDate": "请选择素食开始日期（推荐）",
+            "vegetarianStartYear": "例如：{{year}}（如果无法提供精确日期）",
             "vegetarianReason": "请选择素食原因",
             "notes": "请输入备注信息"
+          },
+          "tooltips": {
+            "vegetarianStartDate": "精确的素食开始日期，V2版本减碳计算将优先使用此字段",
+            "vegetarianStartYear": "如果无法提供精确日期，可以填写年份"
           },
           "rules": {
             "nameRequired": "请输入姓名",
@@ -3725,6 +3741,7 @@
             "joinDateRequired": "请选择入职日期",
             "vegetarianTypeRequired": "请选择素食类型",
             "vegetarianStartYearRequired": "请输入素食开始年份",
+            "vegetarianStartDateOrYearRequired": "请至少填写素食开始日期或年份",
             "yearRange": "年份应在 1900-{{year}} 之间"
           },
           "vegetarianTypes": {
@@ -3739,6 +3756,9 @@
             "faith": "信仰",
             "other": "其他"
           }
+        },
+        "tips": {
+          "preciseDate": "提示：填写精确的素食开始日期可以提高V2版本减碳计算的准确性"
         },
         "messages": {
           "noRestaurant": "请先选择餐厅",
@@ -3764,6 +3784,7 @@
             "isVegetarian": "是否素食",
             "vegetarianType": "素食类型",
             "vegetarianStartYear": "素食开始年份",
+            "vegetarianStartDate": "素食开始日期",
             "vegetarianReason": "素食原因",
             "notes": "备注"
           },
@@ -3773,9 +3794,14 @@
             "phone": "请输入11位手机号",
             "email": "请输入邮箱地址",
             "vegetarianType": "请选择素食类型",
-            "vegetarianStartYear": "例如：{{year}}",
+            "vegetarianStartDate": "请选择素食开始日期（推荐）",
+            "vegetarianStartYear": "例如：{{year}}（如果无法提供精确日期）",
             "vegetarianReason": "请选择素食原因",
             "notes": "请输入备注信息"
+          },
+          "tooltips": {
+            "vegetarianStartDate": "精确的素食开始日期，V2版本减碳计算将优先使用此字段",
+            "vegetarianStartYear": "如果无法提供精确日期，可以填写年份"
           },
           "rules": {
             "nameRequired": "请输入姓名",
@@ -3789,7 +3815,11 @@
             "joinDateRequired": "请选择入职日期",
             "vegetarianTypeRequired": "请选择素食类型",
             "vegetarianStartYearRequired": "请输入素食开始年份",
+            "vegetarianStartDateOrYearRequired": "请至少填写素食开始日期或年份",
             "yearRange": "年份应在 1900-{{year}} 之间"
+          },
+          "tips": {
+            "preciseDate": "提示：填写精确的素食开始日期可以提高V2版本减碳计算的准确性"
           },
           "vegetarianTypes": {
             "pure": "纯素",
@@ -3852,6 +3882,7 @@
       "customerList": {
         "title": "客户管理",
         "buttons": {
+          "add": "添加客户",
           "viewDetail": "查看详情"
         },
         "table": {
@@ -3862,10 +3893,21 @@
             "isVegetarian": "是否素食",
             "vegetarianType": "素食类型",
             "vegetarianYears": "素食年限",
+            "vegetarianStartDate": "素食开始日期",
+            "dataQuality": "数据质量",
             "totalOrders": "总订单数",
             "lastOrderDate": "最后消费日期",
             "actions": "操作"
           }
+        },
+        "tooltips": {
+          "preciseDate": "精确日期（V2版本优先使用）"
+        },
+        "dataQuality": {
+          "precise_date": "精确日期",
+          "precise_year": "精确年份",
+          "range_estimate": "范围估算",
+          "incomplete": "不完整"
         },
         "filters": {
           "search": "搜索客户ID或手机号",
@@ -3897,6 +3939,74 @@
         "yes": "是",
         "no": "否"
       },
+      "customerAdd": {
+        "title": "添加客户",
+        "buttons": {
+          "back": "返回",
+          "cancel": "取消",
+          "submit": "提交"
+        },
+        "form": {
+          "fields": {
+            "nickname": "昵称",
+            "phone": "手机号",
+            "isVegetarian": "是否素食",
+            "vegetarianType": "素食类型",
+            "vegetarianFrequency": "素食频率",
+            "vegetarianStartYear": "素食开始年份",
+            "vegetarianStartDate": "素食开始日期",
+            "vegetarianYears": "素食年限"
+          },
+          "placeholders": {
+            "nickname": "请输入客户昵称",
+            "phone": "请输入11位手机号",
+            "vegetarianType": "请选择素食类型",
+            "vegetarianFrequency": "请选择素食频率",
+            "vegetarianStartDate": "请选择素食开始日期（推荐）",
+            "vegetarianStartYear": "例如：{{year}}（如果无法提供精确日期）",
+            "vegetarianYears": "请选择素食年限（如果无法提供精确日期或年份）"
+          },
+          "tooltips": {
+            "vegetarianStartDate": "精确的素食开始日期，V2版本减碳计算将优先使用此字段",
+            "vegetarianStartYear": "如果无法提供精确日期，可以填写年份",
+            "vegetarianYears": "如果无法提供精确日期或年份，可以选择年限范围"
+          },
+          "rules": {
+            "phoneInvalid": "请输入正确的手机号码",
+            "vegetarianTypeRequired": "请选择素食类型",
+            "vegetarianStartDateOrYearOrYearsRequired": "请至少填写素食开始日期、年份或选择年限范围",
+            "yearRange": "年份应在 1900-{{year}} 之间"
+          },
+          "vegetarianTypes": {
+            "pure": "纯素",
+            "ovo_lacto": "蛋奶素",
+            "regular": "常态素食",
+            "occasional": "偶尔素食",
+            "other": "其他"
+          },
+          "vegetarianFrequency": {
+            "daily": "每日",
+            "weekly": "每周",
+            "occasional": "偶尔"
+          },
+          "vegetarianYears": {
+            "less_than_1": "1年以下",
+            "1_2": "1-2年",
+            "3_5": "3-5年",
+            "5_10": "5-10年",
+            "more_than_10": "10年以上"
+          }
+        },
+        "tips": {
+          "preciseDate": "提示：填写精确的素食开始日期可以提高V2版本减碳计算的准确性"
+        },
+        "messages": {
+          "noRestaurant": "请先选择餐厅",
+          "createSuccess": "客户创建成功",
+          "createFailed": "创建失败，请重试",
+          "networkError": "网络错误，请检查网络连接后重试"
+        }
+      },
       "customerDetail": {
         "title": "客户详情",
         "buttons": {
@@ -3917,6 +4027,9 @@
           "vegetarianType": "素食类型",
           "vegetarianYears": "素食年限",
           "vegetarianStartYear": "素食开始年份",
+          "vegetarianStartDate": "素食开始日期",
+          "vegetarianFrequency": "素食频率",
+          "dataQuality": "数据质量",
           "firstRecordDate": "首次记录日期",
           "lastUpdateDate": "最后更新日期",
           "totalOrders": "总订单数",
@@ -3940,6 +4053,17 @@
           "3_5": "3-5年",
           "5_10": "5-10年",
           "more_than_10": "10年以上"
+        },
+        "vegetarianFrequency": {
+          "daily": "每日",
+          "weekly": "每周",
+          "occasional": "偶尔"
+        },
+        "dataQuality": {
+          "precise_date": "精确日期",
+          "precise_year": "精确年份",
+          "range_estimate": "范围估算",
+          "incomplete": "不完整"
         },
         "tags": {
           "vegetarian": "素食",

@@ -1,0 +1,21 @@
+{
+  "name": "vegetarian-personnel-v2",
+  "version": "2.0.0",
+  "description": "素食人员减碳计算模型 V2版本 - 基于年限增长系数的科学计算模型",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test-v2-functions.js"
+  },
+  "keywords": [
+    "vegetarian",
+    "carbon",
+    "calculation",
+    "v2"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}
+

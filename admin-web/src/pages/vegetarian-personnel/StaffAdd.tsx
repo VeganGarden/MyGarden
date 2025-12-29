@@ -2,16 +2,16 @@
  * 添加员工页面
  */
 
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Card, Form, Input, Select, Button, Space, message, Row, Col, Switch } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
-import { useTranslation } from 'react-i18next'
-import { useAppSelector } from '@/store/hooks'
 import { staffAPI } from '@/services/vegetarianPersonnel'
+import { useAppSelector } from '@/store/hooks'
 import type { StaffFormData } from '@/types/vegetarianPersonnel'
-import { StaffVegetarianType, VegetarianReason } from '@/types/vegetarianPersonnel'
+import { DataQuality, StaffVegetarianType, VegetarianReason } from '@/types/vegetarianPersonnel'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Switch, message } from 'antd'
 import dayjs from 'dayjs'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 const StaffAddPage: React.FC = () => {
   const { t } = useTranslation()
@@ -30,6 +30,22 @@ const StaffAddPage: React.FC = () => {
     setLoading(true)
     try {
       const tenantId = currentTenant.id || currentTenant._id || ''
+      // 处理素食开始日期和年份
+      let vegetarianStartDate: string | undefined
+      let vegetarianStartYear: number | undefined
+      let dataQuality: DataQuality | undefined
+
+      if (isVegetarian && values.vegetarianStartDate) {
+        // 优先使用精确日期
+        vegetarianStartDate = dayjs(values.vegetarianStartDate).format('YYYY-MM-DD')
+        vegetarianStartYear = dayjs(values.vegetarianStartDate).year()
+        dataQuality = DataQuality.PRECISE_DATE
+      } else if (isVegetarian && values.vegetarianStartYear) {
+        // 使用年份
+        vegetarianStartYear = values.vegetarianStartYear
+        dataQuality = DataQuality.PRECISE_YEAR
+      }
+
       const formData: StaffFormData = {
         restaurantId: currentRestaurantId,
         tenantId: tenantId,
@@ -43,7 +59,9 @@ const StaffAddPage: React.FC = () => {
         vegetarianInfo: {
           isVegetarian: isVegetarian,
           vegetarianType: isVegetarian ? values.vegetarianType : undefined,
-          vegetarianStartYear: isVegetarian ? values.vegetarianStartYear : undefined,
+          vegetarianStartYear: vegetarianStartYear,
+          vegetarianStartDate: vegetarianStartDate,
+          dataQuality: dataQuality,
           vegetarianReason: isVegetarian ? values.vegetarianReason : undefined,
           notes: isVegetarian ? values.notes : undefined
         }
@@ -157,6 +175,7 @@ const StaffAddPage: React.FC = () => {
                   if (!checked) {
                     form.setFieldsValue({
                       vegetarianType: undefined,
+                      vegetarianStartDate: undefined,
                       vegetarianStartYear: undefined,
                       vegetarianReason: undefined,
                       notes: undefined
@@ -170,6 +189,12 @@ const StaffAddPage: React.FC = () => {
 
         {isVegetarian && (
           <>
+            <Alert
+              message={t('pages.vegetarianPersonnel.staffAdd.tips.preciseDate')}
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -185,13 +210,40 @@ const StaffAddPage: React.FC = () => {
                   </Select>
                 </Form.Item>
               </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="vegetarianStartDate"
+                  label={t('pages.vegetarianPersonnel.staffAdd.form.fields.vegetarianStartDate')}
+                  tooltip={t('pages.vegetarianPersonnel.staffAdd.form.tooltips.vegetarianStartDate')}
+                >
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    format="YYYY-MM-DD"
+                    disabledDate={(current) => current && current > dayjs().endOf('day')}
+                    placeholder={t('pages.vegetarianPersonnel.staffAdd.form.placeholders.vegetarianStartDate')}
+                  />
+                </Form.Item>
+              </Col>
               <Col span={12}>
                 <Form.Item
                   name="vegetarianStartYear"
                   label={t('pages.vegetarianPersonnel.staffAdd.form.fields.vegetarianStartYear')}
+                  tooltip={t('pages.vegetarianPersonnel.staffAdd.form.tooltips.vegetarianStartYear')}
                   rules={[
-                    { required: true, message: t('pages.vegetarianPersonnel.staffAdd.form.rules.vegetarianStartYearRequired') },
-                    { type: 'number', min: 1900, max: new Date().getFullYear(), message: t('pages.vegetarianPersonnel.staffAdd.form.rules.yearRange', { year: new Date().getFullYear() }) }
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!getFieldValue('vegetarianStartDate') && !value) {
+                          return Promise.reject(new Error(t('pages.vegetarianPersonnel.staffAdd.form.rules.vegetarianStartDateOrYearRequired')))
+                        }
+                        if (value && (value < 1900 || value > new Date().getFullYear())) {
+                          return Promise.reject(new Error(t('pages.vegetarianPersonnel.staffAdd.form.rules.yearRange', { year: new Date().getFullYear() })))
+                        }
+                        return Promise.resolve()
+                      }
+                    })
                   ]}
                 >
                   <Input 

@@ -5,10 +5,12 @@
 import { customerAPI } from '@/services/vegetarianPersonnel'
 import { useAppSelector } from '@/store/hooks'
 import type { Customer } from '@/types/vegetarianPersonnel'
-import { EyeOutlined } from '@ant-design/icons'
-import { Button, Card, Input, Select, Space, Table, Tag, message, Skeleton } from 'antd'
-import { useTranslation } from 'react-i18next'
+import { DataQuality } from '@/types/vegetarianPersonnel'
+import { formatDateWithQuality } from '@/utils/dateUtils'
+import { EyeOutlined, PlusOutlined } from '@ant-design/icons'
+import { Button, Card, Input, Select, Skeleton, Space, Table, Tag, Tooltip, message } from 'antd'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 const { Search } = Input
@@ -141,6 +143,44 @@ const CustomerListPage: React.FC = () => {
       }
     },
     {
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.vegetarianStartDate'),
+      dataIndex: ['vegetarianInfo', 'vegetarianStartDate'],
+      key: 'vegetarianStartDate',
+      render: (date: string | Date | undefined, record: Customer) => {
+        const { dateStr, isPrecise } = formatDateWithQuality(date, record.vegetarianInfo?.dataQuality)
+        if (dateStr === '-') return '-'
+        if (isPrecise) {
+          return (
+            <Tooltip title={t('pages.vegetarianPersonnel.customerList.tooltips.preciseDate')}>
+              <Tag color="green">{dateStr}</Tag>
+            </Tooltip>
+          )
+        }
+        return dateStr
+      }
+    },
+    {
+      title: t('pages.vegetarianPersonnel.customerList.table.columns.dataQuality'),
+      dataIndex: ['vegetarianInfo', 'dataQuality'],
+      key: 'dataQuality',
+      render: (quality: string | undefined) => {
+        if (!quality) return '-'
+        const qualityKey = `pages.vegetarianPersonnel.customerList.dataQuality.${quality}`
+        const translated = t(qualityKey)
+        const colorMap: Record<string, string> = {
+          [DataQuality.PRECISE_DATE]: 'green',
+          [DataQuality.PRECISE_YEAR]: 'blue',
+          [DataQuality.RANGE_ESTIMATE]: 'orange',
+          [DataQuality.INCOMPLETE]: 'red'
+        }
+        return (
+          <Tag color={colorMap[quality] || 'default'}>
+            {translated !== qualityKey ? translated : quality}
+          </Tag>
+        )
+      }
+    },
+    {
       title: t('pages.vegetarianPersonnel.customerList.table.columns.totalOrders'),
       dataIndex: ['consumptionStats', 'totalOrders'],
       key: 'totalOrders',
@@ -212,6 +252,15 @@ const CustomerListPage: React.FC = () => {
             <Select.Option value={true}>{t('pages.vegetarianPersonnel.customerList.filters.vegetarianCustomer')}</Select.Option>
             <Select.Option value={false}>{t('pages.vegetarianPersonnel.customerList.filters.nonVegetarianCustomer')}</Select.Option>
           </Select>
+        </Space>
+        <Space wrap>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/vegetarian-personnel/customers/add')}
+          >
+            {t('pages.vegetarianPersonnel.customerList.buttons.add')}
+          </Button>
         </Space>
       </div>
 
